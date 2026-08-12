@@ -1,0 +1,86 @@
+// La base — ce que porte le document avant qu'un composant n'existe.
+//
+// Elle ne style aucun composant : elle pose la page, la mesure, et le
+// comportement du texte. Tout le reste appartient au design system.
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  // Le défilement vers une ancre glisse au lieu de sauter — sauf pour qui a
+  // demandé moins d'animations au système.
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--parchemin);
+  color: var(--encre);
+  font-family: var(--fonte-corps);
+  font-size: var(--pas-0);
+  line-height: var(--interligne);
+  // Le rendu du texte reste au réglage du système : le forcer donne des
+  // déliés trop fins sur les écrans à faible densité.
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+// ── Le texte courant ──────────────────────────────────────────────────────
+
+p {
+  margin: 0 0 var(--espace-m);
+  // La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,
+  // une mesure étroite creuse des lézards entre les mots.
+  hyphens: auto;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--fonte-titre);
+  font-weight: 400;
+  line-height: 1.15;
+  // La géométrique de Jost respire mal en titre serré : on rend un peu d'air
+  // aux capitales sans aller jusqu'à l'interlettrage du livre.
+  letter-spacing: 0.01em;
+  margin: 0 0 var(--espace-m);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--pas-4);
+}
+h2 {
+  font-size: var(--pas-3);
+}
+h3 {
+  font-size: var(--pas-2);
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--or-profond);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+// La cible du clavier doit rester visible partout, y compris là où un
+// composant redéfinit ses couleurs.
+:focus-visible {
+  outline: 2px solid var(--or-profond);
+  outline-offset: 3px;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

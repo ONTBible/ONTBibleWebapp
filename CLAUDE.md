@@ -168,7 +168,10 @@ promettre. Ne pas les confondre.
 
 ## 6. Les ressources
 
-Dans `assets/` :
+Dans `public/images/` — et pas dans un `assets/` séparé : `public/` est le
+dossier que `cargo-leptos` recopie tel quel vers la racine du site, donc une
+image y est à la fois la source et le livrable. Un second dossier obligerait à
+synchroniser les deux, et l'un des deux finirait périmé.
 
 | fichier | usage |
 |---|---|

@@ -1,0 +1,108 @@
+// Les fontes embarquées.
+//
+// Toutes sous OFL, portées depuis `ONTBibleApp/app/Resources/Fonts/` par
+// `scripts/fontes.sh` — une seule source, un script rejouable. Leur texte de
+// licence part avec elles dans `public/fontes/`, ce que l'OFL exige.
+//
+// `font-display: swap` : le texte s'affiche immédiatement dans la fonte de
+// repli, puis bascule. L'inverse — attendre la fonte — donnerait une page
+// blanche sur un réseau lent, et c'est un site dont le propos est de se lire.
+
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Jost-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Jost";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Jost-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Jost-SemiBold.woff2") format("woff2");
+}
+
+// EB Garamond, en comparaison le temps que le corps du site soit tranché (§9).
+// Elle sort d'ici avec le script le jour de la décision.
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EBGaramond-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EBGaramond-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/EBGaramond-SemiBold.woff2") format("woff2");
+}
+
+// Literata, Frank Ruhl Libre et Ezra SIL ne servent qu'aux citations de l'ONT.
+// Elles pèsent l'essentiel du poids des fontes ; le navigateur ne les
+// téléchargera que sur une page qui en compose réellement une.
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Literata-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Literata-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Literata-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Frank Ruhl Libre";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fontes/FrankRuhlLibre-Medium.woff2") format("woff2");
+}
+
+// La seule fonte qui positionne correctement niqqud et te'amim. Restreinte au
+// bloc hébreu : sans cette borne, le navigateur la téléchargerait pour rendre
+// des lettres latines qu'elle dessine mal.
+@font-face {
+  font-family: "Ezra SIL";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EzraSIL.woff2") format("woff2");
+  unicode-range: U+0590-05FF, U+FB1D-FB4F, U+200F, U+2066-2069;
+}

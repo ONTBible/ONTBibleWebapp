@@ -1,0 +1,117 @@
+// Les jetons — la source unique de la forme.
+//
+// Rien de ce qui est ici ne se réécrit ailleurs. Un composant qui a besoin
+// d'une couleur ou d'un espacement prend un jeton ; s'il lui en faut un qui
+// n'existe pas, on l'ajoute ici plutôt que d'écrire une valeur dans un coin.
+//
+// Ce sont des propriétés personnalisées CSS et non des variables Sass, pour
+// deux raisons : elles survivent à la compilation, donc le thème sombre les
+// redéfinit sans dupliquer une seule règle ; et elles sont lisibles dans
+// l'inspecteur, ce qui rend le système vérifiable.
+
+:root {
+  // ── Couleurs ────────────────────────────────────────────────────────────
+  //
+  // Relevées au pixel sur le combination mark. Rien n'est inventé : ce sont
+  // les couleurs de la marque, et l'app compose déjà avec elles.
+
+  // L'aubergine — la marque, et le fond des cartes. Il l'appelle « le violet ».
+  --aubergine: #421b26;
+  --or: #cdbe83;
+  // L'or ne tient pas sur du parchemin : trop clair, il s'y dissout. Cette
+  // variante assombrie est celle qui sert sur fond clair.
+  --or-profond: #a6874f;
+
+  --parchemin: #faf5eb;
+  --encre: #29211c;
+
+  // Le terme important — l'aubergine éclaircie à teinte constante (343°).
+  //
+  // L'aubergine d'origine a un écart perceptuel de ΔE 18 avec l'encre : dans
+  // une ligne de texte, l'œil ne la distingue pas. Celle-ci est à ΔE 39, l'or
+  // à 44 — les deux marquages se détachent avec la même force, donc aucun ne
+  // prend le pas sur l'autre.
+  --important: #862742;
+
+  // ── Le texte, par niveaux (§2.1) ────────────────────────────────────────
+  //
+  // C'est la raison d'être de tout le pipeline. Les trois niveaux doivent
+  // rester distincts, et ces jetons sont ce qui les rend tels.
+  --niveau-1: var(--encre);
+  --niveau-2: color-mix(in srgb, var(--encre) 62%, transparent);
+  --intraduisible: var(--or-profond);
+  --terme-important: var(--important);
+
+  // ── Fontes ──────────────────────────────────────────────────────────────
+  //
+  // Deux voix, et elles ne se mélangent pas.
+  //
+  // Le **site** parle en Jost — la géométrique de l'édition imprimée et du
+  // combination mark. C'est la voix de la maison.
+  //
+  // Une **citation de l'ONT** parle en Literata et Ezra SIL : exactement les
+  // fontes de l'app. Un verset doit se lire ici comme sur le téléphone, sinon
+  // le lecteur voit deux traductions là où il n'y en a qu'une.
+  --fonte-titre: "Jost", "Helvetica Neue", sans-serif;
+  --fonte-corps: "Jost", "Helvetica Neue", sans-serif;
+  --fonte-citation: "Literata", "Iowan Old Style", Georgia, serif;
+  --fonte-hebreu: "Ezra SIL", "SBL Hebrew", serif;
+
+  // ── Échelle typographique ───────────────────────────────────────────────
+  //
+  // Une quarte juste (1,333) — l'intervalle qui donne des écarts nets sans
+  // que le titre écrase le corps. `clamp` fait varier la taille avec la
+  // fenêtre : pas de rupture, pas de point de bascule.
+  --pas-0: 1rem;
+  --pas--1: 0.8rem;
+  --pas-1: clamp(1.15rem, 1.05rem + 0.5vw, 1.333rem);
+  --pas-2: clamp(1.45rem, 1.25rem + 1vw, 1.777rem);
+  --pas-3: clamp(1.8rem, 1.4rem + 2vw, 2.369rem);
+  --pas-4: clamp(2.2rem, 1.5rem + 3.5vw, 3.157rem);
+
+  // L'interligne du corps. Une géométrique a une hauteur d'x basse : elle
+  // demande plus d'air qu'une romaine pour ne pas se tasser.
+  --interligne: 1.7;
+  // Les capitales espacées du livre imprimé — jamais sur du bas de casse, où
+  // l'interlettrage ne fait que disloquer le mot.
+  --interlettrage-capitales: 0.14em;
+
+  // ── Rythme vertical ─────────────────────────────────────────────────────
+  --espace-xs: 0.5rem;
+  --espace-s: 0.875rem;
+  --espace-m: 1.5rem;
+  --espace-l: 2.5rem;
+  --espace-xl: 4rem;
+  --espace-xxl: 7rem;
+
+  // ── Mesure ──────────────────────────────────────────────────────────────
+  //
+  // Les larges marges du livre. Au-delà de ~70 signes par ligne, l'œil perd
+  // le début de la ligne suivante — c'est la raison des marges d'un livre, et
+  // elle vaut à l'écran.
+  --mesure: 34rem;
+  --mesure-large: 58rem;
+
+  --filet: color-mix(in srgb, var(--encre) 22%, transparent);
+
+  color-scheme: light dark;
+}
+
+// Le thème sombre ne redéfinit que ce qui change de valeur — jamais une règle.
+// C'est ce que les propriétés personnalisées achètent : un thème coûte six
+// lignes, pas une seconde feuille de style.
+@mixin sombre {
+  --parchemin: #171417;
+  --encre: #e0dbd4;
+  // Sur fond sombre, l'or profond disparaît et le bordeaux clair aussi : les
+  // deux remontent en clarté à teinte constante.
+  --or-profond: var(--or);
+  --important: #d87994;
+  --filet: color-mix(in srgb, var(--encre) 20%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    @include sombre;
+  }
+}
