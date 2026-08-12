@@ -20,9 +20,9 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-                // La couleur de la barre du navigateur sur mobile — l'aubergine
-                // du logo, pour que le chrome ne coupe pas la page en deux.
-                <meta name="theme-color" content="#421B26" />
+                // La barre du navigateur sur mobile prend le fond de la page —
+                // sinon le chrome coupe la nuit en deux.
+                <meta name="theme-color" content="#18090D" />
                 <meta name="apple-mobile-web-app-title" content="La Bible ONT" />
 
                 // Deux favicons, et l'ordre compte : un navigateur qui comprend

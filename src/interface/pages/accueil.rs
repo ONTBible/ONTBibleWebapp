@@ -8,9 +8,9 @@ use crate::interface::tete::Tete;
 
 /// L'accueil — le principe, puis le verset du jour, puis les portes.
 ///
-/// Le principe est posé dans un bandeau d'aubergine plutôt que sur le
-/// parchemin : c'est la thèse du projet, et elle doit arriver comme une
-/// affirmation, pas comme un chapeau d'article.
+/// Le principe est posé dans un bandeau éclairé plutôt qu'à même la nuit :
+/// c'est la thèse du projet, et elle doit arriver comme une affirmation, pas
+/// comme un chapeau d'article.
 #[component]
 pub fn Accueil() -> impl IntoView {
     // `new_blocking` : le serveur attend la valeur et la pose dans le HTML.

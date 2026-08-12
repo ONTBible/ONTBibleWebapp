@@ -34,7 +34,7 @@ pub fn PageLegale(
                 "Dernière mise à jour : " {mise_a_jour}
             </p>
 
-            <div class="[&_a]:text-or-profond [&_li]:mb-2 [&_ul]:mb-6 [&_ul]:list-disc [&_ul]:ps-6">
+            <div class="[&_a]:text-accent [&_li]:mb-2 [&_ul]:mb-6 [&_ul]:list-disc [&_ul]:ps-6">
                 {children()}
             </div>
         </Section>

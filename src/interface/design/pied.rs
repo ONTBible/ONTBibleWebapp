@@ -15,7 +15,7 @@ pub fn PiedDePage() -> impl IntoView {
         <footer class="border-t border-filet px-6 py-12 text-sm text-encre-douce">
             <div class="mx-auto flex max-w-mesure-large flex-col items-center gap-8">
                 <div class="flex items-center gap-3">
-                    <span class="signe-montagne w-8 text-or-profond" aria-hidden="true"></span>
+                    <span class="signe-montagne w-8 text-accent" aria-hidden="true"></span>
                     <span class="uppercase tracking-capitales">"La Bible ONT"</span>
                 </div>
 

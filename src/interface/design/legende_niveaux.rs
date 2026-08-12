@@ -21,7 +21,7 @@ pub fn LegendeNiveaux() -> impl IntoView {
 
             <Niveau>
                 <Terme slot>
-                    <span class="font-semibold text-or-profond">"L'intraduisible"</span>
+                    <span class="font-semibold text-accent">"L'intraduisible"</span>
                 </Terme>
                 "Un mot qu'aucun mot français ne rend sans perte. Il reste en hébreu, en or — "
                 "et il mène à sa fiche. L'or promet une explication, et il la tient."

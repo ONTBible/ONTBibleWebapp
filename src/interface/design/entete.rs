@@ -16,7 +16,7 @@ pub fn Entete() -> impl IntoView {
         <header class="flex flex-col items-center gap-6 px-6 pt-10 text-center">
             <A
                 href="/fr"
-                attr:class="block text-or-profond"
+                attr:class="block text-accent"
                 attr:aria-label="La Bible ONT — accueil"
             >
                 <img

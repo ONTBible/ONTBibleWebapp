@@ -15,10 +15,10 @@ use crate::domaine::texte::{Noeud, Verset as VersetDomaine};
 #[component]
 pub fn Verset(verset: VersetDomaine) -> impl IntoView {
     view! {
-        <p class="font-citation text-lg leading-loose text-pretty">
+        <p class="font-corps text-lg leading-loose text-pretty">
             <span
                 aria-hidden="true"
-                class="me-[0.35em] align-[0.55em] text-[0.62em] text-or-profond"
+                class="me-[0.35em] align-[0.55em] text-[0.62em] text-accent"
             >
                 {verset.numero}
             </span>
@@ -38,7 +38,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         Noeud::Intraduisible { mot, lemme } => view! {
             <a
                 href=format!("/fr/lexique/{lemme}")
-                class="font-semibold text-or-profond decoration-or-profond/40"
+                class="font-semibold text-accent decoration-accent/40"
             >
                 {mot.clone()}
             </a>

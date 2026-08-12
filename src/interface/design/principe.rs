@@ -12,7 +12,7 @@ pub fn Principe(
     children: Children,
 ) -> impl IntoView {
     view! {
-        <p class="text-lg leading-relaxed text-pretty" class=("text-or-profond", chute)>
+        <p class="text-lg leading-relaxed text-pretty" class=("text-accent", chute)>
             {children()}
         </p>
     }

@@ -18,11 +18,11 @@ pub fn TitreDePage(
 ) -> impl IntoView {
     view! {
         <div class="mb-12 text-center">
-            <p class="mb-4 text-sm uppercase tracking-capitales text-or-profond">{rappel}</p>
+            <p class="mb-4 text-sm uppercase tracking-capitales text-accent">{rappel}</p>
             <h1 class="mb-0 font-titre">{titre}</h1>
             <div
                 aria-hidden="true"
-                class="mx-auto mt-8 flex w-32 items-center gap-3 text-or-profond \
+                class="mx-auto mt-8 flex w-32 items-center gap-3 text-accent \
                        before:h-px before:flex-1 before:bg-current/40 before:content-[''] \
                        after:h-px after:flex-1 after:bg-current/40 after:content-['']"
             >

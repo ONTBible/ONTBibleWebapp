@@ -23,7 +23,7 @@ pub fn Filet(
             <div
                 role="separator"
                 aria-hidden="true"
-                class="my-16 flex items-center gap-6 text-or-profond \
+                class="my-16 flex items-center gap-6 text-accent \
                        before:h-px before:flex-1 before:bg-filet before:content-[''] \
                        after:h-px after:flex-1 after:bg-filet after:content-['']"
             >

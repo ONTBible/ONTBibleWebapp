@@ -133,71 +133,75 @@ puis seulement rediriger la racine vers le site.
 pastiche : filets fins, capitales espacées, larges marges, papier plutôt
 qu'écran.
 
-### Couleurs — reprises du logo, pas inventées
+### Le site est une nuit d'aubergine
 
-| rôle | clair | sombre |
+Trois essais ont été nécessaires, et les deux premiers sont instructifs. Le
+site a d'abord suivi le thème du système : chez un lecteur en mode sombre, il
+retombait sur un gris quasi noir, sans matière — une page quelconque. On l'a
+alors interdit et posé le site sur du parchemin. Les deux manquaient la cible :
+**il le voulait sombre**, mais une aubergine, pas un noir.
+
+La rampe est **dérivée de la marque** — teinte constante 343°, celle de
+`#421B26` relevée au pixel, seule la clarté varie. Les valeurs sont calculées,
+pas choisies à l'œil ; la marque elle-même retombe sur `#411B26`, ce qui
+vérifie la dérivation.
+
+| jeton | valeur | rôle |
 |---|---|---|
-| aubergine (le fond des cartes, la marque) | `#421B26` | `#421B26` |
-| aubergine profonde (le bas des dégradés) | `#2A1018` | `#2A1018` |
-| or | `#CDBE83` | `#CDBE83` |
-| or profond (sur fond clair) | `#A6874F` | `#CDBE83` |
-| parchemin (le fond) | `#FAF5EB` | `#171417` |
-| surface (carte posée sur le fond) | `#FFFCF6` | `#252226` |
-| encre | `#29211C` | `#E0DBD4` |
-| terme important | `#862742` | `#D87994` |
-| titre de section | `#421B26` | `#CDBE83` |
+| `nuit` | `#18090D` | le fond de la page |
+| `surface` | `#261016` | une carte, une porte, une ligne |
+| `surface-haute` | `#35151E` | un bandeau, ce qu'on détache |
+| `aubergine` | `#421B26` | la marque, le haut des dégradés |
+| `or` / `accent` | `#CDBE83` | l'intraduisible, les titres de section, les filets |
+| `encre` | `#CFC5B9` | le corps — 11,4:1 |
+| `encre-vive` | `#EDE3D6` | un titre — 15,3:1 |
+| `encre-douce` | `#9D948B` | le niveau 2 — 6,5:1 |
+| `important` | `#D87994` | le terme important — 6,5:1 |
 
-Les opacités viennent de l'app, pas du jugé : le filet vaut l'encre à **10 %**
-(16 % sur fond sombre), le niveau 2 à **62 %**, la glose compose à **0,86 ×** le
-corps et l'hébreu à **1,08 ×**. Ce sont les valeurs d'`ONTColors` et
-d'`ONTTypography` — les reprendre à l'œil donnerait un site qui *ressemble* à
-l'app sans être elle.
+**Jamais de blanc pur**, et jamais un gris. La halation fait déborder un texte
+clair dans le noir qui l'entoure : les lettres paraissent plus grasses, vibrent
+et se doublent sur une dalle OLED. Descendre à 87 % supprime l'essentiel du
+halo sans rien coûter — on reste bien au-delà du seuil AAA. Et l'encre garde la
+chaleur du parchemin de l'app plutôt que de virer au gris de laboratoire.
 
-**« Un peu ancienne, un peu mystique »** — sa précision du 12 août. D'où trois
-utilitaires dans `style/main.css` :
+Trois conséquences dans `style/main.css`, et ce ne sont pas des goûts :
 
-- `voile-aubergine` — une lueur dorée haute, l'aubergine qui s'assombrit vers
-  le bas. La lumière semble venir d'au-dessus du texte, comme dans une nef.
-  Trois couches, pas une de plus : au-delà, un dégradé cesse d'être une
-  atmosphère et devient un effet.
-- `grain-page` — deux halos à 4 % sur le parchemin, fixes au défilement. Sous
-  les 4 %, l'œil ne l'identifie pas comme une couleur, il le lit comme une
-  matière.
-- `filigrane-montagne` — la montagne très grande et très pâle derrière un
-  bandeau. Elle n'est pas là pour être vue, elle est là pour qu'on sente qu'il
-  y a quelque chose.
+- `-webkit-font-smoothing: antialiased`. Il amincit les traits — sur fond clair
+  il les fait disparaître, sur fond sombre il compense exactement le
+  débordement optique. C'est le seul cas où il faut le forcer.
+- un souffle d'interlettrage (`0.006em`) : sur une nuit, les lettres claires se
+  rapprochent visuellement et finissent par se toucher.
+- `grain-page` — un bruit `feTurbulence` à 3,5 %. **Nécessité technique** : un
+  dégradé sombre étalé sur une page se découpe en bandes, parce qu'un écran
+  n'a que 256 valeurs par canal et que l'écart entre deux nuances de nuit est
+  plus petit que ça. Le bruit casse les bandes. Il donne au passage la matière
+  d'un papier ancien.
 
-L'aubergine `#421B26` est relevée **au pixel** sur le combination mark. Il
-l'appelle « le violet » — c'est bien cette couleur-là.
+Les filets sont **dorés à 18 %**, pas gris : sur une nuit chaude, un gris
+paraît sale.
 
-`#862742` mérite une explication : c'est l'aubergine **éclaircie à teinte
-constante** (343°). L'aubergine d'origine a un écart perceptuel de ΔE 18 avec
-l'encre — l'œil ne la distingue pas dans une ligne de texte. `#862742` est à
-ΔE 39, l'or à 44 : les deux marquages se détachent avec la même force.
+`voile-aubergine` donne la profondeur d'un bandeau — une lueur haute, la nuit
+qui reprend vers le bas, de sorte que la lumière semble venir d'au-dessus du
+texte, comme dans une nef. Trois couches et pas une de plus : au-delà, un
+dégradé cesse d'être une atmosphère et devient un effet.
 
-### Typographie — toutes OFL, déjà dans `ONTBibleApp/app/Resources/Fonts/`
-
-**Deux voix, et elles ne se mélangent pas** — sa décision du 12 août.
+### Typographie
 
 | rôle | fonte |
 |---|---|
-| **le site** — titres et corps | **Jost** — la géométrique de l'édition imprimée et du combination mark |
-| **une citation de l'ONT** — corps | **Literata**, exactement comme l'app |
-| **une citation de l'ONT** — hébreu | **Ezra SIL**, la seule qui positionne niqqud et te'amim |
+| titres, navigation, capitales | **Jost** — la géométrique du combination mark |
+| tout le reste, citations comprises | **Literata** — celle du corps de l'app |
+| hébreu | **Ezra SIL** — la seule qui positionne niqqud et te'amim |
 
-Un verset doit se lire ici comme sur le téléphone, sinon le lecteur voit deux
-traductions là où il n'y en a qu'une.
+**EB Garamond a été essayée puis retirée**, et il faut savoir pourquoi avant de
+la reproposer : c'est la lettre du livre imprimé classique, mais ses déliés
+très fins bavent sur fond sombre et ses empattements vibrent. C'est le défaut
+connu des romanes à fort contraste en mode sombre. Literata est dessinée pour
+l'écran, à faible contraste de graisse — et c'est déjà la fonte du corps de
+l'app, donc un verset cité ici se lit exactement comme sur le téléphone.
 
-**EB Garamond reste embarquée en comparaison**, le temps qu'il tranche pour le
-corps du site : un seul jeton à changer dans `style/main.css`. Le jour de la
-décision, la perdante sort de `scripts/fontes.sh`, du CSS et du dépôt — une
-fonte que plus aucune règle ne nomme est un fichier porté pour rien.
-
-**Licences** : Ezra SIL, Frank Ruhl Libre, EB Garamond, Literata, Spectral,
-Source Serif 4, Newsreader et Jost sont OFL — redistribuables. **SBL Hebrew
-relève d'un EULA propriétaire** et **Taamey Frank CLM d'une GPL dont
-l'exception ne couvre que les documents composés, pas un binaire** : ces deux
-là ne doivent jamais entrer dans un livrable web.
+Jost ne tient pas dix lignes de texte suivi : hauteur d'x basse, fûts égaux.
+Elle garde les titres, où sa géométrie fait écho à la marque.
 
 ### Les trois niveaux du texte — le cœur du projet
 
