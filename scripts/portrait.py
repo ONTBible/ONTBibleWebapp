@@ -1,98 +1,249 @@
 #!/usr/bin/env python3
 
-"""Reprend le détourage du portrait, depuis l'original.
+"""Détoure le portrait, depuis le fichier brut.
 
-## Le défaut
+    ./scripts/portrait.py [chemin/vers/IMG_3655.DNG]
 
-Le détourage a été fait sur un fond **blanc**, et les pixels de bord en ont
-gardé la couleur : leur moyenne est RGB(190, 180, 179) là où le sujet est à
-(115, 95, 85). Sur un fond clair ça ne se voit pas — le halo se confond avec la
-page. Sur une nuit d'aubergine, il dessine un liseré lumineux autour des
-cheveux et du col, et le sujet a l'air découpé aux ciseaux.
+## Pourquoi repartir du brut
 
-## La correction
+Les versions précédentes de ce script *réparaient* un détourage existant : la
+seule image disponible était déjà découpée, sur fond blanc, et ses pixels de
+bord en avaient gardé la couleur. On pouvait retirer cette contamination et
+réestimer l'opacité, mais pas inventer les mèches que la découpe avait mangées
+— l'information n'y était plus.
 
-Un pixel de bord observé est un mélange du sujet et du fond, pondéré par
-l'opacité :
+Avec le fichier brut, le fond est là. On ne répare plus, on détoure.
 
-    C = α·F + (1−α)·B          avec B = blanc
+## Le fond n'est pas uniforme
 
-On connaît C, α et B : on retrouve donc F.
+Le mur passe de 202 de luminance à hauteur de tête à 142 à hauteur d'épaule :
+un dégradé net, plus une inclinaison gauche-droite. Le soustraire comme une
+constante laisserait un halo en haut et rognerait en bas.
 
-    F = (C − (1−α)·B) / α
+Il est donc **modélisé** : pour chaque ligne, la médiane des pixels de la marge
+gauche et celle de la marge droite, interpolées entre les deux. Le mur étant
+visible sur toute la hauteur des deux côtés, le modèle est mesuré, pas deviné.
 
-C'est une **décontamination**, pas une retouche : on ne devine rien, on retire
-ce qui a été ajouté. Le calcul devient instable quand α tend vers zéro — la
-division amplifie le bruit — d'où le seuil en dessous duquel on préfère rendre
-le pixel franchement transparent.
+## De l'écart à l'opacité
 
-## Le rééchantillonnage
+L'écart au fond suffit pour les cheveux et la peau — ils sont cent points plus
+sombres que le mur. Il ne suffit pas partout : la chemise blanche n'est plus
+claire que le mur que de vingt à cinquante points, et certains plis l'égalent.
 
-Réduire une image à alpha droit fait baver les pixels transparents dans le
-sujet : leur couleur, qui ne devrait compter pour rien, entre dans la moyenne.
-On prémultiplie donc avant de réduire, et on démultiplie après. C'est la moitié
-du halo qu'on évite, et c'est gratuit.
+D'où un **trimap** plutôt qu'un seuil unique :
 
-    ./scripts/portrait.py
+- au-delà de l'écart franc, on est dans le sujet ;
+- les trous que cela laisse dans la chemise sont comblés — le sujet est d'un
+  seul tenant, un pli n'est pas un trou ;
+- sous l'écart du bruit du mur, on est dehors ;
+- entre les deux, l'opacité varie continûment. C'est là que vivent les mèches,
+  et c'est la seule zone où une valeur intermédiaire a un sens.
+
+## La décontamination
+
+Une fois l'opacité connue, la couleur du sujet se retrouve exactement :
+
+    C = α·F + (1−α)·B    donc    F = (C − (1−α)·B) / α
+
+B est le fond **modélisé**, pas une constante — c'est ce qui rend l'opération
+juste en haut comme en bas de l'image.
 """
 
 import pathlib
+import subprocess
+import sys
 
 import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 Image.MAX_IMAGE_PIXELS = None
 
-ORIGINAL = pathlib.Path(
-    "/Volumes/Workspace/Projectground/Doneground/CV/done/photo CV/export/pro.png"
-)
+BRUT = pathlib.Path.home() / "Downloads" / "IMG_3655.DNG"
 CIBLE = pathlib.Path(__file__).resolve().parent.parent / "public" / "images"
+TRAVAIL = pathlib.Path("/tmp/ont-portrait")
 
-# Le fond sur lequel le détourage a été fait.
-FOND = np.float32([255.0, 255.0, 255.0])
+# On travaille à demi-résolution : la sortie la plus large fait 1024 px, et
+# 2674 × 3566 laisse une marge confortable pour le rééchantillonnage final.
+REDUCTION = 2
 
-# En dessous, la division amplifie le bruit plus qu'elle ne récupère de sujet :
-# ces pixels ne portent presque rien et valent mieux transparents.
-SEUIL = 0.10
+# Les seuils d'écart au fond, en distance RGB. **Mesurés**, pas choisis :
+#
+#   résidu du modèle sur le mur seul   médiane 4, 99,9e centile 37, max 39
+#   écart sur le visage                10e centile 113, médiane 195
+#
+# BRUIT se pose donc juste au-dessus du pire résidu du mur, et FRANC bien en
+# dessous du plus faible écart du sujet. Entre les deux vivent les mèches, et
+# l'opacité y varie continûment.
+#
+# Le premier essai les avait fixés à 16 et 52, au jugé : la propagation
+# n'atteignait pas le mur, et le détourage rendait la photographie entière.
+BRUIT = 42.0
+FRANC = 95.0
 
-# Un resserrement de l'opacité. La décontamination corrige la *couleur* du
-# bord, pas son étendue : il reste une frange large de deux ou trois pixels,
-# héritée du flou de l'objectif sur les mèches fines. L'exposant la rend plus
-# franche sans manger les mèches elles-mêmes — au-delà de 1,3, les cheveux
-# commencent à se couper net et le détourage se voit.
-GAMMA = 1.2
+# Le cadrage final, en fractions de l'image redressée : tête et buste, et pas
+# au-delà. Un cadrage plus bas expose l'ombre creuse sous l'épaule gauche —
+# elle est dans la photographie, pas dans le détourage, mais sur un fond sombre
+# elle se lit comme une déchirure. Les proportions sont celles de la version
+# précédente, pour que le composant du site n'ait rien à changer.
+CADRE_HAUT = 0.015
+CADRE_BAS = 0.760
+PROPORTIONS = 640 / 892
 
-# Les largeurs servies. `sizes` dans le composant demande 14 rem — 224 px, donc
-# 448 en densité double. On monte à 640 pour couvrir une densité triple sans
-# fournir un fichier que personne ne charge.
 LARGEURS = [640, 1024]
 
+# WebP plutôt que PNG. Le PNG est sans perte, donc il conserve chaque grain de
+# la peau et chaque mèche : 1 665 Ko pour la version large. WebP à qualité 85
+# en fait 152 — **onze fois moins** — sans différence visible sur un portrait
+# de vingt rem, et en gardant la couche alpha, ce que JPEG ne sait pas faire.
+#
+# Aucun repli en PNG : tous les navigateurs lisent le WebP depuis 2020, et un
+# repli qu'on ne teste jamais est un fichier mort dans le dépôt.
+QUALITE = 85
 
-def decontamine(image: Image.Image) -> Image.Image:
-    """Retire le fond blanc de la couleur des pixels de bord."""
-    source = np.asarray(image, dtype=np.float32)
-    hauteur = source.shape[0]
-    sortie = np.empty_like(source)
 
-    # Par bandes : l'original fait 4910 × 6844, et le convertir d'un bloc en
-    # flottants demanderait plus d'un gigaoctet.
-    for haut in range(0, hauteur, 512):
-        bas = min(haut + 512, hauteur)
-        bande = source[haut:bas]
-        rgb, alpha = bande[..., :3], bande[..., 3:4] / 255.0
+def developpe(source: pathlib.Path) -> Image.Image:
+    """Développe le brut et redresse l'image.
 
-        sujet = np.where(alpha > 0, (rgb - (1.0 - alpha) * FOND) / np.maximum(alpha, 1e-6), rgb)
-        np.clip(sujet, 0.0, 255.0, out=sujet)
+    `sips` est le développeur de macOS : il applique le profil colorimétrique
+    et la balance des blancs inscrits dans le fichier, ce qu'un décodeur
+    générique ferait moins bien. La photo est prise en portrait mais stockée
+    couchée, tête à gauche — une rotation horaire la redresse.
+    """
+    TRAVAIL.mkdir(exist_ok=True)
+    intermediaire = TRAVAIL / "brut.png"
+    if not intermediaire.exists():
+        subprocess.run(
+            ["sips", "-s", "format", "png", str(source), "--out", str(intermediaire)],
+            check=True,
+            capture_output=True,
+        )
+    return Image.open(intermediaire).convert("RGB").transpose(Image.ROTATE_270)
 
-        opacite = np.where(alpha < SEUIL, 0.0, np.power(alpha, GAMMA))
-        sortie[haut:bas, :, :3] = sujet
-        sortie[haut:bas, :, 3:4] = opacite * 255.0
 
-    return Image.fromarray(sortie.round().astype(np.uint8), "RGBA")
+def modele_de_fond(a: np.ndarray) -> np.ndarray:
+    """Le mur, reconstruit sous le sujet.
+
+    Pour chaque ligne : la médiane de la marge gauche, celle de la marge
+    droite, et une interpolation entre les deux. La médiane plutôt que la
+    moyenne, pour qu'une poussière sur le mur ne déplace pas le modèle.
+    """
+    _, largeur, _ = a.shape
+    marge = max(8, largeur // 40)
+    gauche = np.median(a[:, :marge], axis=1)
+    droite = np.median(a[:, -marge:], axis=1)
+
+    # Un lissage vertical : le mur ne change pas d'une ligne à l'autre, et une
+    # médiane de marge peut sursauter là où le sujet frôle le bord.
+    gauche = ndimage.uniform_filter1d(gauche, 51, axis=0, mode="nearest")
+    droite = ndimage.uniform_filter1d(droite, 51, axis=0, mode="nearest")
+
+    t = np.linspace(0.0, 1.0, largeur, dtype=np.float32)[None, :, None]
+    return gauche[:, None, :] * (1.0 - t) + droite[:, None, :] * t
+
+
+def opacite(ecart: np.ndarray) -> np.ndarray:
+    """L'opacité, par trimap.
+
+    ## On cherche le fond, pas le sujet
+
+    Seuiller sur « ressemble au sujet » échoue là où le sujet ressemble au mur —
+    et c'est le cas d'un pli de chemise blanche dans l'ombre. Le premier essai
+    y perçait un trou en pleine épaule.
+
+    On raisonne donc à l'envers. Le mur est **connexe au bord de l'image** :
+    c'est vrai par construction d'une photographie de studio, et ce n'est vrai
+    d'aucune partie du sujet. On propage donc depuis les bords à travers les
+    pixels qui ressemblent au mur, et tout ce que la propagation n'atteint pas
+    appartient au sujet — quelle que soit sa couleur.
+
+    Un pli entouré de chemise n'est jamais atteint : il reste dans le sujet
+    sans qu'on ait à le deviner.
+    """
+    douce = np.clip((ecart - BRUIT) / (FRANC - BRUIT), 0.0, 1.0)
+
+    # La propagation depuis les bords, à travers ce qui ressemble au mur.
+    candidat = ecart < BRUIT
+    etiquettes, nombre = ndimage.label(candidat)
+    if nombre:
+        bords = np.concatenate(
+            [etiquettes[0], etiquettes[-1], etiquettes[:, 0], etiquettes[:, -1]]
+        )
+        atteintes = set(np.unique(bords)) - {0}
+        fond = np.isin(etiquettes, list(atteintes)) if atteintes else np.zeros_like(candidat)
+    else:
+        fond = np.zeros_like(candidat)
+
+    # Une **ouverture par reconstruction** du fond. La propagation s'infiltre
+    # dans le sujet par les passages étroits où la chemise a exactement la
+    # valeur du mur — un pli dans l'ombre, à l'épaule — et y creuse une baie,
+    # qui n'est pas un trou et que le remplissage ne rattrape donc pas.
+    #
+    # On érode le fond pour rompre ces filets, puis on le reconstruit dans ses
+    # propres limites : le mur, large, se rétablit entièrement ; l'infiltration,
+    # étroite, ne repousse pas.
+    graine = ndimage.binary_erosion(fond, np.ones((15, 15)))
+    fond = ndimage.binary_propagation(graine, mask=fond)
+
+    sujet = ~fond
+    sujet = ndimage.binary_closing(sujet, np.ones((9, 9)))
+    sujet = ndimage.binary_fill_holes(sujet)
+
+    # Une seule silhouette : les îlots restants sont des défauts du mur.
+    etiquettes, nombre = ndimage.label(sujet)
+    if nombre > 1:
+        tailles = ndimage.sum(sujet, etiquettes, range(1, nombre + 1))
+        sujet = etiquettes == (1 + int(np.argmax(tailles)))
+
+    # L'intérieur est opaque, mais on recule du bord : la frontière appartient
+    # à la bande douce, où les mèches se dessinent.
+    interieur = ndimage.binary_erosion(sujet, np.ones((9, 9)))
+
+    # Et hors de la silhouette élargie, rien n'appartient au sujet.
+    dehors = ~ndimage.binary_dilation(sujet, np.ones((25, 25)))
+
+    resultat = np.where(interieur, 1.0, douce)
+    return np.where(dehors, 0.0, resultat)
+
+
+def detoure(image: Image.Image) -> Image.Image:
+    a = np.asarray(
+        image.resize((image.width // REDUCTION, image.height // REDUCTION), Image.BOX),
+        dtype=np.float32,
+    )
+    fond = modele_de_fond(a)
+    alpha = opacite(np.linalg.norm(a - fond, axis=2))[..., None].astype(np.float32)
+
+    sujet = np.where(alpha > 0, (a - (1.0 - alpha) * fond) / np.maximum(alpha, 1e-6), a)
+    np.clip(sujet, 0.0, 255.0, out=sujet)
+
+    return Image.fromarray(
+        np.concatenate([sujet, alpha * 255.0], axis=2).round().astype(np.uint8), "RGBA"
+    )
+
+
+def cadre(image: Image.Image) -> Image.Image:
+    """Tête et buste, aux proportions de la version précédente."""
+    haut = round(image.height * CADRE_HAUT)
+    bas = round(image.height * CADRE_BAS)
+    largeur = round((bas - haut) * PROPORTIONS)
+
+    # Centré sur le sujet et non sur l'image : il n'est pas exactement au
+    # milieu du cadre d'origine.
+    colonnes = np.asarray(image)[haut:bas, :, 3].sum(axis=0, dtype=np.float64)
+    centre = int(np.average(np.arange(len(colonnes)), weights=colonnes + 1.0))
+    gauche = max(0, min(image.width - largeur, centre - largeur // 2))
+
+    return image.crop((gauche, haut, gauche + largeur, bas))
 
 
 def reduire(image: Image.Image, largeur: int) -> Image.Image:
-    """Réduit en prémultipliant, pour que le transparent ne bave pas."""
+    """Réduit en prémultipliant, pour que le transparent ne bave pas.
+
+    À alpha droit, la couleur des pixels transparents — qui ne devrait compter
+    pour rien — entre dans la moyenne du rééchantillonnage et rebave dans le
+    sujet. C'est la moitié d'un halo, évitée gratuitement.
+    """
     a = np.asarray(image, dtype=np.float32)
     alpha = a[..., 3:4] / 255.0
     premultiplie = np.concatenate([a[..., :3] * alpha, a[..., 3:4]], axis=2)
@@ -104,7 +255,6 @@ def reduire(image: Image.Image, largeur: int) -> Image.Image:
         ),
         dtype=np.float32,
     )
-
     alpha = reduit[..., 3:4] / 255.0
     couleur = np.where(alpha > 0, reduit[..., :3] / np.maximum(alpha, 1e-6), 0.0)
     np.clip(couleur, 0.0, 255.0, out=couleur)
@@ -114,36 +264,46 @@ def reduire(image: Image.Image, largeur: int) -> Image.Image:
 
 
 def mesure(image: Image.Image, nom: str) -> None:
-    a = np.asarray(image)
-    alpha = a[..., 3].astype(int)
-    bord = (alpha > 20) & (alpha < 235)
-    if not bord.any():
+    """L'écart entre les pixels de bord et le sujet, dans la région des cheveux.
+
+    C'est la mesure qui compte : un contour plus clair que les cheveux qu'il
+    borde ne peut venir que du fond.
+    """
+    a = np.asarray(image).astype(np.float32)
+    haut = a[: a.shape[0] // 3]
+    al = haut[..., 3] / 255.0
+    bord = (al > 0.05) & (al < 0.9)
+    plein = al > 0.98
+    if not (bord.any() and plein.any()):
         return
-    contour = a[..., :3][bord].mean(axis=0)
-    sujet = a[..., :3][alpha == 255].mean(axis=0)
-    ecart = contour.mean() - sujet.mean()
-    print(f"  {nom:22} contour {contour.round(0)}  sujet {sujet.round(0)}  écart {ecart:+.0f}")
+    c, s = haut[..., :3][bord].mean(), haut[..., :3][plein].mean()
+    print(f"  {nom:16} bord {c:6.1f} | cheveux {s:6.1f} | écart {c - s:+6.1f} | {int(bord.sum())} px")
 
 
 def main() -> None:
-    if not ORIGINAL.exists():
-        raise SystemExit(f"original introuvable : {ORIGINAL}")
+    source = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else BRUT
+    if not source.exists():
+        raise SystemExit(f"fichier brut introuvable : {source}")
 
-    print("→ lecture de l'original")
-    original = Image.open(ORIGINAL).convert("RGBA")
-    mesure(original, "avant")
+    print("→ développement du brut")
+    photo = developpe(source)
+    print(f"  {photo.width} × {photo.height}")
 
-    print("→ décontamination")
-    propre = decontamine(original)
-    mesure(propre, "après")
+    print("→ détourage")
+    decoupe = cadre(detoure(photo))
+    mesure(decoupe, "détouré")
 
     for largeur in LARGEURS:
-        reduit = reduire(propre, largeur)
-        fichier = CIBLE / f"portrait-{largeur}.png"
-        reduit.save(fichier, optimize=True)
+        reduit = reduire(decoupe, largeur)
+        fichier = CIBLE / f"portrait-{largeur}.webp"
+        # `method=6` : l'encodage le plus lent et le plus efficace. Il tourne
+        # une fois, à la main ; la seconde qu'il coûte ne coûte rien.
+        reduit.save(fichier, "WEBP", quality=QUALITE, method=6)
         mesure(reduit, f"portrait-{largeur}")
-        print(f"  → {fichier.name}  {reduit.size[0]}×{reduit.size[1]}  "
-              f"{fichier.stat().st_size // 1024} Ko")
+        print(
+            f"  → {fichier.name}  {reduit.size[0]}×{reduit.size[1]}  "
+            f"{fichier.stat().st_size // 1024} Ko"
+        )
 
 
 if __name__ == "__main__":

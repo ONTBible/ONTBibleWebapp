@@ -141,8 +141,8 @@ pub fn Accueil() -> impl IntoView {
             <div class="md:grid md:grid-cols-[auto_1fr] md:items-end md:gap-10">
                 <div class="mx-auto w-52 md:mx-0 md:w-60 lg:-ml-40 lg:w-80">
                     <Portrait
-                        source="/images/portrait-640.png"
-                        source_large="/images/portrait-1024.png"
+                        source="/images/portrait-640.webp"
+                        source_large="/images/portrait-1024.webp"
                         texte="Gloire Bikouta"
                         largeur_rendue="(min-width: 64rem) 20rem, (min-width: 48rem) 15rem, 13rem"
                     />

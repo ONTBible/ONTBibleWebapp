@@ -324,7 +324,7 @@ synchroniser les deux, et l'un des deux finirait périmé.
 | `wordmark.svg` | « La Bible ONT » et מקרא הקדם |
 | `combination-mark.svg` | les deux, séparés par un filet |
 | `montagne-512.png` | repli de favicon, pour les navigateurs sans SVG |
-| `portrait-640.png`, `portrait-1024.png` | Gloire Bikouta, détouré sur transparence |
+| `portrait-640.webp`, `portrait-1024.webp` | Gloire Bikouta, détouré depuis le brut |
 
 Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, qui est
 idempotent : à relancer après chaque nouvel export, sans réfléchir. Il pose la
@@ -339,9 +339,31 @@ L'or exporté par Affinity vaut `#CFBD7A`, pas `#CDBE83` — un décalage de pro
 colorimétrique. C'est le second qui fait foi : il est relevé au pixel sur le
 rendu de la marque.
 
-Le portrait est un détourage propre sur alpha ; sur l'aubergine, la chemise
-blanche tranche fort et le bas se dissout. Original en 4910×6844 dans
-`Doneground/CV/done/photo CV/export/pro.png` si besoin d'un autre cadrage.
+Le portrait est détouré **depuis le fichier brut** — `~/Downloads/IMG_3655.DNG`,
+5348 × 7132 — par `scripts/portrait.py`. Ce fichier n'est pas dans le dépôt :
+gardez-le, c'est la seule source. `Doneground/CV/done/photo CV/export/pro.png`
+est un ancien détourage sur fond blanc, désormais inutile.
+
+Le script mesure au lieu de supposer. Le mur n'est pas uniforme — 202 de
+luminance à hauteur de tête, 142 à hauteur d'épaule — donc il est **modélisé**
+ligne par ligne depuis les deux marges. Les seuils viennent de mesures : le
+résidu du modèle sur le mur plafonne à 39, l'écart sur le visage commence à
+113 ; on prend 42 et 95, et les mèches vivent entre les deux.
+
+Et l'opacité se calcule **en cherchant le fond, pas le sujet**. Seuiller sur
+« ressemble au sujet » perce un trou dans la chemise blanche là où un pli a la
+valeur du mur. Le mur, lui, est connexe au bord de l'image — ce qu'aucune
+partie du sujet n'est. On propage donc depuis les bords, et tout ce qui n'est
+pas atteint appartient au sujet.
+
+Le cadrage s'arrête au buste : plus bas, l'ombre creuse sous l'épaule gauche se
+lit comme une déchirure sur fond sombre. Elle est dans la photographie, pas
+dans le détourage.
+
+Sortie en **WebP à qualité 85** : 152 Ko contre 1 665 en PNG, onze fois moins,
+sans différence visible et en gardant l'alpha. Pas de repli PNG — tous les
+navigateurs lisent le WebP depuis 2020, et un repli qu'on ne teste jamais est
+un fichier mort.
 
 La montagne existe aussi en catalogue d'assets 1×/2×/3× dans
 `ONTBibleApp/app/Packages/ONTDesignSystem/Sources/ONTDesignSystem/Resources/`.
