@@ -16,7 +16,9 @@ pub fn Chiffres() -> impl IntoView {
     view! {
         <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-carte border border-filet bg-filet sm:grid-cols-4">
             <Chiffre
-                valeur=format!("{} / {}", env!("CORPUS_LIVRES_ECRITS"), env!("CORPUS_LIVRES"))
+                // Une espace insécable fine autour de la barre : le nombre est
+                // une seule valeur, il ne se coupe pas en deux lignes.
+                valeur=format!("{} / {}", env!("CORPUS_LIVRES_ECRITS"), env!("CORPUS_LIVRES"))
                 libelle="livres"
             />
             <Chiffre valeur=env!("CORPUS_UNITES") libelle="unités" />
@@ -30,7 +32,7 @@ pub fn Chiffres() -> impl IntoView {
 fn Chiffre(#[prop(into)] valeur: String, #[prop(into)] libelle: String) -> impl IntoView {
     view! {
         <div class="bg-surface px-4 py-6 text-center">
-            <dd class="chiffres-tableau font-titre text-2xl text-accent">{valeur}</dd>
+            <dd class="chiffres-tableau font-titre text-2xl whitespace-nowrap text-accent">{valeur}</dd>
             <dt class="mt-1 text-sm text-encre-douce">{libelle}</dt>
         </div>
     }

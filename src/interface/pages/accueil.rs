@@ -129,17 +129,28 @@ pub fn Accueil() -> impl IntoView {
         // ── Qui écrit ─────────────────────────────────────────────────────
         <Bloc>
             <TitreDeSection numero="V" titre="Qui traduit" />
-            <div class="sm:flex sm:items-start sm:gap-8">
-                <div class="sm:w-44 sm:shrink-0">
+            // Le portrait sort de la colonne de lecture par la gauche.
+            //
+            // La mesure borne le **texte** ; elle n'a aucune raison de borner
+            // une image, et la marge du site est de toute façon vide. Sur grand
+            // écran, le portrait s'y avance et gagne le tiers de taille qui lui
+            // manquait, sans que la ligne de texte s'allonge d'un signe.
+            //
+            // En dessous, il n'y a plus de marge à occuper : il repasse dans la
+            // colonne, puis au-dessus du texte sur téléphone.
+            <div class="md:grid md:grid-cols-[auto_1fr] md:items-end md:gap-10">
+                <div class="mx-auto w-52 md:mx-0 md:w-60 lg:-ml-40 lg:w-80">
                     <Portrait
                         source="/images/portrait-640.png"
                         source_large="/images/portrait-1024.png"
                         texte="Gloire Bikouta"
+                        largeur_rendue="(min-width: 64rem) 20rem, (min-width: 48rem) 15rem, 13rem"
                     />
                 </div>
-                <div>
-                    <p>
-                        "Gloire Bikouta. Ni chercheur, ni chaire, ni juif du Second Temple."
+                <div class="mt-8 md:mt-0 md:pb-4">
+                    <p class="font-titre text-xl text-encre-vive">"Gloire Bikouta"</p>
+                    <p class="mt-4">
+                        "Ni chercheur, ni chaire, ni juif du Second Temple."
                     </p>
                     <p>
                         "Il ne fait pas une traduction de plus. Il restitue — et il laisse "

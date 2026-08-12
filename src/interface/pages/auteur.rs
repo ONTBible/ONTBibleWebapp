@@ -32,11 +32,14 @@ pub fn Auteur() -> impl IntoView {
             // répétait le nom deux lignes plus bas — un titre qui n'apprend
             // rien, suivi d'une redite.
             <TitreDePage rappel="L'auteur" titre="Gloire Bikouta" />
-            <Portrait
-                source="/images/portrait-640.png"
-                source_large="/images/portrait-1024.png"
-                texte="Gloire Bikouta"
-            />
+            <div class="mx-auto w-64 sm:w-80">
+                <Portrait
+                    source="/images/portrait-640.png"
+                    source_large="/images/portrait-1024.png"
+                    texte="Gloire Bikouta"
+                    largeur_rendue="(min-width: 40rem) 20rem, 16rem"
+                />
+            </div>
 
             <Principe>
                 "Je ne suis pas un chercheur. Je n'ai pas de chaire. "

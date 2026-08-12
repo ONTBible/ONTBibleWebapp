@@ -1,20 +1,27 @@
 use leptos::prelude::*;
 
-/// Un portrait, inscrit dans une arche.
+/// Un portrait détouré, sans cadre.
 ///
-/// ## Pourquoi une arche et non une vignette flottante
+/// ## Pourquoi pas de cadre
 ///
-/// Détouré sur transparence et posé à même la page, le sujet a l'air d'un
-/// autocollant — et sa chemise blanche fait une masse lumineuse au milieu
-/// d'une nuit. L'arche règle les deux : elle borne la clarté, et elle donne au
-/// portrait le statut qu'il a dans un livre ancien, celui d'une niche.
+/// La version précédente l'inscrivait dans une arche bordée d'un filet d'or.
+/// L'intention était de borner la clarté de la chemise ; l'effet était de
+/// **l'enfermer dans une boîte** posée sur la page, et le rectangle se voyait
+/// plus que le sujet.
 ///
-/// C'est aussi là que se joue « ancien mais moderne » : la forme est celle
-/// d'un portrait gravé, le trait est un filet d'or d'un pixel et le fond une
-/// surface unie. Aucune ornementation, une seule idée de forme.
+/// Ce qui remplace le cadre est une **lueur** — un halo d'aubergine derrière
+/// les épaules, flou et sans contour. Il fait le même travail (donner un fond
+/// au sujet pour qu'il ne flotte pas dans le vide) sans rien dessiner : on ne
+/// voit pas d'où vient la lumière, seulement qu'il y en a une.
 ///
-/// Le bas se dissout dans le fond de l'arche plutôt que d'être coupé net : le
-/// détourage laisse le vêtement s'effilocher, autant en faire une intention.
+/// Le bas se dissout dans la nuit. Le détourage laisse le vêtement
+/// s'effilocher ; autant en faire une intention plutôt qu'une coupure nette.
+///
+/// ## La taille vient du parent
+///
+/// Ce composant remplit la largeur qu'on lui donne. C'est ce qui permet au même
+/// portrait d'être une vignette dans une colonne et une pleine figure dans une
+/// marge, sans multiplier les variantes.
 #[component]
 pub fn Portrait(
     /// Les deux tailles disponibles, laissées au navigateur : il prend celle
@@ -23,31 +30,28 @@ pub fn Portrait(
     source: String,
     #[prop(into)] source_large: String,
     #[prop(into)] texte: String,
+    /// Ce que le navigateur doit réserver comme largeur d'affichage.
+    #[prop(into, default = "22rem".to_string())]
+    largeur_rendue: String,
 ) -> impl IntoView {
     view! {
-        <figure class="mx-auto w-56 max-w-full">
-            // Le cadre impose ses proportions et l'image le remplit en se
-            // recadrant : la photo a de la marge au-dessus de la tête, et
-            // affichée telle quelle dans une niche, le visage y paraît petit
-            // et lointain. Le cadrage est calé un peu au-dessus du centre,
-            // là où se trouvent les yeux.
-            <div class="relative isolate aspect-[4/5] overflow-hidden rounded-t-full rounded-b-carte border border-or/25 bg-surface">
-                // Une lueur au sommet de l'arche — la même lumière que celle
-                // des bandeaux, pour que le portrait appartienne à la page.
-                <div
-                    aria-hidden="true"
-                    class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,color-mix(in_srgb,var(--color-or)_10%,transparent),transparent_70%)]"
-                ></div>
-                <img
-                    src=source.clone()
-                    srcset=format!("{source} 640w, {source_large} 1024w")
-                    sizes="14rem"
-                    alt=texte
-                    width="640"
-                    height="892"
-                    class="fondu-bas block h-full w-full object-cover object-[center_22%]"
-                />
-            </div>
+        <figure class="relative isolate m-0">
+            // La lueur, pas un cadre. Elle déborde le sujet de tous côtés et
+            // s'éteint avant le bord : c'est ce flou qui la rend crédible comme
+            // lumière plutôt que comme forme.
+            <div
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-[-12%] -z-10 rounded-[50%] bg-[radial-gradient(ellipse_at_50%_42%,var(--color-surface-haute),transparent_68%)] blur-2xl"
+            ></div>
+            <img
+                src=source.clone()
+                srcset=format!("{source} 640w, {source_large} 1024w")
+                sizes=largeur_rendue
+                alt=texte
+                width="640"
+                height="892"
+                class="fondu-bas block h-auto w-full"
+            />
         </figure>
     }
 }

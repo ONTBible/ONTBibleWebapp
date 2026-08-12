@@ -203,6 +203,31 @@ l'app, donc un verset cité ici se lit exactement comme sur le téléphone.
 Jost ne tient pas dix lignes de texte suivi : hauteur d'x basse, fûts égaux.
 Elle garde les titres, où sa géométrie fait écho à la marque.
 
+### Le portrait — pas de cadre, et il sort de la colonne
+
+Deux erreurs successives, et la seconde était plus subtile que la première.
+
+La photo flottait à même la page, détourée : elle avait l'air d'un autocollant,
+et la chemise blanche faisait une masse lumineuse. On l'a donc inscrite dans une
+arche bordée d'un filet d'or — ce qui l'a **enfermée dans une boîte**. Le
+rectangle se voyait plus que le sujet.
+
+Ce qui remplace le cadre est une **lueur** : un halo d'aubergine flou derrière
+les épaules, sans contour. Il fait le même travail — donner un fond au sujet
+pour qu'il ne flotte pas — sans rien dessiner. On ne voit pas d'où vient la
+lumière, seulement qu'il y en a une. Le bas continue de se dissoudre dans la
+nuit (`fondu-bas`) : le détourage laisse le vêtement s'effilocher, autant en
+faire une intention.
+
+Et le portrait **sort de la colonne de lecture** par la gauche
+(`lg:-ml-40 lg:w-80`). La mesure borne le *texte* ; elle n'a aucune raison de
+borner une image, et la marge du site est vide. Il y gagne le tiers de taille
+qui lui manquait sans que la ligne de texte s'allonge d'un signe. En dessous de
+`lg` il n'y a plus de marge à occuper : il repasse dans la colonne, puis
+au-dessus du texte sur téléphone.
+
+C'est le patron à réutiliser pour toute image du site.
+
 ### L'échelle typographique
 
 Le corps est à **21 px**, pas à 16. Deux effets se cumulent : Literata a une
