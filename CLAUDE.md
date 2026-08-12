@@ -203,6 +203,24 @@ l'app, donc un verset cité ici se lit exactement comme sur le téléphone.
 Jost ne tient pas dix lignes de texte suivi : hauteur d'x basse, fûts égaux.
 Elle garde les titres, où sa géométrie fait écho à la marque.
 
+### L'échelle typographique
+
+Le corps est à **19 px**, pas à 16. Deux raisons qui se cumulent : Literata a
+une hauteur d'x généreuse mais une chasse étroite, et sur une nuit d'aubergine
+le texte clair paraît plus petit qu'il ne l'est — l'inverse de la halation, qui
+l'épaissit sans l'agrandir. Les deux premiers essais composaient à 17 et 18 px
+et se lisaient comme des notes de bas de page.
+
+| | |
+|---|---|
+| `text-sm` | 15 px — capitales espacées, légendes |
+| `text-base` | **19 px** — le corps |
+| `text-lg` → `text-3xl` | quarte juste, en `clamp` |
+
+La mesure ne bouge pas : à 19 px, 34 rem tiennent environ 57 signes par ligne.
+C'est le bas de la fourchette confortable (55 à 75), et c'est le côté qu'il
+préfère — il a explicitement demandé l'étroit après avoir vu le large.
+
 ### Un écran par bloc
 
 Chaque `Bloc` occupe au moins la hauteur de la fenêtre, contenu centré. Sans

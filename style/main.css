@@ -83,15 +83,26 @@
   --font-hebreu: "Ezra SIL", serif;
 
   /* ── Échelle typographique ───────────────────────────────────────────────
+
      Une quarte juste (1,333). `clamp` fait varier la taille avec la fenêtre :
      pas de rupture, pas de point de bascule. Les noms de Tailwind sont
-     conservés — qui connaît Tailwind lit la classe sans venir ici.          */
-  --text-sm: 0.8125rem;
-  --text-base: 1rem;
-  --text-lg: clamp(1.15rem, 1.05rem + 0.5vw, 1.333rem);
-  --text-xl: clamp(1.45rem, 1.25rem + 1vw, 1.777rem);
-  --text-2xl: clamp(1.8rem, 1.4rem + 2vw, 2.369rem);
-  --text-3xl: clamp(2.2rem, 1.5rem + 3.5vw, 3.157rem);
+     conservés — qui connaît Tailwind lit la classe sans venir ici.
+
+     Le corps est à **19 px**, pas à 16. Deux raisons qui se cumulent :
+     Literata a une hauteur d'x généreuse mais une chasse étroite, et sur une
+     nuit d'aubergine le texte clair paraît plus petit qu'il ne l'est —
+     l'inverse de la halation, qui l'épaissit sans l'agrandir. Le premier essai
+     composait à 17 px et se lisait comme des notes de bas de page.
+
+     La mesure ne bouge pas : à 19 px, 34 rem tiennent environ 57 signes par
+     ligne. C'est le bas de la fourchette confortable (55 à 75), et c'est le
+     côté qu'il préfère.                                                     */
+  --text-sm: 0.9375rem;
+  --text-base: 1.1875rem;
+  --text-lg: clamp(1.35rem, 1.2rem + 0.6vw, 1.583rem);
+  --text-xl: clamp(1.7rem, 1.45rem + 1.2vw, 2.11rem);
+  --text-2xl: clamp(2.1rem, 1.6rem + 2.4vw, 2.813rem);
+  --text-3xl: clamp(2.6rem, 1.85rem + 3.8vw, 3.75rem);
 
   /* Les capitales espacées du livre imprimé — jamais sur du bas de casse, où
      l'interlettrage ne fait que disloquer le mot. */
@@ -198,7 +209,7 @@
     background: var(--color-nuit);
     color: var(--color-encre);
     font-family: var(--font-corps);
-    font-size: 1.0625rem;
+    font-size: var(--text-base);
     line-height: 1.75;
     /* Deux corrections de halation, et elles vont ensemble.
 
