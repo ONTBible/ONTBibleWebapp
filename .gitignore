@@ -1,5 +1,10 @@
 node_modules/
 dist/
+target/
 .DS_Store
 *.log
 .env
+
+# Sorties de cargo-leptos
+/pkg/
+/end2end/node_modules/
