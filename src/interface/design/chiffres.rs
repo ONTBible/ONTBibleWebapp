@@ -30,7 +30,7 @@ pub fn Chiffres() -> impl IntoView {
 fn Chiffre(#[prop(into)] valeur: String, #[prop(into)] libelle: String) -> impl IntoView {
     view! {
         <div class="bg-surface px-4 py-6 text-center">
-            <dd class="font-titre text-2xl text-accent">{valeur}</dd>
+            <dd class="chiffres-tableau font-titre text-2xl text-accent">{valeur}</dd>
             <dt class="mt-1 text-sm text-encre-douce">{libelle}</dt>
         </div>
     }

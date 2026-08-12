@@ -34,6 +34,7 @@ mod pied;
 mod portrait;
 mod principe;
 mod titre_de_page;
+mod titre_de_section;
 mod verset;
 
 pub use bloc::Bloc;
@@ -53,4 +54,5 @@ pub use pied::PiedDePage;
 pub use portrait::Portrait;
 pub use principe::Principe;
 pub use titre_de_page::TitreDePage;
+pub use titre_de_section::TitreDeSection;
 pub use verset::Verset;

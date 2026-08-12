@@ -203,6 +203,30 @@ l'app, donc un verset cité ici se lit exactement comme sur le téléphone.
 Jost ne tient pas dix lignes de texte suivi : hauteur d'x basse, fûts égaux.
 Elle garde les titres, où sa géométrie fait écho à la marque.
 
+### « Ancienne mais moderne » — où ça se joue
+
+L'ancien donne la **structure**, le moderne donne la **retenue**. Chaque fois
+qu'un signe ancien est employé, il l'est sans ornementation : c'est ce contraste
+qui empêche la page de virer à l'antiquaire.
+
+| le signe, ancien | l'exécution, moderne |
+|---|---|
+| chiffres romains sur les sections (`TitreDeSection`) | un chiffre, un filet court, beaucoup d'air — ni cartouche ni enluminure |
+| lettrine sur trois lignes (`lettrine`) | une lettre d'or dans la fonte des titres, sans fond ni cadre |
+| chiffres elzéviriens dans le texte | et chiffres alignés de chasse fixe dans les tableaux — une colonne n'est pas une phrase |
+| ponctuation suspendue | `hanging-punctuation`, que le navigateur fait seul |
+| portrait en arche, comme une gravure | un filet d'or d'un pixel, une surface unie, un recadrage net |
+
+Deux pièges rencontrés, à ne pas refaire :
+
+- `::first-letter` **embarque la ponctuation qui précède**. Un paragraphe qui
+  commence par un guillemet met donc le guillemet dans la lettrine — et la
+  ponctuation suspendue le jette dans la marge par-dessus. Les paragraphes à
+  lettrine commencent par une lettre.
+- Un filigrane de montagne trop grand et rogné par son cadre ne se lit plus
+  comme une montagne : c'est du bruit. Il n'en reste qu'un, dans le `Hero`, à
+  6 % et débordant par le haut de sorte qu'on lise une crête.
+
 ### Les trois niveaux du texte — le cœur du projet
 
 Si le site affiche du corpus, il doit les rendre **distincts**. C'est la

@@ -1,7 +1,10 @@
 use leptos::prelude::*;
 
 use crate::api::verset_du_jour;
-use crate::interface::design::{Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait};
+use crate::interface::design::{
+    Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait,
+    TitreDeSection,
+};
 use crate::interface::echantillon::{bereshit_1_1, SEGOND_1910, SEGOND_SOURCE};
 use crate::interface::tete::Tete;
 
@@ -52,10 +55,14 @@ pub fn Accueil() -> impl IntoView {
         // voit ce que la traduction classique laisse tomber avant de
         // comprendre pourquoi.
         <Bloc id="la-demonstration">
-            <h2>"Le même verset, deux mondes"</h2>
-            <p>
-                "« Créer » suppose un atelier, de la matière, un avant et un après. Rien de "
-                "tout cela n'est dans le verbe hébreu."
+            <TitreDeSection numero="I" titre="Le même verset, deux mondes" />
+            // La phrase commence par une lettre, et ce n'est pas un hasard :
+            // `::first-letter` embarque la ponctuation qui précède, donc un
+            // guillemet ouvrant se retrouverait dans la lettrine — et la
+            // ponctuation suspendue le jetterait dans la marge par-dessus.
+            <p class="lettrine">
+                "Créer suppose un atelier, de la matière, un avant et un après. "
+                "Rien de tout cela n'est dans le verbe hébreu."
             </p>
 
             <Comparaison
@@ -74,7 +81,7 @@ pub fn Accueil() -> impl IntoView {
 
         // ── La clé de lecture ─────────────────────────────────────────────
         <Bloc eclaire=true>
-            <h2>"Trois niveaux, jamais confondus"</h2>
+            <TitreDeSection numero="II" titre="Trois niveaux, jamais confondus" />
             <p>
                 "Une restitution ne peut pas tout dire dans la même ligne. L'ONT sépare ce "
                 "que l'hébreu dit, ce qu'il portait implicitement pour son lecteur, et ce "
@@ -85,7 +92,7 @@ pub fn Accueil() -> impl IntoView {
 
         // ── Le verset du jour ─────────────────────────────────────────────
         <Bloc>
-            <h2>"Aujourd'hui"</h2>
+            <TitreDeSection numero="III" titre="Aujourd'hui" />
             <p>
                 "Le verset du jour n'est pas tiré au sort : c'est une fonction de la date. "
                 "Le site, l'application et son widget tombent sur le même, le même matin, "
@@ -106,7 +113,7 @@ pub fn Accueil() -> impl IntoView {
 
         // ── L'état du chantier ────────────────────────────────────────────
         <Bloc eclaire=true>
-            <h2>"Où en est la restitution"</h2>
+            <TitreDeSection numero="IV" titre="Où en est la restitution" />
             <p>
                 "Trois livres sur soixante-dix. Le compte est public, et il est tenu par le "
                 "pipeline lui-même — ces chiffres viennent du corpus, ils ne sont pas "
@@ -121,7 +128,7 @@ pub fn Accueil() -> impl IntoView {
 
         // ── Qui écrit ─────────────────────────────────────────────────────
         <Bloc>
-            <h2>"Qui traduit"</h2>
+            <TitreDeSection numero="V" titre="Qui traduit" />
             <div class="sm:flex sm:items-start sm:gap-8">
                 <div class="sm:w-44 sm:shrink-0">
                     <Portrait
@@ -144,7 +151,7 @@ pub fn Accueil() -> impl IntoView {
         </Bloc>
 
         // ── Pour aller plus loin ──────────────────────────────────────────
-        <Bloc eclaire=true serre=true>
+        <Bloc eclaire=true serre=true large=true>
             <div class="flex flex-col items-center gap-6 text-center">
                 <p class="text-lg text-balance">
                     "L'ONT affirme, il ne polémique pas. Ce qu'elle refuse tient en cinq lignes."

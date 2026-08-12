@@ -73,7 +73,7 @@
 
      **Literata** tient tout le reste. C'est un revirement assumé : le corps
      était en EB Garamond, la lettre du livre imprimé classique. Sur fond
-     sombre, ses déliés très fins baventet ses empattements vibrent — c'est le
+     sombre, ses déliés très fins bavent et ses empattements vibrent — c'est le
      défaut connu des romanes à fort contraste en mode sombre. Literata est
      dessinée pour l'écran, à faible contraste de graisse, et c'est déjà la
      fonte du corps de l'app : un verset cité ici se lit exactement comme sur
@@ -202,6 +202,21 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: 0.006em;
     text-rendering: optimizeLegibility;
+
+    /* Les **chiffres elzéviriens** — ceux qui montent et descendent comme des
+       lettres. C'est le chiffre du livre imprimé : dans une ligne de texte, il
+       ne fait pas de trou là où un chiffre aligné dresse un bloc. Literata les
+       porte ; on les demande explicitement, sinon le navigateur sert les
+       chiffres alignés du dessin par défaut.
+
+       Les chiffres d'un tableau, eux, restent alignés — voir `Chiffres`. Un
+       chiffre elzévirien se lit dans une phrase, pas dans une colonne. */
+    font-variant-numeric: oldstyle-nums proportional-nums;
+
+    /* La ponctuation ouvrante déborde dans la marge, de sorte que le bord
+       gauche du texte reste droit. C'est un raffinement de composition ancien,
+       et l'une des rares choses qu'un navigateur sait faire tout seul. */
+    hanging-punctuation: first last;
   }
 
   /* La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,
@@ -237,6 +252,9 @@
     font-size: var(--text-xl);
     color: var(--color-accent);
     margin-block: --spacing(14) --spacing(4);
+    /* Une capitale de titre a besoin d'un souffle de plus qu'un bas de casse —
+       Jost est géométrique, ses lettres se touchent vite en grand. */
+    letter-spacing: -0.005em;
   }
 
   h3 {
@@ -249,6 +267,13 @@
     text-decoration-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
     text-underline-offset: 0.2em;
     text-decoration-thickness: 1px;
+  }
+
+  /* Le soulignement s'épaissit au survol plutôt que d'apparaître : un lien
+     déjà souligné ne saute pas, il se confirme. Deux cents millisecondes —
+     assez pour être perçu, trop court pour être attendu. */
+  a {
+    transition: text-decoration-color 200ms ease, color 200ms ease;
   }
 
   a:hover {
@@ -338,4 +363,36 @@
 @utility fondu-bas {
   -webkit-mask: linear-gradient(#000 58%, transparent 96%);
   mask: linear-gradient(#000 58%, transparent 96%);
+}
+
+/* La lettrine.
+ *
+ * L'initiale sur trois lignes du livre imprimé. C'est le signe le plus ancien
+ * qu'une page puisse porter — et c'est l'exécution qui décide s'il paraît
+ * antiquaire ou contemporain : pas d'enluminure, pas de fond, pas de cadre.
+ * Une lettre en or, dans la fonte des titres, alignée sur la troisième ligne.
+ *
+ * `initial-letter` fait le calage lui-même là où il est reconnu ; le repli
+ * flotté donne le même résultat partout ailleurs.
+ */
+@utility lettrine {
+  &::first-letter {
+    float: left;
+    font-family: var(--font-titre);
+    font-size: 3.4em;
+    line-height: 0.82;
+    padding-inline-end: 0.08em;
+    padding-block-start: 0.06em;
+    color: var(--color-accent);
+    -webkit-initial-letter: 3;
+    initial-letter: 3;
+  }
+}
+
+/* Les chiffres d'un tableau : alignés et de chasse fixe, pour que deux nombres
+ * superposés s'alignent à la virgule près. C'est l'inverse du chiffre
+ * elzévirien du texte courant, et c'est voulu — une colonne n'est pas une
+ * phrase. */
+@utility chiffres-tableau {
+  font-variant-numeric: lining-nums tabular-nums;
 }
