@@ -16,13 +16,22 @@ pub fn Filet(
     orne: bool,
 ) -> impl IntoView {
     if orne {
+        // Les deux moitiés du trait sont des pseudo-éléments souples : la
+        // marque reste centrée quelle que soit la mesure, sans calcul de
+        // largeur ni second élément.
         view! {
-            <div class="filet filet--orne" role="separator" aria-hidden="true">
-                <span class="filet__signe"></span>
+            <div
+                role="separator"
+                aria-hidden="true"
+                class="my-16 flex items-center gap-6 text-or-profond \
+                       before:h-px before:flex-1 before:bg-filet before:content-[''] \
+                       after:h-px after:flex-1 after:bg-filet after:content-['']"
+            >
+                <span class="signe-montagne w-10"></span>
             </div>
         }
         .into_any()
     } else {
-        view! { <hr class="filet" /> }.into_any()
+        view! { <hr class="my-10 h-px border-0 bg-filet" /> }.into_any()
     }
 }

@@ -3,21 +3,27 @@
 //! ## Les couches, et le sens de leurs dépendances
 //!
 //! ```text
-//!   interface  ──▶  domaine        (les pages lisent le domaine)
-//!   serveur    ──▶  interface      (le serveur rend les pages)
-//!   serveur    ──▶  domaine
-//!   domaine    ──▶  rien
+//!   domaine          ──▶  rien
+//!   application      ──▶  domaine                  (déclare des ports)
+//!   infrastructure   ──▶  application, domaine     (les réalise)
+//!   interface        ──▶  application, domaine     (les affiche)
+//!   main             ──▶  tout                     (assemble)
 //! ```
 //!
-//! Le domaine ne connaît ni le serveur ni le navigateur : il compile vers
-//! `wasm32` comme vers Lambda, et c'est ce qui garantit qu'un calcul donne le
-//! même résultat des deux côtés.
+//! Une flèche ne remonte jamais. Le domaine ignore qu'un serveur existe ;
+//! l'application ignore d'où vient l'heure ; l'interface ignore que le vivier
+//! est un fichier JSON. C'est ce qui rend chaque couche éprouvable seule.
 //!
-//! `serveur` n'existe que sous le drapeau `ssr` : il touche au système de
-//! fichiers et au réseau, deux choses qu'un navigateur n'a pas.
+//! `infrastructure` n'existe que sous le drapeau `ssr` : elle touche au
+//! système de fichiers et à l'horloge, deux choses qu'un navigateur n'a pas.
 
+pub mod api;
+pub mod application;
 pub mod domaine;
 pub mod interface;
+
+#[cfg(feature = "ssr")]
+pub mod infrastructure;
 
 /// Le point d'entrée du navigateur.
 ///

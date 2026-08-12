@@ -10,11 +10,22 @@ crate-type = ["cdylib", "rlib"]
 leptos = "0.8"
 leptos_router = "0.8"
 leptos_meta = "0.8"
+# `serde` traverse la frontière client ↔ serveur : il est des deux côtés.
+serde = { version = "1", features = ["derive"] }
 axum = { version = "0.8", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
+# Lire un fichier et lire l'heure sont deux besoins du serveur seul. Les
+# embarquer dans le paquet WASM l'alourdirait sans que rien ne s'en serve —
+# la table des fuseaux horaires pèse à elle seule plus que tout le reste.
+serde_json = { version = "1", optional = true }
+chrono = { version = "0.4", default-features = false, features = [
+    "clock",
+    "std",
+], optional = true }
+chrono-tz = { version = "0.10", default-features = false, optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
@@ -22,6 +33,9 @@ ssr = [
     "dep:axum",
     "dep:tokio",
     "dep:leptos_axum",
+    "dep:serde_json",
+    "dep:chrono",
+    "dep:chrono-tz",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
@@ -40,7 +54,9 @@ panic = "abort"
 output-name = "ontbible"
 site-root = "target/site"
 site-pkg-dir = "pkg"
-style-file = "style/main.scss"
+# Tailwind remplace la feuille Sass. `cargo-leptos` télécharge le binaire
+# officiel et le lance à chaque compilation.
+tailwind-input-file = "style/main.css"
 assets-dir = "public"
 site-addr = "127.0.0.1:3000"
 reload-port = 3001

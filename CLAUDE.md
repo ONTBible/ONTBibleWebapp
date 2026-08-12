@@ -55,8 +55,28 @@ qu'une page blanche, mais **ne pas publier sans sa relecture**.
 
 ## 3. La pile
 
-**Leptos en mode SSR + Axum.** Tout en Rust, rendu côté serveur — sa demande
-explicite.
+**Leptos 0.8 en mode SSR + Axum, et Tailwind v4.** Tout en Rust, rendu côté
+serveur — sa demande explicite. `cargo-leptos` télécharge lui-même le binaire
+Tailwind ; il n'y a ni `node_modules`, ni `tailwind.config.js` (la v4 se
+configure en CSS, dans `style/main.css`).
+
+**L'architecture est en couches, et une flèche ne remonte jamais :**
+
+```
+domaine        ──▶  rien                       pur, compile aussi en wasm
+application    ──▶  domaine                    déclare des ports (traits)
+infrastructure ──▶  application, domaine       les réalise — `ssr` seulement
+interface      ──▶  application, domaine       design/ (forme) + pages/ (propos)
+main.rs        ──▶  tout                       la racine de composition
+```
+
+Le domaine ne prend même pas de bibliothèque de dates : il reçoit un numéro de
+jour. C'est ce qui le rend testable sans horloge, et identique des deux côtés.
+
+**Un composant par fichier**, `design/` pour la forme et `pages/` pour le
+propos. Une page n'écrit aucune valeur de style — si une forme manque, elle se
+crée dans `design/`. Depuis Tailwind, la forme vit **dans** le `.rs`, à côté du
+balisage : il n'y a plus de feuille parallèle qui puisse diverger.
 
 Le backend de l'app est déjà du Rust sur AWS Lambda (`ONTBibleApp/backend/`,
 axum + `lambda_http`, architecture hexagonale, eu-west-3). Le site suit la
@@ -118,11 +138,34 @@ qu'écran.
 | rôle | clair | sombre |
 |---|---|---|
 | aubergine (le fond des cartes, la marque) | `#421B26` | `#421B26` |
+| aubergine profonde (le bas des dégradés) | `#2A1018` | `#2A1018` |
 | or | `#CDBE83` | `#CDBE83` |
-| or profond (sur fond clair) | `#A6874F` | — |
+| or profond (sur fond clair) | `#A6874F` | `#CDBE83` |
 | parchemin (le fond) | `#FAF5EB` | `#171417` |
+| surface (carte posée sur le fond) | `#FFFCF6` | `#252226` |
 | encre | `#29211C` | `#E0DBD4` |
 | terme important | `#862742` | `#D87994` |
+| titre de section | `#421B26` | `#CDBE83` |
+
+Les opacités viennent de l'app, pas du jugé : le filet vaut l'encre à **10 %**
+(16 % sur fond sombre), le niveau 2 à **62 %**, la glose compose à **0,86 ×** le
+corps et l'hébreu à **1,08 ×**. Ce sont les valeurs d'`ONTColors` et
+d'`ONTTypography` — les reprendre à l'œil donnerait un site qui *ressemble* à
+l'app sans être elle.
+
+**« Un peu ancienne, un peu mystique »** — sa précision du 12 août. D'où trois
+utilitaires dans `style/main.css` :
+
+- `voile-aubergine` — une lueur dorée haute, l'aubergine qui s'assombrit vers
+  le bas. La lumière semble venir d'au-dessus du texte, comme dans une nef.
+  Trois couches, pas une de plus : au-delà, un dégradé cesse d'être une
+  atmosphère et devient un effet.
+- `grain-page` — deux halos à 4 % sur le parchemin, fixes au défilement. Sous
+  les 4 %, l'œil ne l'identifie pas comme une couleur, il le lit comme une
+  matière.
+- `filigrane-montagne` — la montagne très grande et très pâle derrière un
+  bandeau. Elle n'est pas là pour être vue, elle est là pour qu'on sente qu'il
+  y a quelque chose.
 
 L'aubergine `#421B26` est relevée **au pixel** sur le combination mark. Il
 l'appelle « le violet » — c'est bien cette couleur-là.
@@ -134,15 +177,21 @@ l'encre — l'œil ne la distingue pas dans une ligne de texte. `#862742` est à
 
 ### Typographie — toutes OFL, déjà dans `ONTBibleApp/app/Resources/Fonts/`
 
+**Deux voix, et elles ne se mélangent pas** — sa décision du 12 août.
+
 | rôle | fonte |
 |---|---|
-| titres | **Frank Ruhl Libre Medium** — déjà les titres de l'app |
-| corps | **EB Garamond** — la lettre du livre imprimé classique, la plus proche du registre « ancien » |
-| hébreu | **Ezra SIL** — la seule qui positionne correctement niqqud et te'amim |
+| **le site** — titres et corps | **Jost** — la géométrique de l'édition imprimée et du combination mark |
+| **une citation de l'ONT** — corps | **Literata**, exactement comme l'app |
+| **une citation de l'ONT** — hébreu | **Ezra SIL**, la seule qui positionne niqqud et te'amim |
 
-L'app compose son corps en **Literata** (dessinée pour l'écran). Pour le site
-je proposerais EB Garamond, plus juste pour la direction demandée — mais c'est
-un choix à lui soumettre, il a passé du temps sur cette comparaison.
+Un verset doit se lire ici comme sur le téléphone, sinon le lecteur voit deux
+traductions là où il n'y en a qu'une.
+
+**EB Garamond reste embarquée en comparaison**, le temps qu'il tranche pour le
+corps du site : un seul jeton à changer dans `style/main.css`. Le jour de la
+décision, la perdante sort de `scripts/fontes.sh`, du CSS et du dépôt — une
+fonte que plus aucune règle ne nomme est un fichier porté pour rien.
 
 **Licences** : Ezra SIL, Frank Ruhl Libre, EB Garamond, Literata, Spectral,
 Source Serif 4, Newsreader et Jost sont OFL — redistribuables. **SBL Hebrew
@@ -216,37 +265,78 @@ Le vault est le dépôt voisin : `../ONTBibleTranslation/`.
 | **Lire** | les passages partagés | `ONTBibleApp/dist/` |
 | **Confidentialité / Conditions** | à rédiger — comptes, synchronisation, Sentry, RGPD | — |
 
-**Le verset du jour** est une *fonction de la date*, pas un tirage : l'app, le
-widget et la notification tombent sur le même verset le même jour sans se
-parler. Si le site l'affiche, il doit employer **la même fonction** —
-`DailySelection` dans `ONTBibleApp/app/Packages/ONTKit/.../DailyVerse.swift`,
-à porter en Rust : un pas fixe premier avec la taille du vivier, ce qui
-garantit qu'aucun verset ne revient avant que tous soient passés. Le vivier
-est `dist/daily.json` (251 versets, unités verrouillées uniquement — §12 : un
-brouillon ne fait pas référence).
+**Le verset du jour est fait, et l'accord avec l'app est prouvé.**
 
-## 8. Par où commencer
+C'est une *fonction de la date*, pas un tirage : l'app, le widget et la
+notification tombent sur le même verset le même jour sans se parler. Le portage
+vit dans `domaine/verset_du_jour.rs`, le vivier est embarqué à la compilation
+depuis `../ONTBibleApp/dist/daily.json` (251 versets) — **jamais copié**, sinon
+la règle éditoriale du pipeline et celle du site divergeraient.
 
-1. `cargo leptos new` en mode SSR, axum. Vérifier que ça tourne en local
-   avant toute mise en forme.
-2. Le design system d'abord — jetons de couleur, fontes, filets, échelle
-   typographique. Une page de démonstration qui les montre tous.
-3. La page **L'auteur**, en premier et seule : c'est celle dont le registre
-   doit être validé. Les autres suivent vite une fois le ton juste.
-4. Les deux routes techniques — association et `/fr/lire/…` — portées depuis
-   `ONTBibleApp/backend/src/interface/web.rs`.
-5. Déploiement, puis bascule des domaines dans l'ordre du §4.
+Deux pièges découverts en le faisant, et tous deux sont maintenant tenus par
+des témoins relevés en **exécutant le Swift** :
+
+1. **La permutation.** Un pas fixe premier avec la taille du vivier, valant
+   ~0,618 × celle-ci. Il garantit qu'aucun verset ne revient avant que tous
+   soient passés — un tirage donnerait un doublon dans le mois avec quatre
+   chances sur cinq.
+
+2. **Le décalage d'un jour.** L'app fait `startOfDay` (minuit **local**) puis
+   divise cet horodatage comme s'il était UTC. Pour tout fuseau à l'est de
+   Greenwich, le numéro de jour vaut donc *la date civile moins un*. Le verset
+   change bien à minuit chez le lecteur — seul l'entier est décalé — mais comme
+   le choix est une permutation de cet entier, un jour d'écart donne **un autre
+   verset**. `infrastructure/horloge.rs` reproduit le calcul de l'app ; le
+   corriger ferait diverger le site du téléphone du même lecteur.
+
+   Le premier témoin employait un calendrier en UTC : il passait, et le site
+   annonçait quand même un autre verset. C'est le fuseau de l'édition qu'il
+   fallait éprouver.
+
+## 8. Où en est le site
+
+**Fait** — squelette Leptos SSR, couches, design system, six pages, verset du
+jour accordé à l'app, vecteurs de la marque normalisés, métadonnées complètes
+(canonique, hreflang, Open Graph, JSON-LD).
+
+```
+/            → 307 vers /fr        (temporaire : « / » choisira la langue un jour)
+/fr                                accueil — le principe, le verset du jour, les portes
+/fr/le-pourquoi                    l'ontologie fonctionnelle, les trois niveaux montrés
+/fr/ce-que-l-ont-n-est-pas         les cinq lignes du §10 du vault
+/fr/l-auteur                       premier jet, en attente de sa relecture
+/fr/confidentialite                vérifiée dans le code de l'app, pas recopiée
+/fr/conditions
+```
+
+**Reste à faire**, dans cet ordre :
+
+1. Les deux routes techniques — l'association et `/fr/lire/{livre}/{unité}` —
+   portées depuis `ONTBibleApp/backend/src/interface/web.rs`.
+2. La liseuse, si elle est décidée (§9) : elle demande un adaptateur qui lit
+   `dist/` — publié comme artefact, jamais dupliqué.
+3. Le lexique — `/fr/lexique/{lemme}`, que les intraduisibles pointent déjà.
+4. Déploiement, puis bascule des domaines dans l'ordre du §4.
 
 ## 9. Ce qui reste à trancher
 
-- **EB Garamond ou Literata** pour le corps du site.
-- Le **texte de la page auteur** — lui, après un premier jet.
-- Le **SVG de la montagne**.
+- Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.
+  **Rien de cette page ne doit être mis en ligne avant.**
+- **Jost ou EB Garamond** pour le corps du site. Jost est en place, EB Garamond
+  est chargée à côté : un seul jeton à changer pour comparer en direct.
+- L'**adresse de contact**. `contact@ontbible.com` est écrite dans les pages
+  légales ; elle n'existe pas encore. Cloudflare Email Routing la fait suivre
+  gratuitement, en deux minutes.
+- Une **image d'aperçu** dessinée pour 1200 × 630. Sans elle, une messagerie
+  n'affiche qu'une vignette.
 - Le site affiche-t-il **le corpus** (vraie liseuse en ligne) ou seulement les
-  passages partagés ? Si liseuse, il faut `dist/` — publié comme artefact
-  depuis `ONTBibleApp`, jamais dupliqué.
-- Le **®** du combination mark : s'il n'est pas déposé à l'INPI, l'afficher
-  est un risque juridique. À vérifier avant de mettre le logo en ligne.
+  passages partagés ?
+- Le **®** du combination mark. Il est sur le wordmark, donc sur **toutes les
+  pages**. En France, apposer ® sur une marque non déposée à l'INPI relève de
+  l'article L.716-9 du code de la propriété intellectuelle — ce n'est pas un
+  risque commercial, c'est une infraction. Trois sorties : la marque est
+  déposée ; elle va l'être (~190 € pour une classe) ; ou on produit une
+  variante sans le sigle, à côté des fichiers d'origine.
 
 ## 10. Les dépôts voisins
 

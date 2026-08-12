@@ -1,0 +1,363 @@
+@import "tailwindcss";
+
+/* Les gabarits sont écrits en Rust : c'est là que Tailwind doit chercher les
+   classes. Sans cette ligne il ne verrait aucun gabarit et produirait une
+   feuille vide — panne silencieuse, la page s'afficherait sans style.
+
+   Corollaire à connaître : Tailwind lit le fichier comme du **texte**, il ne
+   comprend pas Rust. Une classe assemblée à l'exécution — `format!("text-{}",
+   couleur)` — n'existera donc pas dans la feuille. Les classes s'écrivent en
+   entier, toujours. */
+@source "../src/**/*.rs";
+
+/* ═══ Les jetons ═══════════════════════════════════════════════════════════
+
+   La source unique de la forme. Rien de ce qui est ici ne se réécrit ailleurs,
+   et aucun composant n'écrit une valeur en dur : il prend un jeton.
+
+   Les couleurs sont relevées au pixel sur le combination mark. Rien n'est
+   inventé — l'app compose déjà avec elles.                                  */
+
+@theme {
+  /* L'aubergine — la marque, et le fond des cartes. Il l'appelle « le
+     violet » : elle tire franchement de ce côté-là. */
+  --color-aubergine: #421b26;
+  /* L'aubergine assombrie — même teinte (343°), clarté descendue de 18 % à
+     10 %. Elle sert de fond de dégradé : un aplat d'aubergine est plat, deux
+     aubergines qui se fondent donnent de la profondeur, et c'est ce qui fait
+     basculer la page du « sobre » vers le « ancien ». */
+  --color-aubergine-profonde: #2a1018;
+  --color-or: #cdbe83;
+  /* L'or ne tient pas sur du parchemin : trop clair, il s'y dissout. Cette
+     variante assombrie est celle qui sert sur fond clair. */
+  --color-or-profond: #a6874f;
+
+  --color-parchemin: #faf5eb;
+  --color-encre: #29211c;
+
+  /* Une surface posée sur le fond : carte, ligne de liste, feuille. Sur
+     parchemin, un blanc pur détonnerait — la surface est un parchemin plus
+     clair, pas une autre matière. C'est ce qui donne au site une seule couleur
+     de peau au lieu de pages qui ne se ressemblent pas. Valeur de l'app,
+     `ONTColors.surface`. */
+  --color-surface: #fffcf6;
+
+  /* Le titre de section, en aubergine — trait repris de `ONTTypography`, où
+     `sectionTitle` compose en bordeaux. Sur fond sombre l'aubergine
+     disparaîtrait : c'est l'or qui prend le relais. */
+  --color-section: #421b26;
+
+  /* Le terme important — l'aubergine éclaircie à teinte constante (343°).
+     L'aubergine d'origine a un écart perceptuel de ΔE 18 avec l'encre : dans
+     une ligne de texte, l'œil ne la distingue pas. Celle-ci est à ΔE 39, l'or
+     à 44 — les deux marquages se détachent avec la même force, donc aucun ne
+     prend le pas sur l'autre. */
+  --color-important: #862742;
+
+  /* Les deux opacités sont celles de l'app : `separator` vaut l'encre à 10 %
+     sur fond clair et 16 % sur fond sombre, et le niveau 2 vaut 62 %. Les
+     reprendre au jugé donnerait un site qui ressemble à l'app sans être elle. */
+  --color-filet: color-mix(in srgb, #29211c 10%, transparent);
+  --color-encre-douce: color-mix(in srgb, #29211c 62%, transparent);
+
+  /* ── Fontes ──────────────────────────────────────────────────────────────
+     Deux voix, et elles ne se mélangent pas.
+
+     Le **site** parle en Jost — la géométrique de l'édition imprimée et du
+     combination mark. C'est la voix de la maison.
+
+     Une **citation de l'ONT** parle en Literata et Ezra SIL : exactement les
+     fontes de l'app. Un verset doit se lire ici comme sur le téléphone, sinon
+     le lecteur voit deux traductions là où il n'y en a qu'une.              */
+  --font-titre: "Jost", "Helvetica Neue", sans-serif;
+  --font-corps: "Jost", "Helvetica Neue", sans-serif;
+  --font-citation: "Literata", "Iowan Old Style", Georgia, serif;
+  --font-hebreu: "Ezra SIL", serif;
+
+  /* ── Échelle typographique ───────────────────────────────────────────────
+     Une quarte juste (1,333) — l'intervalle qui donne des écarts nets sans
+     que le titre écrase le corps. `clamp` fait varier la taille avec la
+     fenêtre : pas de rupture, pas de point de bascule.
+
+     Les noms de Tailwind sont conservés — `text-lg`, `text-3xl` — plutôt que
+     remplacés par des noms à nous : un développeur qui connaît Tailwind lit
+     la classe sans consulter ce fichier.                                    */
+  --text-sm: 0.8rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.15rem, 1.05rem + 0.5vw, 1.333rem);
+  --text-xl: clamp(1.45rem, 1.25rem + 1vw, 1.777rem);
+  --text-2xl: clamp(1.8rem, 1.4rem + 2vw, 2.369rem);
+  --text-3xl: clamp(2.2rem, 1.5rem + 3.5vw, 3.157rem);
+
+  /* Les capitales espacées du livre imprimé — jamais sur du bas de casse, où
+     l'interlettrage ne fait que disloquer le mot. */
+  --tracking-capitales: 0.14em;
+
+  /* La mesure. Au-delà de ~70 signes par ligne, l'œil perd le début de la
+     ligne suivante : c'est la raison des larges marges d'un livre, et elle
+     vaut à l'écran. La mesure large reprend `ONTLayout.readingWidth` — 700
+     points, la largeur de lecture de l'app sur iPad. */
+  --container-mesure: 34rem;
+  --container-mesure-large: 43.75rem;
+
+  /* `ONTRadius.card` — 22 points. */
+  --radius-carte: 1.375rem;
+}
+
+/* Le thème sombre ne redéfinit que des **valeurs**, jamais une règle. C'est ce
+   que les propriétés personnalisées achètent : un thème coûte six lignes, et
+   aucun composant ne porte de variante `dark:`.
+
+   Le bloc est hors de tout `@layer`, donc il l'emporte sur celui de Tailwind
+   quelle que soit la spécificité. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-parchemin: #171417;
+    --color-encre: #e0dbd4;
+    /* Sur fond sombre, l'or profond disparaît : on remonte à l'or plein. Et le
+       bordeaux clair remonte en clarté à teinte constante. */
+    --color-or-profond: #cdbe83;
+    --color-important: #d87994;
+    --color-surface: #252226;
+    /* L'aubergine disparaîtrait sur du noir : l'or prend le relais. */
+    --color-section: #cdbe83;
+    --color-filet: color-mix(in srgb, #e0dbd4 16%, transparent);
+    --color-encre-douce: color-mix(in srgb, #e0dbd4 62%, transparent);
+  }
+}
+
+/* ═══ Les fontes ═══════════════════════════════════════════════════════════
+
+   Toutes sous OFL, portées depuis `ONTBibleApp/app/Resources/Fonts/` par
+   `scripts/fontes.sh` — une seule source, un script rejouable. Leur texte de
+   licence part avec elles dans `public/fontes/`, ce que l'OFL exige.
+
+   `font-display: swap` : le texte s'affiche immédiatement dans la fonte de
+   repli, puis bascule. L'attendre donnerait une page blanche sur un réseau
+   lent, et c'est un site dont le propos est de se lire.                     */
+
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Jost-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Jost";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Jost-Italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Jost-SemiBold.woff2") format("woff2");
+}
+
+/* Literata et Ezra SIL ne servent qu'aux citations de l'ONT. Elles pèsent
+   l'essentiel du poids des fontes ; le navigateur ne les téléchargera que sur
+   une page qui en compose réellement une. */
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Literata-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Literata-Italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Literata-SemiBold.woff2") format("woff2");
+}
+
+/* La seule fonte qui positionne correctement niqqud et te'amim. Restreinte au
+   bloc hébreu : sans cette borne, le navigateur la téléchargerait pour rendre
+   des lettres latines qu'elle dessine mal. */
+@font-face {
+  font-family: "Ezra SIL";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EzraSIL.woff2") format("woff2");
+  unicode-range: U+0590-05FF, U+FB1D-FB4F, U+200F, U+2066-2069;
+}
+
+/* ═══ La base ══════════════════════════════════════════════════════════════
+
+   Ce que porte le document avant qu'un composant n'existe. Elle ne style aucun
+   composant : elle pose la page et le comportement du texte.                */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    color-scheme: light dark;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background-color: var(--color-parchemin);
+    color: var(--color-encre);
+    font-family: var(--font-corps);
+    /* Une géométrique a une hauteur d'x basse : elle demande plus d'air qu'une
+       romaine pour ne pas se tasser. */
+    line-height: 1.7;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,
+     une mesure étroite creuse des lézards entre les mots. */
+  p {
+    hyphens: auto;
+    margin-block-end: --spacing(6);
+  }
+
+  /* Le rythme vertical appartient au document, pas aux composants : sans lui,
+     chaque page devrait reposer ses marges, et deux pages finiraient par ne
+     plus respirer pareil. Tailwind remet les marges à zéro — on les redonne
+     ici, une fois. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titre);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-3xl);
+    margin-block-end: --spacing(8);
+  }
+
+  /* Le titre de section est en aubergine, comme `sectionTitle` dans l'app. Ce
+     n'est pas un ornement : c'est ce qui fait qu'une page du site et un écran
+     de l'app se reconnaissent. */
+  h2 {
+    font-size: var(--text-xl);
+    color: var(--color-section);
+    margin-block: --spacing(12) --spacing(4);
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    margin-block: --spacing(8) --spacing(3);
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--color-or-profond);
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 1px;
+  }
+
+  /* La cible du clavier reste visible partout, y compris là où un composant
+     redéfinit ses couleurs. */
+  :focus-visible {
+    outline: 2px solid var(--color-or-profond);
+    outline-offset: 3px;
+  }
+}
+
+/* ═══ Les utilitaires à nous ═══════════════════════════════════════════════ */
+
+/* La profondeur d'un bandeau sombre.
+ *
+ * Une lueur dorée haute, très basse en opacité, et l'aubergine qui s'assombrit
+ * vers le bas. C'est ce qui distingue un fond « sombre » d'un fond « ancien » :
+ * une lumière semble venir d'au-dessus du texte, comme dans une nef.
+ *
+ * Trois couches et pas une de plus : au-delà, un dégradé cesse d'être une
+ * atmosphère et devient un effet. */
+@utility voile-aubergine {
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      color-mix(in srgb, var(--color-or) 16%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 100% 80% at 50% 120%,
+      var(--color-aubergine-profonde) 0%,
+      transparent 65%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--color-aubergine) 0%,
+      var(--color-aubergine-profonde) 100%
+    );
+}
+
+/* Le grain de la page.
+ *
+ * Deux halos d'aubergine à 3 %, fixes au défilement : le parchemin cesse
+ * d'être un aplat sans qu'on puisse dire pourquoi. Sous les 4 %, l'œil ne
+ * l'identifie pas comme une couleur — il le lit comme une matière. */
+@utility grain-page {
+  background-image:
+    radial-gradient(
+      at 18% 8%,
+      color-mix(in srgb, var(--color-aubergine) 4%, transparent) 0,
+      transparent 55%
+    ),
+    radial-gradient(
+      at 82% 88%,
+      color-mix(in srgb, var(--color-or-profond) 5%, transparent) 0,
+      transparent 55%
+    );
+  background-attachment: fixed;
+}
+
+/* La montagne en filigrane — un signe, pas une illustration.
+ *
+ * Posée très grande et très pâle derrière un bandeau. Elle n'est pas là pour
+ * être vue : elle est là pour qu'on sente qu'il y a quelque chose. D'où
+ * l'opacité basse et le débordement assumé hors du cadre. */
+@utility filigrane-montagne {
+  background: currentColor;
+  aspect-ratio: 502 / 249;
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* La montagne du logo, posée en **masque** et non en image : elle prend alors
+   la couleur du texte courant, donc elle suit le thème — et le vecteur reste
+   net à toute taille, ce qu'un PNG ne fait pas.
+
+   Utilitaire plutôt qu'arbitraire répété : deux composants s'en servent, et la
+   syntaxe entre crochets d'un masque est illisible écrite deux fois. Les
+   proportions sont celles du tracé — forcer un carré laisserait deux vides que
+   `contain` ne comble pas. */
+@utility signe-montagne {
+  aspect-ratio: 502 / 249;
+  background: currentColor;
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* Le détourage du portrait laisse le bas du vêtement se dissoudre dans le
+   fond. Ce dégradé rend la dissolution volontaire, au lieu de la laisser
+   paraître ratée. */
+@utility fondu-bas {
+  -webkit-mask: linear-gradient(#000 62%, transparent 98%);
+  mask: linear-gradient(#000 62%, transparent 98%);
+}
