@@ -9,8 +9,8 @@ use leptos::prelude::*;
 ///
 /// Chaque bloc occupe au moins la hauteur de la fenêtre, et son contenu y est
 /// centré. C'est ce qui transforme l'alternance des fonds en **rythme** : sans
-/// cette hauteur, les bandes claires et sombres épousaient la longueur des
-/// textes et se lisaient comme des rayures posées au hasard.
+/// cette hauteur, les bandes épousaient la longueur des textes et se lisaient
+/// comme des rayures posées au hasard.
 ///
 /// `min-h-dvh` et non `h-screen`, pour deux raisons distinctes :
 ///
@@ -20,14 +20,15 @@ use leptos::prelude::*;
 ///   barre d'adresse, qui se rétracte au défilement. Chaque bloc sauterait de
 ///   quelques dizaines de pixels au premier geste.
 ///
-/// Il remplace `Section` et `Bandeau`, qui faisaient la même chose de deux
-/// façons. Deux primitives de mise en page finissent toujours par diverger sur
-/// un espacement, et personne ne sait plus laquelle fait foi.
+/// ## La lumière
+///
+/// Tous les blocs portent la voûte, mais **assourdie** : la même lumière que
+/// l'ouverture, quatre fois plus basse. `eclaire` la remonte à pleine force,
+/// et c'est à réserver à deux ou trois moments — sur une page où tout est
+/// éclairé, plus rien ne l'est.
 #[component]
 pub fn Bloc(
-    /// Éclaire le bloc — surface haute et lueur du dégradé. À réserver à ce
-    /// qu'on veut détacher : sur une page où tout est éclairé, plus rien ne
-    /// l'est.
+    /// Remonte la lumière à pleine force.
     #[prop(optional)]
     eclaire: bool,
     /// Élargit la mesure — pour ce qui n'est pas du texte courant.
@@ -41,8 +42,9 @@ pub fn Bloc(
     view! {
         <section
             id=id
-            class="flex min-h-dvh flex-col justify-center border-t border-filet/60"
-            class=("voile-aubergine", eclaire)
+            class="flex min-h-dvh flex-col justify-center border-t border-filet/50"
+            class=("voute-basse", !eclaire)
+            class=("voute", eclaire)
         >
             <div
                 class="mx-auto w-full max-w-mesure px-6 py-24"

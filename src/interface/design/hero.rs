@@ -1,33 +1,32 @@
 use leptos::prelude::*;
 
-/// L'ouverture du site.
+/// L'ouverture du site — on entre dans un lieu.
 ///
-/// Elle ne présente pas le projet, elle l'**affirme**. La montagne en grand,
-/// une phrase, deux chemins. C'est une page de titre de livre : on n'y explique
-/// rien, on pose le nom et on ouvre.
+/// C'est le parti pris qu'il a choisi entre trois : ni une affiche, ni une
+/// notice, mais un **espace**. La lumière tombe du haut comme dans une nef,
+/// la montagne ferme le bas comme un horizon, et le texte est dedans.
 ///
-/// Elle occupe l'écran **moins l'en-tête** — sinon le premier écran montrerait
-/// la marque, puis le haut d'une ouverture d'un écran entier, et la phrase
-/// tomberait sous la ligne de flottaison.
+/// Deux massifs et non un seul : le premier en aubergine, franc, donne la
+/// ligne d'horizon ; le second, plus large et à peine visible en or, suggère un
+/// relief plus lointain derrière. C'est ce décalage qui fait la profondeur —
+/// un massif isolé aurait l'air d'un autocollant.
 ///
-/// Le vide autour du signe fait partie de ce qu'on montre : un livre ancien ne
-/// remplit pas sa page de garde.
+/// Elle occupe l'écran entier : sur une ouverture, la barre de navigation fait
+/// partie du lieu plutôt que de le surmonter.
 #[component]
 pub fn Hero(children: Children) -> impl IntoView {
     view! {
-        <section class="voile-aubergine relative isolate overflow-hidden">
-            // La montagne, très grande, très pâle, débordant par le haut. Elle
-            // n'est pas là pour être vue mais pour que la page ait un centre —
-            // rognée par le cadre, elle se lit comme un massif dont on ne voit
-            // que la crête.
+        <section class="voute relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6 py-24 text-center">
             <span
                 aria-hidden="true"
-                class="signe-montagne pointer-events-none absolute -top-[14%] left-1/2 -z-10 w-[150%] -translate-x-1/2 text-or opacity-[0.06]"
+                class="massif pointer-events-none absolute -bottom-[6%] left-1/2 -z-10 w-[165%] -translate-x-1/2 text-aubergine opacity-80"
+            ></span>
+            <span
+                aria-hidden="true"
+                class="massif pointer-events-none absolute -bottom-[13%] left-1/2 -z-10 w-[200%] -translate-x-1/2 text-or opacity-[0.055]"
             ></span>
 
-            <div class="mx-auto flex min-h-[calc(100dvh-var(--hauteur-entete))] max-w-mesure flex-col items-center justify-center gap-8 px-6 py-24 text-center">
-                {children()}
-            </div>
+            <div class="flex max-w-4xl flex-col items-center gap-8">{children()}</div>
         </section>
     }
 }

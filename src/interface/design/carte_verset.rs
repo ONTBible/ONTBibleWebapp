@@ -2,37 +2,47 @@ use leptos::prelude::*;
 
 use crate::api::VersetDuJourDto;
 
-/// La carte du verset du jour.
+/// La carte du verset du jour — un plan éclairé.
 ///
-/// Sur une page déjà sombre, une carte sombre ne se détache pas toute seule.
-/// Elle se pose donc **au-dessus** : une surface plus claire d'un cran, un
-/// filet d'or au bord, et une ombre portée qui la décolle du fond. C'est ce
-/// que l'app fait avec sa carte du Qahal, et c'est à ça qu'on la reconnaît.
+/// C'est l'un des trois ou quatre **moments** du site : une surface plus
+/// claire, cernée d'or, avec un halo qui la décolle du fond et un massif dans
+/// sa marge. Sur une page déjà sombre, une carte sombre ne se détache pas
+/// toute seule ; c'est la lumière qui la pose, pas une bordure.
 ///
-/// Le verset est composé dans la fonte du corps — Literata, celle de l'app.
-/// Il se lit ici exactement comme sur le téléphone.
+/// Le verset est composé **un cran** au-dessus du corps, pas trois. L'essai de
+/// direction le montait à `text-3xl` : avec un corps à 21 px, ça donnait des
+/// lettres de cinquante pixels, dix-sept signes par ligne, et une citation qui
+/// criait au lieu de se lire. Un moment se distingue par son traitement — la
+/// surface éclairée, le halo, le massif dans la marge — pas par sa taille.
 #[component]
 pub fn CarteVersetDuJour(verset: VersetDuJourDto) -> impl IntoView {
     view! {
-        <article class="voile-aubergine relative isolate overflow-hidden rounded-carte border border-or/20 px-6 py-10 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.9)]">
-            <p class="mb-6 flex items-center gap-2 text-sm uppercase tracking-capitales text-accent">
-                <span class="signe-montagne w-7 shrink-0" aria-hidden="true"></span>
+        <article class="halo relative isolate overflow-hidden rounded-carte border border-or/25 bg-surface-haute px-7 py-10">
+            // Le massif dans la marge de la carte : on ne le lit pas comme une
+            // montagne, on sent qu'il y a un relief derrière le texte.
+            <span
+                aria-hidden="true"
+                class="massif pointer-events-none absolute -right-[15%] -bottom-[35%] -z-10 w-[80%] text-or opacity-[0.07]"
+            ></span>
+
+            <p class="mb-7 flex items-center gap-3 text-sm uppercase tracking-capitales text-accent">
+                <span class="massif w-7 shrink-0"></span>
                 "Verset du jour"
             </p>
 
             <blockquote
                 cite=verset.chemin.clone()
-                class="m-0 text-lg leading-relaxed text-pretty text-encre-vive"
+                class="m-0 text-lg leading-[1.6] text-pretty text-encre-vive"
             >
                 {verset.texte}
             </blockquote>
 
-            // Le renvoi est un lien : il mène au passage, dans son unité, à son
-            // verset. Une citation qui ne ramène pas à sa source est une
-            // affirmation sans recours.
+            // Le renvoi mène au passage, dans son unité, à son verset. Une
+            // citation qui ne ramène pas à sa source est une affirmation sans
+            // recours.
             <a
                 href=verset.chemin
-                class="mt-6 inline-block text-sm uppercase tracking-capitales text-accent"
+                class="mt-8 inline-block text-sm uppercase tracking-capitales text-accent"
             >
                 {verset.renvoi}
             </a>

@@ -10,16 +10,18 @@ use crate::interface::tete::Tete;
 
 /// L'accueil.
 ///
-/// ## Pourquoi une page longue et non un sommaire
+/// ## Le parti pris
 ///
-/// La première version était trois liens vers trois pages maigres. Un sommaire
-/// demande au lecteur de choisir avant de savoir de quoi il s'agit — et sur un
-/// projet dont personne n'a entendu parler, il repart.
+/// Trois directions lui ont été soumises — une inscription monumentale, une
+/// édition critique, un sanctuaire. Il a choisi la troisième, sur les trois
+/// points qui la définissent : l'ouverture est un **lieu** où l'on entre, la
+/// comparaison oppose un plan en retrait à un plan éclairé, et la profondeur
+/// est partout plutôt que réservée à quelques moments.
 ///
-/// Cette page **montre** au lieu d'annoncer, dans cet ordre : l'affirmation,
-/// puis la démonstration sur un verset réel, puis la clé de lecture, puis le
-/// verset du jour, puis l'état honnête du chantier, puis qui écrit. Les pages
-/// de fond ne sont proposées qu'après — quand on a une raison d'y aller.
+/// L'ordre des sections découle de ce choix. On entre par le verset du jour —
+/// ce qu'on est venu chercher — et l'explication vient après, quand on a une
+/// raison de la lire. La version précédente ouvrait par la démonstration, ce
+/// qui suppose un lecteur déjà convaincu qu'il y a quelque chose à démontrer.
 #[component]
 pub fn Accueil() -> impl IntoView {
     // `new_blocking` : le serveur attend la valeur et la pose dans le HTML.
@@ -37,29 +39,43 @@ pub fn Accueil() -> impl IntoView {
         />
 
         <Hero>
-            <h1 class="text-balance">"Le cosmos hébreu n'est pas une usine."</h1>
-            <p class="text-xl leading-snug text-balance text-accent">"C'est un Temple."</p>
-            <p class="text-encre text-balance">
-                "Une restitution française du corpus hébreu et araméen antique, "
-                "fondée sur l'ontologie hébraïque fonctionnelle."
-            </p>
-            <div class="flex flex-wrap justify-center gap-4">
-                <Bouton href="#la-demonstration" principal=true>"Voir un verset"</Bouton>
-                <Bouton href="/fr/le-pourquoi">"Le pourquoi"</Bouton>
-            </div>
+            <p class="text-sm uppercase tracking-capitales text-accent">"Restitution"</p>
+            <h1 class="text-balance">"Le cosmos hébreu n'est pas une usine"</h1>
+            <p class="font-titre text-2xl text-accent">"C'est un Temple."</p>
+            <Bouton href="#aujourd-hui" principal=true>"Entrer"</Bouton>
         </Hero>
 
-        // ── La démonstration ──────────────────────────────────────────────
+        // ── Le verset du jour ─────────────────────────────────────────────
         //
-        // C'est le cœur de la page. Six lignes valent mieux qu'un essai : on
-        // voit ce que la traduction classique laisse tomber avant de
-        // comprendre pourquoi.
-        <Bloc id="la-demonstration">
-            <TitreDeSection numero="I" titre="Le même verset, deux mondes" />
+        // Premier, et c'est délibéré : c'est ce qu'on vient chercher. Le
+        // raisonnement suit, pour qui veut savoir d'où il sort.
+        <Bloc id="aujourd-hui" eclaire=true>
+            <TitreDeSection numero="I" titre="Aujourd'hui" />
+
+            <Suspense fallback=|| ()>
+                {move || Suspend::new(async move {
+                    // Une panne du verset du jour ne doit pas emporter la page :
+                    // elle se tait, et le reste tient.
+                    match verset.await {
+                        Ok(Some(v)) => view! { <CarteVersetDuJour verset=v /> }.into_any(),
+                        _ => ().into_any(),
+                    }
+                })}
+            </Suspense>
+
+            <p class="mt-10 text-sm text-encre-douce">
+                "Une fonction de la date, non un tirage : le site, l'application et son widget "
+                "tombent sur le même verset le même matin, sans jamais se parler."
+            </p>
+        </Bloc>
+
+        // ── La démonstration ──────────────────────────────────────────────
+        <Bloc large=true>
+            <TitreDeSection numero="II" titre="Le même verset, deux mondes" />
+
             // La phrase commence par une lettre, et ce n'est pas un hasard :
             // `::first-letter` embarque la ponctuation qui précède, donc un
-            // guillemet ouvrant se retrouverait dans la lettrine — et la
-            // ponctuation suspendue le jetterait dans la marge par-dessus.
+            // guillemet ouvrant se retrouverait dans la lettrine.
             <p class="lettrine">
                 "Créer suppose un atelier, de la matière, un avant et un après. "
                 "Rien de tout cela n'est dans le verbe hébreu."
@@ -72,7 +88,7 @@ pub fn Accueil() -> impl IntoView {
                 ont=bereshit_1_1()
             />
 
-            <p class="mt-8">
+            <p class="mt-10">
                 <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
                 "un espace, attribuer des rôles, mettre en fonction. Le cosmos ne sort pas "
                 "d'une usine — il est inauguré comme on inaugure un Temple."
@@ -80,8 +96,8 @@ pub fn Accueil() -> impl IntoView {
         </Bloc>
 
         // ── La clé de lecture ─────────────────────────────────────────────
-        <Bloc eclaire=true>
-            <TitreDeSection numero="II" titre="Trois niveaux, jamais confondus" />
+        <Bloc>
+            <TitreDeSection numero="III" titre="Trois niveaux, jamais confondus" />
             <p>
                 "Une restitution ne peut pas tout dire dans la même ligne. L'ONT sépare ce "
                 "que l'hébreu dit, ce qu'il portait implicitement pour son lecteur, et ce "
@@ -90,29 +106,8 @@ pub fn Accueil() -> impl IntoView {
             <LegendeNiveaux />
         </Bloc>
 
-        // ── Le verset du jour ─────────────────────────────────────────────
-        <Bloc>
-            <TitreDeSection numero="III" titre="Aujourd'hui" />
-            <p>
-                "Le verset du jour n'est pas tiré au sort : c'est une fonction de la date. "
-                "Le site, l'application et son widget tombent sur le même, le même matin, "
-                "sans jamais se parler."
-            </p>
-
-            <Suspense fallback=|| ()>
-                {move || Suspend::new(async move {
-                    // Une panne du verset du jour ne doit pas emporter la page :
-                    // elle se tait, et le reste tient.
-                    match verset.await {
-                        Ok(Some(v)) => view! { <CarteVersetDuJour verset=v /> }.into_any(),
-                        _ => ().into_any(),
-                    }
-                })}
-            </Suspense>
-        </Bloc>
-
         // ── L'état du chantier ────────────────────────────────────────────
-        <Bloc eclaire=true>
+        <Bloc eclaire=true large=true>
             <TitreDeSection numero="IV" titre="Où en est la restitution" />
             <p>
                 "Trois livres sur soixante-dix. Le compte est public, et il est tenu par le "
@@ -120,38 +115,27 @@ pub fn Accueil() -> impl IntoView {
                 "recopiés à la main."
             </p>
             <Chiffres />
-            <p class="mt-8 text-sm text-encre-douce">
+            <p class="mt-10 text-sm text-encre-douce">
                 "Une unité verrouillée a été relue et validée : elle fait référence. "
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
             </p>
         </Bloc>
 
         // ── Qui écrit ─────────────────────────────────────────────────────
-        <Bloc>
+        <Bloc large=true>
             <TitreDeSection numero="V" titre="Qui traduit" />
-            // Le portrait sort de la colonne de lecture par la gauche.
-            //
-            // La mesure borne le **texte** ; elle n'a aucune raison de borner
-            // une image, et la marge du site est de toute façon vide. Sur grand
-            // écran, le portrait s'y avance et gagne le tiers de taille qui lui
-            // manquait, sans que la ligne de texte s'allonge d'un signe.
-            //
-            // En dessous, il n'y a plus de marge à occuper : il repasse dans la
-            // colonne, puis au-dessus du texte sur téléphone.
             <div class="md:grid md:grid-cols-[auto_1fr] md:items-end md:gap-10">
-                <div class="mx-auto w-52 md:mx-0 md:w-60 lg:-ml-40 lg:w-80">
+                <div class="mx-auto w-52 md:mx-0 md:w-64 lg:-ml-32 lg:w-80">
                     <Portrait
                         source="/images/portrait-640.webp"
                         source_large="/images/portrait-1024.webp"
                         texte="Gloire Bikouta"
-                        largeur_rendue="(min-width: 64rem) 20rem, (min-width: 48rem) 15rem, 13rem"
+                        largeur_rendue="(min-width: 64rem) 20rem, (min-width: 48rem) 16rem, 13rem"
                     />
                 </div>
                 <div class="mt-8 md:mt-0 md:pb-4">
                     <p class="font-titre text-xl text-encre-vive">"Gloire Bikouta"</p>
-                    <p class="mt-4">
-                        "Ni chercheur, ni chaire, ni juif du Second Temple."
-                    </p>
+                    <p class="mt-4">"Ni chercheur, ni chaire, ni juif du Second Temple."</p>
                     <p>
                         "Il ne fait pas une traduction de plus. Il restitue — et il laisse "
                         "debout ce qui ne se traduit pas."
@@ -162,14 +146,14 @@ pub fn Accueil() -> impl IntoView {
         </Bloc>
 
         // ── Pour aller plus loin ──────────────────────────────────────────
-        <Bloc eclaire=true large=true>
-            <div class="flex flex-col items-center gap-6 text-center">
+        <Bloc>
+            <div class="flex flex-col items-center gap-8 text-center">
                 <p class="text-lg text-balance">
                     "L'ONT affirme, il ne polémique pas. Ce qu'elle refuse tient en cinq lignes."
                 </p>
                 <div class="flex flex-wrap justify-center gap-4">
+                    <Bouton href="/fr/le-pourquoi">"Le pourquoi"</Bouton>
                     <Bouton href="/fr/ce-que-l-ont-n-est-pas">"Ce que l'ONT n'est pas"</Bouton>
-                    <Bouton href="https://github.com/ONTBible">"Le corpus et le code"</Bouton>
                 </div>
             </div>
         </Bloc>

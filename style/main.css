@@ -121,7 +121,7 @@
      ligne suivante. La mesure large reprend `ONTLayout.readingWidth` — 700
      points, la largeur de lecture de l'app sur iPad. */
   --container-mesure: 38rem;
-  --container-mesure-large: 43.75rem;
+  --container-mesure-large: 52rem;
 
   /* `ONTRadius.card` — 22 points. */
   --radius-carte: 1.375rem;
@@ -347,29 +347,67 @@
   }
 }
 
-/* La profondeur d'un bandeau.
+/* La voûte.
  *
- * Une lueur d'aubergine haute, très basse en opacité, et la nuit qui reprend
- * vers le bas. C'est ce qui distingue une surface « plus claire » d'une
- * surface « éclairée » : une lumière semble venir d'au-dessus du texte, comme
- * dans une nef.
+ * C'est la matière du site, et le parti pris qu'il a choisi : le texte n'est
+ * pas *posé sur* un fond, il est *dans* un espace.
  *
- * Trois couches et pas une de plus : au-delà, un dégradé cesse d'être une
- * atmosphère et devient un effet. */
-@utility voile-aubergine {
-  background-color: var(--color-surface-haute);
+ * Trois couches, et chacune fait une chose : une lueur dorée haute — la
+ * lumière tombe d'au-dessus du texte, comme dans une nef ; l'aubergine qui
+ * remonte du bas comme un sol ; et la nuit entre les deux. Une quatrième
+ * couche ferait un effet ; trois font une atmosphère.
+ */
+@utility voute {
+  background-color: var(--color-nuit);
   background-image:
     radial-gradient(
-      ellipse 90% 70% at 50% -20%,
-      color-mix(in srgb, var(--color-or) 12%, transparent) 0%,
-      transparent 65%
+      ellipse 70% 55% at 50% 0%,
+      color-mix(in srgb, var(--color-or) 20%, transparent) 0%,
+      transparent 62%
     ),
-    linear-gradient(
-      to bottom,
+    radial-gradient(
+      ellipse 120% 70% at 50% 100%,
       var(--color-aubergine) 0%,
-      var(--color-surface-haute) 45%,
-      var(--color-surface) 100%
+      transparent 70%
+    ),
+    linear-gradient(to bottom, var(--color-surface-haute), var(--color-nuit) 65%);
+}
+
+/* Une voûte assourdie, pour les sections de lecture : la même lumière, quatre
+ * fois plus basse. Elle donne de la profondeur sans réclamer l'attention que
+ * mérite une ouverture. */
+@utility voute-basse {
+  background-color: var(--color-nuit);
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in srgb, var(--color-or) 6%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 120% 60% at 50% 110%,
+      color-mix(in srgb, var(--color-aubergine) 70%, transparent) 0%,
+      transparent 70%
     );
+}
+
+/* Le massif — la montagne employée en grand, comme un horizon ou un relief
+ * lointain, jamais comme une illustration. Elle prend la couleur du texte
+ * courant, donc son opacité se règle par la couleur et non par un filtre. */
+@utility massif {
+  background: currentColor;
+  aspect-ratio: 502 / 249;
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* Le halo — ce qui distingue un plan éclairé d'un plan en retrait. Une ombre
+ * dorée et diffuse, sans contour : on ne voit pas la source, on voit qu'il y
+ * en a une. */
+@utility halo {
+  box-shadow:
+    0 0 120px -30px color-mix(in srgb, var(--color-or) 34%, transparent),
+    0 30px 70px -40px rgb(0 0 0 / 0.9);
 }
 
 /* La montagne du logo, posée en **masque** et non en image : elle prend la
