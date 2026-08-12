@@ -39,7 +39,7 @@ pub fn Accueil() -> impl IntoView {
         <Hero>
             <h1 class="text-balance">"Le cosmos hébreu n'est pas une usine."</h1>
             <p class="text-xl leading-snug text-balance text-accent">"C'est un Temple."</p>
-            <p class="max-w-[30rem] text-encre">
+            <p class="text-encre text-balance">
                 "Une restitution française du corpus hébreu et araméen antique, "
                 "fondée sur l'ontologie hébraïque fonctionnelle."
             </p>

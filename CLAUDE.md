@@ -205,21 +205,28 @@ Elle garde les titres, où sa géométrie fait écho à la marque.
 
 ### L'échelle typographique
 
-Le corps est à **19 px**, pas à 16. Deux raisons qui se cumulent : Literata a
-une hauteur d'x généreuse mais une chasse étroite, et sur une nuit d'aubergine
-le texte clair paraît plus petit qu'il ne l'est — l'inverse de la halation, qui
-l'épaissit sans l'agrandir. Les deux premiers essais composaient à 17 et 18 px
-et se lisaient comme des notes de bas de page.
+Le corps est à **21 px**, pas à 16. Deux effets se cumulent : Literata a une
+hauteur d'x généreuse mais une **chasse étroite**, et sur une nuit d'aubergine
+le texte clair **paraît plus petit** qu'il ne l'est — l'inverse de la halation,
+qui l'épaissit sans l'agrandir. Les essais à 17 puis 19 px se lisaient encore
+comme des notes de bas de page. Il a demandé plus grand deux fois : ne pas
+redescendre sans qu'il le demande.
 
 | | |
 |---|---|
-| `text-sm` | 15 px — capitales espacées, légendes |
-| `text-base` | **19 px** — le corps |
+| `text-sm` | 16 px — capitales espacées, légendes |
+| `text-base` | **21 px** — le corps |
 | `text-lg` → `text-3xl` | quarte juste, en `clamp` |
 
-La mesure ne bouge pas : à 19 px, 34 rem tiennent environ 57 signes par ligne.
-C'est le bas de la fourchette confortable (55 à 75), et c'est le côté qu'il
-préfère — il a explicitement demandé l'étroit après avoir vu le large.
+**La mesure suit la taille**, et c'est la règle à retenir : à 21 px, 34 rem ne
+tiendraient plus que 52 signes par ligne — sous la fourchette confortable de 55
+à 75, et le texte se hacherait. Elle passe donc à 38 rem, soit environ 58
+signes : toujours du côté étroit qu'il préfère. Grandir le texte sans élargir
+la mesure produit des lignes trop courtes, ce qui se lit aussi mal que des
+lignes trop longues.
+
+L'interligne descend à 1,68 en compensation : plus le corps grandit, moins il a
+besoin d'air proportionnel pour que l'œil retrouve la ligne suivante.
 
 ### Un écran par bloc
 
