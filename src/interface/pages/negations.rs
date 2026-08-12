@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Filet, ListeAffirmations, Principe, Section, TitreDePage};
+use crate::interface::design::{Bloc, Filet, ListeAffirmations, Principe, TitreDePage};
 use crate::interface::tete::Tete;
 
 /// « Ce que l'ONT n'est pas ».
@@ -18,7 +18,7 @@ pub fn Negations() -> impl IntoView {
             chemin="/fr/ce-que-l-ont-n-est-pas"
         />
 
-        <Section>
+        <Bloc>
             <TitreDePage rappel="Les limites" titre="Ce que l'ONT n'est pas" />
 
             <ListeAffirmations lignes=vec![
@@ -36,6 +36,6 @@ pub fn Negations() -> impl IntoView {
                 "originaux — en rendant visible pour le lecteur français ce qui était "
                 "invisible parce qu'implicite."
             </Principe>
-        </Section>
+        </Bloc>
     }
 }

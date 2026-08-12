@@ -299,19 +299,46 @@ des témoins relevés en **exécutant le Swift** :
 
 ## 8. Où en est le site
 
-**Fait** — squelette Leptos SSR, couches, design system, six pages, verset du
+**Fait** — squelette Leptos SSR, couches, design system, cinq pages, verset du
 jour accordé à l'app, vecteurs de la marque normalisés, métadonnées complètes
 (canonique, hreflang, Open Graph, JSON-LD).
 
 ```
 /            → 307 vers /fr        (temporaire : « / » choisira la langue un jour)
-/fr                                accueil — le principe, le verset du jour, les portes
-/fr/le-pourquoi                    l'ontologie fonctionnelle, les trois niveaux montrés
+/fr                                la page d'accueil — voir ci-dessous
+/fr/le-pourquoi                    l'essai de fond
 /fr/ce-que-l-ont-n-est-pas         les cinq lignes du §10 du vault
 /fr/l-auteur                       premier jet, en attente de sa relecture
 /fr/confidentialite                vérifiée dans le code de l'app, pas recopiée
 /fr/conditions
 ```
+
+### L'accueil montre, il n'annonce pas
+
+La première version était un sommaire : trois liens vers trois pages maigres.
+Un sommaire demande au lecteur de choisir avant de savoir de quoi il s'agit —
+et sur un projet dont personne n'a entendu parler, il repart.
+
+L'ordre de la page est un argument, et il ne se réorganise pas au hasard :
+
+1. **L'affirmation** — la montagne en grand, une phrase, deux chemins.
+2. **La démonstration** — Bereshit 1:1 chez Louis Segond (1910, domaine
+   public), puis la restitution avec ses trois niveaux. C'est la pièce qui
+   porte tout le site : l'écart se voit avant d'être compris. Citer une
+   traduction moderne serait une contrefaçon ; une traduction ancienne et
+   respectée rend d'ailleurs l'écart plus parlant.
+3. **La clé de lecture** — les trois niveaux, expliqués après avoir été vus.
+4. **Le verset du jour**.
+5. **L'état du chantier** — 3 livres sur 70, et les chiffres viennent du
+   `manifest.json` du pipeline, figés par `build.rs`. Jamais recopiés : un site
+   qui annonce trois livres quand le vault en a cinq ment sans que personne ne
+   le remarque.
+6. **Qui traduit**, en trois lignes, puis le lien vers la page.
+7. **Pour aller plus loin.**
+
+`Hero` ouvre, `Bloc` fait tout le reste — une seule primitive de mise en page,
+pleine largeur avec la mesure rétablie à l'intérieur. Deux primitives finissent
+toujours par diverger sur un espacement.
 
 **Reste à faire**, dans cet ordre :
 

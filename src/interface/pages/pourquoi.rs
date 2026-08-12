@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
-use crate::domaine::texte::{Noeud, Verset as VersetDomaine};
-use crate::interface::design::{Exergue, Filet, LegendeNiveaux, Section, TitreDePage, Verset};
+use crate::interface::design::{Bloc, Exergue, Filet, LegendeNiveaux, TitreDePage, Verset};
+use crate::interface::echantillon::bereshit_1_1;
 use crate::interface::tete::Tete;
 
 /// « Le pourquoi » — l'ontologie fonctionnelle, montrée plutôt qu'affirmée.
@@ -16,7 +16,7 @@ pub fn Pourquoi() -> impl IntoView {
             chemin="/fr/le-pourquoi"
         />
 
-        <Section>
+        <Bloc>
             <TitreDePage rappel="Le principe" titre="Le pourquoi" />
 
             <p>
@@ -65,58 +65,6 @@ pub fn Pourquoi() -> impl IntoView {
 
             <Verset verset=bereshit_1_1() />
             <LegendeNiveaux />
-        </Section>
-    }
-}
-
-/// Bereshit 1:1, tel que le pipeline le produit.
-///
-/// **Provisoire.** Ce verset est écrit ici en dur, le temps que le site sache
-/// lire `dist/` — le corpus construit par `ONTBibleApp`. Le composant, lui,
-/// est déjà le bon : il prend des `Noeud` du domaine, donc il n'aura rien à
-/// changer le jour où la donnée viendra du corpus plutôt que d'ici.
-///
-/// C'est la seule duplication du texte de la traduction dans ce dépôt, et elle
-/// est destinée à disparaître.
-fn bereshit_1_1() -> VersetDomaine {
-    VersetDomaine {
-        numero: 1,
-        noeuds: vec![
-            Noeud::Texte("Quand ".into()),
-            Noeud::Intraduisible {
-                mot: "Elohim".into(),
-                lemme: "elohim".into(),
-            },
-            Noeud::Texte(" ".into()),
-            Noeud::Hebreu {
-                translitteration: "elohim".into(),
-                hebreu: "אֱלֹהִים".into(),
-            },
-            Noeud::Texte(" commença à orchestrer ".into()),
-            Noeud::Hebreu {
-                translitteration: "bara".into(),
-                hebreu: "בָּרָא".into(),
-            },
-            Noeud::Texte(" ".into()),
-            Noeud::Glose(vec![Noeud::Texte(
-                "à inaugurer dans l'existence fonctionnelle, à attribuer des rôles et des \
-                 fonctions comme un roi investit son royaume"
-                    .into(),
-            )]),
-            Noeud::Texte(" les ".into()),
-            Noeud::Important("Cieux".into()),
-            Noeud::Texte(" et la ".into()),
-            Noeud::Important("Terre".into()),
-            Noeud::Texte(" ".into()),
-            Noeud::Hebreu {
-                translitteration: "hashamayim ve'ha'aretz".into(),
-                hebreu: "הַשָּׁמַיִם וְהָאָרֶץ".into(),
-            },
-            Noeud::Texte(" ".into()),
-            Noeud::Glose(vec![Noeud::Texte(
-                "c'est-à-dire la totalité du cosmos, du plus haut au plus bas".into(),
-            )]),
-            Noeud::Texte(" —".into()),
-        ],
+        </Bloc>
     }
 }

@@ -1,8 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{
-    Bandeau, Exergue, Filet, Portrait, Principe, Section, TitreDePage,
-};
+use crate::interface::design::{Bloc, Exergue, Filet, Portrait, Principe, TitreDePage};
 use crate::interface::tete::Tete;
 
 /// « L'auteur ».
@@ -28,7 +26,7 @@ pub fn Auteur() -> impl IntoView {
             chemin="/fr/l-auteur"
         />
 
-        <Section>
+        <Bloc>
             // Le titre de cette page est son **nom**, et « L'auteur » n'est
             // que le rappel. La première version faisait l'inverse, puis
             // répétait le nom deux lignes plus bas — un titre qui n'apprend
@@ -44,12 +42,12 @@ pub fn Auteur() -> impl IntoView {
                 "Je ne suis pas un chercheur. Je n'ai pas de chaire. "
                 "Je ne suis pas un juif du Second Temple."
             </Principe>
-        </Section>
+        </Bloc>
 
         // Le récit d'origine est posé sur l'aubergine : c'est le seul endroit
         // du site où l'auteur parle de ce qu'il a reçu, et la page doit
         // changer de registre à cet endroit-là.
-        <Bandeau>
+        <Bloc eclaire=true>
             <h2 class="text-or">"Ce que j'ai reçu"</h2>
             <p class="text-lg leading-relaxed text-pretty">
                 "J'ai reçu un manteau d'antiquité. Et l'ordre qui allait avec : "
@@ -62,9 +60,9 @@ pub fn Auteur() -> impl IntoView {
                 "J'ai cru que cela ne devait pas être écrit. Je l'ai gardé deux ans. "
                 "Puis je l'ai écrit. Et j'ai commencé à traduire."
             </p>
-        </Bandeau>
+        </Bloc>
 
-        <Section>
+        <Bloc>
             <h2>"Ce que je fais"</h2>
             <p>"Je ne fais pas une traduction de plus. Je restitue."</p>
             <p>
@@ -102,6 +100,6 @@ pub fn Auteur() -> impl IntoView {
                 "distinct. C'est le principe de qara : nommer, c'est faire entrer dans "
                 "l'existence."
             </p>
-        </Section>
+        </Bloc>
     }
 }

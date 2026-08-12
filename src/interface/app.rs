@@ -5,7 +5,7 @@ use leptos_router::{
     SsrMode, StaticSegment,
 };
 
-use crate::interface::design::{Entete, PiedDePage, Section};
+use crate::interface::design::{Bloc, Entete, PiedDePage};
 use crate::interface::pages::{Accueil, Auteur, Conditions, Confidentialite, Negations, Pourquoi};
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -139,9 +139,9 @@ fn Introuvable() -> impl IntoView {
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
-        <Section>
+        <Bloc>
             <h1>"Cette page n'existe pas."</h1>
             <p><a href="/fr">"Revenir à l'accueil."</a></p>
-        </Section>
+        </Bloc>
     }
 }

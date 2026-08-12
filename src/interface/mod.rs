@@ -9,5 +9,6 @@
 
 pub mod app;
 pub mod design;
+pub mod echantillon;
 pub mod pages;
 pub mod tete;

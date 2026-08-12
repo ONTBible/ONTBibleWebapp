@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::Section;
+use crate::interface::design::Bloc;
 
 /// Le gabarit des pages légales.
 ///
@@ -21,7 +21,7 @@ pub fn PageLegale(
     children: Children,
 ) -> impl IntoView {
     view! {
-        <Section>
+        <Bloc>
             <a
                 href="/fr"
                 class="text-sm uppercase tracking-capitales text-encre-douce no-underline hover:text-encre"
@@ -37,6 +37,6 @@ pub fn PageLegale(
             <div class="[&_a]:text-accent [&_li]:mb-2 [&_ul]:mb-6 [&_ul]:list-disc [&_ul]:ps-6">
                 {children()}
             </div>
-        </Section>
+        </Bloc>
     }
 }
