@@ -203,29 +203,6 @@ l'app, donc un verset cité ici se lit exactement comme sur le téléphone.
 Jost ne tient pas dix lignes de texte suivi : hauteur d'x basse, fûts égaux.
 Elle garde les titres, où sa géométrie fait écho à la marque.
 
-### Les largeurs — une colonne de lecture, et ce qui déborde
-
-Le premier essai imposait la mesure à toute la page. Sur un grand écran, le
-site devenait un ruban ; l'erreur n'était pas la mesure elle-même mais son
-domaine d'application.
-
-| jeton | usage |
-|---|---|
-| `mesure` — 36 rem | le texte suivi. Contrainte de lecture : au-delà de ~70 signes par ligne, l'œil perd le début de la ligne suivante |
-| `large` — 52 rem | une rangée de chiffres, un portrait à côté de sa légende |
-| `page` — 72 rem | la comparaison en deux colonnes, la borne extérieure |
-
-`Bloc` borne **toujours** à la mesure. Ce qui n'est pas du texte suivi en sort
-explicitement, avec `Deborde` : la marge négative vaut la moitié de l'écart
-entre les deux largeurs, donc l'élément reste centré sur la même verticale que
-le texte. Sur téléphone il ne se passe rien — la largeur demandée dépasse déjà
-l'écran, et tout retombe sur une colonne.
-
-Les colonnes de la comparaison ne sont **pas** égales : la restitution est trois
-fois plus longue que la traduction de référence, et à largeurs égales elle
-s'étire en ruban pendant que l'autre flotte dans le vide. Le rapport
-0,62 / 1,38 les fait finir à peu près à la même hauteur.
-
 ### « Ancienne mais moderne » — où ça se joue
 
 L'ancien donne la **structure**, le moderne donne la **retenue**. Chaque fois

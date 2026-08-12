@@ -2,8 +2,8 @@ use leptos::prelude::*;
 
 use crate::api::verset_du_jour;
 use crate::interface::design::{
-    Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Deborde, Hero, LegendeNiveaux,
-    Portrait, TitreDeSection,
+    Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait,
+    TitreDeSection,
 };
 use crate::interface::echantillon::{bereshit_1_1, SEGOND_1910, SEGOND_SOURCE};
 use crate::interface::tete::Tete;
@@ -65,14 +65,12 @@ pub fn Accueil() -> impl IntoView {
                 "Rien de tout cela n'est dans le verbe hébreu."
             </p>
 
-            <Deborde pleine=true>
-                <Comparaison
-                    renvoi="Bereshit 1:1"
-                    classique=SEGOND_1910
-                    source=SEGOND_SOURCE
-                    ont=bereshit_1_1()
-                />
-            </Deborde>
+            <Comparaison
+                renvoi="Bereshit 1:1"
+                classique=SEGOND_1910
+                source=SEGOND_SOURCE
+                ont=bereshit_1_1()
+            />
 
             <p class="mt-8">
                 <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
@@ -121,9 +119,7 @@ pub fn Accueil() -> impl IntoView {
                 "pipeline lui-même — ces chiffres viennent du corpus, ils ne sont pas "
                 "recopiés à la main."
             </p>
-            <Deborde>
-                <Chiffres />
-            </Deborde>
+            <Chiffres />
             <p class="mt-8 text-sm text-encre-douce">
                 "Une unité verrouillée a été relue et validée : elle fait référence. "
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
@@ -133,8 +129,7 @@ pub fn Accueil() -> impl IntoView {
         // ── Qui écrit ─────────────────────────────────────────────────────
         <Bloc>
             <TitreDeSection numero="V" titre="Qui traduit" />
-            <Deborde>
-            <div class="sm:flex sm:items-start sm:gap-10">
+            <div class="sm:flex sm:items-start sm:gap-8">
                 <div class="sm:w-44 sm:shrink-0">
                     <Portrait
                         source="/images/portrait-640.png"
@@ -153,11 +148,10 @@ pub fn Accueil() -> impl IntoView {
                     <Bouton href="/fr/l-auteur">"D'où vient ce travail"</Bouton>
                 </div>
             </div>
-            </Deborde>
         </Bloc>
 
         // ── Pour aller plus loin ──────────────────────────────────────────
-        <Bloc eclaire=true serre=true>
+        <Bloc eclaire=true serre=true large=true>
             <div class="flex flex-col items-center gap-6 text-center">
                 <p class="text-lg text-balance">
                     "L'ONT affirme, il ne polémique pas. Ce qu'elle refuse tient en cinq lignes."

@@ -22,7 +22,7 @@ pub fn Hero(children: Children) -> impl IntoView {
                 class="signe-montagne pointer-events-none absolute -top-[14%] left-1/2 -z-10 w-[150%] -translate-x-1/2 text-or opacity-[0.06]"
             ></span>
 
-            <div class="mx-auto flex max-w-large flex-col items-center gap-8 px-6 py-32 text-center sm:py-40">
+            <div class="mx-auto flex max-w-mesure flex-col items-center gap-8 px-6 py-32 text-center">
                 {children()}
             </div>
         </section>

@@ -97,20 +97,11 @@
      l'interlettrage ne fait que disloquer le mot. */
   --tracking-capitales: 0.16em;
 
-  /* ── Les trois largeurs ──────────────────────────────────────────────────
-
-     La **mesure** borne le texte suivi : au-delà de ~70 signes par ligne,
-     l'œil perd le début de la ligne suivante. C'est une contrainte de lecture,
-     pas de mise en page — et c'est là qu'était l'erreur du premier essai, qui
-     l'imposait à toute la page. Sur un grand écran, le site devenait un ruban.
-
-     Ce qui n'est pas du texte suivi — une comparaison en deux colonnes, une
-     rangée de chiffres, un portrait à côté de sa légende — a le droit
-     d'occuper la largeur. Le mobile ne change pas : tout y retombe sur une
-     colonne, et c'est la base sur laquelle le reste s'ajoute.                */
-  --container-mesure: 36rem; /* le texte suivi */
-  --container-large: 52rem; /* deux colonnes, une rangée */
-  --container-page: 72rem; /* la borne extérieure */
+  /* La mesure. Au-delà de ~70 signes par ligne, l'œil perd le début de la
+     ligne suivante. La mesure large reprend `ONTLayout.readingWidth` — 700
+     points, la largeur de lecture de l'app sur iPad. */
+  --container-mesure: 34rem;
+  --container-mesure-large: 43.75rem;
 
   /* `ONTRadius.card` — 22 points. */
   --radius-carte: 1.375rem;
@@ -404,28 +395,4 @@
  * phrase. */
 @utility chiffres-tableau {
   font-variant-numeric: lining-nums tabular-nums;
-}
-
-/* Le débordement.
- *
- * Un bloc borne le texte à la mesure — c'est une contrainte de lecture, et
- * elle ne se négocie pas. Mais une comparaison en deux colonnes, une rangée de
- * chiffres ou un portrait à côté de sa légende ne sont pas du texte suivi :
- * les enfermer dans la mesure fait, sur grand écran, un site en ruban.
- *
- * Ces utilitaires laissent un enfant sortir de la colonne sans quitter son
- * centre. La marge négative vaut la moitié de l'écart entre les deux largeurs,
- * donc l'élément reste centré sur la même verticale que le texte.
- *
- * `min(…, 92vw)` garde une gouttière sur les écrans étroits : sans elle,
- * l'élément toucherait les bords dès que la fenêtre passe sous sa largeur.
- */
-@utility deborde-large {
-  width: min(var(--container-large), 92vw);
-  margin-inline: calc(50% - min(var(--container-large), 92vw) / 2);
-}
-
-@utility deborde-page {
-  width: min(var(--container-page), 92vw);
-  margin-inline: calc(50% - min(var(--container-page), 92vw) / 2);
 }
