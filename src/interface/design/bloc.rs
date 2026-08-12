@@ -3,9 +3,22 @@ use leptos::prelude::*;
 /// Un bloc de page — la primitive de mise en page du site.
 ///
 /// Il touche les deux bords de l'écran et rétablit la **mesure** à
-/// l'intérieur : le fond respire, le texte reste lisible. C'est ce qui donne
-/// au site son rythme — une suite de bandes qui alternent, plutôt qu'une
-/// colonne unique posée au milieu du vide.
+/// l'intérieur : le fond respire, le texte reste lisible.
+///
+/// ## Un écran par bloc
+///
+/// Chaque bloc occupe au moins la hauteur de la fenêtre, et son contenu y est
+/// centré. C'est ce qui transforme l'alternance des fonds en **rythme** : sans
+/// cette hauteur, les bandes claires et sombres épousaient la longueur des
+/// textes et se lisaient comme des rayures posées au hasard.
+///
+/// `min-h-dvh` et non `h-screen`, pour deux raisons distinctes :
+///
+/// - **minimale**, pas fixe : la comparaison ou une page légale dépassent un
+///   écran, et une hauteur fixe les couperait ;
+/// - **`dvh`** et non `vh` : sur un téléphone, `vh` compte la fenêtre sans la
+///   barre d'adresse, qui se rétracte au défilement. Chaque bloc sauterait de
+///   quelques dizaines de pixels au premier geste.
 ///
 /// Il remplace `Section` et `Bandeau`, qui faisaient la même chose de deux
 /// façons. Deux primitives de mise en page finissent toujours par diverger sur
@@ -20,9 +33,6 @@ pub fn Bloc(
     /// Élargit la mesure — pour ce qui n'est pas du texte courant.
     #[prop(optional)]
     large: bool,
-    /// Resserre le rythme vertical, pour un bloc qui prolonge le précédent.
-    #[prop(optional)]
-    serre: bool,
     /// L'ancre, pour qu'un lien de la page puisse y mener.
     #[prop(optional, into)]
     id: Option<String>,
@@ -31,13 +41,12 @@ pub fn Bloc(
     view! {
         <section
             id=id
-            class="border-t border-filet/60"
+            class="flex min-h-dvh flex-col justify-center border-t border-filet/60"
             class=("voile-aubergine", eclaire)
         >
             <div
-                class="mx-auto max-w-mesure px-6 py-24"
+                class="mx-auto w-full max-w-mesure px-6 py-24"
                 class=("max-w-mesure-large", large)
-                class=("py-14", serre)
             >
                 {children()}
             </div>

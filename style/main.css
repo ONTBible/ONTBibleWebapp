@@ -105,6 +105,16 @@
 
   /* `ONTRadius.card` — 22 points. */
   --radius-carte: 1.375rem;
+
+  /* La hauteur de l'en-tête, pour que l'ouverture occupe l'écran **moins**
+     lui. Sans cette soustraction, le premier écran montrerait l'en-tête plus
+     le haut d'un hero d'un écran entier, et le contenu centré du hero
+     tomberait sous la ligne de flottaison.
+
+     C'est une estimation — marge 2,5 rem + wordmark ≈ 5,6 rem + écart 1,5 rem
+     + navigation ≈ 1,5 rem — et elle vit ici pour qu'il n'y ait qu'un endroit
+     à corriger si l'en-tête change. */
+  --hauteur-entete: 11rem;
 }
 
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════

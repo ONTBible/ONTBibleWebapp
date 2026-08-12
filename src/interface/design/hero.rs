@@ -6,9 +6,12 @@ use leptos::prelude::*;
 /// une phrase, deux chemins. C'est une page de titre de livre : on n'y explique
 /// rien, on pose le nom et on ouvre.
 ///
-/// Elle occupe volontairement une hauteur d'écran sans la remplir. Le vide
-/// autour du signe fait partie de ce qu'on montre — un livre ancien ne remplit
-/// pas sa page de garde.
+/// Elle occupe l'écran **moins l'en-tête** — sinon le premier écran montrerait
+/// la marque, puis le haut d'une ouverture d'un écran entier, et la phrase
+/// tomberait sous la ligne de flottaison.
+///
+/// Le vide autour du signe fait partie de ce qu'on montre : un livre ancien ne
+/// remplit pas sa page de garde.
 #[component]
 pub fn Hero(children: Children) -> impl IntoView {
     view! {
@@ -22,7 +25,7 @@ pub fn Hero(children: Children) -> impl IntoView {
                 class="signe-montagne pointer-events-none absolute -top-[14%] left-1/2 -z-10 w-[150%] -translate-x-1/2 text-or opacity-[0.06]"
             ></span>
 
-            <div class="mx-auto flex max-w-mesure flex-col items-center gap-8 px-6 py-32 text-center">
+            <div class="mx-auto flex min-h-[calc(100dvh-var(--hauteur-entete))] max-w-mesure flex-col items-center justify-center gap-8 px-6 py-24 text-center">
                 {children()}
             </div>
         </section>

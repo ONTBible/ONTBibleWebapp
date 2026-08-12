@@ -203,6 +203,24 @@ l'app, donc un verset cité ici se lit exactement comme sur le téléphone.
 Jost ne tient pas dix lignes de texte suivi : hauteur d'x basse, fûts égaux.
 Elle garde les titres, où sa géométrie fait écho à la marque.
 
+### Un écran par bloc
+
+Chaque `Bloc` occupe au moins la hauteur de la fenêtre, contenu centré. Sans
+ça, les fonds clairs et sombres épousaient la longueur des textes et se
+lisaient comme des rayures posées au hasard.
+
+`min-h-dvh`, et les deux mots comptent :
+
+- **minimale** et non fixe — la comparaison et les pages légales dépassent un
+  écran, une hauteur fixe les couperait ;
+- **`dvh`** et non `vh` — sur un téléphone, `vh` compte la fenêtre sans la
+  barre d'adresse, qui se rétracte au défilement : chaque bloc sauterait de
+  quelques dizaines de pixels au premier geste.
+
+L'ouverture, elle, occupe l'écran **moins l'en-tête** (`--hauteur-entete`) :
+sinon le premier écran montrerait la marque, puis le haut d'un hero d'un écran
+entier, et la phrase tomberait sous la ligne de flottaison.
+
 ### « Ancienne mais moderne » — où ça se joue
 
 L'ancien donne la **structure**, le moderne donne la **retenue**. Chaque fois

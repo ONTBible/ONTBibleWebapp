@@ -151,7 +151,7 @@ pub fn Accueil() -> impl IntoView {
         </Bloc>
 
         // ── Pour aller plus loin ──────────────────────────────────────────
-        <Bloc eclaire=true serre=true large=true>
+        <Bloc eclaire=true large=true>
             <div class="flex flex-col items-center gap-6 text-center">
                 <p class="text-lg text-balance">
                     "L'ONT affirme, il ne polémique pas. Ce qu'elle refuse tient en cinq lignes."
