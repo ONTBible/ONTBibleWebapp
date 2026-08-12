@@ -9,6 +9,10 @@
    n'existera pas dans la feuille. Les classes s'écrivent en entier, toujours. */
 @source "../src/**/*.rs";
 
+/* Les essais de direction artistique sont écrits en HTML statique, le temps
+   qu'il en choisisse une. Ils sortent du dépôt avec ce commentaire. */
+@source "../public/essais/*.html";
+
 /* ═══ Les jetons ═══════════════════════════════════════════════════════════
 
    La source unique de la forme. Rien de ce qui est ici ne se réécrit ailleurs,

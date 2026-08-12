@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>C — Le sanctuaire</title>
+    <link rel="stylesheet" href="/pkg/ontbible.css" />
+    <style>
+      /* Le parti pris : de l'atmosphère.
+         La montagne en très grand, des lumières, de la profondeur, des plans
+         qui se superposent. Le texte n'est plus posé sur un fond : il est
+         *dans* un espace. C'est le registre d'une page d'application soignée,
+         appliqué à un objet ancien.
+
+         C'est le contraire du codex : ici on ne consulte pas, on entre. */
+      body { background: var(--color-nuit); }
+      .voute {
+        background-image:
+          radial-gradient(ellipse 70% 55% at 50% 0%,
+            color-mix(in srgb, var(--color-or) 22%, transparent) 0%, transparent 62%),
+          radial-gradient(ellipse 120% 70% at 50% 100%,
+            var(--color-aubergine) 0%, transparent 70%),
+          linear-gradient(to bottom, var(--color-surface-haute), var(--color-nuit) 70%);
+      }
+      .massif {
+        background: currentColor; aspect-ratio: 502/249;
+        -webkit-mask: url("/images/logomark.svg") center/contain no-repeat;
+        mask: url("/images/logomark.svg") center/contain no-repeat;
+      }
+      .halo { box-shadow: 0 0 120px -20px color-mix(in srgb, var(--color-or) 30%, transparent); }
+      .titre-monumental { font-size: clamp(3rem, 1.5rem + 7vw, 7rem); line-height: 0.98; letter-spacing: -0.02em; }
+    </style>
+  </head>
+
+  <body class="text-encre">
+    <!-- L'ouverture : on entre dans un lieu. La montagne occupe le bas de
+         l'écran comme un horizon, la lumière tombe du haut. -->
+    <section class="voute relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6 text-center">
+      <span class="massif pointer-events-none absolute -bottom-[8%] left-1/2 -z-10 w-[160%] -translate-x-1/2 text-aubergine opacity-70"></span>
+      <span class="massif pointer-events-none absolute -bottom-[14%] left-1/2 -z-10 w-[190%] -translate-x-1/2 text-or opacity-[0.06]"></span>
+
+      <img src="/images/wordmark.svg" alt="La Bible ONT" class="mb-16 w-40 opacity-80" />
+      <h1 class="titre-monumental max-w-5xl font-titre text-encre-vive text-balance">
+        Le cosmos hébreu n’est pas une usine
+      </h1>
+      <p class="mt-8 font-titre text-2xl text-accent">C’est un Temple.</p>
+      <a href="#verset"
+         class="mt-14 inline-block rounded-full bg-or px-8 py-4 text-sm uppercase tracking-capitales text-nuit no-underline">
+        Entrer
+      </a>
+    </section>
+
+    <!-- Le verset du jour en pleine page, comme un vitrail. -->
+    <section id="verset" class="relative isolate flex min-h-dvh items-center overflow-hidden px-6 py-24">
+      <span class="massif pointer-events-none absolute -right-[20%] top-1/2 -z-10 w-[70%] -translate-y-1/2 text-or opacity-[0.05]"></span>
+      <div class="mx-auto max-w-4xl">
+        <p class="mb-10 text-sm uppercase tracking-capitales text-accent">Verset du jour</p>
+        <blockquote class="font-corps text-3xl leading-[1.35] text-encre-vive text-pretty">
+          Il chassa l’Être façonné du sol, et il établit sa demeure à l’orient du Jardin d’Eden
+          les Kheruvim et la flamme de l’épée tournoyante pour garder le chemin de l’arbre de la Vie.
+        </blockquote>
+        <p class="mt-10 text-sm uppercase tracking-capitales text-encre-douce">Bereshit 3:24</p>
+      </div>
+    </section>
+
+    <!-- La démonstration : deux plans superposés, l'un en retrait, l'autre en
+         avant et éclairé. -->
+    <section class="relative flex min-h-dvh items-center px-6 py-24">
+      <div class="mx-auto grid max-w-5xl gap-10 md:grid-cols-2 md:items-center">
+        <div>
+          <p class="mb-6 text-sm uppercase tracking-capitales text-accent">Le même verset</p>
+          <h2 class="font-titre text-3xl text-encre-vive">Deux mondes</h2>
+          <p class="mt-6 text-encre-douce">
+            « Créer » suppose un atelier, de la matière, un avant et un après.
+            Rien de tout cela n’est dans le verbe hébreu.
+          </p>
+          <div class="mt-10 rounded-carte border border-filet bg-surface/40 p-6">
+            <p class="text-encre-douce">« Au commencement, Dieu créa les cieux et la terre. »</p>
+            <p class="mt-2 text-sm text-encre-douce/70">Louis Segond, 1910</p>
+          </div>
+        </div>
+
+        <div class="halo rounded-carte border border-or/25 bg-surface-haute p-8">
+          <p class="text-lg leading-loose text-pretty">
+            <sup class="text-accent">1</sup>
+            Quand <b class="font-semibold text-accent">Elohim</b>
+            <span class="text-[0.86em] text-encre-douce">(<i>elohim</i> /
+              <span dir="rtl" lang="he" class="font-hebreu">אֱלֹהִים</span>)</span>
+            commença à orchestrer
+            <span class="text-[0.86em] text-encre-douce">(<i>bara</i> /
+              <span dir="rtl" lang="he" class="font-hebreu">בָּרָא</span>)</span>
+            <span class="text-[0.86em] italic text-encre-douce">[à inaugurer dans l’existence
+              fonctionnelle, à attribuer des rôles et des fonctions comme un roi investit son
+              royaume]</span>
+            les <b class="font-semibold text-important">Cieux</b> et la
+            <b class="font-semibold text-important">Terre</b> —
+          </p>
+          <p class="mt-6 text-sm uppercase tracking-capitales text-accent">La Bible ONT</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- L'état du chantier, en grand. -->
+    <section class="voute flex min-h-[80dvh] items-center px-6 py-24">
+      <div class="mx-auto max-w-5xl">
+        <h2 class="font-titre text-3xl text-encre-vive">Où en est la restitution</h2>
+        <div class="mt-12 grid grid-cols-2 gap-8 md:grid-cols-4">
+          <div><p class="chiffres-tableau font-titre text-3xl text-accent">3/70</p>
+            <p class="mt-1 text-sm text-encre-douce">livres</p></div>
+          <div><p class="chiffres-tableau font-titre text-3xl text-accent">39</p>
+            <p class="mt-1 text-sm text-encre-douce">unités</p></div>
+          <div><p class="chiffres-tableau font-titre text-3xl text-accent">781</p>
+            <p class="mt-1 text-sm text-encre-douce">versets</p></div>
+          <div><p class="chiffres-tableau font-titre text-3xl text-accent">105</p>
+            <p class="mt-1 text-sm text-encre-douce">entrées</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- L'auteur : le portrait en grand, éclairé, à demi sorti du cadre. -->
+    <section class="relative flex min-h-dvh items-center overflow-hidden px-6 py-24">
+      <div class="mx-auto grid max-w-5xl items-end gap-10 md:grid-cols-[1fr_1fr]">
+        <div class="relative">
+          <div class="halo absolute inset-0 -z-10 rounded-full"></div>
+          <img src="/images/portrait-1024.webp" alt="Gloire Bikouta" class="fondu-bas w-full max-w-sm" />
+        </div>
+        <div class="pb-10">
+          <p class="mb-4 text-sm uppercase tracking-capitales text-accent">Qui traduit</p>
+          <h2 class="font-titre text-3xl text-encre-vive">Gloire Bikouta</h2>
+          <p class="mt-6 text-encre-douce">
+            Ni chercheur, ni chaire, ni juif du Second Temple.
+          </p>
+          <p class="text-encre-douce">
+            Il ne fait pas une traduction de plus. Il restitue — et il laisse debout
+            ce qui ne se traduit pas.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="border-t border-filet px-6 py-12 text-center text-sm text-encre-douce">
+      <p>© 2026 Gloire Bikouta</p>
+    </footer>
+  </body>
+</html>

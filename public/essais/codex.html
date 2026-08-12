@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>B — Le codex</title>
+    <link rel="stylesheet" href="/pkg/ontbible.css" />
+    <style>
+      /* Le parti pris : une édition critique.
+         Deux colonnes asymétriques — une marge étroite qui porte le numéro, le
+         renvoi, l'hébreu ; une colonne large qui porte le texte. Des filets
+         partout, de la densité, peu d'air. La page ressemble à ce que l'ONT
+         *est* : un appareil critique. Rien n'est mis en scène ; tout est
+         référencé.
+
+         C'est le contraire de la stèle : ici on ne contemple pas, on consulte. */
+      body { background: var(--color-nuit); }
+      .rangee { display: grid; gap: 0 2.5rem; grid-template-columns: 1fr; }
+      @media (min-width: 56rem) { .rangee { grid-template-columns: 11rem minmax(0, 36rem); } }
+      .marge { color: var(--color-encre-douce); font-size: var(--text-sm); }
+      .glyphe { width: 1.5rem; aspect-ratio: 502/249; background: currentColor;
+        -webkit-mask: url("/images/logomark.svg") center/contain no-repeat;
+        mask: url("/images/logomark.svg") center/contain no-repeat; }
+      .page { max-width: 52rem; margin-inline: auto; padding-inline: 1.5rem; }
+    </style>
+  </head>
+
+  <body class="grain-page text-encre">
+    <header class="border-b border-filet">
+      <div class="page flex items-baseline justify-between py-5">
+        <div class="flex items-center gap-3">
+          <span class="glyphe text-accent"></span>
+          <span class="text-sm uppercase tracking-capitales">La Bible ONT</span>
+        </div>
+        <nav class="flex gap-6 text-sm uppercase tracking-capitales text-encre-douce">
+          <a href="#" class="no-underline hover:text-encre">Pourquoi</a>
+          <a href="#" class="no-underline hover:text-encre">Limites</a>
+          <a href="#" class="no-underline hover:text-encre">Auteur</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page py-16">
+      <!-- L'ouverture est une notice, pas une affiche. -->
+      <div class="rangee border-b border-filet pb-12">
+        <p class="marge pt-2 uppercase tracking-capitales">Notice</p>
+        <div>
+          <h1 class="font-titre text-2xl leading-tight text-encre-vive">
+            Restitution française du corpus hébreu et araméen antique,
+            fondée sur l’ontologie hébraïque fonctionnelle
+          </h1>
+          <p class="mt-6">
+            Dans le monde hébreu antique, une chose n’existe pas parce qu’elle occupe de la
+            place. Elle existe parce qu’elle a une fonction, un nom, un rôle dans un ordre.
+            Créer ne veut pas dire fabriquer : créer veut dire ordonner, nommer, assigner.
+          </p>
+          <p class="text-accent">Le cosmos hébreu n’est pas une usine. C’est un Temple.</p>
+        </div>
+      </div>
+
+      <!-- La comparaison, en apparat : la référence en marge, les deux états
+           l'un sous l'autre, séparés par un filet. -->
+      <div class="rangee border-b border-filet py-12">
+        <div class="marge pt-2">
+          <p class="uppercase tracking-capitales">I</p>
+          <p class="mt-2">Bereshit 1:1</p>
+          <p class="mt-6 font-hebreu text-lg" dir="rtl" lang="he">בְּרֵאשִׁית</p>
+        </div>
+        <div>
+          <p class="text-encre-douce">« Au commencement, Dieu créa les cieux et la terre. »</p>
+          <p class="mt-1 text-sm text-encre-douce/70">Louis Segond, 1910 — domaine public</p>
+
+          <div class="my-8 h-px bg-filet"></div>
+
+          <p class="text-lg leading-loose text-pretty">
+            <sup class="text-accent">1</sup>
+            Quand <a href="#" class="font-semibold text-accent">Elohim</a>
+            <span class="text-[0.86em] text-encre-douce">(<i>elohim</i> /
+              <span dir="rtl" lang="he" class="font-hebreu">אֱלֹהִים</span>)</span>
+            commença à orchestrer
+            <span class="text-[0.86em] text-encre-douce">(<i>bara</i> /
+              <span dir="rtl" lang="he" class="font-hebreu">בָּרָא</span>)</span>
+            <span class="text-[0.86em] italic text-encre-douce">[à inaugurer dans l’existence
+              fonctionnelle, à attribuer des rôles et des fonctions comme un roi investit son
+              royaume]</span>
+            les <b class="font-semibold text-important">Cieux</b> et la
+            <b class="font-semibold text-important">Terre</b>
+            <span class="text-[0.86em] text-encre-douce">(<i>hashamayim ve’ha’aretz</i> /
+              <span dir="rtl" lang="he" class="font-hebreu">הַשָּׁמַיִם וְהָאָרֶץ</span>)</span> —
+          </p>
+
+          <p class="mt-8 text-sm text-encre-douce">
+            <b class="text-accent">Or</b> — intraduisible, mène à sa fiche.
+            <b class="text-important">Bordeaux</b> — terme important, inerte.
+            <i>Italique entre crochets</i> — la glose.
+            Entre parenthèses — translittération et hébreu.
+          </p>
+        </div>
+      </div>
+
+      <div class="rangee border-b border-filet py-12">
+        <div class="marge pt-2">
+          <p class="uppercase tracking-capitales">II</p>
+          <p class="mt-2">Verset du jour</p>
+        </div>
+        <div>
+          <p class="text-lg leading-relaxed text-encre-vive text-pretty">
+            Il chassa l’Être façonné du sol, et il établit sa demeure à l’orient du Jardin d’Eden
+            les Kheruvim et la flamme de l’épée tournoyante pour garder le chemin de l’arbre de
+            la Vie.
+          </p>
+          <p class="mt-4 text-sm uppercase tracking-capitales text-accent">Bereshit 3:24</p>
+          <p class="mt-6 text-sm text-encre-douce">
+            Une fonction de la date, non un tirage : le site, l’application et son widget
+            tombent sur le même verset le même matin, sans jamais se parler.
+          </p>
+        </div>
+      </div>
+
+      <!-- L'état du corpus : un tableau, puisque c'en est un. -->
+      <div class="rangee border-b border-filet py-12">
+        <div class="marge pt-2">
+          <p class="uppercase tracking-capitales">III</p>
+          <p class="mt-2">État</p>
+        </div>
+        <div>
+          <table class="w-full text-left">
+            <tbody class="chiffres-tableau">
+              <tr class="border-b border-filet">
+                <td class="py-2">Livres écrits</td>
+                <td class="py-2 text-right text-accent">3 / 70</td>
+              </tr>
+              <tr class="border-b border-filet">
+                <td class="py-2">Unités</td>
+                <td class="py-2 text-right text-accent">39</td>
+              </tr>
+              <tr class="border-b border-filet">
+                <td class="py-2">Versets</td>
+                <td class="py-2 text-right text-accent">781</td>
+              </tr>
+              <tr>
+                <td class="py-2">Entrées de lexique</td>
+                <td class="py-2 text-right text-accent">105</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="mt-6 text-sm text-encre-douce">
+            Une unité verrouillée a été relue et validée : elle fait référence.
+            Une unité qui ne l’est pas est un brouillon, et le dit.
+          </p>
+        </div>
+      </div>
+
+      <div class="rangee py-12">
+        <div class="marge pt-2">
+          <p class="uppercase tracking-capitales">IV</p>
+          <p class="mt-2">Auteur</p>
+        </div>
+        <div class="flex items-start gap-6">
+          <img src="/images/portrait-640.webp" alt="Gloire Bikouta" class="fondu-bas w-32 shrink-0" />
+          <div>
+            <p class="font-titre text-xl text-encre-vive">Gloire Bikouta</p>
+            <p class="mt-3">
+              Ni chercheur, ni chaire, ni juif du Second Temple. Il ne fait pas une traduction
+              de plus : il restitue, et il laisse debout ce qui ne se traduit pas.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="border-t border-filet">
+      <div class="page flex justify-between py-6 text-sm text-encre-douce">
+        <p>© 2026 Gloire Bikouta</p>
+        <p>ontbible.com</p>
+      </div>
+    </footer>
+  </body>
+</html>
