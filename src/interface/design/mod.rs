@@ -28,6 +28,7 @@ mod portes;
 mod portrait;
 mod principe;
 mod section;
+mod titre_de_page;
 mod verset;
 
 pub use bandeau::Bandeau;
@@ -45,4 +46,5 @@ pub use portes::Portes;
 pub use portrait::Portrait;
 pub use principe::Principe;
 pub use section::Section;
+pub use titre_de_page::TitreDePage;
 pub use verset::Verset;

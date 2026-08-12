@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Bandeau, Exergue, Filet, Portrait, Principe, Section};
+use crate::interface::design::{
+    Bandeau, Exergue, Filet, Portrait, Principe, Section, TitreDePage,
+};
 use crate::interface::tete::Tete;
 
 /// « L'auteur ».
@@ -27,18 +29,21 @@ pub fn Auteur() -> impl IntoView {
         />
 
         <Section>
-            <h1>"L'auteur"</h1>
+            // Le titre de cette page est son **nom**, et « L'auteur » n'est
+            // que le rappel. La première version faisait l'inverse, puis
+            // répétait le nom deux lignes plus bas — un titre qui n'apprend
+            // rien, suivi d'une redite.
+            <TitreDePage rappel="L'auteur" titre="Gloire Bikouta" />
             <Portrait
                 source="/images/portrait-640.png"
                 source_large="/images/portrait-1024.png"
                 texte="Gloire Bikouta"
             />
 
-            <Principe>"Gloire Bikouta."</Principe>
-            <p>
+            <Principe>
                 "Je ne suis pas un chercheur. Je n'ai pas de chaire. "
                 "Je ne suis pas un juif du Second Temple."
-            </p>
+            </Principe>
         </Section>
 
         // Le récit d'origine est posé sur l'aubergine : c'est le seul endroit

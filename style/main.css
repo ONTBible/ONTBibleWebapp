@@ -70,7 +70,13 @@
      fontes de l'app. Un verset doit se lire ici comme sur le téléphone, sinon
      le lecteur voit deux traductions là où il n'y en a qu'une.              */
   --font-titre: "Jost", "Helvetica Neue", sans-serif;
-  --font-corps: "Jost", "Helvetica Neue", sans-serif;
+  /* Le corps est en **EB Garamond** : la lettre du livre imprimé classique.
+     Le premier essai composait tout en Jost — une géométrique de 1929, dont la
+     hauteur d'x basse et les fûts égaux donnent une page de manifeste
+     moderniste, exactement le contraire d'« un peu ancienne ». Jost tient les
+     titres et la navigation, où sa géométrie fait écho au combination mark ;
+     elle ne tient pas dix lignes de texte suivi. */
+  --font-corps: "EB Garamond", "Iowan Old Style", Georgia, serif;
   --font-citation: "Literata", "Iowan Old Style", Georgia, serif;
   --font-hebreu: "Ezra SIL", serif;
 
@@ -104,27 +110,17 @@
   --radius-carte: 1.375rem;
 }
 
-/* Le thème sombre ne redéfinit que des **valeurs**, jamais une règle. C'est ce
-   que les propriétés personnalisées achètent : un thème coûte six lignes, et
-   aucun composant ne porte de variante `dark:`.
-
-   Le bloc est hors de tout `@layer`, donc il l'emporte sur celui de Tailwind
-   quelle que soit la spécificité. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-parchemin: #171417;
-    --color-encre: #e0dbd4;
-    /* Sur fond sombre, l'or profond disparaît : on remonte à l'or plein. Et le
-       bordeaux clair remonte en clarté à teinte constante. */
-    --color-or-profond: #cdbe83;
-    --color-important: #d87994;
-    --color-surface: #252226;
-    /* L'aubergine disparaîtrait sur du noir : l'or prend le relais. */
-    --color-section: #cdbe83;
-    --color-filet: color-mix(in srgb, #e0dbd4 16%, transparent);
-    --color-encre-douce: color-mix(in srgb, #e0dbd4 62%, transparent);
-  }
-}
+/* Pas de thème sombre — et ce n'est pas un oubli.
+ *
+ * Le site **est** un parchemin. L'app a des thèmes parce que c'est une liseuse
+ * et qu'on y lit des heures ; ici, l'encre sur le papier n'est pas un réglage
+ * de confort, c'est l'identité. Le premier essai suivait le thème du système :
+ * chez un lecteur en mode sombre, le parchemin devenait un noir plat, l'or
+ * profond disparaissait, et il ne restait qu'une page grise quelconque — tout
+ * ce que la direction artistique était venue chercher, perdu.
+ *
+ * Le contraste vient donc des **bandeaux d'aubergine**, posés dans la page,
+ * pas d'une inversion globale. */
 
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════
 
@@ -156,6 +152,29 @@
   font-weight: 600;
   font-display: swap;
   src: url("/fontes/Jost-SemiBold.woff2") format("woff2");
+}
+
+/* EB Garamond porte le corps du site. */
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EBGaramond-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "EB Garamond";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EBGaramond-Italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/EBGaramond-SemiBold.woff2") format("woff2");
 }
 
 /* Literata et Ezra SIL ne servent qu'aux citations de l'ONT. Elles pèsent
@@ -203,7 +222,10 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    color-scheme: light dark;
+    /* Le parchemin ne s'inverse pas : on le dit au navigateur, sinon il
+       repeint les champs de formulaire et les barres de défilement en sombre
+       au milieu d'une page claire. */
+    color-scheme: light;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -216,11 +238,15 @@
     background-color: var(--color-parchemin);
     color: var(--color-encre);
     font-family: var(--font-corps);
-    /* Une géométrique a une hauteur d'x basse : elle demande plus d'air qu'une
-       romaine pour ne pas se tasser. */
-    line-height: 1.7;
+    /* EB Garamond a une hauteur d'x basse et une chasse étroite : à 16 px elle
+       paraît plus petite que n'importe quelle sans-serif à la même valeur. On
+       compose donc à 18 px, la taille d'un livre. */
+    font-size: 1.125rem;
+    line-height: 1.65;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
+    /* Pas de lissage forcé : sur une romaine à déliés fins, `antialiased`
+       amincit les traits jusqu'à les faire disparaître sur écran clair. */
+    -webkit-font-smoothing: auto;
   }
 
   /* La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,

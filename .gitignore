@@ -8,3 +8,6 @@ target/
 # Sorties de cargo-leptos
 /pkg/
 /end2end/node_modules/
+
+# Les aperçus produits par scripts/apercu.py
+target/site/apercu-*.html

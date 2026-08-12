@@ -14,16 +14,16 @@ use leptos::prelude::*;
 /// thème clair perdrait exactement ce qu'il est venu chercher.
 #[component]
 pub fn Bandeau(children: Children) -> impl IntoView {
+    // Pas de montagne en filigrane ici, et c'est une correction : posée à 130 %
+    // de large et rognée par le cadre, elle ne se lisait plus comme une
+    // montagne mais comme des polygones au hasard. Un signe qu'on ne reconnaît
+    // pas n'est pas un signe discret, c'est du bruit.
+    //
+    // Le dégradé suffit à donner la profondeur ; les filets d'or aux deux
+    // bords font le reste — ils posent le bandeau dans la page au lieu de le
+    // laisser flotter.
     view! {
-        <div class="voile-aubergine relative isolate overflow-hidden text-or">
-            // La montagne, très grande et très pâle. Elle n'est pas là pour
-            // être vue — elle est là pour qu'on sente qu'il y a quelque chose.
-            <span
-                aria-hidden="true"
-                class="filigrane-montagne pointer-events-none absolute -bottom-[12%] left-1/2 \
-                       -z-10 w-[130%] -translate-x-1/2 opacity-8"
-            ></span>
-
+        <div class="voile-aubergine relative isolate overflow-hidden border-y border-or/25 text-or">
             <div class="mx-auto max-w-mesure px-6 py-24 text-center">{children()}</div>
         </div>
     }

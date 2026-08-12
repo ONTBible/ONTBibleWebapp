@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::domaine::texte::{Noeud, Verset as VersetDomaine};
-use crate::interface::design::{Exergue, Filet, LegendeNiveaux, Section, Verset};
+use crate::interface::design::{Exergue, Filet, LegendeNiveaux, Section, TitreDePage, Verset};
 use crate::interface::tete::Tete;
 
 /// « Le pourquoi » — l'ontologie fonctionnelle, montrée plutôt qu'affirmée.
@@ -17,7 +17,7 @@ pub fn Pourquoi() -> impl IntoView {
         />
 
         <Section>
-            <h1>"Le pourquoi"</h1>
+            <TitreDePage rappel="Le principe" titre="Le pourquoi" />
 
             <p>
                 "Les traductions françaises de la Bible descendent du grec et du latin. "

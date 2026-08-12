@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Filet, ListeAffirmations, Principe, Section};
+use crate::interface::design::{Filet, ListeAffirmations, Principe, Section, TitreDePage};
 use crate::interface::tete::Tete;
 
 /// « Ce que l'ONT n'est pas ».
@@ -19,7 +19,7 @@ pub fn Negations() -> impl IntoView {
         />
 
         <Section>
-            <h1>"Ce que l'ONT n'est pas"</h1>
+            <TitreDePage rappel="Les limites" titre="Ce que l'ONT n'est pas" />
 
             <ListeAffirmations lignes=vec![
                 "Ce n'est pas une traduction littéraliste mot à mot.",

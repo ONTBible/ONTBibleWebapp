@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::{
     components::{Route, Router, Routes},
-    StaticSegment,
+    SsrMode, StaticSegment,
 };
 
 use crate::interface::design::{Entete, PiedDePage, Section};
@@ -89,7 +89,19 @@ pub fn App() -> impl IntoView {
             <Entete />
             <main id="contenu">
                 <Routes fallback=Introuvable>
-                    <Route path=StaticSegment("fr") view=Accueil />
+                    // `SsrMode::Async` : le serveur attend le verset du jour et
+                    // rend la page entière d'un bloc.
+                    //
+                    // Par défaut, Leptos diffuse en flux — il envoie la page
+                    // sans la carte, puis la pousse dans un `<template>` après
+                    // `</html>`, et du JavaScript la remet à sa place. C'est
+                    // bon pour une application ; c'est faux ici. Sans
+                    // JavaScript, la carte n'existait pas, et un moteur de
+                    // recherche ne la voyait pas non plus.
+                    //
+                    // Le coût est le temps d'analyse du vivier — mesurable en
+                    // microsecondes, puisqu'il est en mémoire.
+                    <Route path=StaticSegment("fr") view=Accueil ssr=SsrMode::Async />
                     <Route path=(StaticSegment("fr"), StaticSegment("le-pourquoi")) view=Pourquoi />
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("ce-que-l-ont-n-est-pas"))
