@@ -47,13 +47,17 @@
   }
 
   // La montagne est posée en **masque** et non en image : elle prend alors la
-  // couleur du jeton, donc elle suit le thème sombre. Son fichier est doré ;
-  // affiché tel quel sur le parchemin, il serait presque invisible.
+  // couleur du jeton, donc elle suit le thème sombre — et le vecteur reste net
+  // à toute taille, ce qu'un PNG ne fait pas.
+  //
+  // Les proportions sont celles du tracé (502 × 249) : forcer un carré
+  // laisserait deux vides que `contain` ne comble pas, et le filet paraîtrait
+  // interrompu trop large.
   &__signe {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 2.4rem;
+    aspect-ratio: 502 / 249;
     background: var(--or-profond);
-    -webkit-mask: url("/images/montagne-512.png") center / contain no-repeat;
-    mask: url("/images/montagne-512.png") center / contain no-repeat;
+    -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+    mask: url("/images/logomark.svg") center / contain no-repeat;
   }
 }

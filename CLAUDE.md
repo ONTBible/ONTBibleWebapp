@@ -175,9 +175,24 @@ synchroniser les deux, et l'un des deux finirait périmé.
 
 | fichier | usage |
 |---|---|
-| `montagne-512.png`, `montagne-1024.png` | la marque — **favicon**, et signe de section |
-| `combination-mark.png` | le logo complet, 3000×2998 |
+| `logomark.svg` | la montagne seule — **favicon**, et signe de section |
+| `wordmark.svg` | « La Bible ONT » et מקרא הקדם |
+| `combination-mark.svg` | les deux, séparés par un filet |
+| `montagne-512.png` | repli de favicon, pour les navigateurs sans SVG |
 | `portrait-640.png`, `portrait-1024.png` | Gloire Bikouta, détouré sur transparence |
+
+Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, qui est
+idempotent : à relancer après chaque nouvel export, sans réfléchir. Il pose la
+`viewBox` que l'export omet — sans elle un vecteur ne se met pas à l'échelle,
+ce qui lui retire sa raison d'être — retire la taille en pixels pour que la CSS
+décide, et remplace la couleur en dur par `currentColor`, plus l'or de la
+marque en attribut de présentation : une valeur par défaut qu'une règle CSS
+écrase, donc la montagne suit le thème sombre tout en restant dorée quand le
+fichier est ouvert seul.
+
+L'or exporté par Affinity vaut `#CFBD7A`, pas `#CDBE83` — un décalage de profil
+colorimétrique. C'est le second qui fait foi : il est relevé au pixel sur le
+rendu de la marque.
 
 Le portrait est un détourage propre sur alpha ; sur l'aubergine, la chemise
 blanche tranche fort et le bas se dissout. Original en 4910×6844 dans

@@ -23,7 +23,12 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 // La couleur de la barre du navigateur sur mobile — l'aubergine
                 // du logo, pour que le chrome ne coupe pas la page en deux.
                 <meta name="theme-color" content="#421B26" />
-                <link rel="icon" href="/images/montagne-512.png" type="image/png" />
+                // Deux favicons, et l'ordre compte : un navigateur qui
+                // comprend le SVG prend le vecteur, net à toute densité ; les
+                // autres retombent sur le PNG. Le PNG seul suffirait, mais un
+                // écran d'accueil iOS l'affiche en 180 points, où il baverait.
+                <link rel="icon" href="/images/logomark.svg" type="image/svg+xml" />
+                <link rel="icon" href="/images/montagne-512.png" sizes="512x512" />
                 <AutoReload options=options.clone() />
                 <HydrationScripts options />
                 <MetaTags />
