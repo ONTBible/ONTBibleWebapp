@@ -7,6 +7,11 @@ use leptos::prelude::*;
 /// au site son rythme — une suite de bandes qui alternent, plutôt qu'une
 /// colonne unique posée au milieu du vide.
 ///
+/// Il borne toujours son contenu à la **mesure** : c'est une contrainte de
+/// lecture, pas un choix de mise en page. Ce qui n'est pas du texte suivi en
+/// sort explicitement, avec `Deborde` — l'inverse ferait de chaque bloc une
+/// décision à reprendre.
+///
 /// Il remplace `Section` et `Bandeau`, qui faisaient la même chose de deux
 /// façons. Deux primitives de mise en page finissent toujours par diverger sur
 /// un espacement, et personne ne sait plus laquelle fait foi.
@@ -17,9 +22,6 @@ pub fn Bloc(
     /// l'est.
     #[prop(optional)]
     eclaire: bool,
-    /// Élargit la mesure — pour ce qui n'est pas du texte courant.
-    #[prop(optional)]
-    large: bool,
     /// Resserre le rythme vertical, pour un bloc qui prolonge le précédent.
     #[prop(optional)]
     serre: bool,
@@ -36,7 +38,6 @@ pub fn Bloc(
         >
             <div
                 class="mx-auto max-w-mesure px-6 py-24"
-                class=("max-w-mesure-large", large)
                 class=("py-14", serre)
             >
                 {children()}
