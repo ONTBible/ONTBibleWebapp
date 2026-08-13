@@ -48,10 +48,31 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 // Les fontes du corps sont demandées dès le premier octet du
                 // HTML plutôt qu'à la découverte de la feuille de style : sans
                 // ça, le texte s'affiche en fonte de repli puis saute.
+                //
+                // `r#as` et non `as_`. Sur un élément écrit en clair dans
+                // `view!`, Leptos recopie le nom de l'attribut **tel quel** : il
+                // ne traduit pas le souligné final. La balise sortait donc avec
+                // un `as_="font"` que le navigateur ignore, et il le disait —
+                // « <link rel=preload> cannot have the empty string as `as`
+                // value ». Le preload ne servait à rien depuis le premier jour,
+                // ce qui est précisément le contraire de ce que ces trois
+                // lignes de commentaire promettent.
+                //
+                // `attr:as` ne marche pas davantage : il sort littéralement
+                // lui aussi. `as` est un mot-clé de Rust, et l'échappement est
+                // celui de Rust — `r#`.
                 <link
                     rel="preload"
                     href="/fontes/Jost-Regular.woff2"
-                    as_="font"
+                    // `attr:as` et non `as_` : `as` est un mot-clé de Rust, et
+                    // le raccourci `as_` n'est **pas** traduit par le macro —
+                    // il sort tel quel dans le HTML. Le navigateur voyait donc
+                    // un preload sans type de ressource et le refusait :
+                    // « <link rel=preload> cannot have the empty string as
+                    // `as` value ». La fonte n'était pas préchargée du tout,
+                    // c'est-à-dire exactement ce que cette balise existe pour
+                    // faire.
+                    r#as="font"
                     type="font/woff2"
                     crossorigin="anonymous"
                 />
