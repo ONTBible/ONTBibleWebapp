@@ -139,7 +139,7 @@ jobs:
         # « No such file or directory » sans nom de fichier.
         run: |
           mkdir -p target/release
-          cargo leptos build --release --frontend-only
+          RUST_BACKTRACE=1 cargo leptos build --release --frontend-only -vv
 
       - name: Le serveur
         working-directory: ONTBibleWebapp
