@@ -40,6 +40,9 @@ etape() { printf '\n\033[1m── %s\033[0m\n' "$1"; }
 # ── 1. Le front ───────────────────────────────────────────────────────────────
 
 etape "Le front (WASM, CSS, empreintes)"
+# Voir le workflow : `--frontend-only` ne crée pas `target/release/`, où
+# cargo-leptos veut écrire `hash.txt`. Sans ce dossier, la construction échoue.
+mkdir -p target/release
 cargo leptos build --release --frontend-only
 
 if [ ! -f target/release/hash.txt ]; then

@@ -130,7 +130,16 @@ jobs:
         # `--frontend-only` : le serveur est construit à l'étape suivante, par
         # cargo-lambda. Voir `scripts/deployer.sh` — les deux chemins sont les
         # mêmes, pour que ce qui marche en local marche ici.
-        run: cargo leptos build --release --frontend-only
+        #
+        # Le `mkdir` n'est pas une précaution : sans lui, la construction
+        # **échoue**. cargo-leptos écrit `target/release/hash.txt` à la fin du
+        # front, or `--frontend-only` ne construit pas le serveur et ne crée
+        # donc jamais `target/release/`. En local le dossier existait d'un build
+        # antérieur ; sur une machine neuve, il n'existe pas, et l'erreur est un
+        # « No such file or directory » sans nom de fichier.
+        run: |
+          mkdir -p target/release
+          cargo leptos build --release --frontend-only
 
       - name: Le serveur
         working-directory: ONTBibleWebapp
