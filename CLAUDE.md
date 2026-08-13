@@ -255,6 +255,21 @@ besoin d'air proportionnel pour que l'œil retrouve la ligne suivante.
 
 ### L'ouverture est **une** unité
 
+**Toutes** les ouvertures remplissent l'écran, l'accueil comme les pages
+intérieures. La variante `sobre` ne diffère que par la **lumière** — jamais par
+la hauteur. Un essai l'avait fixée à 70 % : les pages intérieures montraient
+alors leur ouverture *et* le début du bloc suivant, ce qui détruit exactement
+l'unité recherchée.
+
+Et le contenu y est **ancré en haut**, à distance fixe, non centré. Le centrage
+est cohérent avec lui-même et incohérent d'une page à l'autre : sur la page de
+l'auteur, dont l'ouverture porte un portrait, le contenu plus haut commençait
+cent soixante pixels au-dessus des autres, collé sous la navigation. Le rappel
+et le titre tombent désormais à la même hauteur partout — vérifié au pixel,
+y = 328 sur les quatre pages. Le vide qui reste en bas n'est pas perdu : c'est
+là que l'horizon se lit.
+
+
 Ce qui frappe en arrivant sur un site bien fait, c'est un premier écran qui est
 une seule chose et qui le remplit. Le premier essai posait l'en-tête en bande
 au-dessus de l'ouverture : on voyait alors deux objets — un bandeau, puis un

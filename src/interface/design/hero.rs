@@ -11,6 +11,18 @@ use leptos::prelude::*;
 /// relief plus lointain derrière. C'est ce décalage qui fait la profondeur —
 /// un massif isolé aurait l'air d'un autocollant.
 ///
+/// ## Le contenu est ancré en haut, pas centré
+///
+/// Le premier réflexe est de centrer verticalement, et c'est joli sur une page
+/// isolée. Mais un contenu plus haut — le portrait de la page de l'auteur —
+/// commence alors plus haut : le rappel s'y retrouvait cent soixante pixels
+/// au-dessus de celui des autres pages, collé sous la navigation.
+///
+/// Le centrage est cohérent avec lui-même et incohérent d'une page à l'autre.
+/// Une distance fixe sous l'en-tête pose le rappel et le titre au même endroit
+/// partout, quel que soit ce qui suit. Le vide qui reste en bas n'est pas
+/// perdu : c'est là que l'horizon se lit.
+///
 /// ## Elle occupe l'écran entier, en-tête compris
 ///
 /// Elle remonte **sous** l'en-tête d'une marge négative, et lui rend l'espace
@@ -28,17 +40,24 @@ pub fn Hero(
     /// sans rien savoir. Une page intérieure s'ouvre sur quelqu'un qui a déjà
     /// choisi d'y aller : elle n'a plus à convaincre, seulement à situer.
     /// D'où l'horizon plus bas et la lueur diminuée.
+    ///
+    /// Elle ne diffère que par la **lumière**, jamais par la hauteur. Un
+    /// premier essai la fixait à 70 % de l'écran : les pages intérieures
+    /// montraient alors leur ouverture *et* le début du bloc suivant, ce qui
+    /// détruit précisément l'unité qu'on cherche. Et sur la page de l'auteur,
+    /// dont l'ouverture porte un portrait, le contenu débordait du centrage et
+    /// remontait dans la marge de l'en-tête — le rappel s'y retrouvait collé
+    /// sous la navigation, alors qu'ailleurs il respirait.
     #[prop(optional)]
     sobre: bool,
     children: Children,
 ) -> impl IntoView {
     view! {
         <section
-            class="relative isolate mt-[calc(var(--hauteur-entete)*-1)] flex flex-col items-center justify-center overflow-hidden px-6 pt-[var(--hauteur-entete)] pb-24 text-center"
+            class="relative isolate mt-[calc(var(--hauteur-entete)*-1)] flex min-h-dvh flex-col items-center overflow-hidden px-6 pt-[calc(var(--hauteur-entete)+5rem)] pb-24 text-center"
             class=("voute", !sobre)
             class=("voute-basse", sobre)
-            class=("min-h-dvh", !sobre)
-            class=("min-h-[70dvh]", sobre)
+
         >
             <span
                 aria-hidden="true"
