@@ -39,6 +39,13 @@ use crate::interface::design::Entete;
 /// rappel et le titre au même endroit partout.
 ///
 /// Le vide qui reste en bas n'est pas perdu : c'est là que l'horizon se lit.
+///
+/// ## Les espaces se resserrent sur téléphone
+///
+/// Un écran de téléphone offre moins de la moitié de la hauteur d'un écran
+/// d'ordinateur, et Safari lui reprend encore sa barre. Les écarts et la marge
+/// haute y sont donc réduits : sans ça, la dernière ligne de l'ouverture passe
+/// sous la barre, et l'unité qu'on cherchait n'en est plus une.
 #[component]
 pub fn Hero(
     /// Une ouverture de page intérieure : même lieu, voix plus basse.
@@ -57,7 +64,7 @@ pub fn Hero(
 ) -> impl IntoView {
     view! {
         <section
-            class="relative isolate flex min-h-dvh flex-col overflow-hidden pb-20 text-center"
+            class="relative isolate flex min-h-dvh flex-col overflow-hidden pb-14 text-center sm:pb-20"
             class=("voute", !sobre)
             class=("voute-basse", sobre)
         >
@@ -79,7 +86,7 @@ pub fn Hero(
 
             <Entete />
 
-            <div class="flex flex-col items-center gap-8 px-6 pt-16 sm:pt-20">
+            <div class="flex flex-col items-center gap-4 px-6 pt-8 sm:gap-8 sm:pt-20">
                 {children()}
             </div>
         </section>

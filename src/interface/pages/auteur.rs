@@ -36,12 +36,15 @@ pub fn Auteur() -> impl IntoView {
             // au-dessus. Un rappel qui répète le lien d'où l'on vient se lit
             // comme un doublon, pas comme un repère.
             <p class="text-sm uppercase tracking-capitales text-accent">"Qui traduit"</p>
-            <div class="w-56">
+            // Plus petit sur téléphone : à 14 rem, le portrait poussait le nom
+            // sous la barre de Safari et l'ouverture ne tenait plus sur un
+            // écran. C'est la hauteur disponible qui commande, pas la largeur.
+            <div class="w-32 sm:w-56">
                 <Portrait
                     source="/images/portrait-640.webp"
                     source_large="/images/portrait-1024.webp"
                     texte="Gloire Bikouta"
-                    largeur_rendue="14rem"
+                    largeur_rendue="(min-width: 40rem) 14rem, 8rem"
                 />
             </div>
             <h1 class="text-balance">"Gloire Bikouta"</h1>

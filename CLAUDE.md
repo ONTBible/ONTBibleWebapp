@@ -449,6 +449,30 @@ des témoins relevés en **exécutant le Swift** :
    annonçait quand même un autre verset. C'est le fuseau de l'édition qu'il
    fallait éprouver.
 
+## 7 bis. Voir le site
+
+Deux outils, et ils ne servent pas à la même chose.
+
+`scripts/apercu.py` rend une page avec QuickLook, qui embarque WebKit. Il suffit
+à juger une composition sur grand écran.
+
+`scripts/sim.sh` ouvre une page dans le **simulateur iOS** et en capture
+l'écran. C'est la seule vérification qui vaille pour tout ce qui dépend de la
+largeur : QuickLook rend à une fenêtre fixe puis réduit l'image, donc les
+requêtes média y voient toujours un grand écran. Toutes les vérifications
+« mobile » faites avec lui étaient sans valeur, et une bande qui réapparaissait
+sur téléphone est passée à travers.
+
+    ./scripts/sim.sh /fr/l-auteur
+
+Le simulateur partage le réseau de l'hôte : `127.0.0.1:3000` lui répond. Le
+script prend l'appareil nommé « Web » s'il existe — les autres portent l'app
+ONT, et y ouvrir Safari les sortirait de leur état.
+
+**Une limite connue** : QuickLook ne rend pas les masques CSS pointant un SVG
+externe. Le signe de section et les massifs y apparaissent comme des vides.
+Ce n'est pas un défaut de la page — ne pas « corriger » ces blancs.
+
 ## 8. Où en est le site
 
 **Fait** — squelette Leptos SSR, couches, design system, cinq pages, verset du
