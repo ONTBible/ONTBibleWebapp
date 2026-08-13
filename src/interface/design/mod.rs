@@ -1,10 +1,17 @@
 //! Le design system — la forme, sans le propos.
 //!
 //! Un composant par fichier, et un fichier par composant. Chacun ignore ce
-//! qu'il affiche : `Filet` ne sait pas s'il sépare deux versets ou deux
-//! sections ; `Bloc` ne sait pas ce qu'il contient. C'est ce qui permet de les
-//! composer sans les modifier — et c'est la seule discipline qui empêche un
-//! design system de devenir une collection de cas particuliers.
+//! qu'il affiche : `Bloc` ne sait pas ce qu'il contient, `Portrait` ne sait pas
+//! qui il montre. C'est ce qui permet de les composer sans les modifier — et
+//! c'est la seule discipline qui empêche un design system de devenir une
+//! collection de cas particuliers.
+//!
+//! ## Rien ne reste ici qui ne serve
+//!
+//! Un composant que plus aucune page n'emploie est retiré, pas conservé « au
+//! cas où ». Sinon quelqu'un le retrouve six mois plus tard, le croit partie du
+//! système, et bâtit dessus. `TitreDePage`, `Filet` et `Mention` sont sortis
+//! comme ça, chacun après une refonte qui les avait rendus inutiles.
 //!
 //! Depuis Tailwind, la forme d'un composant vit **dans son fichier**, à côté de
 //! son balisage : il n'y a plus de feuille parallèle qui puisse diverger. Les
@@ -24,11 +31,9 @@ mod chiffres;
 mod comparaison;
 mod entete;
 mod exergue;
-mod filet;
 mod hero;
 mod legende_niveaux;
 mod liste_affirmations;
-mod mention;
 mod page_legale;
 mod pied;
 mod portrait;
@@ -43,11 +48,9 @@ pub use chiffres::Chiffres;
 pub use comparaison::Comparaison;
 pub use entete::Entete;
 pub use exergue::Exergue;
-pub use filet::Filet;
 pub use hero::Hero;
 pub use legende_niveaux::LegendeNiveaux;
 pub use liste_affirmations::ListeAffirmations;
-pub use mention::Mention;
 pub use page_legale::PageLegale;
 pub use pied::PiedDePage;
 pub use portrait::Portrait;

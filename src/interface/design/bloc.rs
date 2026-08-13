@@ -48,7 +48,7 @@ pub fn Bloc(
         >
             <div
                 class="mx-auto w-full max-w-mesure px-6 py-24"
-                class=("max-w-mesure-large", large)
+                class=("max-w-large", large)
             >
                 {children()}
             </div>

@@ -9,10 +9,6 @@
    n'existera pas dans la feuille. Les classes s'écrivent en entier, toujours. */
 @source "../src/**/*.rs";
 
-/* Les essais de direction artistique sont écrits en HTML statique, le temps
-   qu'il en choisisse une. Ils sortent du dépôt avec ce commentaire. */
-@source "../public/essais/*.html";
-
 /* ═══ Les jetons ═══════════════════════════════════════════════════════════
 
    La source unique de la forme. Rien de ce qui est ici ne se réécrit ailleurs,
@@ -121,7 +117,7 @@
      ligne suivante. La mesure large reprend `ONTLayout.readingWidth` — 700
      points, la largeur de lecture de l'app sur iPad. */
   --container-mesure: 38rem;
-  --container-mesure-large: 52rem;
+  --container-large: 52rem;
 
   /* `ONTRadius.card` — 22 points. */
   --radius-carte: 1.375rem;
@@ -313,6 +309,30 @@
 
   a:hover {
     text-decoration-color: var(--color-accent);
+  }
+
+  /* Trois balises que les pages légales emploient, et qu'il vaut mieux décider
+     que laisser au navigateur.
+
+     `code` **sans fonte à chasse fixe** : le site n'en embarque aucune, et en
+     ajouter une pour deux noms de domaine serait payer cher un détail. La
+     police par défaut du navigateur jurerait avec Jost et Literata ; l'or et
+     un interlettrage suffisent à dire « ceci est une chaîne littérale ». */
+  code {
+    font-family: inherit;
+    font-size: 0.94em;
+    letter-spacing: 0.03em;
+    color: var(--color-accent);
+  }
+
+  strong {
+    font-weight: 600;
+    color: var(--color-encre-vive);
+  }
+
+  em,
+  i {
+    font-style: italic;
   }
 
   /* La cible du clavier reste visible partout, y compris là où un composant
