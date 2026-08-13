@@ -5,7 +5,7 @@ use leptos_router::{
     SsrMode, StaticSegment,
 };
 
-use crate::interface::design::{Bloc, Entete, PiedDePage};
+use crate::interface::design::{Bouton, Hero, PiedDePage};
 use crate::interface::pages::{Accueil, Auteur, Conditions, Confidentialite, Negations, Pourquoi};
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -30,7 +30,11 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 // retombent sur le PNG.
                 <link rel="icon" href="/images/logomark.svg" type="image/svg+xml" />
                 <link rel="icon" href="/images/montagne-512.png" sizes="512x512" />
-                <link rel="apple-touch-icon" href="/images/montagne-512.png" />
+                // L'icône d'écran d'accueil est **opaque** : iOS ne gère pas la
+                // transparence d'une icône, il la remplit de noir. La montagne
+                // dorée sur transparence y deviendrait une tache sur un carré
+                // noir.
+                <link rel="apple-touch-icon" href="/images/touch-icon.png" />
 
                 // Les fontes du corps sont demandées dès le premier octet du
                 // HTML plutôt qu'à la découverte de la feuille de style : sans
@@ -127,10 +131,14 @@ pub fn App() -> impl IntoView {
 
 /// La page absente.
 ///
+/// Elle s'ouvre comme les autres — c'est la seule chose qui la distingue d'une
+/// erreur de serveur. Quelqu'un qui tombe dessus doit reconnaître le site
+/// immédiatement, sinon il croit s'être trompé de domaine.
+///
 /// Elle ne s'excuse pas et ne propose pas un plan du site : elle ramène à
-/// l'accueil, qui est la seule chose utile à quelqu'un qui s'est perdu. Et
-/// elle demande à ne pas être indexée — une page d'erreur dans les résultats
-/// d'un moteur ne sert personne.
+/// l'accueil, qui est la seule chose utile à qui s'est perdu. Et elle demande à
+/// ne pas être indexée — une page d'erreur dans les résultats d'un moteur ne
+/// sert personne.
 #[component]
 fn Introuvable() -> impl IntoView {
     view! {
@@ -141,10 +149,13 @@ fn Introuvable() -> impl IntoView {
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
-        <Entete />
-        <Bloc>
-            <h1>"Cette page n'existe pas."</h1>
-            <p><a href="/fr">"Revenir à l'accueil."</a></p>
-        </Bloc>
+        <Hero sobre=true>
+            <p class="text-sm uppercase tracking-capitales text-accent">"Introuvable"</p>
+            <h1 class="text-balance">"Cette page n'existe pas"</h1>
+            <p class="max-w-xl text-encre-douce text-balance">
+                "Le lien est peut-être ancien, ou le passage n'a pas encore été traduit."
+            </p>
+            <Bouton href="/fr" principal=true>"Revenir à l'accueil"</Bouton>
+        </Hero>
     }
 }

@@ -46,7 +46,28 @@ async fn main() {
         }
     };
 
+    // Le plan de site, composé depuis la liste des pages plutôt qu'écrit à la
+    // main : un fichier statique se périme au premier ajout de route, et
+    // personne ne s'en aperçoit avant de constater qu'une page n'est pas
+    // indexée.
+    let plan = {
+        use ontbible::interface::tete::{ORIGINE, PAGES};
+        let entrees: String = PAGES
+            .iter()
+            .map(|chemin| format!("<url><loc>{ORIGINE}{chemin}</loc></url>"))
+            .collect();
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{entrees}</urlset>"#
+        )
+    };
+
     let app = Router::new()
+        .route(
+            "/sitemap.xml",
+            axum::routing::get(|| async move {
+                ([(axum::http::header::CONTENT_TYPE, "application/xml")], plan)
+            }),
+        )
         // La racine renvoie vers la langue. Une **redirection temporaire** et
         // non permanente : un 301 est mis en cache par le navigateur pour
         // toujours, et le jour où « / » devra choisir la langue du lecteur, on

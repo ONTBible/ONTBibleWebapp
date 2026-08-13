@@ -40,10 +40,29 @@ print(choisi[0]["udid"])')
 
 mkdir -p "$(dirname "$SORTIE")"
 
+# Safari est fermé avant chaque capture. Sans ça, un menu resté ouvert d'une
+# session précédente — le panneau « aA », une feuille de partage — se retrouve
+# au milieu de la capture, et on croit avoir photographié la page.
+xcrun simctl terminate "$APPAREIL" com.apple.mobilesafari >/dev/null 2>&1 || true
+sleep 1
+
 xcrun simctl openurl "$APPAREIL" "$SERVEUR$CHEMIN"
-# Safari a besoin d'un instant pour charger et poser les fontes ; sans cette
-# pause, la capture attrape la page en fonte de repli.
-sleep 3
+
+# On attend que la page soit posée. Six secondes parce que Safari démarre à
+# froid — on vient de le fermer — et qu'il lui faut ensuite charger le WASM et
+# les fontes. À trois secondes, une capture sur deux était noire.
+sleep "${ATTENTE:-6}"
 xcrun simctl io "$APPAREIL" screenshot "$SORTIE" >/dev/null 2>&1
+
+# Une capture presque entièrement noire est une page qui n'a pas fini de
+# charger, pas une page sombre : le site n'a aucun écran vide.
+python3 - "$SORTIE" <<'PY'
+import sys
+from PIL import Image
+import numpy as np
+a = np.asarray(Image.open(sys.argv[1]).convert("L"))
+if a.mean() < 8:
+    print("  ⚠ capture quasi noire — la page n'avait pas fini de charger", file=sys.stderr)
+PY
 
 printf '%s → %s\n' "$CHEMIN" "$SORTIE"

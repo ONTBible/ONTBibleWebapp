@@ -1,0 +1,9 @@
+# Tout est indexable. Le site n'a rien de privé : le corpus et le code sont
+# publics, et les pages légales doivent pouvoir être trouvées.
+#
+# La page d'erreur porte son propre `noindex` dans son en-tête — c'est plus sûr
+# qu'une règle ici, qui ne s'appliquerait qu'à un chemin connu d'avance.
+User-agent: *
+Allow: /
+
+Sitemap: https://ontbible.com/sitemap.xml

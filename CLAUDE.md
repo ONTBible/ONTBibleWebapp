@@ -363,6 +363,8 @@ synchroniser les deux, et l'un des deux finirait périmé.
 | `combination-mark.svg` | les deux, séparés par un filet |
 | `montagne-512.png` | repli de favicon, pour les navigateurs sans SVG |
 | `portrait-640.webp`, `portrait-1024.webp` | Gloire Bikouta, détouré depuis le brut |
+| `apercu.png` | l'aperçu des messageries, 1200 × 630 — composé, voir ci-dessous |
+| `touch-icon.png` | l'icône d'écran d'accueil iOS, opaque |
 
 Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, qui est
 idempotent : à relancer après chaque nouvel export, sans réfléchir. Il pose la
@@ -376,6 +378,20 @@ fichier est ouvert seul.
 L'or exporté par Affinity vaut `#CFBD7A`, pas `#CDBE83` — un décalage de profil
 colorimétrique. C'est le second qui fait foi : il est relevé au pixel sur le
 rendu de la marque.
+
+`scripts/images-sociales.py` compose l'aperçu et l'icône **depuis les jetons du
+site** plutôt qu'à la main : une image d'aperçu dessinée à part trahit le jour
+où la marque bouge. Deux raisons de les avoir faites :
+
+- l'aperçu servait la montagne seule en 512 × 512, un carré dans un cadre
+  paysage — la plupart des messageries le rognent ou l'entourent de blanc ;
+- iOS ne gère pas la transparence d'une icône d'écran d'accueil : il la remplit
+  de noir. Il faut un fond d'aubergine opaque.
+
+Le script rastérise les SVG par QuickLook, qui rend sur **fond blanc opaque**.
+La transparence est reconstruite par l'arithmétique — le tracé n'a qu'une
+couleur, donc α = (255 − L) / (255 − L_or). Un détourage naïf récupérerait le
+carré entier, ce qu'un premier essai a fait.
 
 Le portrait est détouré **depuis le fichier brut** — `~/Downloads/IMG_3655.DNG`,
 5348 × 7132 — par `scripts/portrait.py`. Ce fichier n'est pas dans le dépôt :

@@ -8,6 +8,22 @@ use leptos_meta::{Link, Meta, Title};
 /// page, elle ne connaît que ce qu'on lui donne.
 pub const ORIGINE: &str = "https://ontbible.com";
 
+/// Les pages du site, pour le plan de site.
+///
+/// Cette liste est **la** source : `main.rs` la lit pour composer
+/// `/sitemap.xml`. Quand une route s'ajoute dans `app.rs`, elle s'ajoute ici —
+/// sinon un moteur ne la trouvera jamais, et rien ne le signalera.
+///
+/// La page d'erreur n'y figure pas : elle porte un `noindex`.
+pub const PAGES: &[&str] = &[
+    "/fr",
+    "/fr/le-pourquoi",
+    "/fr/ce-que-l-ont-n-est-pas",
+    "/fr/l-auteur",
+    "/fr/confidentialite",
+    "/fr/conditions",
+];
+
 /// Les métadonnées d'une page.
 ///
 /// Un seul endroit pour le titre, la description, le lien canonique et les
@@ -52,15 +68,22 @@ pub fn Tete(
         <Meta property="og:url" content=canonique />
         <Meta property="og:title" content=complet.clone() />
         <Meta property="og:description" content=description.clone() />
-        // Un PNG, jamais le SVG : aucune messagerie ne rend un vecteur dans un
-        // aperçu — elles affichent un cadre vide, ce qui est pire que pas
-        // d'image du tout.
-        <Meta property="og:image" content=format!("{ORIGINE}/images/montagne-512.png") />
+        // Un PNG de 1200 × 630, composé par `scripts/images-sociales.py` :
+        // c'est le format qu'attendent les messageries. Le site servait la
+        // montagne seule en 512 × 512 — un carré dans un cadre paysage, que la
+        // plupart rognent ou entourent de blanc. Et jamais le SVG : aucune
+        // messagerie ne rend un vecteur.
+        <Meta property="og:image" content=format!("{ORIGINE}/images/apercu.png") />
+        <Meta property="og:image:type" content="image/png" />
+        <Meta property="og:image:width" content="1200" />
+        <Meta property="og:image:height" content="630" />
+        <Meta
+            property="og:image:alt"
+            content="La Bible ONT — מקרא הקדם, sur une montagne d'aubergine"
+        />
 
-        // `summary_large_image` sans image de bonne taille donne une carte
-        // vide. Tant qu'il n'y a pas d'image d'aperçu dessinée pour 1200 × 630,
-        // la carte réduite est la seule qui rende quelque chose de propre.
-        <Meta name="twitter:card" content="summary" />
+        <Meta name="twitter:card" content="summary_large_image" />
+        <Meta name="twitter:image" content=format!("{ORIGINE}/images/apercu.png") />
         <Meta name="twitter:title" content=complet />
         <Meta name="twitter:description" content=description />
     }
