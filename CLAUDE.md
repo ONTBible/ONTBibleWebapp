@@ -92,40 +92,69 @@ chaud (Fly.io, Railway). À trancher après l'avoir vu tourner, pas avant.
 
 ## 4. L'architecture des domaines
 
-État actuel — `ontbible.com` pointe vers la Lambda de l'**API** :
-
-```
-ontbible.com  →  CNAME  d-xdeopzr27e.execute-api.eu-west-3.amazonaws.com
-                 (nuage GRIS chez Cloudflare — le proxy orange casse le TLS
-                  du domaine personnalisé d'API Gateway)
-```
-
-**Cible** — le site prend la racine, l'API passe sur un sous-domaine :
+**Fait le 13 août 2026.** Le site tient la racine.
 
 | | |
 |---|---|
-| `ontbible.com` | le site (cette application) |
-| `api.ontbible.com` | l'API de l'app (Lambda existante) |
-| `labibleont.com` | redirige en 301 vers `ontbible.com`, chemin et paramètres préservés |
+| `ontbible.com` | **le site** — CloudFront → API Gateway → Lambda |
+| `www.ontbible.com` | 301 vers `ontbible.com` |
+| `labibleont.com` | 301 vers `ontbible.com` |
+| `www.labibleont.com` | 301 vers `ontbible.com` |
+| `api.ontbible.com` | **l'API de l'app** — domaine régional d'API Gateway |
 
-Deux routes doivent **impérativement** rester servies à la racine, parce
-qu'elles sont aujourd'hui rendues par la Lambda de l'API et qu'elles cassent
-si elles disparaissent :
+Tout en **nuage gris** chez Cloudflare. Le proxy orange présente le certificat
+de Cloudflare devant celui d'AWS : le nom ne correspond plus, et le TLS casse.
+
+Les trois renvois passent par une fonction CloudFront qui préserve **chemin et
+paramètres** : un lien vers `labibleont.com/fr/lire/bereshit/bereshit-1?v=1-3`
+arrive sur ces versets, pas sur l'accueil.
+
+### L'ordre de migration du §4 reposait sur une hypothèse fausse
+
+Il disait : basculer `ONTAPIBaseURL` dans l'app **avant** de donner la racine au
+site, sinon les liens universels tombent. Vérifié dans `app/project.yml` :
+
+```
+ONTAPIBaseURL : https://j451hq8d3k.execute-api.eu-west-3.amazonaws.com
+ONTWebBaseURL : https://ontbible.com
+```
+
+L'app appelle son API **directement sur `execute-api`**. `ontbible.com` ne lui
+sert qu'à *fabriquer* les liens partagés et à les reconnaître au retour. Ce
+domaine ne servait donc que deux choses — le fichier d'association et la page de
+repli d'un passage — que le site rend toutes les deux, en mieux.
+
+La seule condition réelle était que l'association reste **identique et
+ininterrompue**. Elle l'est, à l'octet près : même `appIDs`, même `components`,
+même `application/json`.
+
+`api.ontbible.com` reste utile — une adresse stable, indépendante de
+l'identifiant `execute-api` qu'AWS change si l'API est recréée — mais ce n'était
+pas un prérequis.
+
+### Deux routes doivent rester servies à la racine
 
 - `/.well-known/apple-app-site-association` — **`application/json`, aucune
-  redirection**. C'est ce fichier qui autorise l'app iOS à ouvrir les liens
-  `ontbible.com`. Contenu exact à reprendre depuis
-  `ONTBibleApp/backend/src/interface/web.rs` : `appIDs` vaut
-  `N49VNC2G57.com.labibleont.ONT`, `components` vaut `/fr/lire/*`.
-  iOS ne le relit qu'à l'installation de l'app et le met en cache via le CDN
-  d'Apple — une erreur ici ne se voit pas tout de suite.
+  redirection**. iOS ne le relit qu'à l'installation et Apple le met en cache
+  via son propre CDN : une erreur ici ne se voit pas tout de suite.
 - `/fr/lire/{livre}/{unité}` — la page d'un passage, avec ses balises Open
   Graph. Le segment de langue est délibéré : il épargne une migration le jour
   d'une édition anglaise.
 
-Migration à faire **dans cet ordre**, sinon les liens universels tombent :
-créer `api.ontbible.com`, y basculer `ONTAPIBaseURL` dans l'app, vérifier,
-puis seulement rediriger la racine vers le site.
+Les deux sont servies par le site, et vérifiées en ligne.
+
+### Ce qu'a coûté la bascule
+
+Dix minutes de panne, causées par une valeur de validation collée dans
+l'enregistrement `ontbible.com` lui-même. Le domaine ne résolvait plus du tout.
+
+La leçon tient en une phrase : **une ligne dont le nom commence par `_` reçoit
+une valeur qui commence par `_`**. Les enregistrements de validation ne portent
+aucun trafic — les casser ne casse rien de vivant. Celui du domaine, si.
+
+Le retour en arrière reste possible : le domaine personnalisé de l'API n'a pas
+été détruit. Remettre `d-xdeopzr27e.execute-api.eu-west-3.amazonaws.com` sur
+`ontbible.com` rend l'état d'avant en une minute.
 
 ## 5. La direction artistique
 
