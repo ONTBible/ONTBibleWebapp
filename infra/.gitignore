@@ -3,4 +3,12 @@
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+
+# `.terraform.lock.hcl` n'est **pas** ignoré, et c'est délibéré.
+#
+# Il épingle l'empreinte de chaque fournisseur : c'est un contrôle d'intégrité
+# de la chaîne d'approvisionnement, fait pour être committé. Ignoré, un
+# `terraform init` futur peut prendre un autre binaire sans que rien ne le dise.
+#
+# Il l'était par réflexe, attrapé avec `*.tfstate` — qui lui a raison d'y être,
+# puisqu'il contient des valeurs en clair.

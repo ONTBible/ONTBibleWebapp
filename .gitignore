@@ -14,3 +14,7 @@ target/site/apercu-*.html
 
 # Le manifeste des empreintes, produit à chaque construction.
 /hash.txt
+
+# Résidus de compilation Python — les scripts sont la source, pas leur cache.
+__pycache__/
+*.pyc
