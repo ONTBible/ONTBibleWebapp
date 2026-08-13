@@ -922,6 +922,50 @@ vérifier, et seulement ensuite donner la racine au site. Inversé, les liens
 universels déjà partagés tombent — et ça ne se voit pas tout de suite, iOS
 gardant le fichier d'association en cache.
 
+## 8 quinquies. Le déploiement continu
+
+`.github/workflows/deployer.yml` — au `push` sur `main`, ou à la main.
+
+**Aucune clé nulle part.** L'authentification passe par OIDC : GitHub signe un
+jeton qui dit d'où vient le job, AWS le vérifie et prête `ont-site-github` pour
+sa durée. La condition sur `sub` est la serrure — elle épingle
+`repo:ONTBible/ONTBibleWebapp:ref:refs/heads/main`. Sans elle, n'importe quel
+dépôt du monde pourrait emprunter ce rôle : le fournisseur ne dit que « ce jeton
+vient bien de GitHub Actions », pas de qui.
+
+Le fournisseur OIDC existait déjà sur le compte (un autre projet l'a créé) : on
+le **référence**, on ne le recrée pas — AWS n'en accepte qu'un par émetteur.
+
+**La CI ne touche jamais à Terraform.** L'état vit en local ; un job qui
+l'exécuterait travaillerait sans savoir ce qui existe, donc recréerait tout ou
+détruirait ce qu'il ignore. Le rôle n'a d'ailleurs pas les droits : il peut
+poser des fichiers, remplacer le **code** de la Lambda, invalider — pas changer
+sa configuration ni redessiner la distribution.
+
+### Elle régénère le corpus, et ça répond à une vieille question
+
+`dist/` est **gitignoré** dans ONTBibleApp : c'est un produit, pas une source.
+Le cloner ne donnerait rien. La CI clone donc les **trois** dépôts côte à côte —
+site, pipeline, vault — et rejoue `npm run build`.
+
+Conséquence : le site déployé porte le vault **au moment où le job tourne**.
+Corriger un verset, pousser, relancer le workflow — et la correction est en
+ligne. C'est la propagation automatique qui n'existait pas (voir §8 bis) ;
+elle s'arrête à la frontière de l'app iOS, qui garde sa copie compilée.
+
+### Deux pièges que la CI doit éviter
+
+- **`cargo lambda` même sur Linux.** Un binaire construit avec le `cargo build`
+  d'Ubuntu se lie à sa glibc 2.39 ; Amazon Linux 2023 en a 2.34. La fonction
+  refuse alors de démarrer, sans autre message qu'un `Runtime.InvalidEntrypoint`.
+  Zig croise-compile vers la bonne.
+- **`hash.txt` dans le paquet.** Sans lui la Lambda écrit `ontbible.js` au lieu
+  de `ontbible.<empreinte>.js` — une adresse que le seau ne sert pas.
+
+La dernière étape **vérifie que le site répond**. Un déploiement n'est pas fini
+quand la commande rend la main, il est fini quand une page arrive : sans ça, un
+binaire qui ne démarre pas passerait pour un succès.
+
 ## 9. Ce qui reste à trancher
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.
