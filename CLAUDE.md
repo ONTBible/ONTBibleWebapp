@@ -435,6 +435,8 @@ synchroniser les deux, et l'un des deux finirait périmé.
 | `apercu.png` | l'aperçu des messageries, 1200 × 630 — composé, voir ci-dessous |
 | `wordmark-avec-r.svg`, `combination-mark-avec-r.svg` | les originaux **avec le ®**, gardés pour le jour de l'enregistrement |
 | `touch-icon.png` | l'icône d'écran d'accueil iOS, opaque |
+| `icone-192.png`, `icone-512.png` | les icônes que réclame le manifeste Android |
+| `icone-masquable-512.png` | la même, montagne à 50 % — voir ci-dessous |
 | `app-store-fr.svg` | le badge officiel d'Apple, en français et en blanc |
 | `qr-app.svg` | le QR vers la fiche — `scripts/qr-app.py` |
 | `app-lecture.webp` | une capture de l'app, prise dans `ONTBibleApp/app/Captures/` |
@@ -589,6 +591,7 @@ hreflang, Open Graph, JSON-LD), **et la liseuse complète** (voir §8 bis).
 /fr/lexique                        les 105 intraduisibles
 /fr/lexique/{lemme}                la fiche — définition **et** occurrences
 /.well-known/apple-app-site-association   application/json, aucune redirection
+/manifest.webmanifest              ce qui rend le site installable sur Android
 /sitemap.xml                       157 adresses, calculées, jamais écrites
 ```
 
@@ -1005,6 +1008,33 @@ en dessous de `sm` — on ne scanne pas l'écran qu'on tient.
 1.0. La page affiche alors « en relecture » à la place du badge : un badge qui
 mène à une page d'erreur est pire qu'une absence, on l'essaie et le projet a
 l'air cassé. Un seul booléen à basculer le jour de l'approbation.
+
+### Le site s'installe sur Android
+
+`public/manifest.webmanifest` lui donne un nom, une icône, la nuit d'aubergine
+et `display: standalone` — Chrome propose alors « Installer l'application », et
+le site s'ouvre en plein écran, sans barre de navigateur. Sans manifeste, la
+même commande ne pose qu'un raccourci sans nom propre, ouvert dans un onglet.
+
+Il est servi par une **route**, comme le fichier d'association, et pas depuis
+`public/`. La raison est le déploiement : le paquet Lambda ne porte que le
+binaire et `hash.txt`, et CloudFront n'envoie au seau que `/pkg/`, `/images/`,
+`/fontes/` et `robots.txt`. Un fichier posé ailleurs dans `public/` n'est donc
+joignable **nulle part** en production — il marche en local, et c'est tout.
+`include_str!` garde le fichier comme source, pour ne pas avoir deux endroits à
+tenir d'accord.
+
+**L'icône masquable est un fichier à part, et il le faut.** Android impose sa
+propre forme — cercle, squircle, goutte selon le constructeur — en rognant ce
+qui dépasse, et ne garantit que le cercle inscrit dans les 80 % centraux. La
+montagne y passe donc à 50 % du côté au lieu de 72 %. Déclarer l'icône pleine
+comme masquable la ferait tronquer partout : c'est le défaut le plus courant
+des manifestes.
+
+Ce que l'installation ne donne pas : la lecture hors ligne, le widget et les
+notifications. Il n'y a **pas de service worker**, et c'est délibéré — un
+worker qui met en cache sans qu'on l'ait pensé sert du HTML périmé pendant des
+jours, exactement le défaut que les empreintes du §8 ter viennent de corriger.
 
 ## 9. Ce qui reste à trancher
 

@@ -119,6 +119,28 @@ async fn main() {
                 )
             }),
         )
+        // Le manifeste d'application web — ce qui rend le site installable sur
+        // Android, avec son nom, son icône et sa couleur.
+        //
+        // Servi par une **route** et non depuis `public/`, comme le fichier
+        // d'association : le paquet Lambda ne porte que le binaire et
+        // `hash.txt`, donc rien de `public/` n'y est joignable. Seuls `/pkg/`,
+        // `/images/`, `/fontes/` et `robots.txt` partent vers le seau.
+        //
+        // Le fichier reste la source — `include_str!` le lit à la compilation.
+        // L'écrire en Rust ferait deux endroits à tenir d'accord.
+        .route(
+            "/manifest.webmanifest",
+            axum::routing::get(|| async {
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        "application/manifest+json",
+                    )],
+                    include_str!("../public/manifest.webmanifest"),
+                )
+            }),
+        )
         .route(
             "/sitemap.xml",
             axum::routing::get(|| async move {

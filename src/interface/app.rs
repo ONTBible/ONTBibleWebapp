@@ -39,6 +39,12 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 // noir.
                 <link rel="apple-touch-icon" href="/images/touch-icon.png" />
 
+                // Le manifeste : c'est lui qui donne à Android le nom, l'icône
+                // et la couleur de l'app installée. Sans lui, « Ajouter à
+                // l'écran d'accueil » ne pose qu'un raccourci de navigateur,
+                // sans nom propre et ouvert dans un onglet.
+                <link rel="manifest" href="/manifest.webmanifest" />
+
                 // Les fontes du corps sont demandées dès le premier octet du
                 // HTML plutôt qu'à la découverte de la feuille de style : sans
                 // ça, le texte s'affiche en fonte de repli puis saute.

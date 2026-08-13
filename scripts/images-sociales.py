@@ -131,20 +131,52 @@ def apercu() -> None:
     print(f"  {fichier.name:18} {image.width}×{image.height}  {fichier.stat().st_size // 1024} Ko")
 
 
-def icone() -> None:
-    cote = 180
+def poser_icone(nom: str, cote: int, part: float) -> None:
+    """Une icône carrée, opaque, montagne centrée.
+
+    `part` est la fraction du côté qu'occupe la montagne. Elle change selon
+    l'usage — voir `icones()`.
+    """
     image = Image.new("RGB", (cote, cote), AUBERGINE)
-    montagne = rasterise(IMAGES / "logomark.svg", int(cote * 0.72), OR)
+    montagne = rasterise(IMAGES / "logomark.svg", int(cote * part), OR)
     image.paste(
         montagne,
         ((cote - montagne.width) // 2, (cote - montagne.height) // 2),
         montagne,
     )
-    fichier = IMAGES / "touch-icon.png"
+    fichier = IMAGES / nom
     image.save(fichier, optimize=True)
-    print(f"  {fichier.name:18} {cote}×{cote}  {fichier.stat().st_size // 1024} Ko")
+    print(f"  {fichier.name:22} {cote}×{cote}  {fichier.stat().st_size // 1024} Ko")
+
+
+def icones() -> None:
+    """Les icônes d'écran d'accueil, iOS et Android.
+
+    ## Pourquoi trois tailles et deux cadrages
+
+    iOS prend `touch-icon.png` en 180 et arrondit lui-même les coins.
+
+    Android lit le manifeste, qui exige **192 et 512** : la première pour
+    l'écran d'accueil, la seconde pour l'écran de démarrage et les grandes
+    densités. Un seul fichier de 512 ne suffit pas — Chrome refuse le manifeste
+    s'il manque une des deux.
+
+    La quatrième est **masquable**, et c'est le cadrage qui change, pas la
+    taille. Android impose sa propre forme à l'icône — cercle, squircle, goutte
+    selon le constructeur — en rognant ce qui dépasse. Il ne garantit que le
+    cercle inscrit dans les 80 % centraux. Une montagne à 72 % du côté y perd
+    ses arêtes ; à 50 %, elle tient dans la zone sûre quelle que soit la forme.
+
+    On garde donc les deux : l'icône pleine pour qui ne masque pas, la réduite
+    pour qui masque. Déclarer la première comme masquable la ferait tronquer
+    partout, et c'est le défaut le plus courant des manifestes.
+    """
+    poser_icone("touch-icon.png", 180, 0.72)
+    poser_icone("icone-192.png", 192, 0.72)
+    poser_icone("icone-512.png", 512, 0.72)
+    poser_icone("icone-masquable-512.png", 512, 0.50)
 
 
 if __name__ == "__main__":
     apercu()
-    icone()
+    icones()
