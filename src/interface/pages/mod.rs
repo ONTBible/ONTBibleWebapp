@@ -11,13 +11,23 @@
 mod accueil;
 mod auteur;
 mod conditions;
+mod fiche;
+mod lexique;
+mod lire;
+mod livre;
 pub mod confidentialite;
 mod negations;
+mod passage;
 mod pourquoi;
 
 pub use accueil::Accueil;
 pub use auteur::Auteur;
 pub use conditions::Conditions;
+pub use fiche::Fiche;
+pub use lexique::Lexique;
+pub use lire::Lire;
+pub use livre::Livre;
 pub use confidentialite::Confidentialite;
 pub use negations::Negations;
+pub use passage::Passage;
 pub use pourquoi::Pourquoi;

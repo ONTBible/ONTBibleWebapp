@@ -7,5 +7,6 @@
 //! Le sens de la dépendance ne s'inverse jamais : l'infrastructure connaît
 //! l'application, l'application ne la connaît pas.
 
+pub mod corpus;
 pub mod horloge;
 pub mod vivier;

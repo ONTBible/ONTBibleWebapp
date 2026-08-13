@@ -14,7 +14,8 @@ async fn main() {
     use leptos::logging::log;
     use leptos::prelude::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use ontbible::application::ports::{Horloge, Vivier};
+    use ontbible::application::ports::{Corpus, Horloge, Lexique, Vivier};
+    use ontbible::infrastructure::corpus::{CorpusEmbarque, LexiqueEmbarque};
     use ontbible::infrastructure::horloge::HorlogeSysteme;
     use ontbible::infrastructure::vivier::VivierEmbarque;
     use ontbible::interface::app::{shell, App};
@@ -29,6 +30,17 @@ async fn main() {
     );
     let horloge: Arc<dyn Horloge> = Arc::new(HorlogeSysteme);
 
+    // Le corpus et le lexique, mêmes règles : analysés une fois, et l'échec est
+    // fatal. Les livres, eux, ne sont analysés qu'à la première visite — c'est
+    // ce qui garde le démarrage à froid court quand le vault passera de trois
+    // livres à soixante-dix.
+    let corpus: Arc<dyn Corpus> = Arc::new(
+        CorpusEmbarque::charger().expect("corpus.json illisible — le plan est embarqué à la compilation"),
+    );
+    let lexique: Arc<dyn Lexique> = Arc::new(
+        LexiqueEmbarque::charger().expect("glossary.json illisible — le lexique est embarqué à la compilation"),
+    );
+
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
@@ -40,9 +52,13 @@ async fn main() {
     let dependances = {
         let vivier = vivier.clone();
         let horloge = horloge.clone();
+        let corpus = corpus.clone();
+        let lexique = lexique.clone();
         move || {
             provide_context(vivier.clone());
             provide_context(horloge.clone());
+            provide_context(corpus.clone());
+            provide_context(lexique.clone());
         }
     };
 
@@ -52,16 +68,57 @@ async fn main() {
     // indexée.
     let plan = {
         use ontbible::interface::tete::{ORIGINE, PAGES};
-        let entrees: String = PAGES
+
+        let mut chemins: Vec<String> = PAGES.iter().map(|c| c.to_string()).collect();
+
+        // Le corpus et le lexique s'ajoutent **calculés**, jamais écrits à la
+        // main. Un plan de site figé se périme au premier livre traduit, et
+        // personne ne s'en aperçoit : les pages existent, elles répondent, et
+        // elles ne sont simplement jamais indexées.
+        //
+        // Les livres non écrits n'y sont pas : leur page dit « pas encore là »
+        // et porte un `noindex`. Demander à un moteur de venir la chercher pour
+        // qu'elle lui demande de repartir n'a pas de sens.
+        for ensemble in corpus.sommaire() {
+            for entree in ensemble.livres_ecrits() {
+                chemins.push(format!("/fr/lire/{}", entree.id));
+                if let Some(ouvrage) = corpus.livre(&entree.id) {
+                    for unite in ouvrage.intro.iter().chain(ouvrage.chapitres.iter()) {
+                        chemins.push(format!("/fr/lire/{}/{}", entree.id, unite.id));
+                    }
+                }
+            }
+        }
+        for entree in lexique.entrees() {
+            chemins.push(format!("/fr/lexique/{}", entree.lemme));
+        }
+
+        let entrees: String = chemins
             .iter()
             .map(|chemin| format!("<url><loc>{ORIGINE}{chemin}</loc></url>"))
             .collect();
+        log!("plan de site : {} adresses", chemins.len());
         format!(
             r#"<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{entrees}</urlset>"#
         )
     };
 
     let app = Router::new()
+        // L'autorisation donnée à l'app iOS d'ouvrir les liens du domaine.
+        //
+        // Posée **avant** tout le reste, et sur le chemin exact : Apple ne
+        // tolère aucune redirection ici, et le fichier doit sortir en
+        // `application/json`. Voir `interface::association` — les trois pièges
+        // y sont écrits, ils sont tous silencieux.
+        .route(
+            "/.well-known/apple-app-site-association",
+            axum::routing::get(|| async {
+                (
+                    [(axum::http::header::CONTENT_TYPE, "application/json")],
+                    ontbible::interface::association::corps(),
+                )
+            }),
+        )
         .route(
             "/sitemap.xml",
             axum::routing::get(|| async move {

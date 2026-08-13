@@ -15,30 +15,69 @@
 //! La distinction entre l'or et le bordeaux n'est pas décorative : **l'or
 //! promet une fiche et la tient**, le bordeaux marque sans rien promettre. Les
 //! confondre ferait mentir l'un des deux.
+//!
+//! ## Pourquoi ces types portent `Serialize`
+//!
+//! `api.rs` pose une règle : ce qui voyage sur le fil est un **transport**, pas
+//! un type du domaine — et la conversion protège le domaine des exigences du
+//! fil. Elle vaut, et elle est tenue pour le verset du jour, qui est plat.
+//!
+//! Elle est **écartée ici**, et c'est un arbitrage, pas un oubli. Recopier cet
+//! arbre en transport ferait deux énumérations récursives à tenir d'accord, et
+//! surtout **trois** endroits à modifier au prochain type de nœud que le
+//! pipeline inventera : le domaine, le transport, et la conversion. Le coût est
+//! certain, le bénéfice nul — un `Noeud` n'a pas d'invariant que la
+//! sérialisation pourrait violer, c'est une forme, pas une règle.
+//!
+//! Et `derive` ne fait entrer aucun type étranger dans la couche : la règle du
+//! domaine — ne dépendre que de soi et de la bibliothèque standard — reste
+//! vraie de ses **types**, qui sont ce qu'elle protège.
+
+use serde::{Deserialize, Serialize};
 
 /// Un fragment de texte ONT.
 ///
 /// L'arbre est volontairement fidèle à ce que produit le pipeline : ce qui
 /// s'imbrique dans le `.md` s'imbrique ici. Aplatir ferait perdre les gloses
 /// qui contiennent elles-mêmes un intraduisible — et il y en a.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Noeud {
     /// Niveau 1 — ce que l'hébreu dit directement.
     Texte(String),
     /// Un intraduisible. `lemme` désigne sa fiche de lexique.
     Intraduisible { mot: String, lemme: String },
     /// Un terme important — marqué, mais sans fiche.
-    Important(String),
+    ///
+    /// Il porte des enfants et non une chaîne, parce que le pipeline en met :
+    /// un `==…==` peut contenir un intraduisible. L'aplatir ici perdrait le
+    /// lien vers la fiche, en silence.
+    Important(Vec<Noeud>),
     /// Niveau 2 — ce que le champ sémantique hébreu porte implicitement.
     Glose(Vec<Noeud>),
     /// Niveau 3 — la translittération et l'hébreu, toujours les deux.
     Hebreu { translitteration: String, hebreu: String },
+    /// De l'hébreu **seul**, sans translittération.
+    ///
+    /// Il sert dans les fiches de lexique, où l'on cite parfois un fragment
+    /// isolé — un suffixe, une racine — qui n'a pas de translittération propre.
+    /// Un cas distinct de [`Noeud::Hebreu`] : composer un suffixe entre
+    /// parenthèses avec une barre oblique et rien à sa gauche donnerait une
+    /// forme absurde.
+    HebreuNu(String),
+    /// Un lien vers l'extérieur — une source, un manuscrit en ligne.
+    Lien { href: String, enfants: Vec<Noeud> },
     /// Une emphase ordinaire, dans une glose.
     Emphase(Vec<Noeud>),
+    /// Un retour à la ligne **dans** un verset.
+    ///
+    /// Rare — quatre dans tout le vault — mais il porte du sens : c'est la
+    /// coupe d'un parallélisme poétique. L'écraser en espace ferait d'un
+    /// distique une phrase.
+    Saut,
 }
 
 /// Un verset, avec son numéro d'unité.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Verset {
     pub numero: u32,
     pub noeuds: Vec<Noeud>,
@@ -54,19 +93,53 @@ impl Verset {
         fn parcourir(noeuds: &[Noeud], sortie: &mut String) {
             for noeud in noeuds {
                 match noeud {
-                    Noeud::Texte(t) | Noeud::Important(t) => sortie.push_str(t),
+                    Noeud::Texte(t) => sortie.push_str(t),
                     Noeud::Intraduisible { mot, .. } => sortie.push_str(mot),
-                    Noeud::Emphase(enfants) => parcourir(enfants, sortie),
+                    Noeud::Emphase(enfants) | Noeud::Important(enfants) => {
+                        parcourir(enfants, sortie)
+                    }
+                    Noeud::Lien { enfants, .. } => parcourir(enfants, sortie),
+                    // Cité hors de la liseuse, un verset tient sur une ligne :
+                    // la coupe devient une espace, que la normalisation plus
+                    // bas absorbe.
+                    Noeud::Saut => sortie.push(' '),
                     // Écartés : ce sont les niveaux 2 et 3.
-                    Noeud::Glose(_) | Noeud::Hebreu { .. } => {}
+                    Noeud::Glose(_) | Noeud::Hebreu { .. } | Noeud::HebreuNu(_) => {}
                 }
             }
         }
 
         let mut sortie = String::new();
         parcourir(&self.noeuds, &mut sortie);
+
         // Retirer les blancs que laisse la disparition des gloses.
-        sortie.split_whitespace().collect::<Vec<_>>().join(" ")
+        let sortie = sortie.split_whitespace().collect::<Vec<_>>().join(" ");
+
+        // Et refermer la ponctuation restée orpheline.
+        //
+        // Une glose se pose **après** le mot qu'elle éclaire et **avant** la
+        // ponctuation qui suit : « …ni habitant *[glose]*, et la face… ». La
+        // retirer laisse l'espace qui la précédait, et la virgule se retrouve
+        // détachée — « habitant , et la face ». Le corpus compte 561 cas.
+        //
+        // Seulement `,` `.` `)` `]` `…` : ce sont les signes devant lesquels le
+        // français n'admet **jamais** d'espace. Le deux-points, le point-virgule,
+        // les points d'exclamation et d'interrogation, le guillemet fermant en
+        // veulent une — les 471 occurrences relevées devant eux sont correctes,
+        // et les supprimer casserait la composition au lieu de la réparer.
+        let mut propre = String::with_capacity(sortie.len());
+        let mut caracteres = sortie.chars().peekable();
+        while let Some(caractere) = caracteres.next() {
+            if caractere == ' '
+                && caracteres
+                    .peek()
+                    .is_some_and(|suivant| matches!(suivant, ',' | '.' | ')' | ']' | '…'))
+            {
+                continue;
+            }
+            propre.push(caractere);
+        }
+        propre
     }
 }
 
@@ -98,6 +171,30 @@ mod tests {
     #[test]
     fn le_corps_ecarte_les_niveaux_2_et_3() {
         assert_eq!(verset().corps(), "Quand Elohim commença à orchestrer");
+    }
+
+    /// Le cas réel : une glose posée entre un mot et sa virgule.
+    #[test]
+    fn le_corps_referme_la_ponctuation_que_la_glose_laissait_ouverte() {
+        let verset = Verset {
+            numero: 2,
+            noeuds: vec![
+                Noeud::Texte("ni habitant ".into()),
+                Noeud::Glose(vec![Noeud::Texte("tohu wa-bohu".into())]),
+                Noeud::Texte(", et la face des eaux.".into()),
+            ],
+        };
+        assert_eq!(verset.corps(), "ni habitant, et la face des eaux.");
+    }
+
+    /// Et le français garde l'espace qu'il exige devant les autres signes.
+    #[test]
+    fn le_corps_garde_l_espace_avant_le_deux_points_et_les_guillemets() {
+        let verset = Verset {
+            numero: 3,
+            noeuds: vec![Noeud::Texte("Il dit : « que la lumière soit ! »".into())],
+        };
+        assert_eq!(verset.corps(), "Il dit : « que la lumière soit ! »");
     }
 
     #[test]

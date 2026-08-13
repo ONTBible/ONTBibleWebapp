@@ -2,11 +2,14 @@ use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
 use leptos_router::{
     components::{Route, Router, Routes},
-    SsrMode, StaticSegment,
+    ParamSegment, SsrMode, StaticSegment,
 };
 
 use crate::interface::design::{Bouton, Hero, PiedDePage};
-use crate::interface::pages::{Accueil, Auteur, Conditions, Confidentialite, Negations, Pourquoi};
+use crate::interface::pages::{
+    Accueil, Auteur, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations, Passage,
+    Pourquoi,
+};
 use crate::interface::tete::{Tete, ORIGINE};
 
 /// L'enveloppe HTML rendue par le serveur.
@@ -121,6 +124,56 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("conditions"))
                         view=Conditions
+                    />
+
+                    // ── La liseuse ────────────────────────────────────────
+                    //
+                    // Toutes en `SsrMode::Async`, et c'est la même raison que
+                    // pour le verset du jour : ces pages **sont** leurs
+                    // données. En flux, le serveur enverrait une page vide
+                    // suivie du texte dans un `<template>` — invisible sans
+                    // JavaScript, et invisible pour la messagerie qui prépare
+                    // l'aperçu d'un lien partagé.
+                    //
+                    // L'ordre compte : Leptos apparie la première route qui
+                    // convient, donc la plus précise passe avant la plus
+                    // générale.
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("lire"))
+                        view=Lire
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("lire"), ParamSegment("livre"))
+                        view=Livre
+                        ssr=SsrMode::Async
+                    />
+                    // La route des liens partagés depuis l'app, et la seule que
+                    // l'association d'app réserve à iOS. Voir
+                    // `interface::association`.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("lire"),
+                            ParamSegment("livre"),
+                            ParamSegment("unite"),
+                        )
+                        view=Passage
+                        ssr=SsrMode::Async
+                    />
+
+                    // ── Le lexique ────────────────────────────────────────
+                    //
+                    // Ce que promet chaque mot d'or du corpus.
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("lexique"))
+                        view=Lexique
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("lexique"), ParamSegment("lemme"))
+                        view=Fiche
+                        ssr=SsrMode::Async
                     />
                 </Routes>
             </main>

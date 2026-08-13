@@ -25,6 +25,7 @@
 //! ne sait plus laquelle fait foi.
 
 mod bloc;
+mod blocs;
 mod bouton;
 mod carte_verset;
 mod chiffres;
@@ -34,14 +35,20 @@ mod exergue;
 mod hero;
 mod legende_niveaux;
 mod liste_affirmations;
+mod liste_unites;
+mod mention_brouillon;
+mod occurrences;
+mod page_de_lecture;
 mod page_legale;
 mod pied;
 mod portrait;
+mod sommaire;
 mod principe;
 mod titre_de_section;
-mod verset;
+pub mod verset;
 
 pub use bloc::Bloc;
+pub use blocs::Blocs;
 pub use bouton::Bouton;
 pub use carte_verset::CarteVersetDuJour;
 pub use chiffres::Chiffres;
@@ -51,9 +58,14 @@ pub use exergue::Exergue;
 pub use hero::Hero;
 pub use legende_niveaux::LegendeNiveaux;
 pub use liste_affirmations::ListeAffirmations;
+pub use liste_unites::ListeDUnites;
+pub use mention_brouillon::MentionBrouillon;
+pub use occurrences::Occurrences;
+pub use page_de_lecture::PageDeLecture;
 pub use page_legale::PageLegale;
 pub use pied::PiedDePage;
 pub use portrait::Portrait;
+pub use sommaire::Sommaire;
 pub use principe::Principe;
 pub use titre_de_section::TitreDeSection;
 pub use verset::Verset;

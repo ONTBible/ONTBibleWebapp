@@ -491,9 +491,9 @@ Ce n'est pas un défaut de la page — ne pas « corriger » ces blancs.
 
 ## 8. Où en est le site
 
-**Fait** — squelette Leptos SSR, couches, design system, cinq pages, verset du
-jour accordé à l'app, vecteurs de la marque normalisés, métadonnées complètes
-(canonique, hreflang, Open Graph, JSON-LD).
+**Fait** — squelette Leptos SSR, couches, design system, verset du jour accordé
+à l'app, vecteurs de la marque normalisés, métadonnées complètes (canonique,
+hreflang, Open Graph, JSON-LD), **et la liseuse complète** (voir §8 bis).
 
 ```
 /            → 307 vers /fr        (temporaire : « / » choisira la langue un jour)
@@ -503,6 +503,13 @@ jour accordé à l'app, vecteurs de la marque normalisés, métadonnées complè
 /fr/l-auteur                       premier jet, en attente de sa relecture
 /fr/confidentialite                vérifiée dans le code de l'app, pas recopiée
 /fr/conditions
+/fr/lire                           le sommaire des 70 livres
+/fr/lire/{livre}                   ses unités, avec le renvoi classique
+/fr/lire/{livre}/{unité}?v=1-3     un passage — la route des liens partagés
+/fr/lexique                        les 105 intraduisibles
+/fr/lexique/{lemme}                la fiche — définition **et** occurrences
+/.well-known/apple-app-site-association   application/json, aucune redirection
+/sitemap.xml                       157 adresses, calculées, jamais écrites
 ```
 
 ### L'accueil montre, il n'annonce pas
@@ -532,14 +539,103 @@ L'ordre de la page est un argument, et il ne se réorganise pas au hasard :
 pleine largeur avec la mesure rétablie à l'intérieur. Deux primitives finissent
 toujours par diverger sur un espacement.
 
-**Reste à faire**, dans cet ordre :
+**Reste à faire** : le déploiement, puis la bascule des domaines dans l'ordre
+du §4. Le site est complet côté fonctionnalités ; ce qui reste est au §9.
 
-1. Les deux routes techniques — l'association et `/fr/lire/{livre}/{unité}` —
-   portées depuis `ONTBibleApp/backend/src/interface/web.rs`.
-2. La liseuse, si elle est décidée (§9) : elle demande un adaptateur qui lit
-   `dist/` — publié comme artefact, jamais dupliqué.
-3. Le lexique — `/fr/lexique/{lemme}`, que les intraduisibles pointent déjà.
-4. Déploiement, puis bascule des domaines dans l'ordre du §4.
+## 8 bis. La liseuse
+
+**Décidé le 13 août 2026** : une vraie liseuse en ligne, et les brouillons
+**montrés avec la mention**. Six unités sur trente-neuf sont en brouillon ; les
+cacher donnerait un corpus plus petit qu'il n'est, et un lien partagé vers un
+chapitre en cours tomberait sur un 404 — ce qui se lit comme « ce texte
+n'existe pas » alors qu'il existe.
+
+### Le corpus est embarqué, pas lu
+
+`build.rs` liste `dist/books/` et écrit un `include_str!` par livre. Deux
+raisons de ne pas lire le disque à l'exécution : `dist/` ne doit jamais être
+dupliqué, et un binaire sans dossier de données à côté ne peut pas tomber
+parce qu'un déploiement l'aurait oublié.
+
+Chaque livre a son `OnceLock` : **analysé à la première visite**, pas au
+démarrage. Trois livres pèsent 912 Ko ; soixante-dix en pèseront vingt méga, et
+les analyser au démarrage se paierait sur le démarrage à froid de la Lambda.
+Le plan (`corpus.json`, 16 Ko) et le lexique (74 Ko) sont analysés au
+démarrage — toute page en a besoin. Les occurrences (472 Ko) attendent la
+première fiche.
+
+### Les types que le pipeline produit
+
+Relevés, pas devinés — le premier relevé n'avait parcouru que les chapitres et
+manquait quatre types qui ne vivent que dans les définitions du lexique :
+
+| blocs | nœuds |
+|---|---|
+| `verses` `heading` `list` `para` `quote` `table` `rule` | `text` `term` `important` `gloss` `em` `translit` `heb` `link` `break` |
+
+`important` porte des **enfants**, pas une chaîne : un `==…==` peut contenir un
+intraduisible, et l'aplatir perdrait le lien vers sa fiche en silence.
+
+Les DTO tolèrent un type inconnu et l'omettent, pour qu'un ajout au pipeline ne
+casse pas une page entière. Ce qui rend cette tolérance acceptable est le test
+`tout_le_corpus_s_analyse_sans_type_inconnu` : il parcourt tout le corpus et
+échoue si un type y échappe. La bascule se voit à `cargo test`, jamais en
+production.
+
+**Trois pièges de forme**, tous découverts par des tests qui échouaient :
+`reference` est nul sur une introduction (elle ne recouvre aucun verset) ;
+`verse` est nul sur 319 des 2033 occurrences (celles qui vivent dans un titre
+ou une note) ; `hebrew`, `rendering`, `forms` sont nuls sur plusieurs fiches.
+Un `#[serde(default)]` ne suffit pas — il couvre la clé absente, pas la clé
+nulle.
+
+### La sérialisation traverse le domaine, et c'est un arbitrage
+
+`api.rs` pose que ce qui voyage est un **transport**, pas un type du domaine.
+La règle tient pour le verset du jour, qui est plat. Elle est **écartée** pour
+l'arbre du corpus : le recopier ferait deux énumérations récursives à tenir
+d'accord et **trois** endroits à modifier au prochain type de nœud. Un `Noeud`
+n'a aucun invariant que la sérialisation pourrait violer.
+
+### La composition française est faite au rendu
+
+Le corpus porte **2124 espaces ordinaires** devant `;` `:` `!` `?` `»` et pas
+une seule insécable — le vault écrit des mots, pas de la composition. Une
+espace ordinaire est un point de coupure : le navigateur y renvoie la
+ponctuation à la ligne suivante. C'est arrivé sur la première capture de la
+liseuse.
+
+`design/verset.rs::composer` pose une **fine insécable** (U+202F) devant
+`; ! ? »` et après `«`, une **insécable pleine** (U+00A0) devant `:` — l'usage
+de l'Imprimerie nationale. Au rendu et non dans le pipeline : le vault est la
+source du texte, la composition est une affaire d'affichage, et la corriger ici
+la corrige pour les livres qui n'existent pas encore.
+
+Défaut voisin, corrigé dans `Verset::corps()` : une glose se pose **avant** la
+ponctuation qui suit, donc la retirer laissait « habitant , et la face » — 561
+cas. On referme devant `, . ) ] …`, jamais devant `: ; ! ? »`, qui en veulent
+une.
+
+### Deux leçons de forme, déjà vues ailleurs
+
+- Le fil d'Ariane **sépare** : sa barre oblique n'a rien à faire après le
+  dernier maillon (`last:hidden`). « Lire / Bereshit / » se lisait comme un fil
+  coupé.
+- Un `dir="rtl"` sur un **bloc** en aligne aussi le contenu à droite : le nom
+  hébreu partait se coller au bord de l'écran, détaché du titre qu'il double.
+  Un `span` en ligne garde l'ordre des caractères sans l'alignement.
+
+### La bannière d'app
+
+`tete.rs::IDENTIFIANT_APP_STORE` vaut `None`, et tant qu'il vaut `None` la
+balise n'est pas écrite. Le jour où la fiche existe dans App Store Connect,
+coller son `Apple ID` — dix chiffres, attribué **à la création de la fiche**,
+avant toute publication — allume la bannière sur toutes les pages.
+
+Elle ne remplace pas les liens universels : ceux-là ouvrent l'app *directement*
+sur `/fr/lire/*`. La bannière s'adresse à qui n'a **pas** l'app. Et elle
+n'existe que dans Safari sur iOS ; le bandeau « Ouvrir dans la web app » de
+macOS relève d'une autre mécanique, qu'aucune balise ne déclenche.
 
 ## 9. Ce qui reste à trancher
 
@@ -552,8 +648,6 @@ toujours par diverger sur un espacement.
   gratuitement, en deux minutes.
 - Une **image d'aperçu** dessinée pour 1200 × 630. Sans elle, une messagerie
   n'affiche qu'une vignette.
-- Le site affiche-t-il **le corpus** (vraie liseuse en ligne) ou seulement les
-  passages partagés ?
 - Le **®** du combination mark. Il est sur le wordmark, donc sur **toutes les
   pages**. En France, apposer ® sur une marque non déposée à l'INPI relève de
   l'article L.716-9 du code de la propriété intellectuelle — ce n'est pas un

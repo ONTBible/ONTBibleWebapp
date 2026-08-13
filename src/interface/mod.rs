@@ -8,6 +8,7 @@
 //! espacement, ni taille.
 
 pub mod app;
+pub mod association;
 pub mod design;
 pub mod echantillon;
 pub mod pages;

@@ -10,19 +10,61 @@ pub const ORIGINE: &str = "https://ontbible.com";
 
 /// Les pages du site, pour le plan de site.
 ///
-/// Cette liste est **la** source : `main.rs` la lit pour composer
-/// `/sitemap.xml`. Quand une route s'ajoute dans `app.rs`, elle s'ajoute ici —
-/// sinon un moteur ne la trouvera jamais, et rien ne le signalera.
+/// Cette liste est **la** source des pages **fixes** : `main.rs` la lit pour
+/// composer `/sitemap.xml`. Quand une route s'ajoute dans `app.rs`, elle
+/// s'ajoute ici — sinon un moteur ne la trouvera jamais, et rien ne le
+/// signalera.
+///
+/// Les pages du corpus et du lexique n'y sont pas, et ne doivent pas y être :
+/// elles sont calculées depuis le pipeline au démarrage du serveur. Les écrire
+/// ici les figerait au premier livre traduit.
 ///
 /// La page d'erreur n'y figure pas : elle porte un `noindex`.
 pub const PAGES: &[&str] = &[
     "/fr",
+    "/fr/lire",
+    "/fr/lexique",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",
     "/fr/l-auteur",
     "/fr/confidentialite",
     "/fr/conditions",
 ];
+
+/// L'identifiant App Store de l'app iOS, quand elle en a un.
+///
+/// ## À quoi il sert
+///
+/// Il allume la **bannière d'app** de Safari sur iPhone et iPad : le bandeau
+/// qui se pose en haut de la page avec l'icône, le nom, et un bouton
+/// « OUVRIR » — « VOIR » si l'app n'est pas installée, auquel cas il mène à
+/// l'App Store. C'est Safari qui la dessine ; le site ne fait que la déclarer.
+///
+/// ## Pourquoi il est vide, et ce qu'il attend
+///
+/// L'app n'est pas encore publiée, donc ce nombre n'existe pas. Il est attribué
+/// par App Store Connect à la **création de la fiche**, avant toute
+/// publication : c'est l'`Apple ID` de la page « Informations sur l'app », dix
+/// chiffres. Le coller ici suffit — la bannière apparaît alors sur toutes les
+/// pages du site, sans qu'aucune autre ligne ne bouge.
+///
+/// Tant qu'il vaut `None`, la balise n'est pas écrite. Une bannière déclarée
+/// avec un identifiant faux ne produit rien de visible, mais elle laisse croire
+/// que le travail est fait.
+///
+/// ## Ce qu'elle ne fait pas
+///
+/// Elle ne remplace pas les **liens universels** — voir
+/// [`crate::interface::association`]. Ceux-là ouvrent l'app *directement*, sans
+/// bandeau, sur les seuls chemins `/fr/lire/*`. La bannière, elle, s'adresse
+/// surtout à qui n'a pas encore l'app : c'est le chemin d'acquisition, pas
+/// celui du lien partagé.
+///
+/// Et elle n'existe que dans Safari sur iOS et iPadOS. Sur macOS, le bandeau
+/// « Ouvrir dans la web app » que propose Safari relève d'une autre mécanique —
+/// le lecteur a lui-même ajouté le site au Dock, et aucune balise ne la
+/// déclenche.
+pub const IDENTIFIANT_APP_STORE: Option<&str> = None;
 
 /// Les métadonnées d'une page.
 ///
@@ -52,10 +94,26 @@ pub fn Tete(
     };
     let canonique = format!("{ORIGINE}{chemin}");
 
+    // La bannière d'app, quand l'identifiant est connu.
+    //
+    // `app-argument` porte l'adresse de la page **courante**, pas la racine :
+    // c'est elle que l'app reçoit à l'ouverture. Sans elle, quelqu'un qui lit
+    // un passage et tape « OUVRIR » se retrouve sur l'écran d'accueil de l'app,
+    // et doit retrouver seul l'endroit d'où il vient.
+    let banniere = IDENTIFIANT_APP_STORE.map(|identifiant| {
+        view! {
+            <Meta
+                name="apple-itunes-app"
+                content=format!("app-id={identifiant}, app-argument={canonique}")
+            />
+        }
+    });
+
     view! {
         <Title text=complet.clone() />
         <Meta name="description" content=description.clone() />
         <Link rel="canonical" href=canonique.clone() />
+        {banniere}
 
         <Link rel="alternate" hreflang="fr" href=canonique.clone() />
         <Link rel="alternate" hreflang="x-default" href=canonique.clone() />

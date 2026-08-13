@@ -41,9 +41,9 @@ pub fn bereshit_1_1() -> Verset {
                     .into(),
             )]),
             Noeud::Texte(" les ".into()),
-            Noeud::Important("Cieux".into()),
+            Noeud::Important(vec![Noeud::Texte("Cieux".into())]),
             Noeud::Texte(" et la ".into()),
-            Noeud::Important("Terre".into()),
+            Noeud::Important(vec![Noeud::Texte("Terre".into())]),
             Noeud::Texte(" ".into()),
             Noeud::Hebreu {
                 translitteration: "hashamayim ve'ha'aretz".into(),

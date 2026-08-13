@@ -27,6 +27,63 @@ use std::time::{SystemTime, UNIX_EPOCH};
 fn main() {
     println!("cargo:rustc-env=ANNEE_DE_COMPILATION={}", annee());
     etat_du_corpus();
+    livres_du_corpus();
+}
+
+/// La liste des livres écrits, en code.
+///
+/// Le site embarque le corpus à la compilation — c'est ce qui lui évite de
+/// déployer un dossier de données à côté du binaire, et de tomber le jour où
+/// ce dossier manque. Mais `include_str!` veut un chemin **littéral** : on ne
+/// peut pas écrire une boucle qui en embarque une liste variable.
+///
+/// D'où ce générateur. Il lit `dist/books/`, et écrit un fichier de code qui
+/// contient un `include_str!` par livre. Le jour où le vault en compte cinq, le
+/// tableau en compte cinq — sans que personne n'ait à y penser.
+///
+/// Le `rerun-if-changed` porte sur le **dossier** : c'est ce qui fait
+/// recompiler quand un livre apparaît ou disparaît. Le contenu de chaque
+/// fichier, lui, est déjà suivi par `rustc` du fait de l'`include_str!`.
+fn livres_du_corpus() {
+    let dossier = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../ONTBibleApp/dist/books")
+        .canonicalize()
+        .expect("dist/books introuvable — le dépôt ONTBibleApp doit être à côté");
+
+    println!("cargo:rerun-if-changed={}", dossier.display());
+
+    let mut livres: Vec<(String, PathBuf)> = fs::read_dir(&dossier)
+        .expect("dist/books illisible")
+        .filter_map(Result::ok)
+        .map(|entree| entree.path())
+        .filter(|chemin| chemin.extension().is_some_and(|e| e == "json"))
+        .map(|chemin| {
+            let id = chemin
+                .file_stem()
+                .expect("un fichier .json a un nom")
+                .to_string_lossy()
+                .into_owned();
+            (id, chemin)
+        })
+        .collect();
+
+    // L'ordre du système de fichiers n'est pas garanti d'une machine à
+    // l'autre. Sans ce tri, deux compilations du même code produiraient deux
+    // binaires différents — et un diff de build illisible.
+    livres.sort();
+
+    let entrees: String = livres
+        .iter()
+        .map(|(id, chemin)| format!("    (\"{id}\", include_str!(r\"{}\")),\n", chemin.display()))
+        .collect();
+
+    let code = format!(
+        "/// Les livres écrits, embarqués à la compilation. Généré par `build.rs`.\n\
+         pub static LIVRES: &[(&str, &str)] = &[\n{entrees}];\n"
+    );
+
+    let sortie = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("livres.rs");
+    fs::write(&sortie, code).expect("écriture de livres.rs");
 }
 
 fn etat_du_corpus() {
