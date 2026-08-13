@@ -11,19 +11,21 @@ use leptos_router::components::A;
 /// La navigation est en capitales espacées. En bas de casse, elle ressemblerait
 /// à une barre d'application ; ainsi, elle ressemble à un titre courant.
 ///
-/// ## Elle n'a pas de fond, et elle est au-dessus
+/// ## Elle n'a pas de fond, et elle vit dans l'ouverture
 ///
-/// Sur l'accueil, l'ouverture remonte **sous** l'en-tête : la marque et la
-/// navigation flottent dans le lieu au lieu de le surmonter. C'est ce qui fait
-/// qu'on arrive sur une seule unité qui remplit l'écran, et non sur une bande
-/// suivie d'un écran.
+/// `Hero` la contient : la marque et la navigation flottent dans le lieu au
+/// lieu de le surmonter. C'est ce qui fait qu'on arrive sur une seule unité qui
+/// remplit l'écran, et non sur une bande suivie d'un écran. D'où le `z-20` et
+/// l'absence de fond — le dégradé de l'ouverture passe derrière.
 ///
-/// D'où le `z-20` et l'absence de fond : le dégradé de l'ouverture passe
-/// derrière, le texte reste devant.
+/// Les capitales espacées se resserrent en dessous du seuil : à 16 px avec un
+/// interlettrage de 0,16 em, les trois entrées passaient sur **trois lignes**
+/// sur un téléphone, ce qui poussait tout le contenu sous la ligne de
+/// flottaison.
 #[component]
 pub fn Entete() -> impl IntoView {
     view! {
-        <header class="relative z-20 flex flex-col items-center gap-6 px-6 pt-10 text-center">
+        <header class="relative z-20 flex flex-col items-center gap-5 px-6 pt-8 text-center sm:gap-6 sm:pt-10">
             <A
                 href="/fr"
                 attr:class="block text-accent"
@@ -40,7 +42,7 @@ pub fn Entete() -> impl IntoView {
 
             <nav
                 aria-label="Navigation principale"
-                class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm uppercase tracking-capitales"
+                class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[0.8rem] uppercase tracking-[0.09em] sm:gap-x-6 sm:gap-y-2 sm:text-sm sm:tracking-capitales"
             >
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>

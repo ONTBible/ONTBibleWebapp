@@ -275,15 +275,21 @@ une seule chose et qui le remplit. Le premier essai posait l'en-tête en bande
 au-dessus de l'ouverture : on voyait alors deux objets — un bandeau, puis un
 écran — et l'effet tombait.
 
-L'ouverture remonte donc **sous** l'en-tête, d'une marge négative égale à
-`--hauteur-entete`, et lui rend l'espace en marge intérieure. L'en-tête n'a pas
-de fond et passe en `z-20` : la marque et la navigation flottent dans le lieu
-au lieu de le surmonter.
+**`Hero` contient l'en-tête.** La marque et la navigation flottent dans le lieu
+au lieu de le surmonter — d'où le `z-20` et l'absence de fond.
 
-Le jeton s'arrondit **au-dessus** de la hauteur réelle. Un excès n'ajoute que
-de la marge intérieure à une ouverture dont le contenu est centré ; un manque
-laisse une bande de fond visible au-dessus d'elle, c'est-à-dire précisément ce
-qu'on voulait supprimer.
+Un premier montage remontait l'ouverture *sous* l'en-tête, d'une marge négative
+égale à un jeton `--hauteur-entete`. **Ça ne pouvait pas tenir** : sur un
+téléphone, la navigation passe sur plusieurs lignes et l'en-tête devient deux
+fois plus haut que le nombre inscrit. La bande réapparaissait, et le contenu
+débordait sous la ligne de flottaison. Un nombre magique qui décrit la
+géométrie d'un autre élément est toujours faux quelque part.
+
+Les pages sans ouverture — les légales, l'erreur — posent leur en-tête
+elles-mêmes. Il n'y en a jamais deux : vérifié, une balise `<header>` par page.
+
+La navigation se resserre en dessous du seuil : à 16 px avec un interlettrage
+de 0,16 em, ses trois entrées passaient sur trois lignes sur un téléphone.
 
 ### Un écran par bloc
 

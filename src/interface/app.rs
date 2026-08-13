@@ -86,7 +86,9 @@ pub fn App() -> impl IntoView {
             // Le segment de langue est délibéré (§4) : il épargne une migration
             // le jour d'une édition anglaise, et il ne coûte que trois
             // caractères. C'est `main.rs` qui envoie « / » vers « /fr ».
-            <Entete />
+            // Pas d'en-tête ici : `Hero` le porte, pour que l'ouverture
+            // soit une seule unité qui remplit l'écran. Les pages sans
+            // ouverture — les légales, l'erreur — posent le leur.
             <main id="contenu">
                 <Routes fallback=Introuvable>
                     // `SsrMode::Async` : le serveur attend le verset du jour et
@@ -139,6 +141,7 @@ fn Introuvable() -> impl IntoView {
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
+        <Entete />
         <Bloc>
             <h1>"Cette page n'existe pas."</h1>
             <p><a href="/fr">"Revenir à l'accueil."</a></p>

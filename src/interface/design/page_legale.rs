@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::Bloc;
+use crate::interface::design::{Bloc, Entete};
 
 /// Le gabarit des pages légales.
 ///
@@ -21,6 +21,7 @@ pub fn PageLegale(
     children: Children,
 ) -> impl IntoView {
     view! {
+        <Entete />
         <Bloc>
             <a
                 href="/fr"
