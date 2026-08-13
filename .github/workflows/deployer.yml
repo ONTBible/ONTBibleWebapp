@@ -174,12 +174,11 @@ jobs:
         # cargo-lambda. Voir `scripts/deployer.sh` — les deux chemins sont les
         # mêmes, pour que ce qui marche en local marche ici.
         #
-        # Le `mkdir` n'est pas une précaution : sans lui, la construction
-        # **échoue**. cargo-leptos écrit `target/release/hash.txt` à la fin du
-        # front, or `--frontend-only` ne construit pas le serveur et ne crée
-        # donc jamais `target/release/`. En local le dossier existait d'un build
-        # antérieur ; sur une machine neuve, il n'existe pas, et l'erreur est un
-        # « No such file or directory » sans nom de fichier.
+        # Le `mkdir` : cargo-leptos écrit le manifeste des empreintes **à côté
+        # du binaire serveur**, donc dans `target/release/`. Or
+        # `--frontend-only` ne construit pas ce binaire et ne crée jamais ce
+        # dossier. En local il survit d'une construction antérieure ; sur une
+        # machine neuve, il n'existe pas.
         run: |
           mkdir -p target/release
           cargo leptos build --release --frontend-only

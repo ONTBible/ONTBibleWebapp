@@ -83,9 +83,11 @@ site-pkg-dir = "pkg"
 # ça durerait des jours. Avec l'empreinte, un contenu nouveau a un nom nouveau :
 # il ne peut pas être servi depuis le cache.
 hash-files = true
-# `hash-file` n'existe pas : cargo-leptos l'ignore et le dit —
-# « Metadata keys ["hash-file"] … are not recognized ». Il écrit toujours dans
-# `target/<profil>/hash.txt`, et c'est au déploiement de le porter là où le
+# `hash-file` n'existe pas — cargo-leptos l'ignore et le dit dans son journal :
+# « Metadata keys ["hash-file"] … are not recognized ». La vraie clé s'appelle
+# `hash-file-name`, mais elle ne réglerait rien : le chemin qu'elle prend est
+# relatif au dossier du binaire serveur, `target/<profil>/`. Le manifeste y est
+# donc écrit dans tous les cas, et c'est au déploiement de le porter là où le
 # serveur le cherche.
 # Tailwind remplace la feuille Sass. `cargo-leptos` télécharge le binaire
 # officiel et le lance à chaque compilation.
