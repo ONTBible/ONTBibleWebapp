@@ -7,7 +7,8 @@ use leptos_router::{
 
 use crate::interface::design::{Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
-    Accueil, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations, Passage, Pourquoi,
+    Accueil, Assistance, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations,
+    Passage, Pourquoi,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -134,6 +135,12 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("conditions"))
                         view=Conditions
+                    />
+                    // L'adresse d'assistance qu'exige la fiche App Store, et
+                    // qu'Apple refuse quand elle pointe une page d'accueil.
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("assistance"))
+                        view=Assistance
                     />
 
                     // ── La liseuse ────────────────────────────────────────

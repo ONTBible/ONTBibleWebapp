@@ -27,6 +27,7 @@ pub const PAGES: &[&str] = &[
     "/fr/lexique",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",
+    "/fr/assistance",
     "/fr/confidentialite",
     "/fr/conditions",
 ];

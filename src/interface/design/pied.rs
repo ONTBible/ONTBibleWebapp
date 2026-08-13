@@ -39,6 +39,7 @@ pub fn PiedDePage() -> impl IntoView {
                     aria-label="Mentions et code source"
                     class="flex flex-wrap justify-center gap-x-6 gap-y-2"
                 >
+                    <a href="/fr/assistance" class=LIEN>"Assistance"</a>
                     <a href="/fr/confidentialite" class=LIEN>"Confidentialité"</a>
                     <a href="/fr/conditions" class=LIEN>"Conditions"</a>
                     <a href="https://github.com/ONTBible" rel="noopener" class=LIEN>
