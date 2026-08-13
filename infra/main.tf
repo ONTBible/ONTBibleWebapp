@@ -354,6 +354,16 @@ resource "aws_cloudfront_distribution" "site" {
     // le sien. Elle répondait 403, et le message ne disait rien.
     origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
     compress                 = true
+
+    // Le renvoi vers le nom canonique, exécuté au point de présence avant
+    // toute autre chose. Il n'existe que s'il y a des domaines à renvoyer.
+    dynamic "function_association" {
+      for_each = local.actif && length(local.a_renvoyer) > 0 ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.canonique[0].arn
+      }
+    }
   }
 
   // Ce qui porte son empreinte : un an, sans revalidation.
@@ -381,17 +391,25 @@ resource "aws_cloudfront_distribution" "site" {
     }
   }
 
+  // Les noms que sert la distribution. Vides tant que `domaines` l'est : le
+  // site répond alors sur l'adresse de CloudFront, et rien d'autre.
+  aliases = var.domaines
+
   restrictions {
     geo_restriction { restriction_type = "none" }
   }
 
-  // Le certificat de CloudFront, sur son propre domaine. Le certificat du
-  // domaine personnalisé viendra avec la bascule DNS, pas avant : demander un
-  // certificat pour `ontbible.com` exige d'en prouver la possession par un
-  // enregistrement DNS, et poser cet enregistrement avant d'être prêt à
-  // basculer n'apporte rien.
+  // Tant qu'aucun domaine n'est déclaré, le certificat de CloudFront sur son
+  // propre nom suffit. Dès qu'il y en a un, c'est le nôtre — et il faut
+  // attendre sa **validation**, pas sa création : une distribution refuse un
+  // certificat dont AWS n'a pas encore vérifié qu'on possède le domaine.
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = local.actif ? false : true
+    acm_certificate_arn            = local.actif ? aws_acm_certificate_validation.site[0].certificate_arn : null
+    ssl_support_method             = local.actif ? "sni-only" : null
+    // TLS 1.2 au minimum. Les versions antérieures sont cassées, et plus rien
+    // ne les parle depuis des années.
+    minimum_protocol_version = local.actif ? "TLSv1.2_2021" : null
   }
 }
 
