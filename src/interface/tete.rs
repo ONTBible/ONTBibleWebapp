@@ -40,13 +40,12 @@ pub const PAGES: &[&str] = &[
 /// « OUVRIR » — « VOIR » si l'app n'est pas installée, auquel cas il mène à
 /// l'App Store. C'est Safari qui la dessine ; le site ne fait que la déclarer.
 ///
-/// ## Pourquoi il est vide, et ce qu'il attend
+/// ## D'où il vient
 ///
-/// L'app n'est pas encore publiée, donc ce nombre n'existe pas. Il est attribué
-/// par App Store Connect à la **création de la fiche**, avant toute
-/// publication : c'est l'`Apple ID` de la page « Informations sur l'app », dix
-/// chiffres. Le coller ici suffit — la bannière apparaît alors sur toutes les
-/// pages du site, sans qu'aucune autre ligne ne bouge.
+/// De la page « Informations sur l'app » d'App Store Connect, champ `Apple ID`.
+/// Il est attribué à la **création de la fiche**, bien avant toute publication —
+/// c'est pourquoi la bannière peut exister avant que l'app ne soit sur l'App
+/// Store : elle mènera alors à une page « bientôt disponible ».
 ///
 /// Tant qu'il vaut `None`, la balise n'est pas écrite. Une bannière déclarée
 /// avec un identifiant faux ne produit rien de visible, mais elle laisse croire
@@ -64,7 +63,7 @@ pub const PAGES: &[&str] = &[
 /// « Ouvrir dans la web app » que propose Safari relève d'une autre mécanique —
 /// le lecteur a lui-même ajouté le site au Dock, et aucune balise ne la
 /// déclenche.
-pub const IDENTIFIANT_APP_STORE: Option<&str> = None;
+pub const IDENTIFIANT_APP_STORE: Option<&str> = Some("6801192372");
 
 /// Les métadonnées d'une page.
 ///
