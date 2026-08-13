@@ -10,10 +10,20 @@ use leptos_router::components::A;
 ///
 /// La navigation est en capitales espacées. En bas de casse, elle ressemblerait
 /// à une barre d'application ; ainsi, elle ressemble à un titre courant.
+///
+/// ## Elle n'a pas de fond, et elle est au-dessus
+///
+/// Sur l'accueil, l'ouverture remonte **sous** l'en-tête : la marque et la
+/// navigation flottent dans le lieu au lieu de le surmonter. C'est ce qui fait
+/// qu'on arrive sur une seule unité qui remplit l'écran, et non sur une bande
+/// suivie d'un écran.
+///
+/// D'où le `z-20` et l'absence de fond : le dégradé de l'ouverture passe
+/// derrière, le texte reste devant.
 #[component]
 pub fn Entete() -> impl IntoView {
     view! {
-        <header class="flex flex-col items-center gap-6 px-6 pt-10 text-center">
+        <header class="relative z-20 flex flex-col items-center gap-6 px-6 pt-10 text-center">
             <A
                 href="/fr"
                 attr:class="block text-accent"

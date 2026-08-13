@@ -253,6 +253,23 @@ lignes trop longues.
 L'interligne descend à 1,68 en compensation : plus le corps grandit, moins il a
 besoin d'air proportionnel pour que l'œil retrouve la ligne suivante.
 
+### L'ouverture est **une** unité
+
+Ce qui frappe en arrivant sur un site bien fait, c'est un premier écran qui est
+une seule chose et qui le remplit. Le premier essai posait l'en-tête en bande
+au-dessus de l'ouverture : on voyait alors deux objets — un bandeau, puis un
+écran — et l'effet tombait.
+
+L'ouverture remonte donc **sous** l'en-tête, d'une marge négative égale à
+`--hauteur-entete`, et lui rend l'espace en marge intérieure. L'en-tête n'a pas
+de fond et passe en `z-20` : la marque et la navigation flottent dans le lieu
+au lieu de le surmonter.
+
+Le jeton s'arrondit **au-dessus** de la hauteur réelle. Un excès n'ajoute que
+de la marge intérieure à une ouverture dont le contenu est centré ; un manque
+laisse une bande de fond visible au-dessus d'elle, c'est-à-dire précisément ce
+qu'on voulait supprimer.
+
 ### Un écran par bloc
 
 Chaque `Bloc` occupe au moins la hauteur de la fenêtre, contenu centré. Sans

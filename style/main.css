@@ -131,10 +131,15 @@
      le haut d'un hero d'un écran entier, et le contenu centré du hero
      tomberait sous la ligne de flottaison.
 
-     C'est une estimation — marge 2,5 rem + wordmark ≈ 5,6 rem + écart 1,5 rem
-     + navigation ≈ 1,5 rem — et elle vit ici pour qu'il n'y ait qu'un endroit
-     à corriger si l'en-tête change. */
-  --hauteur-entete: 11rem;
+     Marge 2,5 rem + wordmark 5,6 rem + écart 1,5 rem + navigation 2,5 rem ≈
+     12,1 rem. On arrondit **au-dessus** : un excès ne fait qu'ajouter de la
+     marge intérieure à une ouverture dont le contenu est centré, alors qu'un
+     manque laisse une bande de fond visible au-dessus d'elle — exactement ce
+     qu'on cherchait à supprimer.
+
+     Elle vit ici pour qu'il n'y ait qu'un endroit à corriger si l'en-tête
+     change. */
+  --hauteur-entete: 12.5rem;
 }
 
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════
