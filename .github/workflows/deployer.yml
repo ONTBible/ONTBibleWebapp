@@ -120,6 +120,16 @@ jobs:
         with:
           tool: cargo-lambda
 
+      - name: Zig
+        # cargo-lambda ne compile pas lui-même vers Amazon Linux : il délègue
+        # l'édition de liens à zig, qui sait viser une version précise de la
+        # glibc. Sans lui, la construction du serveur s'arrête net.
+        #
+        # Par pip plutôt que par une action tierce : c'est l'une des deux voies
+        # que cargo-lambda documente, et ça n'ajoute pas un dépôt de plus à qui
+        # faire confiance dans la chaîne de livraison.
+        run: pip3 install ziglang
+
       - name: cargo-leptos, en glibc et pas en musl
         # `install-action` sert par défaut la version **musl** d'un outil : elle
         # est liée statiquement, donc portable partout. Pour cargo-leptos, c'est
