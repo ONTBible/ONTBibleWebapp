@@ -114,7 +114,19 @@ resource "aws_iam_role_policy" "ci" {
         // la mémoire, le délai et les variables d'environnement sont décrits
         // par Terraform, et un job qui pourrait les changer les ferait diverger
         // de ce que le dépôt déclare.
-        Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction"]
+        //
+        // `GetFunctionConfiguration` est en revanche nécessaire, et ne donne
+        // que la lecture. Après un `update-function-code`, la Lambda reste
+        // quelques secondes en `InProgress` ; le job attend qu'elle en sorte
+        // (`wait function-updated`), et cette attente interroge précisément
+        // cette API. Sans elle, le déploiement échoue **après** avoir remplacé
+        // le code — c'est-à-dire au pire endroit, une fois la production déjà
+        // changée et le job rouge.
+        Action = [
+          "lambda:UpdateFunctionCode",
+          "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
+        ]
         Resource = aws_lambda_function.site.arn
       },
       {
