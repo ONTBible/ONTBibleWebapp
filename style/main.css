@@ -1,0 +1,505 @@
+@import "tailwindcss";
+
+/* Les gabarits sont écrits en Rust : c'est là que Tailwind doit chercher les
+   classes. Sans cette ligne il ne verrait aucun gabarit et produirait une
+   feuille vide — panne silencieuse, la page s'afficherait sans style.
+
+   Corollaire : Tailwind lit le fichier comme du **texte**, il ne comprend pas
+   Rust. Une classe assemblée à l'exécution — `format!("text-{}", couleur)` —
+   n'existera pas dans la feuille. Les classes s'écrivent en entier, toujours. */
+@source "../src/**/*.rs";
+
+/* ═══ Les jetons ═══════════════════════════════════════════════════════════
+
+   La source unique de la forme. Rien de ce qui est ici ne se réécrit ailleurs,
+   et aucun composant n'écrit une valeur en dur : il prend un jeton.
+
+   ── Le site est sombre, et c'est une aubergine, pas un noir ────────────────
+
+   Le premier essai suivait le thème du système et retombait sur un gris
+   quasi noir : une page quelconque, sans matière. Le second l'a interdit et
+   posé le site sur du parchemin. Les deux manquaient la cible.
+
+   Le site est **une nuit d'aubergine**. La rampe ci-dessous est dérivée de la
+   marque : teinte constante 343°, celle de `#421B26` relevée au pixel sur le
+   combination mark, avec la seule clarté qui varie. Les quatre valeurs sont
+   calculées, pas choisies à l'œil — et la marque elle-même retombe sur
+   `#411B26`, à un point près de l'originale, ce qui vérifie la dérivation.  */
+
+@theme {
+  /* La rampe. Quatre niveaux, du fond à la marque. */
+  --color-nuit: #18090d; /* le fond de la page */
+  --color-surface: #261016; /* une carte, une porte, une ligne de liste */
+  --color-surface-haute: #35151e; /* un bandeau, ce qu'on veut détacher */
+  --color-aubergine: #421b26; /* la marque, et le haut des dégradés */
+
+  --color-or: #cdbe83;
+
+  /* ── L'encre ──────────────────────────────────────────────────────────────
+
+     Jamais de blanc pur, et jamais un gris. Deux raisons, dans cet ordre :
+
+     1. La **halation**. Sur fond sombre, un texte clair déborde optiquement
+        dans le noir qui l'entoure : les lettres paraissent plus grasses,
+        vibrent, et se doublent sur une dalle OLED. Descendre à 87 % de clarté
+        supprime l'essentiel de ce halo, sans rien coûter à la lisibilité —
+        11,4:1 sur le fond, bien au-delà du seuil AAA.
+
+     2. Le **parchemin**. L'encre garde la chaleur du papier de l'app plutôt
+        que de virer au gris de laboratoire. C'est le même projet.           */
+  --color-encre: #cfc5b9; /* le corps       — 11,4:1 sur le fond */
+  --color-encre-vive: #ede3d6; /* un titre       — 15,3:1 */
+  --color-encre-douce: #9d948b; /* le niveau 2    —  6,5:1 */
+
+  /* Le terme important — l'aubergine remontée en clarté à teinte constante,
+     jusqu'à 6,5:1 sur le fond. C'est la valeur du thème sombre de l'app. */
+  --color-important: #d87994;
+
+  /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri
+     comme il le fallait sur le parchemin. Le jeton garde son nom de **rôle**,
+     comme `ONTColors.accent` dans l'app — ce qui permettra de le décliner un
+     jour sans toucher à un seul composant. */
+  --color-accent: #cdbe83;
+
+  /* Les filets sont dorés et non gris : sur une nuit chaude, un gris paraît
+     sale. À 18 %, le trait se voit sans découper la page. */
+  --color-filet: color-mix(in srgb, #cdbe83 18%, transparent);
+
+  /* ── Fontes ──────────────────────────────────────────────────────────────
+
+     **Jost** tient les titres et la navigation — la géométrique de l'édition
+     imprimée et du combination mark. Elle ne tient pas dix lignes de texte
+     suivi : hauteur d'x basse, fûts égaux.
+
+     **Literata** tient tout le reste. C'est un revirement assumé : le corps
+     était en EB Garamond, la lettre du livre imprimé classique. Sur fond
+     sombre, ses déliés très fins bavent et ses empattements vibrent — c'est le
+     défaut connu des romanes à fort contraste en mode sombre. Literata est
+     dessinée pour l'écran, à faible contraste de graisse, et c'est déjà la
+     fonte du corps de l'app : un verset cité ici se lit exactement comme sur
+     le téléphone.                                                           */
+  --font-titre: "Jost", "Helvetica Neue", sans-serif;
+  --font-corps: "Literata", "Iowan Old Style", Georgia, serif;
+  --font-hebreu: "Ezra SIL", serif;
+
+  /* ── Échelle typographique ───────────────────────────────────────────────
+
+     Une quarte juste (1,333). `clamp` fait varier la taille avec la fenêtre :
+     pas de rupture, pas de point de bascule. Les noms de Tailwind sont
+     conservés — qui connaît Tailwind lit la classe sans venir ici.
+
+     Le corps est à **21 px**, pas à 16. Deux effets se cumulent : Literata a
+     une hauteur d'x généreuse mais une chasse étroite, et sur une nuit
+     d'aubergine le texte clair paraît plus petit qu'il ne l'est — l'inverse de
+     la halation, qui l'épaissit sans l'agrandir. Les essais à 17 puis 19 px se
+     lisaient encore comme des notes de bas de page.
+
+     À cette taille, la **mesure doit suivre** : 34 rem ne tiendraient plus que
+     52 signes par ligne, sous la fourchette confortable, et le texte se
+     hacherait en lignes trop courtes. Elle passe à 38 rem — environ 58 signes,
+     donc toujours du côté étroit qu'il préfère.
+
+     L'interligne descend légèrement en compensation : plus le corps grandit,
+     moins il a besoin d'air proportionnel pour que l'œil retrouve la ligne
+     suivante.                                                               */
+  --text-sm: 1rem;
+  --text-base: 1.3125rem;
+  --text-lg: clamp(1.5rem, 1.32rem + 0.7vw, 1.75rem);
+  --text-xl: clamp(1.9rem, 1.6rem + 1.4vw, 2.33rem);
+  --text-2xl: clamp(2.35rem, 1.85rem + 2.6vw, 3.11rem);
+  --text-3xl: clamp(2.25rem, 1.5rem + 4.6vw, 4.15rem);
+
+  /* Les capitales espacées du livre imprimé — jamais sur du bas de casse, où
+     l'interlettrage ne fait que disloquer le mot. */
+  --tracking-capitales: 0.16em;
+
+  /* La mesure. Au-delà de ~70 signes par ligne, l'œil perd le début de la
+     ligne suivante. La mesure large reprend `ONTLayout.readingWidth` — 700
+     points, la largeur de lecture de l'app sur iPad. */
+  --container-mesure: 38rem;
+  --container-large: 52rem;
+
+  /* `ONTRadius.card` — 22 points. */
+  --radius-carte: 1.375rem;
+
+}
+
+/* ═══ Les fontes ═══════════════════════════════════════════════════════════
+
+   Sous OFL, portées depuis `ONTBibleApp/app/Resources/Fonts/` par
+   `scripts/fontes.sh` — une seule source, un script rejouable. Leur texte de
+   licence part avec elles, ce que l'OFL exige.
+
+   `font-display: swap` : le texte s'affiche dans la fonte de repli puis
+   bascule. L'attendre donnerait une page blanche sur un réseau lent, et c'est
+   un site dont le propos est de se lire.                                    */
+
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Jost-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Jost-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Literata-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Literata-Italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Literata-SemiBold.woff2") format("woff2");
+}
+
+/* La seule fonte qui positionne correctement niqqud et te'amim. Restreinte au
+   bloc hébreu : sans cette borne, le navigateur la téléchargerait pour rendre
+   des lettres latines qu'elle dessine mal. */
+@font-face {
+  font-family: "Ezra SIL";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/EzraSIL.woff2") format("woff2");
+  unicode-range: U+0590-05FF, U+FB1D-FB4F, U+200F, U+2066-2069;
+}
+
+/* ═══ La base ══════════════════════════════════════════════════════════════ */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* La page est sombre par construction, pas par réglage : on le dit au
+       navigateur, sinon il repeint les barres de défilement et les champs en
+       clair au milieu d'une nuit. */
+    color-scheme: dark;
+    background: var(--color-nuit);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background: var(--color-nuit);
+    color: var(--color-encre);
+    font-family: var(--font-corps);
+    font-size: var(--text-base);
+    line-height: 1.68;
+    /* Deux corrections de halation, et elles vont ensemble.
+
+       `antialiased` amincit les traits — sur fond clair il les fait
+       disparaître, sur fond sombre il compense exactement le débordement
+       optique qui les épaissit. C'est le seul cas où il faut le forcer.
+
+       Et un souffle d'interlettrage : sur une nuit, les lettres claires se
+       rapprochent visuellement et finissent par se toucher. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0.006em;
+    text-rendering: optimizeLegibility;
+
+    /* Les **chiffres elzéviriens** — ceux qui montent et descendent comme des
+       lettres. C'est le chiffre du livre imprimé : dans une ligne de texte, il
+       ne fait pas de trou là où un chiffre aligné dresse un bloc. Literata les
+       porte ; on les demande explicitement, sinon le navigateur sert les
+       chiffres alignés du dessin par défaut.
+
+       Les chiffres d'un tableau, eux, restent alignés — voir `Chiffres`. Un
+       chiffre elzévirien se lit dans une phrase, pas dans une colonne. */
+    font-variant-numeric: oldstyle-nums proportional-nums;
+
+    /* La ponctuation ouvrante déborde dans la marge, de sorte que le bord
+       gauche du texte reste droit. C'est un raffinement de composition ancien,
+       et l'une des rares choses qu'un navigateur sait faire tout seul. */
+    hanging-punctuation: first last;
+  }
+
+  /* La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,
+     une mesure étroite creuse des lézards entre les mots. */
+  p {
+    hyphens: auto;
+    margin-block-end: --spacing(6);
+  }
+
+  /* Le rythme vertical appartient au document, pas aux composants : sans lui,
+     chaque page reposerait ses marges et deux pages ne respireraient pas
+     pareil. Tailwind remet les marges à zéro — on les redonne ici, une fois. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titre);
+    font-weight: 400;
+    line-height: 1.15;
+    color: var(--color-encre-vive);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-3xl);
+    margin-block-end: --spacing(8);
+  }
+
+  /* Le titre de section est en **or**. Dans l'app c'est l'aubergine qui joue
+     ce rôle (`ONTTypography.sectionTitle`) ; sur une nuit d'aubergine, elle
+     disparaîtrait dans son propre fond. L'or tient le même rôle : marquer
+     l'entrée d'une section sans la crier. */
+  h2 {
+    font-size: var(--text-xl);
+    color: var(--color-accent);
+    margin-block: --spacing(14) --spacing(4);
+    /* Une capitale de titre a besoin d'un souffle de plus qu'un bas de casse —
+       Jost est géométrique, ses lettres se touchent vite en grand. */
+    letter-spacing: -0.005em;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    margin-block: --spacing(8) --spacing(3);
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+
+  /* Le soulignement s'épaissit au survol plutôt que d'apparaître : un lien
+     déjà souligné ne saute pas, il se confirme. Deux cents millisecondes —
+     assez pour être perçu, trop court pour être attendu. */
+  a {
+    transition: text-decoration-color 200ms ease, color 200ms ease;
+  }
+
+  a:hover {
+    text-decoration-color: var(--color-accent);
+  }
+
+  /* Trois balises que les pages légales emploient, et qu'il vaut mieux décider
+     que laisser au navigateur.
+
+     `code` **sans fonte à chasse fixe** : le site n'en embarque aucune, et en
+     ajouter une pour deux noms de domaine serait payer cher un détail. La
+     police par défaut du navigateur jurerait avec Jost et Literata ; l'or et
+     un interlettrage suffisent à dire « ceci est une chaîne littérale ». */
+  code {
+    font-family: inherit;
+    font-size: 0.94em;
+    letter-spacing: 0.03em;
+    color: var(--color-accent);
+  }
+
+  strong {
+    font-weight: 600;
+    color: var(--color-encre-vive);
+  }
+
+  em,
+  i {
+    font-style: italic;
+  }
+
+  /* La cible du clavier reste visible partout, y compris là où un composant
+     redéfinit ses couleurs. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+/* ═══ Les utilitaires à nous ═══════════════════════════════════════════════ */
+
+/* Le grain.
+ *
+ * Ce n'est pas un effet : c'est une nécessité technique. Un dégradé sombre
+ * étalé sur toute une page se découpe en bandes visibles — un écran n'a que
+ * 256 valeurs par canal, et les écarts entre deux nuances de nuit sont plus
+ * petits que ça. Un bruit à 3,5 % casse les bandes en les rendant
+ * irrégulières, et l'œil cesse de les voir.
+ *
+ * Il donne au passage au fond la matière d'un papier ancien, ce qui ne gâche
+ * rien.
+ *
+ * `feTurbulence` produit le bruit dans le navigateur : aucune image à
+ * télécharger, et il ne se répète jamais visiblement. */
+@utility grain-page {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+  }
+}
+
+/* La voûte.
+ *
+ * C'est la matière du site, et le parti pris qu'il a choisi : le texte n'est
+ * pas *posé sur* un fond, il est *dans* un espace.
+ *
+ * Trois couches, et chacune fait une chose : une lueur dorée haute — la
+ * lumière tombe d'au-dessus du texte, comme dans une nef ; l'aubergine qui
+ * remonte du bas comme un sol ; et la nuit entre les deux. Une quatrième
+ * couche ferait un effet ; trois font une atmosphère.
+ */
+@utility voute {
+  background-color: var(--color-nuit);
+  background-image:
+    radial-gradient(
+      ellipse 70% 55% at 50% 0%,
+      color-mix(in srgb, var(--color-or) 20%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 120% 70% at 50% 100%,
+      var(--color-aubergine) 0%,
+      transparent 70%
+    ),
+    linear-gradient(to bottom, var(--color-surface-haute), var(--color-nuit) 65%);
+}
+
+/* Une voûte assourdie, pour les sections de lecture : la même lumière, quatre
+ * fois plus basse. Elle donne de la profondeur sans réclamer l'attention que
+ * mérite une ouverture. */
+@utility voute-basse {
+  background-color: var(--color-nuit);
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in srgb, var(--color-or) 6%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 120% 60% at 50% 110%,
+      color-mix(in srgb, var(--color-aubergine) 70%, transparent) 0%,
+      transparent 70%
+    );
+}
+
+/* Le massif — la montagne employée en grand, comme un horizon ou un relief
+ * lointain, jamais comme une illustration. Elle prend la couleur du texte
+ * courant, donc son opacité se règle par la couleur et non par un filtre. */
+@utility massif {
+  background: currentColor;
+  aspect-ratio: 502 / 249;
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* Le halo — ce qui distingue un plan éclairé d'un plan en retrait. Une ombre
+ * dorée et diffuse, sans contour : on ne voit pas la source, on voit qu'il y
+ * en a une. */
+@utility halo {
+  box-shadow:
+    0 0 120px -30px color-mix(in srgb, var(--color-or) 34%, transparent),
+    0 30px 70px -40px rgb(0 0 0 / 0.9);
+}
+
+/* La montagne du logo, posée en **masque** et non en image : elle prend la
+ * couleur du texte courant, donc elle suit le jeton — et le vecteur reste net
+ * à toute taille, ce qu'un PNG ne fait pas.
+ *
+ * Utilitaire plutôt qu'arbitraire répété : plusieurs composants s'en servent,
+ * et la syntaxe entre crochets d'un masque est illisible écrite trois fois.
+ * Les proportions sont celles du tracé — forcer un carré laisserait deux vides
+ * que `contain` ne comble pas. */
+@utility signe-montagne {
+  aspect-ratio: 502 / 249;
+  background: currentColor;
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* Le détourage du portrait laisse le bas du vêtement se dissoudre dans le
+ * fond. Ce dégradé rend la dissolution volontaire, au lieu de la laisser
+ * paraître ratée. */
+@utility fondu-bas {
+  -webkit-mask: linear-gradient(#000 58%, transparent 96%);
+  mask: linear-gradient(#000 58%, transparent 96%);
+}
+
+/* La lettrine.
+ *
+ * L'initiale sur trois lignes du livre imprimé. C'est le signe le plus ancien
+ * qu'une page puisse porter — et c'est l'exécution qui décide s'il paraît
+ * antiquaire ou contemporain : pas d'enluminure, pas de fond, pas de cadre.
+ * Une lettre en or, dans la fonte des titres, alignée sur la troisième ligne.
+ *
+ * `initial-letter` fait le calage lui-même là où il est reconnu ; le repli
+ * flotté donne le même résultat partout ailleurs.
+ */
+@utility lettrine {
+  &::first-letter {
+    float: left;
+    font-family: var(--font-titre);
+    font-size: 3.4em;
+    line-height: 0.82;
+    padding-inline-end: 0.08em;
+    padding-block-start: 0.06em;
+    color: var(--color-accent);
+    -webkit-initial-letter: 3;
+    initial-letter: 3;
+  }
+}
+
+/* Les chiffres d'un tableau : alignés et de chasse fixe, pour que deux nombres
+ * superposés s'alignent à la virgule près. C'est l'inverse du chiffre
+ * elzévirien du texte courant, et c'est voulu — une colonne n'est pas une
+ * phrase. */
+@utility chiffres-tableau {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* ── L'entrée du bouton de lecture ─────────────────────────────────────────
+ *
+ * Le bouton flottant n'existe qu'après l'hydratation : il ne peut pas être
+ * dans le HTML du serveur, puisque sans JavaScript il ne commanderait rien.
+ * Il apparaissait donc d'un coup, une seconde après la page — ce qui se lit
+ * comme un défaut de chargement plutôt que comme une arrivée.
+ *
+ * Il monte de quelques pixels en se posant. Le mouvement est court : ce n'est
+ * pas un effet, c'est ce qui dit que l'objet vient d'arriver.
+ */
+@keyframes se-poser {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.9);
+  }
+}
+
+@utility se-poser {
+  animation: se-poser 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  /* Qui a demandé moins d'animation reçoit l'objet, pas le mouvement.
+   * C'est un réglage d'accessibilité du système, pas une préférence de goût :
+   * le mouvement déclenche des vertiges chez une partie des lecteurs. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

@@ -1,0 +1,6 @@
+# L'état Terraform décrit l'infrastructure réelle et peut porter des valeurs
+# sensibles. Il ne doit jamais entrer dans un dépôt public.
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl

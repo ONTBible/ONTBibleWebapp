@@ -1,0 +1,222 @@
+# Déploie le site quand `main` bouge.
+#
+# ## Ce qu'il fait, et ce qu'il ne fait **pas**
+#
+# Il construit, éprouve, pose les fichiers sur S3, remplace le code de la
+# Lambda, vide le cache. Il ne touche **jamais** à Terraform.
+#
+# C'est délibéré : l'état de Terraform vit en local, pas dans un dépôt distant.
+# Un job qui l'exécuterait travaillerait sans savoir ce qui existe déjà — il
+# recréerait tout, ou détruirait ce qu'il ne connaît pas. La forme de
+# l'infrastructure reste une décision prise à la main ; la CI ne fait que
+# livrer.
+#
+# ## Aucune clé
+#
+# L'authentification passe par OIDC : GitHub signe un jeton qui dit d'où vient
+# ce job, AWS le vérifie et prête un rôle pour la durée du job. Rien n'est
+# stocké dans les secrets du dépôt, donc rien ne fuit et rien n'est à révoquer.
+#
+# ## Pourquoi les trois dépôts sont clonés
+#
+# Le site embarque `dist/` **à la compilation**, par un chemin relatif :
+# `../ONTBibleApp/dist/`. Or `dist/` n'est **pas** dans le dépôt — il est
+# gitignoré, parce que c'est un produit et non une source.
+#
+# La CI le régénère donc, et c'est plus juste que de le committer : le vault est
+# la source, le pipeline est déterministe, et l'artefact n'existe que le temps
+# du job. Les trois dépôts se retrouvent côte à côte dans l'espace de travail,
+# comme sur un poste de développement.
+#
+# **Conséquence heureuse** : ce workflow lit le vault au moment où il tourne.
+# Corriger un verset, pousser, relancer — et le site porte la correction. C'est
+# la propagation qui n'existait pas jusqu'ici.
+
+name: Déployer
+
+on:
+  push:
+    branches: [main]
+  # Pour redéployer sans commit — après un `terraform apply`, par exemple.
+  workflow_dispatch:
+
+# Le jeton OIDC, et rien de plus. `contents: read` suffit à cloner.
+permissions:
+  id-token: write
+  contents: read
+
+# Deux déploiements simultanés poseraient leurs fichiers dans le désordre. Le
+# second attend ; il n'annule pas le premier, qui a peut-être déjà écrit.
+concurrency:
+  group: deployer
+  cancel-in-progress: false
+
+env:
+  REGION: eu-west-3
+  FONCTION: ont-site
+  SEAU: ont-site-274399924176
+  DISTRIBUTION: E20C0E1AFI73CK
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Le site
+        uses: actions/checkout@v4
+        with:
+          path: ONTBibleWebapp
+
+      - name: Le pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: ONTBible/ONTBibleApp
+          path: ONTBibleApp
+
+      - name: Le vault
+        uses: actions/checkout@v4
+        with:
+          repository: ONTBible/ONTBibleTranslation
+          path: ONTBibleTranslation
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Le corpus, régénéré depuis le vault. C'est ici que la traduction entre
+      # dans le site : `dist/` n'existe pas dans le dépôt, il naît de ce job.
+      #
+      # `npm ci` et non `npm install` : il installe **exactement** ce que le
+      # verrou décrit, sans jamais le mettre à jour. Une dépendance qui bouge
+      # toute seule entre deux déploiements, c'est un corpus qui change sans
+      # qu'un commit l'explique.
+      - name: Le corpus
+        working-directory: ONTBibleApp
+        env:
+          ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
+        run: |
+          npm ci
+          npm run build
+          echo "── ce que le pipeline a produit ──"
+          cat dist/manifest.json | head -c 400; echo
+
+      - name: Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+
+      # Le cache porte sur `~/.cargo` et `target/`. Sans lui, chaque
+      # déploiement recompile Leptos entier — dix minutes contre une.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ONTBibleWebapp
+
+      - name: Les outils
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-leptos,cargo-lambda
+
+      - name: Les tests
+        working-directory: ONTBibleWebapp
+        # 67 tests, dont ceux qui comparent le portage au Swift original et
+        # ceux qui refusent qu'un type du pipeline passe à travers l'analyse.
+        # Ils tiennent en moins d'une seconde et ils sont la seule chose entre
+        # un commit et la production.
+        run: cargo test --features ssr
+
+      - name: Le front
+        working-directory: ONTBibleWebapp
+        # `--frontend-only` : le serveur est construit à l'étape suivante, par
+        # cargo-lambda. Voir `scripts/deployer.sh` — les deux chemins sont les
+        # mêmes, pour que ce qui marche en local marche ici.
+        run: cargo leptos build --release --frontend-only
+
+      - name: Le serveur
+        working-directory: ONTBibleWebapp
+        # `cargo lambda` et non `cargo build`, **même sur Linux**. Il croise-
+        # compile avec zig vers la bibliothèque C d'Amazon Linux 2023 (glibc
+        # 2.34). Un binaire construit contre celle d'Ubuntu (2.39) référencerait
+        # des symboles absents de la Lambda, et la fonction refuserait de
+        # démarrer — sans autre message qu'un `Runtime.InvalidEntrypoint`.
+        run: cargo lambda build --release --arm64 --features ssr --no-default-features
+
+      - name: Le paquet
+        working-directory: ONTBibleWebapp
+        # `hash.txt` voyage avec le binaire : sans lui, la Lambda écrit
+        # `ontbible.js` dans le HTML au lieu de `ontbible.<empreinte>.js` — une
+        # adresse que le seau ne sert pas. La page se charge sans son WASM, et
+        # rien ne le signale.
+        run: |
+          cp target/release/hash.txt target/lambda/ontbible/hash.txt
+          cd target/lambda/ontbible && zip -q paquet.zip bootstrap hash.txt
+
+      - name: AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::274399924176:role/ont-site-github
+          aws-region: ${{ env.REGION }}
+
+      # Les fichiers **avant** le code. L'inverse ouvrirait une fenêtre où le
+      # nouveau HTML réclamerait un WASM que le seau n'a pas encore. Les noms
+      # portent leur empreinte, donc l'ancien et le nouveau cohabitent : c'est
+      # ce qui rend cet ordre possible.
+      - name: Les fichiers
+        working-directory: ONTBibleWebapp
+        run: |
+          aws s3 sync target/site/pkg "s3://$SEAU/pkg" --delete --exclude "*.ts" \
+            --cache-control "public, max-age=31536000, immutable" --no-progress
+          for d in images fontes; do
+            [ -d "target/site/$d" ] && aws s3 sync "target/site/$d" "s3://$SEAU/$d" \
+              --delete --cache-control "public, max-age=86400" --no-progress
+          done
+          aws s3 cp target/site/robots.txt "s3://$SEAU/robots.txt" \
+            --cache-control "public, max-age=86400" --no-progress
+          # `aws s3` ne connaît pas `.wasm` et le pose en
+          # `binary/octet-stream`. Le navigateur refuse alors de le compiler en
+          # flux, et l'hydratation ne démarre jamais.
+          for w in target/site/pkg/*.wasm; do
+            aws s3 cp "$w" "s3://$SEAU/pkg/$(basename "$w")" \
+              --content-type "application/wasm" \
+              --cache-control "public, max-age=31536000, immutable" --no-progress
+          done
+
+      # Le corpus que l'app ira chercher. Les fichiers d'abord, le manifeste
+      # ensuite : il nomme des adresses qui doivent déjà répondre, sinon les
+      # apps qui le lisent dans l'intervalle chercheront du vide.
+      - name: Le corpus pour l'app
+        working-directory: ONTBibleWebapp
+        run: |
+          ./scripts/corpus-publie.py
+          aws s3 sync target/corpus "s3://$SEAU/corpus" --delete --exclude "manifeste.json" \
+            --cache-control "public, max-age=31536000, immutable" --no-progress
+          aws s3 cp target/corpus/manifeste.json "s3://$SEAU/corpus/manifeste.json" \
+            --cache-control "public, max-age=300" --no-progress
+
+      - name: Le code
+        working-directory: ONTBibleWebapp
+        run: |
+          aws lambda update-function-code --function-name "$FONCTION" \
+            --zip-file "fileb://target/lambda/ontbible/paquet.zip" \
+            --query 'LastModified' --output text
+          aws lambda wait function-updated --function-name "$FONCTION"
+
+      # Seulement le HTML. Les fichiers figés n'ont pas à être invalidés : leur
+      # nom a changé, donc l'ancien n'est plus demandé.
+      - name: Le cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
+            --paths "/" "/fr" "/fr/*" "/sitemap.xml" \
+            --query 'Invalidation.Id' --output text
+
+      # Le déploiement n'est pas fini quand la commande rend la main : il est
+      # fini quand le site répond. Sans cette vérification, un binaire qui ne
+      # démarre pas passerait pour un succès.
+      - name: Vérifier
+        run: |
+          sleep 10
+          for chemin in /fr /fr/lire /.well-known/apple-app-site-association; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "https://ontbible.com$chemin")
+            printf '%-46s %s\n' "$chemin" "$code"
+            [ "$code" = "200" ] || exit 1
+          done
