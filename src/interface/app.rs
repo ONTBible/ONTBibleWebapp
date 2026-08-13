@@ -7,8 +7,7 @@ use leptos_router::{
 
 use crate::interface::design::{Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
-    Accueil, Auteur, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations, Passage,
-    Pourquoi,
+    Accueil, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations, Passage, Pourquoi,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -121,7 +120,13 @@ pub fn App() -> impl IntoView {
                         path=(StaticSegment("fr"), StaticSegment("ce-que-l-ont-n-est-pas"))
                         view=Negations
                     />
-                    <Route path=(StaticSegment("fr"), StaticSegment("l-auteur")) view=Auteur />
+                    // La page de l'auteur est **retirée jusqu'à sa relecture**.
+                    //
+                    // Son texte est un premier jet écrit d'après une source
+                    // privée, et le document de reprise est formel : rien de
+                    // cette page ne doit être mis en ligne avant qu'il l'ait
+                    // relue. Le composant reste dans `pages/auteur.rs` — c'est
+                    // la route qui manque, pas le travail.
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("confidentialite"))
                         view=Confidentialite

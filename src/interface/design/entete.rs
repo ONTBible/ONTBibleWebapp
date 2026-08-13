@@ -58,7 +58,7 @@ pub fn Entete() -> impl IntoView {
                 <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>
-                <A href="/fr/l-auteur" attr:class=LIEN>"L'auteur"</A>
+                // « L'auteur » revient quand sa page aura été relue — voir `app.rs`.
             </nav>
         </header>
     }

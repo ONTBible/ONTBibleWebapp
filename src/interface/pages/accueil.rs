@@ -146,7 +146,7 @@ pub fn Accueil() -> impl IntoView {
                         "Il ne fait pas une traduction de plus. Il restitue — et il laisse "
                         "debout ce qui ne se traduit pas."
                     </p>
-                    <Bouton href="/fr/l-auteur">"D'où vient ce travail"</Bouton>
+                    // Le lien vers la page de l'auteur reviendra avec elle.
                 </div>
             </div>
         </Bloc>

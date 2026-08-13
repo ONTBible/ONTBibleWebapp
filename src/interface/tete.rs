@@ -19,14 +19,14 @@ pub const ORIGINE: &str = "https://ontbible.com";
 /// elles sont calculées depuis le pipeline au démarrage du serveur. Les écrire
 /// ici les figerait au premier livre traduit.
 ///
-/// La page d'erreur n'y figure pas : elle porte un `noindex`.
+/// La page d'erreur n'y figure pas : elle porte un `noindex`. Celle de l'auteur
+/// non plus : sa route est retirée jusqu'à sa relecture.
 pub const PAGES: &[&str] = &[
     "/fr",
     "/fr/lire",
     "/fr/lexique",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",
-    "/fr/l-auteur",
     "/fr/confidentialite",
     "/fr/conditions",
 ];

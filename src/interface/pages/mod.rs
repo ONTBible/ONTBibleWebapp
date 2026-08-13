@@ -9,6 +9,8 @@
 //! rendrait illisible à écrire comme à relire. `PageLegale` porte leur forme.
 
 mod accueil;
+// Compilé mais non routé : sa page attend une relecture. Voir `app.rs`.
+#[allow(dead_code)]
 mod auteur;
 mod conditions;
 mod fiche;
@@ -21,7 +23,6 @@ mod passage;
 mod pourquoi;
 
 pub use accueil::Accueil;
-pub use auteur::Auteur;
 pub use conditions::Conditions;
 pub use fiche::Fiche;
 pub use lexique::Lexique;
