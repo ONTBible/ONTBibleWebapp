@@ -20,6 +20,25 @@
 //
 // Elle est épinglée à `refs/heads/main`. Une branche de travail, une pull
 // request, un fork : rien de tout ça ne peut déployer.
+//
+// ## Deux formes du même sujet, et pourquoi les deux
+//
+// GitHub a commencé à émettre des **sujets immuables** — les identifiants
+// numériques de l'organisation et du dépôt insérés dans le sujet :
+//
+//     repo:ONTBible@316155655/ONTBibleWebapp@1331899075:ref:refs/heads/main
+//
+// Son API annonce pourtant `use_immutable_subject: false` ; c'est le jeton
+// livré au job qui fait foi, et il porte les identifiants. Une politique qui
+// n'attend que l'ancienne forme refuse tout, sans jamais dire pourquoi : STS
+// répond « Not authorized », sans nommer la condition qui a manqué.
+//
+// Les deux formes sont donc admises. Ce n'est pas un élargissement : ce sont
+// deux chaînes exactes, sans joker, désignant le même dépôt et la même branche.
+// La forme numérique est même la plus sûre des deux — un identifiant ne se
+// renomme pas, alors qu'un nom d'organisation libéré peut être repris.
+//
+// Le jour où GitHub n'émettra plus que l'immuable, l'autre ligne pourra tomber.
 
 // Le fournisseur existe déjà sur ce compte — AWS n'en accepte qu'un par
 // émetteur, et un autre projet l'a créé. On le référence.
@@ -31,6 +50,17 @@ variable "depot" {
   description = "Le dépôt GitHub autorisé à déployer, sous la forme proprietaire/nom."
   type        = string
   default     = "ONTBible/ONTBibleWebapp"
+}
+
+// La même paire, avec les identifiants numériques que GitHub insère désormais.
+// Ils se relèvent une fois pour toutes :
+//
+//     gh api orgs/ONTBible --jq .id
+//     gh api repos/ONTBible/ONTBibleWebapp --jq .id
+variable "depot_immuable" {
+  description = "Le même dépôt, sous la forme immuable proprietaire@id/nom@id."
+  type        = string
+  default     = "ONTBible@316155655/ONTBibleWebapp@1331899075"
 }
 
 resource "aws_iam_role" "ci" {
@@ -45,7 +75,11 @@ resource "aws_iam_role" "ci" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.depot}:ref:refs/heads/main"
+          // Une liste vaut un « ou » : le jeton doit porter l'une des deux.
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${var.depot_immuable}:ref:refs/heads/main",
+            "repo:${var.depot}:ref:refs/heads/main",
+          ]
         }
       }
     }]
