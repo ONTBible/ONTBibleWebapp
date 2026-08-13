@@ -104,6 +104,9 @@ pub fn Accueil() -> impl IntoView {
                 "qu'il dit littéralement."
             </p>
             <LegendeNiveaux />
+            <p class="mt-10">
+                <Bouton href="/fr/lexique">"Les intraduisibles"</Bouton>
+            </p>
         </Bloc>
 
         // ── L'état du chantier ────────────────────────────────────────────
@@ -118,6 +121,9 @@ pub fn Accueil() -> impl IntoView {
             <p class="mt-10 text-sm text-encre-douce">
                 "Une unité verrouillée a été relue et validée : elle fait référence. "
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
+            </p>
+            <p class="mt-8">
+                <Bouton href="/fr/lire" principal=true>"Entrer dans le corpus"</Bouton>
             </p>
         </Bloc>
 

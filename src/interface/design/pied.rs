@@ -2,9 +2,13 @@ use leptos::prelude::*;
 
 /// Le pied de page.
 ///
-/// Il porte quatre choses, et rien de plus : la marque, les deux pages que
-/// l'App Store réclamera, le code, et la mention de droit d'auteur. Pas de
-/// plan du site — il a cinq pages, un plan serait une redite.
+/// Il porte la marque, l'entrée du corpus, les deux pages que l'App Store
+/// réclamera, le code, et la mention de droit d'auteur.
+///
+/// L'entrée du corpus y est **depuis la liseuse** : tant que le site avait cinq
+/// pages, un plan en pied aurait été une redite de l'en-tête. Avec un corpus,
+/// quelqu'un qui arrive au bas d'une page longue doit pouvoir y entrer sans
+/// remonter.
 ///
 /// L'année vient de la compilation (`build.rs`) : le pied est rendu par le
 /// serveur **et** par le navigateur, donc il ne peut pas lire l'horloge, qui
@@ -18,6 +22,18 @@ pub fn PiedDePage() -> impl IntoView {
                     <span class="signe-montagne w-8 text-accent" aria-hidden="true"></span>
                     <span class="uppercase tracking-capitales">"La Bible ONT"</span>
                 </div>
+
+                // Le corpus d'abord, les mentions ensuite. Deux rangs et non
+                // un seul : « Lire » et « Confidentialité » ne sont pas de même
+                // nature, et les aligner ferait de la liseuse une mention
+                // légale de plus.
+                <nav
+                    aria-label="Le corpus"
+                    class="flex flex-wrap justify-center gap-x-6 gap-y-2 uppercase tracking-capitales text-encre"
+                >
+                    <a href="/fr/lire" class=LIEN>"Lire"</a>
+                    <a href="/fr/lexique" class=LIEN>"Lexique"</a>
+                </nav>
 
                 <nav
                     aria-label="Mentions et code source"

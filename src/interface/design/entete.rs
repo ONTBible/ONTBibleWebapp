@@ -22,6 +22,11 @@ use leptos_router::components::A;
 /// interlettrage de 0,16 em, les trois entrées passaient sur **trois lignes**
 /// sur un téléphone, ce qui poussait tout le contenu sous la ligne de
 /// flottaison.
+///
+/// La contrainte est donc à surveiller à chaque entrée qu'on ajoute : le seuil
+/// n'est pas le nombre d'entrées, c'est la hauteur qu'elles prennent sur un
+/// écran de téléphone. Elle se vérifie au simulateur (`scripts/sim.sh`), jamais
+/// à l'œil sur un grand écran.
 #[component]
 pub fn Entete() -> impl IntoView {
     view! {
@@ -44,6 +49,13 @@ pub fn Entete() -> impl IntoView {
                 aria-label="Navigation principale"
                 class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[0.8rem] uppercase tracking-[0.09em] sm:gap-x-6 sm:gap-y-2 sm:text-sm sm:tracking-capitales"
             >
+                // « Lire » et « Lexique » en tête, et ce n'est pas un détail
+                // d'ordre : ce sont le corpus, le reste est le discours sur le
+                // corpus. Tant qu'ils manquaient, la liseuse existait sans
+                // qu'aucun lien n'y mène — on y arrivait en tapant une adresse,
+                // ou par le renvoi du verset du jour. Ce n'était pas un chemin.
+                <A href="/fr/lire" attr:class=LIEN>"Lire"</A>
+                <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>
                 <A href="/fr/l-auteur" attr:class=LIEN>"L'auteur"</A>

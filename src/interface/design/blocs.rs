@@ -46,9 +46,17 @@ fn rendre_bloc(bloc: BlocDeTexte, en_avant: &[u32]) -> AnyView {
                 let designe = en_avant.contains(&verset.numero);
                 let ancre = format!("v{}", verset.numero);
                 view! {
+                    // Le retrait de tête est **exclusif**, pas cumulé :
+                    // `px-4` et `ps-5` sur le même élément se départageraient
+                    // par l'ordre de la feuille de style, pas par celui de
+                    // l'attribut. Ça marche aujourd'hui et ça marchera jusqu'au
+                    // jour où Tailwind rangera ses utilitaires autrement. C'est
+                    // ce piège qui a fait rendre toute la comparaison de
+                    // l'accueil à la mauvaise largeur — voir `bloc.rs`.
                     <div
                         id=ancre
-                        class="-mx-4 rounded-sm px-4 scroll-mt-24 transition-colors"
+                        class="-mx-4 rounded-sm pe-4 scroll-mt-24 transition-colors"
+                        class=("ps-4", !designe)
                         class=("border-s-2", designe)
                         class=("border-accent", designe)
                         class=("bg-surface/60", designe)

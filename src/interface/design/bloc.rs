@@ -46,8 +46,24 @@ pub fn Bloc(
             class=("voute-basse", !eclaire)
             class=("voute", eclaire)
         >
+            // Les deux largeurs sont **exclusives**, et il faut qu'elles le
+            // soient dans le balisage, pas seulement dans l'intention.
+            //
+            // Ce composant portait `max-w-mesure` en dur *plus* `max-w-large`
+            // en conditionnel. Les deux classes se retrouvaient sur l'élément,
+            // à spécificité égale — et à spécificité égale, c'est l'ordre de la
+            // **feuille de style** qui tranche, pas celui de l'attribut. Or
+            // Tailwind range `max-w-mesure` après `max-w-large`. Le prop
+            // `large` ne faisait donc rien, nulle part, depuis le premier jour :
+            // la comparaison de l'accueil — la pièce qui porte tout le site —
+            // se composait sur 38 rem au lieu de 52, et ses deux colonnes
+            // tombaient à 230 et 330 px, où le texte se césurait à chaque ligne.
+            //
+            // Un défaut de ce genre ne se voit pas : la page ne casse pas, elle
+            // est juste étroite, et rien ne dit qu'elle devrait l'être moins.
             <div
-                class="mx-auto w-full max-w-mesure px-6 py-24"
+                class="mx-auto w-full px-6 py-24"
+                class=("max-w-mesure", !large)
                 class=("max-w-large", large)
             >
                 {children()}

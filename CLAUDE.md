@@ -289,7 +289,38 @@ Les pages sans ouverture — les légales, l'erreur — posent leur en-tête
 elles-mêmes. Il n'y en a jamais deux : vérifié, une balise `<header>` par page.
 
 La navigation se resserre en dessous du seuil : à 16 px avec un interlettrage
-de 0,16 em, ses trois entrées passaient sur trois lignes sur un téléphone.
+de 0,16 em, ses trois entrées passaient sur trois lignes sur un téléphone. Elle
+en porte **cinq** depuis que la liseuse existe — « Lire » et « Lexique » en
+tête, le corpus avant le discours sur le corpus — et tient sur deux lignes.
+Le seuil n'est pas le nombre d'entrées mais la hauteur qu'elles prennent :
+à vérifier au simulateur à chaque ajout, jamais à l'œil sur un grand écran.
+
+### Deux classes Tailwind sur la même propriété : c'est la feuille qui tranche
+
+`Bloc` portait `max-w-mesure` en dur **plus** `max-w-large` en conditionnel. Les
+deux se retrouvaient sur l'élément, à spécificité égale — et à spécificité
+égale, c'est l'ordre de la **feuille de style** qui décide, jamais celui de
+l'attribut. Tailwind range `.max-w-mesure` après `.max-w-large`.
+
+Le prop `large` ne faisait donc **rien**, nulle part, depuis le premier jour. La
+comparaison de l'accueil — la pièce qui porte tout le site — se composait sur
+38 rem au lieu de 52 : deux colonnes de 185 et 343 px, où le texte se césurait à
+chaque ligne (« com-mença », « exis-tence »). Corrigé, elles font 263 et 489 px,
+et la césure disparaît sans qu'on ait touché à la typographie.
+
+Un défaut de ce genre est invisible : la page ne casse pas, elle est seulement
+étroite, et rien ne dit qu'elle devrait l'être moins. **La règle** : deux
+valeurs d'une même propriété doivent être exclusives dans le balisage, pas
+seulement dans l'intention.
+
+```rust
+class="mx-auto w-full px-6"           // rien qui touche à max-width
+class=("max-w-mesure", !large)
+class=("max-w-large", large)
+```
+
+Le même piège dormait dans `blocs.rs` (`px-4` et `ps-5`) : il marchait, mais par
+l'ordre de la feuille, donc jusqu'au jour où Tailwind rangerait autrement.
 
 ### Un écran par bloc
 
