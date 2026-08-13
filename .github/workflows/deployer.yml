@@ -202,8 +202,7 @@ jobs:
           cp target/release/hash.txt target/lambda/ontbible/hash.txt
           cd target/lambda/ontbible && zip -q paquet.zip bootstrap hash.txt
 
-      - name: AWS
-        # TEMPORAIRE — dire quel sujet le jeton porte réellement.
+      # TEMPORAIRE — dire quel sujet le jeton porte réellement.
         # On n'imprime que trois claims, jamais le jeton : il vaut une prise de
         # rôle pour quiconque le lit.
       - name: Le sujet du jeton
@@ -214,7 +213,7 @@ jobs:
           echo "$jeton" | cut -d. -f2 | tr '_-' '/+' \
             | base64 -d 2>/dev/null | jq '{sub, aud, repository, iss}'
 
-      - name: AWS (temporaire)
+      - name: AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::274399924176:role/ont-site-github
