@@ -848,6 +848,16 @@ exactement pour ça, et son nom le dit.
 encore référencé par la distribution échoue en boucle : il faut appliquer
 d'abord `-target=aws_cloudfront_distribution.site`, puis le reste.
 
+### Déployer casse le site local, et c'est normal
+
+`target/site/pkg` est **le même dossier** des deux côtés. Un déploiement y pose
+les fichiers de production ; le serveur local, lui, réclame ceux de
+développement — dont l'empreinte diffère. La page arrive alors nue, sans style
+ni WASM, et l'on croit avoir cassé quelque chose.
+
+Il suffit de relancer `cargo leptos watch`. Le script le rappelle en dernière
+ligne.
+
 ### Les caches ne se règlent pas au même endroit
 
 | chemin | politique | pourquoi |

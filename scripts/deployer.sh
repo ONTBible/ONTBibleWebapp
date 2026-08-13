@@ -130,3 +130,13 @@ aws --profile "$PROFIL" cloudfront create-invalidation \
   --query 'Invalidation.Id' --output text
 
 printf '\n\033[1m%s\033[0m\n' "$(terraform -chdir=infra output -raw adresse)"
+
+# Le déploiement a **écrasé** `target/site/pkg` avec les fichiers de
+# production, et c'est le même dossier que sert le serveur local. Celui-ci
+# demande alors un CSS de développement que le dossier ne contient plus : la
+# page arrive nue, sans style et sans WASM.
+#
+# Rien n'est cassé — il suffit de reconstruire. Mais ça ne se devine pas : on
+# croit avoir cassé le site alors qu'on vient seulement de le déployer.
+printf '\n\033[2m%s\033[0m\n' \
+  "Le dossier target/site porte maintenant la production. Pour retrouver le site local : cargo leptos watch"
