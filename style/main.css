@@ -475,3 +475,31 @@
 @utility chiffres-tableau {
   font-variant-numeric: lining-nums tabular-nums;
 }
+
+/* ── L'entrée du bouton de lecture ─────────────────────────────────────────
+ *
+ * Le bouton flottant n'existe qu'après l'hydratation : il ne peut pas être
+ * dans le HTML du serveur, puisque sans JavaScript il ne commanderait rien.
+ * Il apparaissait donc d'un coup, une seconde après la page — ce qui se lit
+ * comme un défaut de chargement plutôt que comme une arrivée.
+ *
+ * Il monte de quelques pixels en se posant. Le mouvement est court : ce n'est
+ * pas un effet, c'est ce qui dit que l'objet vient d'arriver.
+ */
+@keyframes se-poser {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.9);
+  }
+}
+
+@utility se-poser {
+  animation: se-poser 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  /* Qui a demandé moins d'animation reçoit l'objet, pas le mouvement.
+   * C'est un réglage d'accessibilité du système, pas une préférence de goût :
+   * le mouvement déclenche des vertiges chez une partie des lecteurs. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

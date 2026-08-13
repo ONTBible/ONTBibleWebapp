@@ -128,13 +128,21 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
         <Show when=move || utilisable.get()>
             // Le voile. Il ferme au clic, et il est `aria-hidden` : ce n'est pas
             // un objet, c'est la page qui recule.
-            <Show when=move || ouvert.get()>
-                <div
-                    aria-hidden="true"
-                    on:click=move |_| ouvert.set(false)
-                    class="fixed inset-0 z-40 bg-nuit/70 backdrop-blur-sm"
-                ></div>
-            </Show>
+            //
+            // Il reste **monté** en permanence, et c'est ce qui permet
+            // d'animer la fermeture autant que l'ouverture : un `<Show>`
+            // arrache l'élément du document, et rien ne peut plus transiter
+            // sur ce qui n'existe plus. Une feuille qui monte doucement et
+            // disparaît d'un coup se remarque davantage qu'une feuille qui
+            // n'était pas animée du tout.
+            <div
+                aria-hidden="true"
+                on:click=move |_| ouvert.set(false)
+                class="fixed inset-0 z-40 bg-nuit/70 backdrop-blur-sm transition-opacity duration-300 ease-out motion-reduce:transition-none"
+                class=("opacity-0", move || !ouvert.get())
+                class=("pointer-events-none", move || !ouvert.get())
+                class=("opacity-100", move || ouvert.get())
+            ></div>
 
             // `end-6` et non `right-6` : la propriété logique suivra le jour
             // d'une édition en écriture droite-à-gauche.
@@ -147,23 +155,50 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 on:click=move |_| ouvert.update(|o| *o = !*o)
                 aria-expanded=move || ouvert.get().to_string()
                 aria-label="Réglages de lecture"
-                class="halo fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-colors hover:border-or/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                // `active:scale-95` : le bouton s'enfonce sous le doigt. C'est
+                // le seul retour tactile qu'un navigateur laisse donner, et son
+                // absence fait douter que le clic ait été pris.
+                class="halo se-poser fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-[transform,border-color,box-shadow] duration-200 ease-out hover:border-or/60 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
                 style="bottom: calc(1.5rem + env(safe-area-inset-bottom))"
             >
                 <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>
             </button>
 
-            <Show when=move || ouvert.get()>
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Réglages de lecture"
-                    // Collée en bas sur un téléphone — c'est là qu'arrive le
-                    // pouce. Sur un grand écran elle se pose au-dessus du
-                    // bouton, à sa largeur, plutôt que de barrer l'écran.
-                    class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-carte border-t border-filet bg-surface-haute px-6 pt-6 sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:rounded-carte sm:border"
-                    style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))"
-                >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Réglages de lecture"
+                // `inert` quand elle est fermée — et rendu **absent** plutôt que
+                // « faux » : c'est un attribut booléen, donc `inert="false"`
+                // rendrait la feuille inerte tout autant. Sans lui, une feuille
+                // restée montée garderait ses interrupteurs dans l'ordre de
+                // tabulation et dans l'arbre d'accessibilité, invisibles mais
+                // atteignables.
+                inert=move || (!ouvert.get()).then_some("")
+                // Collée en bas sur un téléphone — c'est là qu'arrive le
+                // pouce, et c'est de là qu'elle monte. Sur un grand écran elle
+                // se pose au-dessus du bouton, à sa largeur, et croît depuis
+                // son coin : le mouvement dit d'où elle sort.
+                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-carte border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-carte sm:border motion-reduce:transition-none"
+                class=("translate-y-full", move || !ouvert.get())
+                class=("opacity-0", move || !ouvert.get())
+                class=("pointer-events-none", move || !ouvert.get())
+                class=("sm:translate-y-2", move || !ouvert.get())
+                class=("sm:scale-95", move || !ouvert.get())
+                class=("translate-y-0", move || ouvert.get())
+                class=("opacity-100", move || ouvert.get())
+                class=("sm:scale-100", move || ouvert.get())
+                style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+            >
+                    // La poignée : c'est elle qui fait lire l'objet comme une
+                    // feuille qu'on tire, et non comme une boîte qui a surgi.
+                    // Décorative, donc masquée à l'oreille — et seulement sur
+                    // téléphone, où la feuille vient du bas.
+                    <span
+                        aria-hidden="true"
+                        class="mx-auto mb-5 block h-1 w-10 rounded-full bg-filet sm:hidden"
+                    ></span>
+
                     <div class="mb-6 flex items-center justify-between gap-4">
                         <p class="m-0 text-sm uppercase tracking-capitales text-accent">"Lecture"</p>
                         <button
@@ -210,8 +245,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "Le corps de la traduction reste toujours visible. Les gloses "
                         "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
                     </p>
-                </div>
-            </Show>
+            </div>
         </Show>
     }
 }

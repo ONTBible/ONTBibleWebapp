@@ -708,6 +708,25 @@ Le retrait du bas ajoute `env(safe-area-inset-bottom)` : sans lui, le bouton se
 pose sur la barre d'accueil d'un iPhone, où le geste de retour prend le clic en
 premier.
 
+**La feuille reste montée, elle n'est pas démontée.** C'est ce qui permet
+d'animer la **fermeture** autant que l'ouverture : un `<Show>` arrache
+l'élément du document, et rien ne peut plus transiter sur ce qui n'existe plus.
+Une feuille qui monte doucement et disparaît d'un coup se remarque davantage
+qu'une feuille jamais animée.
+
+Le prix est qu'il faut la rendre inerte quand elle est fermée — `inert`, rendu
+**absent** et non « faux » : c'est un attribut booléen, donc `inert="false"`
+rendrait la feuille inerte tout autant. Sans lui, ses interrupteurs resteraient
+dans l'ordre de tabulation et dans l'arbre d'accessibilité, invisibles mais
+atteignables.
+
+Le bouton, lui, `se-poser` — il monte de quelques pixels en arrivant. Il ne peut
+pas être dans le HTML du serveur, donc il apparaît une seconde après la page, et
+sans ce mouvement ça se lit comme un défaut de chargement. Toutes les
+transitions portent `motion-reduce:transition-none` : le mouvement déclenche des
+vertiges chez une partie des lecteurs, et c'est un réglage système, pas un
+goût.
+
 **Le panneau n'est rendu que par le navigateur.** Sans JavaScript, des
 interrupteurs qui ne commutent rien seraient un mensonge — pire qu'une absence,
 parce qu'on les essaie. Le serveur rend toujours tout : c'est le rendu honnête
