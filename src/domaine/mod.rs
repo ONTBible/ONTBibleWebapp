@@ -11,6 +11,7 @@
 //! au-dessus, qui lui passent le résultat.
 
 pub mod corpus;
+pub mod lecture;
 pub mod selection;
 pub mod texte;
 pub mod verset_du_jour;

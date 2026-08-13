@@ -90,56 +90,7 @@ impl Verset {
     /// est consultable et attribué, le niveau 2 devient une affirmation sans
     /// recours pour qui ne connaît pas le projet.
     pub fn corps(&self) -> String {
-        fn parcourir(noeuds: &[Noeud], sortie: &mut String) {
-            for noeud in noeuds {
-                match noeud {
-                    Noeud::Texte(t) => sortie.push_str(t),
-                    Noeud::Intraduisible { mot, .. } => sortie.push_str(mot),
-                    Noeud::Emphase(enfants) | Noeud::Important(enfants) => {
-                        parcourir(enfants, sortie)
-                    }
-                    Noeud::Lien { enfants, .. } => parcourir(enfants, sortie),
-                    // Cité hors de la liseuse, un verset tient sur une ligne :
-                    // la coupe devient une espace, que la normalisation plus
-                    // bas absorbe.
-                    Noeud::Saut => sortie.push(' '),
-                    // Écartés : ce sont les niveaux 2 et 3.
-                    Noeud::Glose(_) | Noeud::Hebreu { .. } | Noeud::HebreuNu(_) => {}
-                }
-            }
-        }
-
-        let mut sortie = String::new();
-        parcourir(&self.noeuds, &mut sortie);
-
-        // Retirer les blancs que laisse la disparition des gloses.
-        let sortie = sortie.split_whitespace().collect::<Vec<_>>().join(" ");
-
-        // Et refermer la ponctuation restée orpheline.
-        //
-        // Une glose se pose **après** le mot qu'elle éclaire et **avant** la
-        // ponctuation qui suit : « …ni habitant *[glose]*, et la face… ». La
-        // retirer laisse l'espace qui la précédait, et la virgule se retrouve
-        // détachée — « habitant , et la face ». Le corpus compte 561 cas.
-        //
-        // Seulement `,` `.` `)` `]` `…` : ce sont les signes devant lesquels le
-        // français n'admet **jamais** d'espace. Le deux-points, le point-virgule,
-        // les points d'exclamation et d'interrogation, le guillemet fermant en
-        // veulent une — les 471 occurrences relevées devant eux sont correctes,
-        // et les supprimer casserait la composition au lieu de la réparer.
-        let mut propre = String::with_capacity(sortie.len());
-        let mut caracteres = sortie.chars().peekable();
-        while let Some(caractere) = caracteres.next() {
-            if caractere == ' '
-                && caracteres
-                    .peek()
-                    .is_some_and(|suivant| matches!(suivant, ',' | '.' | ')' | ']' | '…'))
-            {
-                continue;
-            }
-            propre.push(caractere);
-        }
-        propre
+        crate::domaine::lecture::corps(&self.noeuds)
     }
 }
 

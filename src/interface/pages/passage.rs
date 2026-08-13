@@ -3,7 +3,9 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 
 use crate::api::passage;
 use crate::domaine::selection;
-use crate::interface::design::{Blocs, MentionBrouillon, PageDeLecture};
+use crate::interface::design::{
+    fournir_preferences, Blocs, MentionBrouillon, PageDeLecture, ReglagesDeLecture,
+};
 use crate::interface::tete::Tete;
 
 /// `/fr/lire/{livre}/{unité}` — un passage.
@@ -49,6 +51,12 @@ pub fn Passage() -> impl IntoView {
 
     let contenu =
         Resource::new_blocking(cle, |(livre, unite)| async move { passage(livre, unite).await });
+
+    // Les réglages sont installés **ici** et non dans un composant plus bas :
+    // c'est la page qui décide qu'on lit du corpus, donc c'est elle qui ouvre
+    // la possibilité d'en éteindre les niveaux. Le lexique n'en a pas — une
+    // fiche est un commentaire, elle n'a pas d'appareil critique à retirer.
+    let preferences = fournir_preferences();
 
     view! {
         <Suspense fallback=|| ()>
@@ -104,6 +112,8 @@ pub fn Passage() -> impl IntoView {
                                 titre=chapitre.titre.clone()
                                 chapeau=chapeau
                             >
+                                <ReglagesDeLecture preferences />
+
                                 <Blocs blocs=chapitre.blocs en_avant=en_avant />
 
                                 // Les notes de bas d'unité : les décisions de

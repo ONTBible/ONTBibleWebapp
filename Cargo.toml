@@ -17,6 +17,11 @@ console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
+# Le stockage local, pour retenir les réglages de lecture. Leptas réexporte
+# `web_sys`, mais sans la fonctionnalité `Storage` : chaque interface du
+# navigateur est derrière son propre drapeau, et seules celles qu'on demande
+# entrent dans le binaire wasm.
+web-sys = { version = "0.3", features = ["Storage"], optional = true }
 # Lire un fichier et lire l'heure sont deux besoins du serveur seul. Les
 # embarquer dans le paquet WASM l'alourdirait sans que rien ne s'en serve —
 # la table des fuseaux horaires pèse à elle seule plus que tout le reste.
@@ -28,7 +33,14 @@ chrono = { version = "0.4", default-features = false, features = [
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 
 [features]
-hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
+hydrate = [
+  "leptos/hydrate",
+  "dep:console_error_panic_hook",
+  "dep:wasm-bindgen",
+  # Les réglages de lecture sont retenus en JSON dans le stockage local.
+  "dep:serde_json",
+  "dep:web-sys",
+]
 ssr = [
     "dep:axum",
     "dep:tokio",

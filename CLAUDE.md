@@ -656,6 +656,64 @@ une.
   hébreu partait se coller au bord de l'écran, détaché du titre qu'il double.
   Un `span` en ligne garde l'ordre des caractères sans l'alignement.
 
+### Les réglages de lecture
+
+Portés de l'app, `ReadingSettingsSheet` — mêmes bascules, mêmes libellés, mêmes
+notes. Un lecteur qui passe du téléphone au site doit retrouver les mêmes mots.
+
+| section | bascule | défaut |
+|---|---|---|
+| Disposition | Versets à la suite | non |
+| Niveaux du texte | Gloses | oui |
+| Niveaux du texte | Translittération et hébreu | oui |
+
+**Il n'y a pas de bascule pour les intraduisibles**, et l'app n'en a pas non
+plus. Son moteur de rendu dit pourquoi : « un terme important survit à
+l'extinction des niveaux : il appartient au corps, pas à l'appareil critique ».
+Un intraduisible n'est pas un commentaire ajouté au texte — c'est le texte,
+qu'on a refusé de traduire. L'éteindre laisserait un trou, et la promesse de
+l'or cesserait d'être tenue selon un réglage.
+
+Ce que le site **n'emprunte pas** : taille du corps, interligne, fonte, thème.
+L'app a raison de les offrir — elle est un lecteur, et un lecteur s'adapte à qui
+le tient. Le site est une **édition** : sa nuit d'aubergine, son corps à 21 px
+et sa Literata sont des décisions, pas des défauts qu'on propose de corriger.
+
+**On retire les nœuds, on ne les masque pas.** Un `display: none` aurait laissé
+« habitant , et la face » et des mots collés — le défaut déjà corrigé sur les
+aperçus. `domaine/lecture.rs` retire, **fond** les fragments devenus voisins,
+puis resserre les blancs. Les trois passes, dans cet ordre : sans la fusion, le
+resserrage ne verrait rien, chaque espace étant seul dans son fragment et
+parfaitement légitime.
+
+Deux bugs trouvés par les tests en l'écrivant, et le second était grave :
+
+- la fusion doit être **récursive** — un niveau 3 retiré dans une glose laisse
+  deux fragments voisins *dans* la glose ;
+- un fragment qui ne contient **qu'une espace** était vidé. C'est le fragment le
+  plus courant du corpus, celui qui sépare un intraduisible de sa
+  translittération : il collait les deux mots, et il le faisait même quand on
+  n'éteignait rien.
+
+`Verset::corps()` passe désormais par la même fonction : la règle
+typographique n'existe **qu'une fois**.
+
+**Le panneau n'est rendu que par le navigateur.** Sans JavaScript, des
+interrupteurs qui ne commutent rien seraient un mensonge — pire qu'une absence,
+parce qu'on les essaie. Le serveur rend toujours tout : c'est le rendu honnête
+pour qui n'a pas de JavaScript, et c'est ce qu'un moteur doit indexer. Les deux
+côtés partent des défauts, seul le second bouge — pas de désaccord
+d'hydratation.
+
+Retenus dans `localStorage` sous `ont.lecture`, en JSON, avec `#[serde(default)]`
+par champ : le jour où un quatrième réglage apparaît, les réglages déjà retenus
+n'en portent pas la clé, et sans cette tolérance ils seraient tous jetés d'un
+coup. L'app fait la même chose dans son `init(from:)`.
+
+`web-sys` entre en dépendance directe pour la fonctionnalité `Storage` : Leptos
+réexporte `web_sys` mais sans elle, chaque interface du navigateur étant derrière
+son propre drapeau.
+
 ### La bannière d'app
 
 `tete.rs::IDENTIFIANT_APP_STORE` vaut `None`, et tant qu'il vaut `None` la
