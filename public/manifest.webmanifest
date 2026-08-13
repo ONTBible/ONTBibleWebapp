@@ -1,0 +1,46 @@
+{
+  "name": "La Bible ONT",
+  "short_name": "Bible ONT",
+  "description": "Une restitution française du corpus hébreu et araméen antique, fondée sur l'ontologie hébraïque fonctionnelle.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/fr",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#18090D",
+  "theme_color": "#18090D",
+  "categories": ["books", "education", "lifestyle"],
+  "icons": [
+    {
+      "src": "/images/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icone-masquable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Lire",
+      "url": "/fr/lire",
+      "description": "Le sommaire du corpus"
+    },
+    {
+      "name": "Lexique",
+      "url": "/fr/lexique",
+      "description": "Les intraduisibles"
+    }
+  ]
+}
