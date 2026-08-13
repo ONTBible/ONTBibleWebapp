@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Bloc, Exergue, Filet, Portrait, Principe, TitreDePage};
+use crate::interface::design::{Bloc, Exergue, Hero, Portrait, TitreDeSection};
 use crate::interface::tete::Tete;
 
 /// « L'auteur ».
@@ -16,6 +16,11 @@ use crate::interface::tete::Tete;
 /// non une reprise de celle-ci. La décision de rendre la vision publique est
 /// la sienne, prise le 12 août 2026. Le texte, lui, attend sa relecture — rien
 /// d'ici ne doit être mis en ligne avant.
+///
+/// ## L'ouverture est le portrait
+///
+/// C'est la seule page du site dont l'ouverture porte une image. Ailleurs, un
+/// visage dans un lieu détournerait l'attention du lieu ; ici, c'est le sujet.
 #[component]
 pub fn Auteur() -> impl IntoView {
     view! {
@@ -26,47 +31,45 @@ pub fn Auteur() -> impl IntoView {
             chemin="/fr/l-auteur"
         />
 
-        <Bloc>
-            // Le titre de cette page est son **nom**, et « L'auteur » n'est
-            // que le rappel. La première version faisait l'inverse, puis
-            // répétait le nom deux lignes plus bas — un titre qui n'apprend
-            // rien, suivi d'une redite.
-            <TitreDePage rappel="L'auteur" titre="Gloire Bikouta" />
-            <div class="mx-auto w-64 sm:w-80">
+        <Hero sobre=true>
+            // Pas « L'auteur » : la navigation le dit déjà, et souligné juste
+            // au-dessus. Un rappel qui répète le lien d'où l'on vient se lit
+            // comme un doublon, pas comme un repère.
+            <p class="text-sm uppercase tracking-capitales text-accent">"Qui traduit"</p>
+            <div class="w-56">
                 <Portrait
                     source="/images/portrait-640.webp"
                     source_large="/images/portrait-1024.webp"
                     texte="Gloire Bikouta"
-                    largeur_rendue="(min-width: 40rem) 20rem, 16rem"
+                    largeur_rendue="14rem"
                 />
             </div>
+            <h1 class="text-balance">"Gloire Bikouta"</h1>
+            <p class="max-w-xl text-encre-douce text-balance">
+                "Ni chercheur, ni chaire, ni juif du Second Temple."
+            </p>
+        </Hero>
 
-            <Principe>
-                "Je ne suis pas un chercheur. Je n'ai pas de chaire. "
-                "Je ne suis pas un juif du Second Temple."
-            </Principe>
-        </Bloc>
-
-        // Le récit d'origine est posé sur l'aubergine : c'est le seul endroit
-        // du site où l'auteur parle de ce qu'il a reçu, et la page doit
-        // changer de registre à cet endroit-là.
+        // Le récit d'origine est le moment de la page : c'est le seul endroit
+        // du site où l'auteur parle de ce qu'il a reçu, et le registre doit
+        // changer là.
         <Bloc eclaire=true>
-            <h2 class="text-or">"Ce que j'ai reçu"</h2>
-            <p class="text-lg leading-relaxed text-pretty">
+            <TitreDeSection numero="I" titre="Ce que j'ai reçu" />
+            <p class="lettrine">
                 "J'ai reçu un manteau d'antiquité. Et l'ordre qui allait avec : "
                 "ramener ce qui a été perdu depuis d'anciens temps."
             </p>
             <Exergue>
                 "Les choses dont le monde n'a même pas conscience qu'il ne sait pas."
             </Exergue>
-            <p class="text-lg leading-relaxed text-pretty">
+            <p>
                 "J'ai cru que cela ne devait pas être écrit. Je l'ai gardé deux ans. "
                 "Puis je l'ai écrit. Et j'ai commencé à traduire."
             </p>
         </Bloc>
 
         <Bloc>
-            <h2>"Ce que je fais"</h2>
+            <TitreDeSection numero="II" titre="Ce que je fais" />
             <p>"Je ne fais pas une traduction de plus. Je restitue."</p>
             <p>
                 "Le texte hébreu disait quelque chose à ses lecteurs. Ce quelque chose est "
@@ -78,10 +81,10 @@ pub fn Auteur() -> impl IntoView {
                 "Elohim, ruach, nefesh, kavod, tsedaqah. "
                 "Un mot mal traduit vaut moins qu'un mot laissé en hébreu."
             </p>
+        </Bloc>
 
-            <Filet orne=true />
-
-            <h2>"Comment je travaille"</h2>
+        <Bloc eclaire=true>
+            <TitreDeSection numero="III" titre="Comment je travaille" />
             <p>"Je travaille avec Claude. Je ne le cache pas, et je l'assume."</p>
             <p>
                 "Je dirige. Je fixe les orientations, je tranche les termes fondateurs, je "
@@ -92,8 +95,10 @@ pub fn Auteur() -> impl IntoView {
                 "Chaque unité verrouillée est passée par moi. Une unité qui ne l'est pas "
                 "reste un brouillon, et le site le dit."
             </p>
+        </Bloc>
 
-            <h2>"Mon critère"</h2>
+        <Bloc>
+            <TitreDeSection numero="IV" titre="Mon critère" />
             <p>
                 "L'ontologie hébraïque antique fonctionnelle. "
                 "Pas le canon rabbinique. Pas la tradition ecclésiastique. Pas l'académie."
