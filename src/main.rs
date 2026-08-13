@@ -160,6 +160,22 @@ async fn main() {
             move || shell(leptos_options.clone())
         })
         .fallback(leptos_axum::file_and_error_handler(shell))
+        // Le HTML n'est pas gardé, et il le **dit**.
+        //
+        // En pratique il ne l'était déjà pas : CloudFront ne le retient pas, et
+        // sans `last-modified` un navigateur n'a aucune base pour le retenir non
+        // plus. Mais ce silence tenait par accident. Or le déploiement efface
+        // les anciens fichiers empreintés — un navigateur qui garderait le HTML
+        // réclamerait un WASM supprimé, et la page arriverait morte.
+        //
+        // `no-cache` et non `no-store` : le premier autorise le retour arrière
+        // et la mise en cache mémoire, il exige seulement de revalider avant de
+        // réafficher. Le second interdirait jusqu'au bouton « précédent ».
+        //
+        // Posé ici et non dans CloudFront : c'est l'origine qui sait que la page
+        // porte le verset du jour, lequel change à minuit. Une politique de CDN
+        // l'imposerait aussi à `/pkg/`, qui veut exactement l'inverse.
+        .layer(axum::middleware::map_response(sans_cache))
         .with_state(leptos_options);
 
     // ── Le même binaire des deux côtés ────────────────────────────────────
@@ -190,3 +206,31 @@ async fn main() {
 /// l'entrée côté client est `hydrate()`, dans `lib.rs`.
 #[cfg(not(feature = "ssr"))]
 pub fn main() {}
+
+/// Déclare le HTML non gardé, et ne touche à rien d'autre.
+///
+/// Le filtre porte sur le type de contenu plutôt que sur le chemin : c'est ce
+/// que la réponse **est** qui décide, pas l'adresse qui l'a produite. Une route
+/// qui rendrait du JSON ou du XML — l'association, le plan de site — garde donc
+/// sa propre politique, et une page ajoutée demain hérite de celle-ci sans
+/// qu'on ait à y penser.
+///
+/// Une réponse qui porte déjà un `cache-control` n'est pas touchée.
+#[cfg(feature = "ssr")]
+async fn sans_cache(mut reponse: axum::response::Response) -> axum::response::Response {
+    use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
+
+    let html = reponse
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|valeur| valeur.to_str().ok())
+        .is_some_and(|valeur| valeur.starts_with("text/html"));
+
+    if html && !reponse.headers().contains_key(CACHE_CONTROL) {
+        reponse.headers_mut().insert(
+            CACHE_CONTROL,
+            axum::http::HeaderValue::from_static("no-cache"),
+        );
+    }
+    reponse
+}

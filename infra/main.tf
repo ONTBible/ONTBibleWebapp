@@ -248,6 +248,64 @@ resource "aws_cloudfront_origin_access_control" "seau" {
 //
 // `Origin-Cache-Control` reste honoré : le jour où une page voudra être cachée,
 // elle le dira dans son en-tête et CloudFront suivra, sans qu'on touche ici.
+// ── Les en-têtes de sécurité ────────────────────────────────────────────────
+//
+// Servis par CloudFront et non par la Lambda : ils doivent valoir pour **tout**
+// ce qui sort du domaine — le HTML calculé comme les fichiers du seau. Posés
+// dans le serveur, ils manqueraient sur `/images/` et `/pkg/`.
+resource "aws_cloudfront_response_headers_policy" "securite" {
+  name = "${local.nom}-securite"
+
+  security_headers_config {
+    // HSTS ferme la fenêtre du premier contact. `redirect-to-https` renvoie
+    // bien un visiteur arrivé en clair — mais ce renvoi lui-même voyage en
+    // clair, et c'est là qu'un intermédiaire se place. Une fois l'en-tête reçu,
+    // le navigateur n'essaiera plus jamais le http, même si on le lui demande.
+    //
+    // Deux ans, avec les sous-domaines. Pas de `preload` : l'inscription à la
+    // liste des navigateurs est **irréversible en pratique**, et elle
+    // engagerait `api.ontbible.com` avec le reste.
+    strict_transport_security {
+      access_control_max_age_sec = 63072000
+      include_subdomains         = true
+      preload                    = false
+      override                   = true
+    }
+
+    // Interdit au navigateur de deviner un type qu'on lui a donné. Sans lui,
+    // un fichier servi avec le mauvais type peut être exécuté comme du script.
+    content_type_options {
+      override = true
+    }
+
+    // L'origine seule part vers un site tiers, jamais le chemin. Un lien
+    // partagé porte le passage dans son adresse — `/fr/lire/bereshit/…?v=1-3`
+    // dit ce que quelqu'un lisait, et ça ne regarde pas le site d'en face.
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+
+    // Personne ne met ce site dans un cadre. C'est la défense contre le
+    // détournement de clic, et `frame-ancestors` la dit mieux que l'ancien
+    // `X-Frame-Options` : lui accepte une liste d'origines.
+    content_security_policy {
+      content_security_policy = "frame-ancestors 'none'"
+      override                = true
+    }
+  }
+
+  custom_headers_config {
+    // Aucune de ces interfaces n'est employée. Les refuser toutes vaut mieux
+    // que de les laisser disponibles à un script qu'on n'aurait pas prévu.
+    items {
+      header   = "Permissions-Policy"
+      value    = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+      override = true
+    }
+  }
+}
+
 resource "aws_cloudfront_cache_policy" "html" {
   name        = "${local.nom}-html"
   default_ttl = 0
@@ -359,11 +417,12 @@ resource "aws_cloudfront_distribution" "site" {
   // `/sitemap.xml` et `/.well-known/apple-app-site-association` sont **calculés**,
   // et une règle qui les enverrait au seau les ferait disparaître en silence.
   default_cache_behavior {
-    target_origin_id       = "lambda"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = aws_cloudfront_cache_policy.html.id
+    target_origin_id           = "lambda"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = aws_cloudfront_cache_policy.html.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.securite.id
     // Sans politique, CloudFront n'enverrait aucun en-tête à l'origine, et les
     // fonctions serveur de Leptos — qui répondent en POST — perdraient leur
     // type de contenu.
@@ -397,49 +456,53 @@ resource "aws_cloudfront_distribution" "site" {
   // l'ensemble du corpus pour un an. Cinq minutes, c'est le délai entre une
   // correction publiée et le moment où un lecteur peut la recevoir.
   ordered_cache_behavior {
-    path_pattern           = "/corpus/manifeste.json"
-    target_origin_id       = "seau"
-    viewer_protocol_policy = "https-only"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = aws_cloudfront_cache_policy.manifeste.id
-    compress               = true
+    path_pattern               = "/corpus/manifeste.json"
+    target_origin_id           = "seau"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = aws_cloudfront_cache_policy.manifeste.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.securite.id
+    compress                   = true
   }
 
   // Le corpus lui-même. Chaque fichier porte l'empreinte de son contenu, donc
   // une adresse ne désigne jamais qu'une version : un an, sans revalidation.
   ordered_cache_behavior {
-    path_pattern           = "/corpus/*"
-    target_origin_id       = "seau"
-    viewer_protocol_policy = "https-only"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = aws_cloudfront_cache_policy.figes.id
-    compress               = true
+    path_pattern               = "/corpus/*"
+    target_origin_id           = "seau"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = aws_cloudfront_cache_policy.figes.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.securite.id
+    compress                   = true
   }
 
   // Ce qui porte son empreinte : un an, sans revalidation.
   ordered_cache_behavior {
-    path_pattern           = "/pkg/*"
-    target_origin_id       = "seau"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = aws_cloudfront_cache_policy.figes.id
-    compress               = true
+    path_pattern               = "/pkg/*"
+    target_origin_id           = "seau"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = aws_cloudfront_cache_policy.figes.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.securite.id
+    compress                   = true
   }
 
   // Ce qui garde un nom fixe : une journée, puis on revalide.
   dynamic "ordered_cache_behavior" {
     for_each = ["/images/*", "/fontes/*", "/robots.txt"]
     content {
-      path_pattern           = ordered_cache_behavior.value
-      target_origin_id       = "seau"
-      viewer_protocol_policy = "redirect-to-https"
-      allowed_methods        = ["GET", "HEAD"]
-      cached_methods         = ["GET", "HEAD"]
-      cache_policy_id        = aws_cloudfront_cache_policy.statiques.id
-      compress               = true
+      path_pattern               = ordered_cache_behavior.value
+      target_origin_id           = "seau"
+      viewer_protocol_policy     = "redirect-to-https"
+      allowed_methods            = ["GET", "HEAD"]
+      cached_methods             = ["GET", "HEAD"]
+      cache_policy_id            = aws_cloudfront_cache_policy.statiques.id
+      response_headers_policy_id = aws_cloudfront_response_headers_policy.securite.id
+      compress                   = true
     }
   }
 
