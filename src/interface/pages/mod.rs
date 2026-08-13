@@ -18,12 +18,14 @@ mod fiche;
 mod lexique;
 mod lire;
 mod livre;
+pub mod application;
 pub mod confidentialite;
 mod negations;
 mod passage;
 mod pourquoi;
 
 pub use accueil::Accueil;
+pub use application::Application;
 pub use assistance::Assistance;
 pub use conditions::Conditions;
 pub use fiche::Fiche;

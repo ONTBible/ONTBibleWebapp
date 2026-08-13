@@ -6,7 +6,7 @@ use leptos_router::{
 };
 
 use crate::interface::design::{Bouton, Hero, PiedDePage};
-use crate::interface::pages::{
+use crate::interface::pages::{Application, 
     Accueil, Assistance, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations,
     Passage, Pourquoi,
 };
@@ -117,6 +117,7 @@ pub fn App() -> impl IntoView {
                     // microsecondes, puisqu'il est en mémoire.
                     <Route path=StaticSegment("fr") view=Accueil ssr=SsrMode::Async />
                     <Route path=(StaticSegment("fr"), StaticSegment("le-pourquoi")) view=Pourquoi />
+                    <Route path=(StaticSegment("fr"), StaticSegment("l-app")) view=Application />
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("ce-que-l-ont-n-est-pas"))
                         view=Negations
