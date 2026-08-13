@@ -290,13 +290,22 @@ la hauteur. Un essai l'avait fixée à 70 % : les pages intérieures montraient
 alors leur ouverture *et* le début du bloc suivant, ce qui détruit exactement
 l'unité recherchée.
 
-Et le contenu y est **ancré en haut**, à distance fixe, non centré. Le centrage
-est cohérent avec lui-même et incohérent d'une page à l'autre : sur la page de
-l'auteur, dont l'ouverture porte un portrait, le contenu plus haut commençait
-cent soixante pixels au-dessus des autres, collé sous la navigation. Le rappel
-et le titre tombent désormais à la même hauteur partout — vérifié au pixel,
-y = 328 sur les quatre pages. Le vide qui reste en bas n'est pas perdu : c'est
-là que l'horizon se lit.
+Et le contenu y est **centré dans la hauteur restante**, sur les quatre pages.
+Un premier écran se lit comme une affiche : le vide au-dessus vaut celui d'en
+dessous, et un contenu posé en haut laisse en bas un trou qu'aucun regard ne
+comble.
+
+**Décidé le 13 août 2026**, et c'est un revirement — l'ancrage en haut, à
+distance fixe, était la règle d'avant. Elle avait sa raison : le rappel et le
+titre tombaient exactement à la même hauteur d'une page à l'autre, vérifié au
+pixel à y = 328, là où le centrage fait commencer plus haut une ouverture dont
+le contenu est plus haut — la page de l'auteur, qui porte un portrait, en
+gagnait cent soixante.
+
+Le prix est connu et assumé. Ce qui le rend acceptable : toutes les ouvertures
+remplissent l'écran, donc toutes se centrent de la même façon, et l'unité se
+lit dans la règle plutôt que dans une coordonnée. Ne pas revenir à l'ancrage
+sans qu'il le demande.
 
 
 Ce qui frappe en arrivant sur un site bien fait, c'est un premier écran qui est

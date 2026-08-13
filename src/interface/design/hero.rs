@@ -86,7 +86,19 @@ pub fn Hero(
 
             <Entete />
 
-            <div class="flex flex-col items-center gap-4 px-6 pt-8 sm:gap-8 sm:pt-20">
+            // Le contenu occupe la hauteur restante et s'y centre.
+            //
+            // Un premier écran se lit comme une affiche : le vide au-dessus
+            // vaut celui d'en dessous, et un contenu posé en haut laisse un
+            // trou en bas qu'aucun regard ne comble.
+            //
+            // L'ancrage en haut, à distance fixe, était la règle précédente. Il
+            // faisait tomber le rappel et le titre exactement à la même hauteur
+            // d'une page à l'autre — ce que le centrage ne garantit plus, une
+            // ouverture au contenu plus haut commençant plus haut. C'est le
+            // prix, et il est assumé : toutes les ouvertures remplissent
+            // l'écran, donc toutes se centrent de la même façon.
+            <div class="flex flex-1 flex-col items-center justify-center gap-4 px-6 sm:gap-8">
                 {children()}
             </div>
         </section>
