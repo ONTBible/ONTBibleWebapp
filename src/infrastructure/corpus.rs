@@ -173,8 +173,11 @@ struct ChapitreDto {
 struct LivreDto {
     id: String,
     title: String,
-    french: String,
-    hebrew: String,
+    // Mêmes `null` que sur l'entrée de sommaire, et la correction y avait été
+    // faite sans l'être ici. Un livre sans nom hébreu est légitime — le vault
+    // en porte — et le pipeline écrit `null`, pas l'absence.
+    french: Option<String>,
+    hebrew: Option<String>,
     chapters: Vec<ChapitreDto>,
     intro: Option<ChapitreDto>,
 }
@@ -339,8 +342,8 @@ fn livre(dto: LivreDto) -> Livre {
     Livre {
         id: dto.id,
         titre: dto.title,
-        francais: dto.french,
-        hebreu: dto.hebrew,
+        francais: dto.french.unwrap_or_default(),
+        hebreu: dto.hebrew.unwrap_or_default(),
         intro: dto.intro.map(chapitre),
         chapitres: dto.chapters.into_iter().map(chapitre).collect(),
     }
