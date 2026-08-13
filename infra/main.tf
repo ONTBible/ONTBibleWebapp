@@ -309,6 +309,27 @@ resource "aws_cloudfront_cache_policy" "statiques" {
   }
 }
 
+// Le manifeste du corpus : court, mais pas nul.
+//
+// Nul obligerait chaque lancement d'app à réveiller S3. Cinq minutes suffisent
+// — une correction met de toute façon plus longtemps à traverser le pipeline et
+// la CI — et cent mille lancements dans la même fenêtre ne coûtent qu'une seule
+// lecture d'objet.
+resource "aws_cloudfront_cache_policy" "manifeste" {
+  name        = "${local.nom}-manifeste"
+  default_ttl = 300
+  min_ttl     = 0
+  max_ttl     = 300
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_brotli = true
+    enable_accept_encoding_gzip   = true
+    cookies_config { cookie_behavior = "none" }
+    headers_config { header_behavior = "none" }
+    query_strings_config { query_string_behavior = "none" }
+  }
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -364,6 +385,37 @@ resource "aws_cloudfront_distribution" "site" {
         function_arn = aws_cloudfront_function.canonique[0].arn
       }
     }
+  }
+
+  // Le manifeste du corpus — le point d'entrée de l'app.
+  //
+  // **Avant** `/corpus/*`, et l'ordre est ce qui compte : CloudFront retient la
+  // première règle qui correspond, et `/corpus/*` engloberait celle-ci.
+  //
+  // Cinq minutes de cache. C'est le seul fichier du corpus qui porte un nom
+  // fixe, donc le seul qui puisse mentir — un cache d'un an y figerait
+  // l'ensemble du corpus pour un an. Cinq minutes, c'est le délai entre une
+  // correction publiée et le moment où un lecteur peut la recevoir.
+  ordered_cache_behavior {
+    path_pattern           = "/corpus/manifeste.json"
+    target_origin_id       = "seau"
+    viewer_protocol_policy = "https-only"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = aws_cloudfront_cache_policy.manifeste.id
+    compress               = true
+  }
+
+  // Le corpus lui-même. Chaque fichier porte l'empreinte de son contenu, donc
+  // une adresse ne désigne jamais qu'une version : un an, sans revalidation.
+  ordered_cache_behavior {
+    path_pattern           = "/corpus/*"
+    target_origin_id       = "seau"
+    viewer_protocol_policy = "https-only"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = aws_cloudfront_cache_policy.figes.id
+    compress               = true
   }
 
   // Ce qui porte son empreinte : un an, sans revalidation.

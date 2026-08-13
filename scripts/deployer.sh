@@ -101,6 +101,28 @@ if [ -n "$SEAU" ]; then
       --content-type "application/wasm" \
       --cache-control "public, max-age=31536000, immutable" --no-progress
   done
+
+  # ── Le corpus pour l'app ────────────────────────────────────────────────────
+  #
+  # Publié à côté du site, sur le même seau et derrière le même CloudFront.
+  # C'est ce qui permettra à une correction de verset d'atteindre les lecteurs
+  # sans passer par un build, un envoi à Apple et une revue.
+  #
+  # Les fichiers portent leur empreinte : un an de cache, sans revalidation.
+  # Le **manifeste** porte un nom fixe et cinq minutes — c'est le seul que l'app
+  # interroge, et le seul qui puisse mentir.
+  etape "Le corpus pour l'app"
+  ./scripts/corpus-publie.py
+
+  aws --profile "$PROFIL" s3 sync target/corpus "s3://$SEAU/corpus" \
+    --delete --exclude "manifeste.json" \
+    --cache-control "public, max-age=31536000, immutable" --no-progress
+
+  # Le manifeste **en dernier**, et c'est tout le sujet : il nomme des fichiers
+  # qui doivent déjà être là. Publié avant eux, il enverrait les apps chercher
+  # des adresses qui n'existent pas encore.
+  aws --profile "$PROFIL" s3 cp target/corpus/manifeste.json "s3://$SEAU/corpus/manifeste.json" \
+    --cache-control "public, max-age=300" --no-progress
 else
   etape "Les fichiers vers S3 — sauté (le seau n'existe pas encore)"
 fi

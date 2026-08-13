@@ -181,6 +181,18 @@ jobs:
               --cache-control "public, max-age=31536000, immutable" --no-progress
           done
 
+      # Le corpus que l'app ira chercher. Les fichiers d'abord, le manifeste
+      # ensuite : il nomme des adresses qui doivent déjà répondre, sinon les
+      # apps qui le lisent dans l'intervalle chercheront du vide.
+      - name: Le corpus pour l'app
+        working-directory: ONTBibleWebapp
+        run: |
+          ./scripts/corpus-publie.py
+          aws s3 sync target/corpus "s3://$SEAU/corpus" --delete --exclude "manifeste.json" \
+            --cache-control "public, max-age=31536000, immutable" --no-progress
+          aws s3 cp target/corpus/manifeste.json "s3://$SEAU/corpus/manifeste.json" \
+            --cache-control "public, max-age=300" --no-progress
+
       - name: Le code
         working-directory: ONTBibleWebapp
         run: |
