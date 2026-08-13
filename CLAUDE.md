@@ -433,10 +433,16 @@ synchroniser les deux, et l'un des deux finirait périmé.
 | `montagne-512.png` | repli de favicon, pour les navigateurs sans SVG |
 | `portrait-640.webp`, `portrait-1024.webp` | Gloire Bikouta, détouré depuis le brut |
 | `apercu.png` | l'aperçu des messageries, 1200 × 630 — composé, voir ci-dessous |
+| `wordmark-avec-r.svg`, `combination-mark-avec-r.svg` | les originaux **avec le ®**, gardés pour le jour de l'enregistrement |
 | `touch-icon.png` | l'icône d'écran d'accueil iOS, opaque |
 
-Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, qui est
-idempotent : à relancer après chaque nouvel export, sans réfléchir. Il pose la
+Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, **puis
+par `scripts/retirer-le-r.py`** — tous deux idempotents, à relancer après chaque
+nouvel export, sans réfléchir. Le second retire le ® tant que la marque n'est
+pas enregistrée (§9), et il le trouve par la géométrie plutôt que par un numéro
+de sous-tracé, qui changerait au prochain export : c'est le plus petit groupe de
+contours, pris depuis la droite, qui ne chevauche plus rien — les filets mis à
+part, puisque celui du combination mark traverse toute la largeur. Il pose la
 `viewBox` que l'export omet — sans elle un vecteur ne se met pas à l'échelle,
 ce qui lui retire sa raison d'être — retire la taille en pixels pour que la CSS
 décide, et remplace la couleur en dur par `currentColor`, plus l'or de la
