@@ -56,6 +56,9 @@ env:
   FONCTION: ont-site
   SEAU: ont-site-274399924176
   DISTRIBUTION: E20C0E1AFI73CK
+  # La même version qu'en local, pour que le site construit ici soit celui
+  # qu'on a vu tourner.
+  VERSION_LEPTOS: v0.3.7
 
 jobs:
   deployer:
@@ -115,7 +118,37 @@ jobs:
       - name: Les outils
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-leptos,cargo-lambda
+          tool: cargo-lambda
+
+      - name: cargo-leptos, en glibc et pas en musl
+        # `install-action` sert par défaut la version **musl** d'un outil : elle
+        # est liée statiquement, donc portable partout. Pour cargo-leptos, c'est
+        # précisément ce qu'il ne faut pas.
+        #
+        # Il choisit le binaire Tailwind à télécharger par
+        # `cfg!(target_env = "musl")` — l'environnement de **sa propre**
+        # compilation, pas celui de la machine. Un cargo-leptos musl en conclut
+        # que le runner l'est aussi, va chercher `tailwindcss-linux-x64-musl`,
+        # et ce binaire-là réclame le chargeur `/lib/ld-musl-x86_64.so.1`, qui
+        # n'existe pas sur Ubuntu. Linux répond à un exec dont le chargeur
+        # manque par un ENOENT — d'où le « No such file or directory (os
+        # error 2) » qui ne nommait aucun fichier, et qui restait invisible
+        # tant qu'on ne traçait pas la commande lancée.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          gh release download "$VERSION_LEPTOS" \
+            --repo leptos-rs/cargo-leptos \
+            --pattern 'cargo-leptos-x86_64-unknown-linux-gnu.tar.gz' \
+            --output - | tar xz -C "$tmp"
+          # On cherche le binaire au lieu de supposer la forme de l'archive :
+          # cargo-dist a changé de disposition entre deux versions, et un
+          # chemin écrit en dur casserait à la prochaine montée de version.
+          install -m 755 "$(find "$tmp" -type f -name cargo-leptos | head -1)" \
+            "$HOME/.cargo/bin/cargo-leptos"
+          cargo leptos --version
 
       - name: Les tests
         working-directory: ONTBibleWebapp
@@ -139,7 +172,7 @@ jobs:
         # « No such file or directory » sans nom de fichier.
         run: |
           mkdir -p target/release
-          RUST_BACKTRACE=1 cargo leptos build --release --frontend-only -vv
+          cargo leptos build --release --frontend-only
 
       - name: Le serveur
         working-directory: ONTBibleWebapp
