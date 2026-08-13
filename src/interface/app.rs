@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::{provide_meta_context, MetaTags, Stylesheet};
+use leptos_meta::{provide_meta_context, HashedStylesheet, MetaTags};
 use leptos_router::{
     components::{Route, Router, Routes},
     ParamSegment, SsrMode, StaticSegment,
@@ -50,6 +50,13 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                     crossorigin="anonymous"
                 />
 
+                // La feuille de style est déclarée **ici**, dans l'enveloppe, et
+                // non dans `App` : `HashedStylesheet` a besoin des options, qui
+                // n'existent que de ce côté. Elle y écrit le nom avec son
+                // empreinte — `ontbible.<empreinte>.css` — au lieu d'un nom fixe
+                // qu'un navigateur garderait en cache par-dessus une refonte.
+                <HashedStylesheet options=options.clone() id="leptos" />
+
                 <FicheStructuree />
 
                 <AutoReload options=options.clone() />
@@ -87,8 +94,6 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
-        <Stylesheet id="leptos" href="/pkg/ontbible.css" />
-
         <Router>
             // Le segment de langue est délibéré (§4) : il épargne une migration
             // le jour d'une édition anglaise, et il ne coûte que trois

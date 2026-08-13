@@ -1,3 +1,4 @@
+use leptos::ev;
 use leptos::prelude::*;
 
 use crate::domaine::lecture::Preferences;
@@ -6,6 +7,7 @@ use crate::domaine::lecture::Preferences;
 ///
 /// Un espace de noms préfixé : le site en aura d'autres, et une clé nue comme
 /// `lecture` finirait par entrer en conflit avec quelque chose.
+#[cfg(feature = "hydrate")]
 const CLE: &str = "ont.lecture";
 
 /// Installe les réglages de lecture pour la page.
@@ -74,7 +76,17 @@ fn ecrire(preferences: Preferences) {
     }
 }
 
-/// Le panneau de lecture — éteindre les niveaux du texte.
+/// Les réglages de lecture — un bouton qui suit, et une feuille qui monte.
+///
+/// ## Pourquoi il flotte
+///
+/// Une première version posait le panneau **en haut du chapitre**. Ça ne tenait
+/// pas : un chapitre fait jusqu'à quarante-six versets, et l'on décide
+/// d'éteindre les gloses au milieu de la lecture, pas avant de l'avoir
+/// commencée. Un réglage qu'il faut remonter chercher n'en est plus un.
+///
+/// Le bouton reste donc à portée, en bas, et la feuille monte par-dessus le
+/// texte — comme la feuille « aA » de l'app, et pour la même raison.
 ///
 /// ## Il porte les réglages de l'app, et rien d'autre
 ///
@@ -90,29 +102,79 @@ fn ecrire(preferences: Preferences) {
 ///
 /// ## Il n'apparaît qu'une fois qu'il peut servir
 ///
-/// Le panneau est rendu par le navigateur seulement. Sans JavaScript, des
-/// interrupteurs qui ne commutent rien seraient un mensonge — pire qu'une
-/// absence, parce qu'on les essaie. La page reste alors ce qu'elle est : le
-/// texte entier, tous niveaux montrés.
+/// Rendu par le navigateur seulement. Sans JavaScript, des interrupteurs qui ne
+/// commutent rien seraient un mensonge — pire qu'une absence, parce qu'on les
+/// essaie. La page reste alors ce qu'elle est : le texte entier, tous niveaux
+/// montrés.
 #[component]
 pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
     // Faux au rendu du serveur, vrai dès que le navigateur a repris la main.
-    // Les deux côtés partent donc du même balisage, et le panneau se pose après
+    // Les deux côtés partent donc du même balisage, et le bouton se pose après
     // — sans désaccord d'hydratation.
     let utilisable = RwSignal::new(false);
     Effect::new(move |_| utilisable.set(true));
 
+    let ouvert = RwSignal::new(false);
+
+    // Échap referme. C'est le geste attendu de tout ce qui se pose par-dessus
+    // une page, et l'omettre enferme qui navigue au clavier.
+    let _ = window_event_listener(ev::keydown, move |evenement| {
+        if evenement.key() == "Escape" {
+            ouvert.set(false);
+        }
+    });
+
     view! {
         <Show when=move || utilisable.get()>
-            <details class="mb-12 rounded-carte border border-filet bg-surface/40">
-                <summary class="flex cursor-pointer list-none items-center gap-3 px-6 py-4 text-sm uppercase tracking-capitales text-encre-douce marker:hidden hover:text-encre">
-                    <span aria-hidden="true" class="font-titre text-[1.15em] leading-none">
-                        "aA"
-                    </span>
-                    "Lecture"
-                </summary>
+            // Le voile. Il ferme au clic, et il est `aria-hidden` : ce n'est pas
+            // un objet, c'est la page qui recule.
+            <Show when=move || ouvert.get()>
+                <div
+                    aria-hidden="true"
+                    on:click=move |_| ouvert.set(false)
+                    class="fixed inset-0 z-40 bg-nuit/70 backdrop-blur-sm"
+                ></div>
+            </Show>
 
-                <div class="border-t border-filet/60 px-6 py-6">
+            // `end-6` et non `right-6` : la propriété logique suivra le jour
+            // d'une édition en écriture droite-à-gauche.
+            //
+            // Le retrait du bas ajoute la zone sûre de l'appareil — sans elle,
+            // le bouton se pose sur la barre d'accueil d'un iPhone, où le geste
+            // de retour à l'écran d'accueil le prend en premier.
+            <button
+                type="button"
+                on:click=move |_| ouvert.update(|o| *o = !*o)
+                aria-expanded=move || ouvert.get().to_string()
+                aria-label="Réglages de lecture"
+                class="halo fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-colors hover:border-or/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                style="bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+            >
+                <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>
+            </button>
+
+            <Show when=move || ouvert.get()>
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Réglages de lecture"
+                    // Collée en bas sur un téléphone — c'est là qu'arrive le
+                    // pouce. Sur un grand écran elle se pose au-dessus du
+                    // bouton, à sa largeur, plutôt que de barrer l'écran.
+                    class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-carte border-t border-filet bg-surface-haute px-6 pt-6 sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:rounded-carte sm:border"
+                    style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+                >
+                    <div class="mb-6 flex items-center justify-between gap-4">
+                        <p class="m-0 text-sm uppercase tracking-capitales text-accent">"Lecture"</p>
+                        <button
+                            type="button"
+                            on:click=move |_| ouvert.set(false)
+                            class="-me-2 px-2 py-1 text-sm uppercase tracking-capitales text-encre-douce hover:text-encre"
+                        >
+                            "OK"
+                        </button>
+                    </div>
+
                     <Groupe titre="Disposition">
                         <Bascule
                             libelle="Versets à la suite"
@@ -149,7 +211,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
                     </p>
                 </div>
-            </details>
+            </Show>
         </Show>
     }
 }
@@ -161,7 +223,7 @@ const NOTE: &str = "mt-3 mb-8 text-sm leading-relaxed text-encre-douce last:mb-0
 fn Groupe(#[prop(into)] titre: String, children: Children) -> impl IntoView {
     view! {
         <fieldset class="m-0 border-0 p-0">
-            <legend class="mb-3 p-0 text-sm uppercase tracking-capitales text-accent">
+            <legend class="mb-2 p-0 text-sm uppercase tracking-capitales text-encre-douce">
                 {titre}
             </legend>
             <div class="flex flex-col">{children()}</div>

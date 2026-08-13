@@ -698,6 +698,16 @@ Deux bugs trouvés par les tests en l'écrivant, et le second était grave :
 `Verset::corps()` passe désormais par la même fonction : la règle
 typographique n'existe **qu'une fois**.
 
+**Le bouton flotte, la feuille monte.** Une première version posait le panneau
+en haut du chapitre. Ça ne tenait pas : un chapitre fait jusqu'à quarante-six
+versets, et l'on décide d'éteindre les gloses **au milieu** de la lecture. Un
+réglage qu'il faut remonter chercher n'en est plus un. Le bouton « aA » reste
+donc en bas, la feuille monte par-dessus le texte — comme celle de l'app.
+
+Le retrait du bas ajoute `env(safe-area-inset-bottom)` : sans lui, le bouton se
+pose sur la barre d'accueil d'un iPhone, où le geste de retour prend le clic en
+premier.
+
 **Le panneau n'est rendu que par le navigateur.** Sans JavaScript, des
 interrupteurs qui ne commutent rien seraient un mensonge — pire qu'une absence,
 parce qu'on les essaie. Le serveur rend toujours tout : c'est le rendu honnête
@@ -725,6 +735,36 @@ Elle ne remplace pas les liens universels : ceux-là ouvrent l'app *directement*
 sur `/fr/lire/*`. La bannière s'adresse à qui n'a **pas** l'app. Et elle
 n'existe que dans Safari sur iOS ; le bandeau « Ouvrir dans la web app » de
 macOS relève d'une autre mécanique, qu'aucune balise ne déclenche.
+
+## 8 ter. Le cache, et pourquoi les fichiers portent une empreinte
+
+`hash-files = true`. Les artefacts sortent nommés
+`ontbible.<empreinte>.{js,wasm,css}`.
+
+Ce n'est pas une optimisation, c'est une **correction**. Sans ça, `/pkg/` est
+servi avec un simple `last-modified` et aucun `cache-control` : un navigateur
+applique son cache heuristique et ne revalide pas. Un visiteur qui revient
+exécute donc l'ancien WASM contre le nouveau HTML.
+
+Et ça ne se voit pas. Le rendu du serveur reste juste, la page s'affiche, se
+lit, s'indexe — seul manque **tout ce qui vient de l'hydratation**. C'est
+arrivé le jour même sur le bouton de lecture : présent au simulateur, absent
+dans le navigateur, et il a fallu vider le cache à la main. Derrière un CDN,
+ça durerait des jours.
+
+Deux pièges rencontrés en l'activant :
+
+- `cargo-leptos` écrit le manifeste dans `target/<profil>/hash.txt`, mais le
+  serveur le cherche depuis son **répertoire courant**. Il faut le lui donner ;
+- les empreintes ne sont lues que si le binaire démarre avec
+  `LEPTOS_HASH_FILES=true`. Lancé à la main sans elle, il retombe en silence
+  sur les noms fixes — c'est-à-dire sur le défaut qu'on venait de corriger.
+  **À poser dans l'environnement du déploiement.**
+
+La feuille de style passe par `HashedStylesheet`, dans `shell` : le composant a
+besoin des options, qui n'existent que de ce côté. Un `href` écrit en dur aurait
+gardé son nom fixe pendant que le JS et le WASM prenaient le leur — le pire des
+deux mondes.
 
 ## 9. Ce qui reste à trancher
 
