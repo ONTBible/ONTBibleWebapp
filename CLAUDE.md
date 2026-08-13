@@ -435,6 +435,9 @@ synchroniser les deux, et l'un des deux finirait périmé.
 | `apercu.png` | l'aperçu des messageries, 1200 × 630 — composé, voir ci-dessous |
 | `wordmark-avec-r.svg`, `combination-mark-avec-r.svg` | les originaux **avec le ®**, gardés pour le jour de l'enregistrement |
 | `touch-icon.png` | l'icône d'écran d'accueil iOS, opaque |
+| `app-store-fr.svg` | le badge officiel d'Apple, en français et en blanc |
+| `qr-app.svg` | le QR vers la fiche — `scripts/qr-app.py` |
+| `app-lecture.webp` | une capture de l'app, prise dans `ONTBibleApp/app/Captures/` |
 
 Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, **puis
 par `scripts/retirer-le-r.py`** — tous deux idempotents, à relancer après chaque
@@ -509,6 +512,7 @@ Le vault est le dépôt voisin : `../ONTBibleTranslation/`.
 | **Le pourquoi** | l'ontologie fonctionnelle ; pourquoi *bara* ne veut pas dire fabriquer ; les trois niveaux montrés sur un vrai verset | `CLAUDE.md` §1, §2.1 |
 | **Ce que l'ONT n'est pas** | ses cinq lignes, telles quelles — la page la plus forte, la seule qui prend un risque | `CLAUDE.md` §10 |
 | **L'auteur** | l'origine, la vision, le rapport de travail avec Claude — qu'il assume | `context/auteur.md` + sa relecture |
+| **L'app** | la capture, le badge App Store, le QR — et Android dit franchement absent | `ONTBibleApp/app/Captures/` |
 | **Lire** | les passages partagés | `ONTBibleApp/dist/` |
 | **Confidentialité / Conditions** | à rédiger — comptes, synchronisation, Sentry, RGPD | — |
 
@@ -574,6 +578,7 @@ hreflang, Open Graph, JSON-LD), **et la liseuse complète** (voir §8 bis).
 /            → 307 vers /fr        (temporaire : « / » choisira la langue un jour)
 /fr                                la page d'accueil — voir ci-dessous
 /fr/le-pourquoi                    l'essai de fond
+/fr/l-app                          installer l'application
 /fr/ce-que-l-ont-n-est-pas         les cinq lignes du §10 du vault
 /fr/l-auteur                       premier jet, en attente de sa relecture
 /fr/confidentialite                vérifiée dans le code de l'app, pas recopiée
@@ -980,6 +985,26 @@ elle s'arrête à la frontière de l'app iOS, qui garde sa copie compilée.
 La dernière étape **vérifie que le site répond**. Un déploiement n'est pas fini
 quand la commande rend la main, il est fini quand une page arrive : sans ça, un
 binaire qui ne démarre pas passerait pour un succès.
+
+### Le badge App Store ne se redessine pas
+
+`app-store-fr.svg` vient de `tools.applemediaservices.com`. Les directives
+marketing d'Apple l'exigent **non modifié** — ni recoloré, ni retitré, ni
+recomposé — avec une hauteur minimale et une zone de respect. La variante
+blanche est celle qu'elles prescrivent sur un fond sombre.
+
+C'est pourquoi il n'est pas rendu par `Bouton` comme le reste du site : ce n'est
+pas un bouton, c'est une marque qu'on nous prête.
+
+Et le QR n'est pas un ornement. La page se lit surtout sur un grand écran ; l'app
+s'installe sur un téléphone. Un badge cliqué depuis un ordinateur ouvre une page
+web, il ne pose rien sur l'appareil qui compte. Le QR fait le pont, et disparaît
+en dessous de `sm` — on ne scanne pas l'écran qu'on tient.
+
+**`application.rs::PUBLIEE` vaut `false`** tant qu'Apple n'a pas approuvé la
+1.0. La page affiche alors « en relecture » à la place du badge : un badge qui
+mène à une page d'erreur est pire qu'une absence, on l'essaie et le projet a
+l'air cassé. Un seul booléen à basculer le jour de l'approbation.
 
 ## 9. Ce qui reste à trancher
 
