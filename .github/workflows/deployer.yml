@@ -56,6 +56,9 @@ env:
   FONCTION: ont-site
   SEAU: ont-site-274399924176
   DISTRIBUTION: E20C0E1AFI73CK
+  # La même version qu'en local, pour que le site construit ici soit celui
+  # qu'on a vu tourner.
+  VERSION_LEPTOS: v0.3.7
 
 jobs:
   deployer:
@@ -115,7 +118,47 @@ jobs:
       - name: Les outils
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-leptos,cargo-lambda
+          tool: cargo-lambda
+
+      - name: Zig
+        # cargo-lambda ne compile pas lui-même vers Amazon Linux : il délègue
+        # l'édition de liens à zig, qui sait viser une version précise de la
+        # glibc. Sans lui, la construction du serveur s'arrête net.
+        #
+        # Par pip plutôt que par une action tierce : c'est l'une des deux voies
+        # que cargo-lambda documente, et ça n'ajoute pas un dépôt de plus à qui
+        # faire confiance dans la chaîne de livraison.
+        run: pip3 install ziglang
+
+      - name: cargo-leptos, en glibc et pas en musl
+        # `install-action` sert par défaut la version **musl** d'un outil : elle
+        # est liée statiquement, donc portable partout. Pour cargo-leptos, c'est
+        # précisément ce qu'il ne faut pas.
+        #
+        # Il choisit le binaire Tailwind à télécharger par
+        # `cfg!(target_env = "musl")` — l'environnement de **sa propre**
+        # compilation, pas celui de la machine. Un cargo-leptos musl en conclut
+        # que le runner l'est aussi, va chercher `tailwindcss-linux-x64-musl`,
+        # et ce binaire-là réclame le chargeur `/lib/ld-musl-x86_64.so.1`, qui
+        # n'existe pas sur Ubuntu. Linux répond à un exec dont le chargeur
+        # manque par un ENOENT — d'où le « No such file or directory (os
+        # error 2) » qui ne nommait aucun fichier, et qui restait invisible
+        # tant qu'on ne traçait pas la commande lancée.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          gh release download "$VERSION_LEPTOS" \
+            --repo leptos-rs/cargo-leptos \
+            --pattern 'cargo-leptos-x86_64-unknown-linux-gnu.tar.gz' \
+            --output - | tar xz -C "$tmp"
+          # On cherche le binaire au lieu de supposer la forme de l'archive :
+          # cargo-dist a changé de disposition entre deux versions, et un
+          # chemin écrit en dur casserait à la prochaine montée de version.
+          install -m 755 "$(find "$tmp" -type f -name cargo-leptos | head -1)" \
+            "$HOME/.cargo/bin/cargo-leptos"
+          cargo leptos --version
 
       - name: Les tests
         working-directory: ONTBibleWebapp
@@ -131,12 +174,11 @@ jobs:
         # cargo-lambda. Voir `scripts/deployer.sh` — les deux chemins sont les
         # mêmes, pour que ce qui marche en local marche ici.
         #
-        # Le `mkdir` n'est pas une précaution : sans lui, la construction
-        # **échoue**. cargo-leptos écrit `target/release/hash.txt` à la fin du
-        # front, or `--frontend-only` ne construit pas le serveur et ne crée
-        # donc jamais `target/release/`. En local le dossier existait d'un build
-        # antérieur ; sur une machine neuve, il n'existe pas, et l'erreur est un
-        # « No such file or directory » sans nom de fichier.
+        # Le `mkdir` : cargo-leptos écrit le manifeste des empreintes **à côté
+        # du binaire serveur**, donc dans `target/release/`. Or
+        # `--frontend-only` ne construit pas ce binaire et ne crée jamais ce
+        # dossier. En local il survit d'une construction antérieure ; sur une
+        # machine neuve, il n'existe pas.
         run: |
           mkdir -p target/release
           cargo leptos build --release --frontend-only
