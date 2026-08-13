@@ -1043,16 +1043,55 @@ jours, exactement le défaut que les empreintes du §8 ter viennent de corriger.
 - **Jost ou EB Garamond** pour le corps du site. Jost est en place, EB Garamond
   est chargée à côté : un seul jeton à changer pour comparer en direct.
 - L'**adresse de contact**. `contact@ontbible.com` est écrite dans les pages
-  légales ; elle n'existe pas encore. Cloudflare Email Routing la fait suivre
-  gratuitement, en deux minutes.
-- Une **image d'aperçu** dessinée pour 1200 × 630. Sans elle, une messagerie
-  n'affiche qu'une vignette.
-- Le **®** du combination mark. Il est sur le wordmark, donc sur **toutes les
-  pages**. En France, apposer ® sur une marque non déposée à l'INPI relève de
-  l'article L.716-9 du code de la propriété intellectuelle — ce n'est pas un
-  risque commercial, c'est une infraction. Trois sorties : la marque est
-  déposée ; elle va l'être (~190 € pour une classe) ; ou on produit une
-  variante sans le sigle, à côté des fichiers d'origine.
+  légales et l'assistance ; elle n'existe pas encore — le domaine ne porte
+  aucun MX.
+
+  **Décidé le 14 août 2026 : par le domaine personnalisé d'iCloud+**, et non
+  par Cloudflare Email Routing. Le second est gratuit et sans condition, mais
+  il ne fait que *suivre* : une réponse à une demande d'effacement RGPD
+  partirait de l'adresse personnelle de l'auteur, ce qui contredit la page qui
+  vient de promettre une adresse de contact. iCloud+ permet d'envoyer depuis
+  `contact@ontbible.com`.
+
+  Le piège est le même qu'au §4 et il est silencieux : **le CNAME de DKIM que
+  donne Apple doit rester en nuage gris**. Proxifié, Cloudflare répond à sa
+  place, la signature ne se vérifie plus, et le courrier part en indésirable
+  sans qu'aucune erreur ne le dise. Et il ne doit exister **qu'un seul**
+  enregistrement SPF sur le domaine.
+- Le **dépôt de la marque à l'INPI**. Apposer ® sur une marque non déposée
+  relève de l'article L.716-9 du code de la propriété intellectuelle — ce
+  n'est pas un risque commercial dont on pèserait la probabilité, c'est une
+  infraction. Le sigle a donc été **retiré des vecteurs** le 13 août 2026
+  (`scripts/retirer-le-r.py`), et les originaux attendent sous `*-avec-r.svg`.
+
+  **Décidé le 14 août 2026** : une **marque verbale**, « La Bible ONT », et non
+  le dessin. Elle protège le nom quelle que soit la typographie — c'est le nom
+  que porte le ®, et un dépôt figuratif laisserait quelqu'un reprendre
+  « La Bible ONT » dans une autre lettre sans rien enfreindre.
+
+  Trois classes, et le choix se fait **maintenant** : on n'ajoute pas une
+  classe à une marque déposée, il faut redéposer. Quarante euros aujourd'hui
+  contre cent quatre-vingt-dix plus tard.
+
+  | classe | ce qu'elle couvre |
+  |---|---|
+  | 9 | l'application, les publications électroniques téléchargeables |
+  | 16 | les produits de l'imprimerie — l'édition papier qu'une Bible finit par avoir |
+  | 41 | la publication en ligne, l'édition, la traduction |
+
+  190 € la première classe, 40 € les suivantes : **270 €**.
+
+  Le déposant est la **personne physique**, sous son identité légale — Yannis
+  Bikouta. « Gloire » est le prénom public (§2), pas celui d'un acte.
+
+  À faire avant de payer : la **recherche d'antériorité** sur `data.inpi.fr`,
+  gratuite. Elle n'est pas une formalité — l'INPI n'examine pas les marques
+  antérieures, il publie et laisse les titulaires s'opposer. Un dépôt qui
+  heurte une marque existante est perdu, et les 190 € avec.
+
+  Et le ® ne redevient légitime qu'à l'**enregistrement**, pas au dépôt :
+  publication au BOPI sous six semaines, deux mois d'opposition, environ cinq
+  mois en tout s'il n'y a ni objection ni opposition.
 
 ## 10. Les dépôts voisins
 
