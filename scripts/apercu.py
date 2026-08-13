@@ -40,9 +40,22 @@ def main() -> None:
     sortie = pathlib.Path(sys.argv[1])
     sortie.mkdir(parents=True, exist_ok=True)
 
+    # La feuille porte une empreinte dans son nom — `ontbible.<empreinte>.css`,
+    # voir le §8 ter — et cette empreinte change à chaque modification du style.
+    # On la cherche donc au lieu de l'écrire : un nom en dur ne vaut que jusqu'à
+    # la prochaine retouche de CSS.
+    feuilles = sorted((RACINE / "pkg").glob("ontbible*.css"))
+    feuilles = [f for f in feuilles if f.name != "apercu.css"]
+    if not feuilles:
+        raise SystemExit(
+            "Aucune feuille dans target/site/pkg/. Lancez `cargo leptos watch`,\n"
+            "et attendez qu'il ait fini de construire."
+        )
+    feuille = feuilles[0]
+
     # La feuille compilée pointe /fontes/ et /images/ depuis la racine du site ;
     # ouverte comme un fichier, elle les chercherait à la racine du disque.
-    css = (RACINE / "pkg/ontbible.css").read_text()
+    css = feuille.read_text()
     (RACINE / "pkg/apercu.css").write_text(
         css.replace('url("/fontes/', 'url("../fontes/').replace('url("/images/', 'url("../images/')
     )
@@ -52,7 +65,7 @@ def main() -> None:
         nom, chemin = argument.split("=", 1)
         html = urllib.request.urlopen(f"{SERVEUR}{chemin}").read().decode()
         html = re.sub(r'(src|srcset|href)="/', r'\1="', html)
-        html = html.replace("pkg/ontbible.css", "pkg/apercu.css")
+        html = html.replace(f"pkg/{feuille.name}", "pkg/apercu.css")
         html = re.sub(r"<script.*?</script>", "", html, flags=re.S)
         fichier = RACINE / f"apercu-{nom}.html"
         fichier.write_text(html)
