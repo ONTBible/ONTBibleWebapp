@@ -15,6 +15,10 @@ serde = { version = "1", features = ["derive"] }
 axum = { version = "0.8", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
+# L'adaptateur du runtime Lambda. Le **même** binaire sert des deux côtés :
+# `lambda_http` prend la main quand `AWS_LAMBDA_FUNCTION_NAME` est là, sinon on
+# ouvre un port. Même version que le backend de l'app, qui tourne déjà ainsi.
+lambda_http = { version = "0.13", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
 # Le stockage local, pour retenir les réglages de lecture. Leptas réexporte
@@ -43,6 +47,7 @@ hydrate = [
 ]
 ssr = [
     "dep:axum",
+    "dep:lambda_http",
     "dep:tokio",
     "dep:leptos_axum",
     "dep:serde_json",

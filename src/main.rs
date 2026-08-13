@@ -140,11 +140,28 @@ async fn main() {
         .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options);
 
-    log!("ontbible écoute sur http://{addr}");
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app.into_make_service())
-        .await
-        .unwrap();
+    // ── Le même binaire des deux côtés ────────────────────────────────────
+    //
+    // Sur Lambda il n'y a pas de port à ouvrir : le runtime pousse les
+    // requêtes par une boucle d'événements, et `lambda_http` traduit chacune en
+    // `http::Request` que le routeur axum comprend sans rien savoir de tout ça.
+    //
+    // La bascule se lit dans l'environnement plutôt que dans un drapeau de
+    // compilation : deux binaires divergeraient, et c'est toujours celui qu'on
+    // n'essaie pas en local qui casse. C'est le choix du backend de l'app, et
+    // pour la même raison.
+    if std::env::var("AWS_LAMBDA_FUNCTION_NAME").is_ok() {
+        log!("ontbible sur Lambda");
+        lambda_http::run(app)
+            .await
+            .expect("le runtime Lambda s'est arrêté");
+    } else {
+        log!("ontbible écoute sur http://{addr}");
+        let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+        axum::serve(listener, app.into_make_service())
+            .await
+            .unwrap();
+    }
 }
 
 /// Le binaire est aussi compilé pour le navigateur, où il n'a rien à démarrer :

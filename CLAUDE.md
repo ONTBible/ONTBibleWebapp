@@ -785,6 +785,104 @@ besoin des options, qui n'existent que de ce côté. Un `href` écrit en dur aur
 gardé son nom fixe pendant que le JS et le WASM prenaient le leur — le pire des
 deux mondes.
 
+## 8 quater. Le déploiement
+
+**Le site est en ligne** — sur l'adresse de CloudFront, pas encore sur le
+domaine :
+
+```
+https://d1158mwsz5tj2z.cloudfront.net
+```
+
+```
+CloudFront ──┬── /pkg/*  /images/*  /fontes/*  /robots.txt ──▶  S3
+             └── tout le reste ──▶  API Gateway ──▶  Lambda (arm64)
+```
+
+Un seul geste : `./scripts/deployer.sh`. Il construit, pousse, applique,
+invalide.
+
+**Mesuré** : 75 ms par page à chaud, 378 ms à froid. WASM 1 275 Ko en
+`application/wasm`, première visite ~700 Ko sur le fil, visites suivantes 0.
+Coût attendu : 0 € jusqu'à des dizaines de milliers de visites, ~2 €/mois si le
+palier gratuit disparaissait. Une alerte de budget à 5 $ en prévision — c'est
+la seule chose qui voie venir un abus, qui ne se manifeste par aucune erreur.
+
+### Deux constructions, et ce n'est pas un choix
+
+`cargo leptos build --release` **échoue sur macOS** :
+`ld: Assertion failed: (name.size() <= maxLength)`. C'est une limite du linker
+d'Apple sur la longueur des noms de symboles, que les génériques imbriqués de
+Leptos font exploser.
+
+Le script construit donc le front avec `cargo leptos --frontend-only` — qui pose
+les empreintes et écrit `target/release/hash.txt` — et le serveur avec
+`cargo lambda`, qui croise-compile pour Linux ARM **avec zig**. Le défaut ne
+touche que le linker d'Apple ; le binaire déployé, lui, sort propre.
+
+Le paquet Lambda porte le binaire **et** `hash.txt`. Sans ce second fichier, la
+Lambda écrit `ontbible.js` dans le HTML — une adresse que le seau ne sert pas,
+donc une page sans son WASM, et rien ne le signale.
+
+### Trois pièges rencontrés, tous muets
+
+**Les adresses de fonction Lambda sont bloquées sur ce compte.** Le montage
+prévu — `AuthType = AWS_IAM` et un contrôle d'accès d'origine CloudFront — a
+été écrit, appliqué, et rend « Forbidden ». Vérifié : permission conforme,
+contrôle d'accès de type `lambda` en signature `always`, attaché à la bonne
+origine. Diagnostic décisif : **l'appel direct échouait aussi**, avec
+`AuthType = NONE` et une permission `Principal: "*"`, sur une adresse recréée
+de zéro. Le compte les refuse, très probablement par une politique
+d'organisation que `ont-app` n'a pas le droit de lire.
+
+On passe donc par **API Gateway**, comme le backend de l'app sur ce même
+compte. 1 $ par million de requêtes — douze centimes par mois à trente mille
+visites.
+
+**API Gateway refuse un `Host` qui n'est pas le sien.** Une politique de
+requête d'origine maison transmettait le `Host` du visiteur : 403, sans un mot
+d'explication. La politique gérée `AllViewerExceptHostHeader` est faite
+exactement pour ça, et son nom le dit.
+
+**Terraform supprime avant de mettre à jour.** Retirer un contrôle d'accès
+encore référencé par la distribution échoue en boucle : il faut appliquer
+d'abord `-target=aws_cloudfront_distribution.site`, puis le reste.
+
+### Les caches ne se règlent pas au même endroit
+
+| chemin | politique | pourquoi |
+|---|---|---|
+| `/pkg/*` | un an, `immutable` | le nom porte l'empreinte du contenu |
+| `/images/*` `/fontes/*` | un jour | le nom est **fixe** : `logomark.svg` reste `logomark.svg` |
+| le HTML | pas de cache | l'accueil porte le verset du jour, qui change à minuit |
+
+`?v=` entre dans la clé de cache du HTML : deux liens partagés différents ne
+doivent pas recevoir la même page, leurs métadonnées d'aperçu diffèrent.
+
+Et `aws s3 sync` ne connaît pas `.wasm` : il le pose en
+`binary/octet-stream`, et le navigateur refuse alors de le compiler en flux.
+Le script repasse dessus avec `--content-type application/wasm`.
+
+### L'identité AWS
+
+`ont-app`, profil local `[ont]`, politique `ont-deploy` — celle qui servait
+déjà à l'API, **étendue** plutôt que doublée : S3 borné à `ont-site-*`,
+CloudFront, ACM en us-east-1 (CloudFront n'accepte ses certificats que de là),
+budgets.
+
+Le simulateur IAM a trouvé ce que l'œil laissait passer :
+`acm:RequestCertificate` **ne peut pas** être borné à un ARN de certificat,
+puisque l'ARN n'existe pas encore quand on le demande. Il est borné par région.
+
+### Ce que le déploiement n'a **pas** fait
+
+Il n'a pas touché au DNS. `ontbible.com` pointe toujours la Lambda de l'API.
+La bascule suit l'ordre du §4, et **cet ordre n'est pas négociable** : créer
+`api.ontbible.com`, y basculer `ONTAPIBaseURL` dans l'app, publier l'app,
+vérifier, et seulement ensuite donner la racine au site. Inversé, les liens
+universels déjà partagés tombent — et ça ne se voit pas tout de suite, iOS
+gardant le fichier d'association en cache.
+
 ## 9. Ce qui reste à trancher
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.
