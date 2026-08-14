@@ -87,7 +87,11 @@ jobs:
         working-directory: ONTBibleApp
         env:
           ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
-        run: cargo run --manifest-path pipeline/Cargo.toml --release --quiet
+        # `--bin` explicite. La caisse du pipeline en porte deux depuis que le
+        # schéma engendre les liaisons Swift, et `cargo run` sans `--bin` refuse
+        # alors de choisir — la vérification s'arrêterait ici, sur une erreur
+        # qui ne parle ni du site ni du vault.
+        run: cargo run --manifest-path pipeline/Cargo.toml --bin ont-pipeline --release --quiet
 
       # Les tests d'abord : ils tiennent en moins d'une seconde, et rien ne
       # sert de construire dix minutes si le portage du verset du jour ne
