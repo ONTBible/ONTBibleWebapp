@@ -164,6 +164,18 @@ qu'écran.
 
 ### Le site est une nuit d'aubergine
 
+Cette peau porte un nom : **mystique**. Elle n'en avait pas tant qu'elle était
+seule — on ne nomme pas ce qu'on ne distingue de rien. Elle en a un depuis que
+l'app la propose en quatrième thème de sa liseuse, à côté de Parchemin, Clair
+et Sombre : là, il fallait bien l'appeler quelque chose dans un menu.
+
+Le nom est le même des deux côtés et doit le rester. Côté app, c'est
+`ReadingTheme.mystique` dans `ONTKit/Reader/Reader.swift`, et la palette y est
+transposée depuis ce dépôt-ci — `ONTColors.nuit`, `nuitSurface` et `nuitEncre`
+citent les jetons ci-dessous par leur nom et leur valeur. **C'est ici la
+référence** : une teinte se retouche dans `style/main.css`, puis se reporte
+dans l'app, jamais l'inverse.
+
 Trois essais ont été nécessaires, et les deux premiers sont instructifs. Le
 site a d'abord suivi le thème du système : chez un lecteur en mode sombre, il
 retombait sur un gris quasi noir, sans matière — une page quelconque. On l'a
