@@ -94,6 +94,18 @@ jobs:
           rustup toolchain install stable --profile minimal
           rustup target add wasm32-unknown-unknown
 
+      # Le cache porte sur `~/.cargo` et les deux `target/`. Sans lui, chaque
+      # déploiement recompile Leptos entier — dix minutes contre une.
+      #
+      # **Avant** l'étape du corpus, et les deux espaces de travail : le
+      # pipeline est une caisse Rust depuis son portage, et il se compilait
+      # sans cache à chaque déploiement parce que cette étape venait après lui.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ONTBibleWebapp
+            ONTBibleApp/pipeline
+
       # Le corpus, régénéré depuis le vault. C'est ici que la traduction entre
       # dans le site : `dist/` n'existe pas dans le dépôt, il naît de ce job.
       #
@@ -114,12 +126,6 @@ jobs:
           cargo run --manifest-path pipeline/Cargo.toml --release --quiet
           echo "── ce que le pipeline a produit ──"
           cat dist/manifest.json | head -c 400; echo
-
-      # Le cache porte sur `~/.cargo` et `target/`. Sans lui, chaque
-      # déploiement recompile Leptos entier — dix minutes contre une.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ONTBibleWebapp
 
       - name: Les outils
         uses: taiki-e/install-action@v2
@@ -168,10 +174,14 @@ jobs:
 
       - name: Les tests
         working-directory: ONTBibleWebapp
-        # 67 tests, dont ceux qui comparent le portage au Swift original et
-        # ceux qui refusent qu'un type du pipeline passe à travers l'analyse.
-        # Ils tiennent en moins d'une seconde et ils sont la seule chose entre
-        # un commit et la production.
+        # 66 tests, dont ceux qui comparent le portage au Swift original. Ils
+        # tiennent en moins d'une seconde et ils sont la seule chose entre un
+        # commit et la production.
+        #
+        # Le test qui refusait qu'un type du pipeline passe à travers l'analyse
+        # a disparu, et c'est un gain : le site lit maintenant `ont::schema`,
+        # donc un type inconnu casse la **compilation** au lieu d'être omis en
+        # silence. Ce test tenait deux listes d'étiquettes à la main.
         run: cargo test --features ssr
 
       - name: Le front
