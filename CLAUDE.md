@@ -1057,6 +1057,28 @@ gardant le fichier d'association en cache.
 
 ## 8 quinquies. Le déploiement continu
 
+Deux workflows, et ils ne se ressemblent pas.
+
+`.github/workflows/eprouver.yml` — à chaque pull request vers `main`. Il
+n'existe que parce que `deployer.yml` faisait tourner les tests **après** la
+fusion, dans le job qui déploie : la séquence était fusionner, puis découvrir.
+Sur un dépôt où `main` part en ligne toute seule, c'est le mauvais ordre.
+
+Il refait les mêmes étapes jusqu'à la construction, et rien de ce qui vient
+après. Il ne peut pas déployer, et ce n'est pas une promesse : `infra/ci.tf`
+épingle la condition OIDC à `ref:refs/heads/main`, or le jeton d'une pull
+request porte `ref:refs/pull/<n>/merge`. AWS refuse le rôle. D'où l'absence de
+`permissions: id-token` — on ne demande pas un jeton dont on n'a aucun usage.
+
+Il lance le serveur et lui pose de vraies questions : cinq routes, puis
+`verifier-composition.py`. Un binaire qui compile et ne démarre pas reste un
+binaire cassé, et c'est le genre de panne que la Lambda annonce par un
+`Runtime.InvalidEntrypoint` sans un mot de plus.
+
+**Ce qu'aucun des deux n'attrape** : ce qui est juste mais faux. Une échelle
+typographique qui s'inverse sous 1024 px compile, passe les 66 tests, et se
+déploie. Il a fallu un simulateur et une capture — voir §7 bis.
+
 `.github/workflows/deployer.yml` — au `push` sur `main`, ou à la main.
 
 **Aucune clé nulle part.** L'authentification passe par OIDC : GitHub signe un
