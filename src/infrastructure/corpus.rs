@@ -29,7 +29,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
-use serde::Deserialize;
 
 use crate::application::ports::{Corpus, Lexique};
 use crate::domaine::corpus::{
@@ -55,234 +54,68 @@ const OCCURRENCES: &str = include_str!(concat!(
     "/../ONTBibleApp/dist/occurrences.json"
 ));
 
-// ───────────────────────────── les formes du pipeline ─────────────────────────
-
-/// Un nœud de texte, tel que le pipeline l'écrit.
-///
-/// L'étiquette est **dans** l'objet — `{"t":"term", …}` — d'où
-/// `#[serde(tag = "t")]`.
-#[derive(Debug, Deserialize)]
-#[serde(tag = "t", rename_all = "lowercase")]
-enum NoeudDto {
-    Text {
-        v: String,
-    },
-    Term {
-        v: String,
-        lemma: String,
-    },
-    Important {
-        children: Vec<NoeudDto>,
-    },
-    Gloss {
-        children: Vec<NoeudDto>,
-    },
-    Em {
-        children: Vec<NoeudDto>,
-    },
-    Translit {
-        translit: String,
-        hebrew: String,
-    },
-    Heb {
-        v: String,
-    },
-    Link {
-        href: String,
-        children: Vec<NoeudDto>,
-    },
-    Break,
-    /// Un type que ce site ne connaît pas encore.
-    ///
-    /// Sans cette porte de sortie, un nouveau type de nœud ajouté au pipeline
-    /// ferait échouer l'analyse du livre entier, et la page rendrait une
-    /// erreur. Ici il est simplement omis : le reste du chapitre se lit.
-    ///
-    /// Et pour que cette tolérance ne devienne pas un trou silencieux, un test
-    /// plus bas analyse **tout** le corpus et exige qu'aucun nœud n'y tombe.
-    /// La bascule se voit donc à la compilation des tests, jamais en
-    /// production.
-    #[serde(other)]
-    Inconnu,
-}
-
-#[derive(Debug, Deserialize)]
-struct VersetDto {
-    n: u32,
-    nodes: Vec<NoeudDto>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "t", rename_all = "lowercase")]
-enum BlocDto {
-    Verses {
-        verses: Vec<VersetDto>,
-    },
-    Heading {
-        level: u8,
-        nodes: Vec<NoeudDto>,
-    },
-    List {
-        ordered: bool,
-        items: Vec<Vec<NoeudDto>>,
-    },
-    Para {
-        nodes: Vec<NoeudDto>,
-    },
-    Quote {
-        nodes: Vec<NoeudDto>,
-    },
-    Table {
-        headers: Vec<Vec<NoeudDto>>,
-        rows: Vec<Vec<Vec<NoeudDto>>>,
-    },
-    Rule,
-    /// Même raison, même garde-fou que [`NoeudDto::Inconnu`].
-    #[serde(other)]
-    Inconnu,
-}
-
-#[derive(Debug, Deserialize)]
-struct SousTitreDto {
-    french: String,
-    hebrew: String,
-    reference: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct PiedDto {
-    #[serde(default)]
-    notes: Vec<BlocDto>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ChapitreDto {
-    id: String,
-    book_id: String,
-    n: u32,
-    title: String,
-    subtitle: Option<SousTitreDto>,
-    status: String,
-    blocks: Vec<BlocDto>,
-    footer: Option<PiedDto>,
-    verse_count: u32,
-}
-
-#[derive(Debug, Deserialize)]
-struct LivreDto {
-    id: String,
-    title: String,
-    // Mêmes `null` que sur l'entrée de sommaire, et la correction y avait été
-    // faite sans l'être ici. Un livre sans nom hébreu est légitime — le vault
-    // en porte — et le pipeline écrit `null`, pas l'absence.
-    french: Option<String>,
-    hebrew: Option<String>,
-    chapters: Vec<ChapitreDto>,
-    intro: Option<ChapitreDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct PlanDto {
-    corpora: Vec<EnsembleDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct EnsembleDto {
-    id: String,
-    title: String,
-    modes: Vec<SectionDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct SectionDto {
-    id: String,
-    title: String,
-    books: Vec<EntreeDeLivreDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct EntreeDeLivreDto {
-    id: String,
-    title: String,
-    // Le pipeline écrit `null` — et non l'absence — quand le vault ne porte pas
-    // le champ. Un `String` avec `#[serde(default)]` ne suffirait pas : il
-    // couvre la clé manquante, pas la clé nulle.
-    french: Option<String>,
-    hebrew: Option<String>,
-    empty: bool,
-    #[serde(default)]
-    chapters: Vec<PlanChapitreDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct PlanChapitreDto {}
-
-#[derive(Debug, Deserialize)]
-struct GlossaireDto {
-    entries: Vec<EntreeDto>,
-}
-
-#[derive(Debug, Deserialize)]
-struct EntreeDto {
-    lemma: String,
-    title: String,
-    hebrew: Option<String>,
-    rendering: Option<String>,
-    forms: Option<Vec<String>>,
-    definition: Option<Vec<BlocDto>>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OccurrencesDto {
-    by_lemma: HashMap<String, Vec<OccurrenceDto>>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OccurrenceDto {
-    book_id: String,
-    chapter_id: String,
-    verse: Option<u32>,
-    form: String,
-    snippet: String,
-}
-
 // ───────────────────────────── la traduction ──────────────────────────────────
+//
+// Les formes du pipeline **ne sont plus décrites ici**. Elles viennent de
+// `ont::schema`, la caisse du pipeline, qui est désormais l'unique description
+// du contrat côté Rust.
+//
+// Ce qu'il y avait avant : 450 lignes de DTO qui redisaient, champ par champ,
+// ce que le pipeline écrit déjà. Une troisième description après le TypeScript
+// et le Swift — et trois descriptions du même contrat finissent par diverger.
+//
+// Quand elles divergeaient, le défaut était **muet**. Un type de nœud absent du
+// relevé tombait dans une porte de sortie `#[serde(other)]`, la page
+// s'affichait, et il manquait un mot. C'est arrivé sur `heb`, `link`, `quote`
+// et `table`, qui ne vivent que dans les définitions du lexique et jamais dans
+// un chapitre : le premier relevé n'avait parcouru que les chapitres.
+//
+// Cette porte de sortie n'existe plus, et c'est le vrai gain. Un type ajouté au
+// pipeline **casse la compilation du site** — le `match` ci-dessous n'est plus
+// exhaustif. Le garde-fou n'est plus un test qu'il faut penser à écrire ; c'est
+// le compilateur.
+//
+// Le prix, honnêtement : un `dist/` périmé — produit par un pipeline plus
+// récent que le site qu'on compile — ne s'analyse plus « en partie », il
+// échoue. C'est le comportement voulu. Les deux naissent du même commit dans la
+// CI, et en local `cargo` recompile dès que `dist/` bouge.
 
-fn noeuds(dtos: Vec<NoeudDto>) -> Vec<Noeud> {
-    dtos.into_iter().filter_map(noeud).collect()
+use ont::schema as pipeline;
+
+fn noeuds(sources: Vec<pipeline::Inline>) -> Vec<Noeud> {
+    sources.into_iter().map(noeud).collect()
 }
 
-fn noeud(dto: NoeudDto) -> Option<Noeud> {
-    Some(match dto {
-        NoeudDto::Text { v } => Noeud::Texte(v),
-        NoeudDto::Term { v, lemma } => Noeud::Intraduisible { mot: v, lemme: lemma },
-        NoeudDto::Important { children } => Noeud::Important(noeuds(children)),
-        NoeudDto::Gloss { children } => Noeud::Glose(noeuds(children)),
-        NoeudDto::Em { children } => Noeud::Emphase(noeuds(children)),
-        NoeudDto::Translit { translit, hebrew } => Noeud::Hebreu {
+fn noeud(source: pipeline::Inline) -> Noeud {
+    match source {
+        pipeline::Inline::Text { v } => Noeud::Texte(v),
+        pipeline::Inline::Term { v, lemma } => Noeud::Intraduisible {
+            mot: v,
+            lemme: lemma,
+        },
+        pipeline::Inline::Important { children } => Noeud::Important(noeuds(children)),
+        pipeline::Inline::Gloss { children } => Noeud::Glose(noeuds(children)),
+        pipeline::Inline::Em { children } => Noeud::Emphase(noeuds(children)),
+        pipeline::Inline::Translit { translit, hebrew } => Noeud::Hebreu {
             translitteration: translit,
             hebreu: hebrew,
         },
-        NoeudDto::Heb { v } => Noeud::HebreuNu(v),
-        NoeudDto::Link { href, children } => Noeud::Lien {
+        pipeline::Inline::Heb { v } => Noeud::HebreuNu(v),
+        pipeline::Inline::Link { href, children } => Noeud::Lien {
             href,
             enfants: noeuds(children),
         },
-        NoeudDto::Break => Noeud::Saut,
-        NoeudDto::Inconnu => return None,
-    })
+        pipeline::Inline::Break => Noeud::Saut,
+    }
 }
 
-fn blocs(dtos: Vec<BlocDto>) -> Vec<Bloc> {
-    dtos.into_iter().filter_map(bloc).collect()
+fn blocs(sources: Vec<pipeline::Block>) -> Vec<Bloc> {
+    sources.into_iter().map(bloc).collect()
 }
 
-fn bloc(dto: BlocDto) -> Option<Bloc> {
-    Some(match dto {
-        BlocDto::Verses { verses } => Bloc::Versets(
+fn bloc(source: pipeline::Block) -> Bloc {
+    match source {
+        pipeline::Block::Verses { verses } => Bloc::Versets(
             verses
                 .into_iter()
                 .map(|v| Verset {
@@ -291,72 +124,76 @@ fn bloc(dto: BlocDto) -> Option<Bloc> {
                 })
                 .collect(),
         ),
-        BlocDto::Heading { level, nodes } => Bloc::Titre {
+        pipeline::Block::Heading { level, nodes } => Bloc::Titre {
             niveau: level,
             noeuds: noeuds(nodes),
         },
-        BlocDto::List { ordered, items } => Bloc::Liste {
+        pipeline::Block::List { ordered, items } => Bloc::Liste {
             ordonnee: ordered,
             items: items.into_iter().map(noeuds).collect(),
         },
-        BlocDto::Para { nodes } => Bloc::Paragraphe(noeuds(nodes)),
-        BlocDto::Quote { nodes } => Bloc::Citation(noeuds(nodes)),
-        BlocDto::Table { headers, rows } => Bloc::Tableau {
+        pipeline::Block::Para { nodes } => Bloc::Paragraphe(noeuds(nodes)),
+        pipeline::Block::Quote { nodes } => Bloc::Citation(noeuds(nodes)),
+        pipeline::Block::Table { headers, rows } => Bloc::Tableau {
             entetes: headers.into_iter().map(noeuds).collect(),
             lignes: rows
                 .into_iter()
                 .map(|ligne| ligne.into_iter().map(noeuds).collect())
                 .collect(),
         },
-        BlocDto::Rule => Bloc::Filet,
-        BlocDto::Inconnu => return None,
-    })
+        pipeline::Block::Rule => Bloc::Filet,
+    }
 }
 
-fn chapitre(dto: ChapitreDto) -> Chapitre {
+fn chapitre(source: pipeline::Chapter) -> Chapitre {
     Chapitre {
-        id: dto.id,
-        livre: dto.book_id,
-        numero: dto.n,
-        titre: dto.title,
-        sous_titre: dto.subtitle.map(|s| SousTitre {
+        id: source.id,
+        livre: source.book_id,
+        numero: source.n,
+        titre: source.title,
+        sous_titre: source.subtitle.map(|s| SousTitre {
             francais: s.french,
             hebreu: s.hebrew,
             reference: s.reference,
         }),
-        // Le pipeline n'écrit que « locked » et « brouillon ». Tout ce qui
-        // n'est pas explicitement verrouillé est traité comme provisoire :
-        // c'est le sens qui protège le lecteur, pas l'inverse.
-        statut: if dto.status == "locked" {
-            Statut::Acheve
-        } else {
-            Statut::Brouillon
+        // Deux états, et le contrat le dit maintenant en type plutôt qu'en
+        // chaîne. La comparaison à `"locked"` qu'il y avait ici tenait sur une
+        // orthographe : le jour où le pipeline aurait écrit `"Locked"`, tout le
+        // corpus serait passé en brouillon sans qu'aucun test ne bronche.
+        statut: match source.status {
+            pipeline::Status::Locked => Statut::Acheve,
+            pipeline::Status::Brouillon => Statut::Brouillon,
         },
-        blocs: blocs(dto.blocks),
-        notes: dto.footer.map(|p| blocs(p.notes)).unwrap_or_default(),
-        nombre_de_versets: dto.verse_count,
+        blocs: blocs(source.blocks),
+        notes: source.footer.map(|p| blocs(p.notes)).unwrap_or_default(),
+        nombre_de_versets: source.verse_count,
     }
 }
 
-fn livre(dto: LivreDto) -> Livre {
+fn livre(source: pipeline::Book) -> Livre {
     Livre {
-        id: dto.id,
-        titre: dto.title,
-        francais: dto.french.unwrap_or_default(),
-        hebreu: dto.hebrew.unwrap_or_default(),
-        intro: dto.intro.map(chapitre),
-        chapitres: dto.chapters.into_iter().map(chapitre).collect(),
+        id: source.id,
+        titre: source.title,
+        // `french` est un `String` dans le contrat, et non un `Option` : le
+        // pipeline en garantit un pour les soixante-dix slots. C'était un
+        // `Option` ici, par prudence — une prudence que le contrat rend
+        // inutile, puisqu'il l'affirme. `hebrew`, lui, manque réellement sur
+        // dix-huit livres.
+        francais: source.french,
+        hebreu: source.hebrew.unwrap_or_default(),
+        intro: source.intro.map(chapitre),
+        chapitres: source.chapters.into_iter().map(chapitre).collect(),
     }
 }
 
-fn entree(dto: EntreeDto) -> Entree {
+fn entree(source: pipeline::GlossaryEntry) -> Entree {
     Entree {
-        lemme: dto.lemma,
-        titre: dto.title,
-        hebreu: dto.hebrew.unwrap_or_default(),
-        rendu: dto.rendering.unwrap_or_default(),
-        formes: dto.forms.unwrap_or_default(),
-        definition: blocs(dto.definition.unwrap_or_default()),
+        lemme: source.lemma,
+        titre: source.title,
+        hebreu: source.hebrew.unwrap_or_default(),
+        rendu: source.rendering.unwrap_or_default(),
+        formes: source.forms,
+        definition: blocs(source.definition.unwrap_or_default()),
     }
 }
 
@@ -371,7 +208,7 @@ pub struct CorpusEmbarque {
 
 impl CorpusEmbarque {
     pub fn charger() -> Result<Self, serde_json::Error> {
-        let plan: PlanDto = serde_json::from_str(PLAN)?;
+        let plan: pipeline::CorpusFile = serde_json::from_str(PLAN)?;
 
         let sommaire = plan
             .corpora
@@ -391,7 +228,7 @@ impl CorpusEmbarque {
                             .map(|l| EntreeDeLivre {
                                 id: l.id,
                                 titre: l.title,
-                                francais: l.french.unwrap_or_default(),
+                                francais: l.french,
                                 hebreu: l.hebrew.unwrap_or_default(),
                                 ecrit: !l.empty,
                                 unites: l.chapters.len() as u32,
@@ -424,7 +261,7 @@ impl Corpus for CorpusEmbarque {
         // que ça arrive sans qu'on le sache.
         cache
             .get_or_init(|| {
-                serde_json::from_str::<LivreDto>(source)
+                serde_json::from_str::<pipeline::Book>(source)
                     .ok()
                     .map(|dto| Arc::new(livre(dto)))
             })
@@ -443,7 +280,7 @@ pub struct LexiqueEmbarque {
 
 impl LexiqueEmbarque {
     pub fn charger() -> Result<Self, serde_json::Error> {
-        let glossaire: GlossaireDto = serde_json::from_str(GLOSSAIRE)?;
+        let glossaire: pipeline::GlossaryFile = serde_json::from_str(GLOSSAIRE)?;
 
         let mut entrees: Vec<Entree> = glossaire.entries.into_iter().map(entree).collect();
         // L'ordre du pipeline suit le vault. Une page de lexique se lit par
@@ -477,7 +314,7 @@ impl Lexique for LexiqueEmbarque {
     fn occurrences(&self, lemme: &str) -> Vec<Occurrence> {
         self.occurrences
             .get_or_init(|| {
-                serde_json::from_str::<OccurrencesDto>(OCCURRENCES)
+                serde_json::from_str::<pipeline::OccurrencesFile>(OCCURRENCES)
                     .map(|dto| {
                         dto.by_lemma
                             .into_iter()
@@ -508,70 +345,20 @@ impl Lexique for LexiqueEmbarque {
 mod tests {
     use super::*;
 
-    /// Le corpus réel s'analyse en entier, et **aucun** nœud ni bloc ne tombe
-    /// dans la porte de sortie.
-    ///
-    /// C'est le test qui rend la tolérance de [`NoeudDto::Inconnu`] acceptable.
-    /// Sans lui, un nouveau type de bloc ajouté au pipeline disparaîtrait des
-    /// pages sans un mot : le texte serait simplement plus court, et personne
-    /// ne compare la longueur d'un chapitre d'une semaine à l'autre.
-    ///
-    /// On analyse ici en `Value` plutôt qu'en DTO, justement parce que le DTO
-    /// est ce qu'on éprouve : il faut lire les étiquettes brutes.
-    #[test]
-    fn tout_le_corpus_s_analyse_sans_type_inconnu() {
-        const NOEUDS: &[&str] = &[
-            "text",
-            "term",
-            "important",
-            "gloss",
-            "em",
-            "translit",
-            "heb",
-            "link",
-            "break",
-        ];
-        const BLOCS: &[&str] = &["verses", "heading", "list", "para", "quote", "table", "rule"];
-
-        fn etiquettes(valeur: &serde_json::Value, vues: &mut std::collections::BTreeSet<String>) {
-            match valeur {
-                serde_json::Value::Object(objet) => {
-                    if let Some(serde_json::Value::String(t)) = objet.get("t") {
-                        vues.insert(t.clone());
-                    }
-                    for v in objet.values() {
-                        etiquettes(v, vues);
-                    }
-                }
-                serde_json::Value::Array(liste) => {
-                    for v in liste {
-                        etiquettes(v, vues);
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        let mut vues = std::collections::BTreeSet::new();
-        for (_, source) in LIVRES {
-            let valeur: serde_json::Value =
-                serde_json::from_str(source).expect("un livre du pipeline est du JSON");
-            etiquettes(&valeur, &mut vues);
-        }
-        let valeur: serde_json::Value = serde_json::from_str(GLOSSAIRE).unwrap();
-        etiquettes(&valeur, &mut vues);
-
-        let orphelines: Vec<&String> = vues
-            .iter()
-            .filter(|t| !NOEUDS.contains(&t.as_str()) && !BLOCS.contains(&t.as_str()))
-            .collect();
-
-        assert!(
-            orphelines.is_empty(),
-            "le pipeline produit des types que le site ignore, et qu'il jetterait \
-             en silence : {orphelines:?} — les ajouter à `NoeudDto` ou `BlocDto`"
-        );
-    }
+    // Le test `tout_le_corpus_s_analyse_sans_type_inconnu` vivait ici.
+    //
+    // Il parcourait tout le corpus en JSON brut et vérifiait qu'aucune
+    // étiquette `t` n'échappait à deux listes écrites à la main. Il rendait
+    // acceptable la porte de sortie `#[serde(other)]` des anciens DTO : sans
+    // lui, un type de bloc ajouté au pipeline disparaissait des pages sans un
+    // mot — le texte était simplement plus court, et personne ne compare la
+    // longueur d'un chapitre d'une semaine à l'autre.
+    //
+    // Les deux ont disparu ensemble. Le site lit maintenant `ont::schema`,
+    // donc un type inconnu n'est plus omis : le `match` de `noeud` cesse
+    // d'être exhaustif et **la compilation échoue**. Et ces deux listes
+    // d'étiquettes étaient elles-mêmes une quatrième description du contrat,
+    // à tenir à jour à la main — exactement ce qu'on venait de supprimer.
 
     /// Chaque livre listé par `build.rs` s'analyse réellement.
     ///
@@ -584,7 +371,7 @@ mod tests {
             // On analyse ici en direct plutôt que par `livre()` : celui-ci
             // avale l'erreur pour ne pas tomber en production, et un test qui
             // dit « ça ne marche pas » sans dire pourquoi coûte une heure.
-            if let Err(erreur) = serde_json::from_str::<LivreDto>(source) {
+            if let Err(erreur) = serde_json::from_str::<pipeline::Book>(source) {
                 panic!("le livre « {id} » ne s'analyse pas : {erreur}");
             }
         }
@@ -632,7 +419,7 @@ mod tests {
     /// qu'un test s'en contente.
     #[test]
     fn les_occurrences_s_analysent() {
-        serde_json::from_str::<OccurrencesDto>(OCCURRENCES).expect("occurrences.json");
+        serde_json::from_str::<pipeline::OccurrencesFile>(OCCURRENCES).expect("occurrences.json");
     }
 
     /// Une fiche se trouve, et ses occurrences pointent des versets réels.

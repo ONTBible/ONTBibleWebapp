@@ -23,7 +23,7 @@
 //! récupère avant la compilation. Le chemin devient une variable, rien de
 //! plus.
 
-use serde::Deserialize;
+use ont::schema as pipeline;
 
 use crate::application::ports::Vivier;
 use crate::domaine::vivier::VersetQuotidien;
@@ -33,24 +33,13 @@ const SOURCE: &str = include_str!(concat!(
     "/../ONTBibleApp/dist/daily.json"
 ));
 
-/// Le fichier tel que le pipeline l'écrit.
-///
-/// Les noms sont ceux du JSON — courts, parce qu'ils sont répétés 251 fois et
-/// que ce fichier voyage aussi dans un widget. Ils s'arrêtent ici : le domaine
-/// nomme les choses en clair, et c'est cette conversion qui l'en protège.
-#[derive(Deserialize)]
-struct Fichier {
-    verses: Vec<Ligne>,
-}
-
-#[derive(Deserialize)]
-struct Ligne {
-    b: String,
-    c: String,
-    n: u32,
-    r: String,
-    t: String,
-}
+// La forme du fichier vient de `ont::schema::DailyFile`, et n'est plus
+// redécrite ici.
+//
+// Ses noms de champs font une lettre — `b`, `c`, `n`, `r`, `t` — parce qu'ils
+// sont répétés 251 fois et que ce fichier voyage aussi dans un widget iOS. Ils
+// s'arrêtent au bord de cette fonction : le domaine nomme les choses en clair,
+// et c'est cette conversion qui l'en protège.
 
 pub struct VivierEmbarque {
     versets: Vec<VersetQuotidien>,
@@ -63,7 +52,7 @@ impl VivierEmbarque {
     /// le prête. Le refaire à chaque requête coûterait l'analyse de 58 Ko de
     /// JSON pour un résultat identique.
     pub fn charger() -> Result<Self, serde_json::Error> {
-        let fichier: Fichier = serde_json::from_str(SOURCE)?;
+        let fichier: pipeline::DailyFile = serde_json::from_str(SOURCE)?;
         Ok(Self {
             versets: fichier
                 .verses
@@ -115,7 +104,7 @@ mod tests {
         // dédupliquer ou le filtrer ici ferait diverger le site de l'app sans
         // qu'aucun test de l'un ou de l'autre ne s'en aperçoive.
         let vivier = VivierEmbarque::charger().unwrap();
-        let fichier: Fichier = serde_json::from_str(SOURCE).unwrap();
+        let fichier: pipeline::DailyFile = serde_json::from_str(SOURCE).unwrap();
         assert_eq!(vivier.versets().len(), fichier.verses.len());
         assert_eq!(vivier.versets()[0].renvoi, fichier.verses[0].r);
     }
