@@ -35,6 +35,28 @@ chrono = { version = "0.4", default-features = false, features = [
     "std",
 ], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
+# Le contrat des données ONT, pris à sa source.
+#
+# Le site décrivait lui-même la forme du JSON du pipeline — 450 lignes de DTO,
+# une troisième description du même schéma après le TypeScript et le Swift. Et
+# quand trois descriptions divergent, le défaut est **muet** : un type de nœud
+# inconnu était simplement omis, la page s'affichait, il manquait un mot. C'est
+# arrivé, sur quatre types qui ne vivent que dans les définitions du lexique.
+#
+# Il en reste deux — celle-ci et le Swift.
+#
+# `default-features = false` : seul `schema` entre. Les analyseurs du pipeline
+# ajouteraient `regex` et ses tables Unicode à un binaire Lambda qui ne parse
+# aucun markdown.
+#
+# Par chemin, et non par version : les deux dépôts sont côte à côte, en local
+# comme dans la CI, où `deployer.yml` les clone déjà tous les trois. C'est le
+# même voisinage que celui dont `include_str!` dépend depuis le premier jour.
+#
+# `package` parce que la caisse s'appelle `ont-pipeline` et sa bibliothèque
+# `ont` : la clé d'une dépendance est le nom du **paquet**, pas celui de la
+# cible.
+ont = { package = "ont-pipeline", path = "../ONTBibleApp/pipeline", default-features = false, optional = true }
 
 [features]
 hydrate = [
@@ -46,6 +68,7 @@ hydrate = [
   "dep:web-sys",
 ]
 ssr = [
+    "dep:ont",
     "dep:axum",
     "dep:lambda_http",
     "dep:tokio",

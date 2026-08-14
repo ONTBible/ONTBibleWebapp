@@ -23,6 +23,13 @@
 # `../ONTBibleApp/dist/`. Or `dist/` n'est **pas** dans le dépôt — il est
 # gitignoré, parce que c'est un produit et non une source.
 #
+# Depuis le portage du pipeline en Rust, le voisinage sert deux fois : le site
+# dépend aussi de `../ONTBibleApp/pipeline` comme **caisse**, pour le schéma
+# des données. Il décrivait lui-même la forme de ce JSON — 450 lignes de DTO,
+# une troisième description du même contrat après le TypeScript et le Swift —
+# et une divergence entre les trois s'y voyait sous la forme d'un mot manquant
+# dans une page, sans une erreur nulle part.
+#
 # La CI le régénère donc, et c'est plus juste que de le committer : le vault est
 # la source, le pipeline est déterministe, et l'artefact n'existe que le temps
 # du job. Les trois dépôts se retrouvent côte à côte dans l'espace de travail,
@@ -82,32 +89,31 @@ jobs:
           repository: ONTBible/ONTBibleTranslation
           path: ONTBibleTranslation
 
-      - name: Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
+      - name: Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
 
       # Le corpus, régénéré depuis le vault. C'est ici que la traduction entre
       # dans le site : `dist/` n'existe pas dans le dépôt, il naît de ce job.
       #
-      # `npm ci` et non `npm install` : il installe **exactement** ce que le
-      # verrou décrit, sans jamais le mettre à jour. Une dépendance qui bouge
-      # toute seule entre deux déploiements, c'est un corpus qui change sans
-      # qu'un commit l'explique.
+      # Plus aucune étape Node. Le pipeline était neuf fichiers TypeScript
+      # exécutés par `node` ; c'est un binaire depuis le portage en Rust, et
+      # ce job n'installe donc plus qu'une seule chaîne d'outils — celle dont
+      # le site a de toute façon besoin.
+      #
+      # Et ce n'est pas qu'une économie de minutes : le site **dépend** de la
+      # caisse du pipeline pour le schéma des données. Le corpus qu'il embarque
+      # et le code qui le lit naissent maintenant du même commit, ce qui rend
+      # une divergence entre les deux impossible plutôt qu'improbable.
       - name: Le corpus
         working-directory: ONTBibleApp
         env:
           ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
         run: |
-          npm ci
-          npm run build
+          cargo run --manifest-path pipeline/Cargo.toml --release --quiet
           echo "── ce que le pipeline a produit ──"
           cat dist/manifest.json | head -c 400; echo
-
-      - name: Rust
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup target add wasm32-unknown-unknown
 
       # Le cache porte sur `~/.cargo` et `target/`. Sans lui, chaque
       # déploiement recompile Leptos entier — dix minutes contre une.
