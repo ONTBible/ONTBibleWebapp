@@ -29,7 +29,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
-
 use crate::application::ports::{Corpus, Lexique};
 use crate::domaine::corpus::{
     Bloc, Chapitre, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section, SousTitre, Statut,

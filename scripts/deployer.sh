@@ -152,7 +152,7 @@ fi
 etape "Invalidation du HTML"
 DISTRIBUTION=$(terraform -chdir=infra output -raw distribution)
 aws --profile "$PROFIL" cloudfront create-invalidation \
-  --distribution-id "$DISTRIBUTION" --paths "/" "/fr" "/fr/*" "/sitemap.xml" \
+  --distribution-id "$DISTRIBUTION" --paths "/" "/fr" "/fr/*" "/sitemap.xml" "/images/*" \
   --query 'Invalidation.Id' --output text
 
 printf '\n\033[1m%s\033[0m\n' "$(terraform -chdir=infra output -raw adresse)"

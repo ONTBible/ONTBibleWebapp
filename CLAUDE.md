@@ -1055,6 +1055,37 @@ vérifier, et seulement ensuite donner la racine au site. Inversé, les liens
 universels déjà partagés tombent — et ça ne se voit pas tout de suite, iOS
 gardant le fichier d'association en cache.
 
+## 8 quater bis. Les images portent une empreinte, elles aussi
+
+**Corrigé le 14 août 2026.** Les feuilles et le WASM portent leur empreinte dans
+le nom du fichier ; les images n'avaient jamais eu ce traitement. `wordmark.svg`
+gardait son nom quand son dessin changeait, et il est servi avec un cache d'une
+journée : **une image corrigée restait invisible jusqu'à vingt-quatre heures**
+pour qui avait déjà visité le site.
+
+Ce n'est pas théorique. Le ® a été retiré de la marque le 13 août au soir ; le
+lendemain matin on en débattait encore, en regardant deux versions différentes
+du même fichier — la production était juste depuis le début.
+
+L'adresse porte donc `?v=<empreinte>`, calculée à la compilation par `build.rs`
+sur le contenu du fichier. Le fichier garde son nom sur le seau ; seule
+l'adresse change. Trois choses à savoir :
+
+- **Un paramètre et non un nom.** Renommer demanderait de recopier les fichiers
+  au build, alors que `public/` est posé tel quel sur le seau.
+- **Une empreinte maison, FNV-1a.** Ce qu'on demande à cette valeur, c'est de
+  changer quand le contenu change. Une collision ne serait pas une faille,
+  seulement une image périmée de plus — ce qu'on avait déjà sur toutes.
+- **L'invalidation couvre `/images/*`.** Le paramètre suffit au navigateur, qui
+  y voit une autre ressource. Mais la politique de cache du bord n'entre pas les
+  paramètres dans sa clé : sans l'invalidation, CloudFront servirait l'ancienne
+  image pendant une journée, à tout le monde. Les deux couches demandent chacune
+  leur moyen.
+
+Toute image de `public/images/` passe par `design::image()`, et un test exige
+que le dossier entier soit couvert : une image ajoutée entre dans la table sans
+que personne n'ait à y penser.
+
 ## 8 quinquies. Le déploiement continu
 
 Deux workflows, et ils ne se ressemblent pas.

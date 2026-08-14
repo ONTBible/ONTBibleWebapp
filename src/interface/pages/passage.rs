@@ -50,7 +50,10 @@ pub fn Passage() -> impl IntoView {
     };
 
     let contenu =
-        Resource::new_blocking(cle, |(livre, unite)| async move { passage(livre, unite).await });
+        Resource::new_blocking(
+            cle,
+            |(livre, unite)| async move { passage(livre, unite).await },
+        );
 
     // Les réglages sont installés **ici** et non dans un composant plus bas :
     // c'est la page qui décide qu'on lit du corpus, donc c'est elle qui ouvre
@@ -195,11 +198,7 @@ fn Voisins(
 /// verset du jour, et pour la même raison : sortie de son appareil critique, où
 /// elle est consultable et attribuée, une glose devient une affirmation sans
 /// recours.
-fn apercu(
-    chapitre: &crate::domaine::corpus::Chapitre,
-    en_avant: &[u32],
-    livre: &str,
-) -> String {
+fn apercu(chapitre: &crate::domaine::corpus::Chapitre, en_avant: &[u32], livre: &str) -> String {
     let choisis: Vec<String> = en_avant
         .iter()
         .filter_map(|numero| chapitre.verset(*numero))

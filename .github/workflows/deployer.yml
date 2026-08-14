@@ -270,12 +270,19 @@ jobs:
             --query 'LastModified' --output text
           aws lambda wait function-updated --function-name "$FONCTION"
 
-      # Seulement le HTML. Les fichiers figés n'ont pas à être invalidés : leur
-      # nom a changé, donc l'ancien n'est plus demandé.
+      # Le HTML **et les images**. Les fichiers figés n'ont pas à être
+      # invalidés : leur nom a changé, donc l'ancien n'est plus demandé.
+      #
+      # Les images, elles, gardent leur nom. Leur adresse porte désormais une
+      # empreinte — `?v=` — ce qui suffit au **navigateur** : il y voit une
+      # autre ressource. Mais la politique de cache du bord n'entre pas le
+      # paramètre dans sa clé, donc CloudFront continuerait de servir l'ancienne
+      # pendant une journée, à tout le monde. Les deux couches demandent chacune
+      # leur moyen, et il faut les deux.
       - name: Le cache
         run: |
           aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
-            --paths "/" "/fr" "/fr/*" "/sitemap.xml" \
+            --paths "/" "/fr" "/fr/*" "/sitemap.xml" "/images/*" \
             --query 'Invalidation.Id' --output text
 
       # Le déploiement n'est pas fini quand la commande rend la main : il est

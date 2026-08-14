@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use leptos_meta::{Link, Meta, Title};
 
+use crate::interface::design::image;
+
 /// L'origine publique du site.
 ///
 /// Les adresses canoniques et Open Graph doivent être **absolues** : une
@@ -131,7 +133,7 @@ pub fn Tete(
         // montagne seule en 512 × 512 — un carré dans un cadre paysage, que la
         // plupart rognent ou entourent de blanc. Et jamais le SVG : aucune
         // messagerie ne rend un vecteur.
-        <Meta property="og:image" content=format!("{ORIGINE}/images/apercu.png") />
+        <Meta property="og:image" content=format!("{ORIGINE}{}", image("apercu.png")) />
         <Meta property="og:image:type" content="image/png" />
         <Meta property="og:image:width" content="1200" />
         <Meta property="og:image:height" content="630" />
@@ -141,7 +143,7 @@ pub fn Tete(
         />
 
         <Meta name="twitter:card" content="summary_large_image" />
-        <Meta name="twitter:image" content=format!("{ORIGINE}/images/apercu.png") />
+        <Meta name="twitter:image" content=format!("{ORIGINE}{}", image("apercu.png")) />
         <Meta name="twitter:title" content=complet />
         <Meta name="twitter:description" content=description />
     }

@@ -26,7 +26,8 @@ async fn main() {
     // Et l'échec est fatal, délibérément : un site qui démarre sans vivier
     // servirait une page d'accueil muette, et on l'apprendrait par un lecteur.
     let vivier: Arc<dyn Vivier> = Arc::new(
-        VivierEmbarque::charger().expect("daily.json illisible — le vivier est embarqué à la compilation"),
+        VivierEmbarque::charger()
+            .expect("daily.json illisible — le vivier est embarqué à la compilation"),
     );
     let horloge: Arc<dyn Horloge> = Arc::new(HorlogeSysteme);
 
@@ -35,10 +36,12 @@ async fn main() {
     // ce qui garde le démarrage à froid court quand le vault passera de trois
     // livres à soixante-dix.
     let corpus: Arc<dyn Corpus> = Arc::new(
-        CorpusEmbarque::charger().expect("corpus.json illisible — le plan est embarqué à la compilation"),
+        CorpusEmbarque::charger()
+            .expect("corpus.json illisible — le plan est embarqué à la compilation"),
     );
     let lexique: Arc<dyn Lexique> = Arc::new(
-        LexiqueEmbarque::charger().expect("glossary.json illisible — le lexique est embarqué à la compilation"),
+        LexiqueEmbarque::charger()
+            .expect("glossary.json illisible — le lexique est embarqué à la compilation"),
     );
 
     let conf = get_configuration(None).unwrap();
@@ -144,7 +147,10 @@ async fn main() {
         .route(
             "/sitemap.xml",
             axum::routing::get(|| async move {
-                ([(axum::http::header::CONTENT_TYPE, "application/xml")], plan)
+                (
+                    [(axum::http::header::CONTENT_TYPE, "application/xml")],
+                    plan,
+                )
             }),
         )
         // La racine renvoie vers la langue. Une **redirection temporaire** et

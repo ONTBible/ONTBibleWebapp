@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
+use crate::interface::design::image;
+
 /// L'en-tête — la marque, puis la navigation.
 ///
 /// Le wordmark est une **image et non du texte** : il porte l'hébreu מקרא הקדם
@@ -49,7 +51,7 @@ pub fn Entete() -> impl IntoView {
                 attr:aria-label="La Bible ONT — accueil"
             >
                 <img
-                    src="/images/wordmark.svg"
+                    src=image("wordmark.svg")
                     alt="La Bible ONT — מקרא הקדם"
                     width="765"
                     height="307"
