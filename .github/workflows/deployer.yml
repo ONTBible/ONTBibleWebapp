@@ -123,7 +123,9 @@ jobs:
         env:
           ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
         run: |
-          cargo run --manifest-path pipeline/Cargo.toml --release --quiet
+          # `--bin` explicite : la caisse en porte deux depuis que le schéma
+          # engendre les liaisons Swift, et cargo refuse de choisir.
+          cargo run --manifest-path pipeline/Cargo.toml --bin ont-pipeline --release --quiet
           echo "── ce que le pipeline a produit ──"
           cat dist/manifest.json | head -c 400; echo
 
