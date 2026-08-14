@@ -1,0 +1,187 @@
+# Éprouve une pull request, avant qu'elle ne devienne la production.
+#
+# ## Pourquoi ce fichier existe
+#
+# `deployer.yml` fait déjà tourner les tests — mais **après** la fusion, dans
+# le job qui déploie. La séquence était donc : fusionner, puis découvrir. Sur
+# un dépôt où `main` part en ligne toute seule, c'est le mauvais ordre.
+#
+# Ce workflow ne déplace pas le gardien, il l'avance. Mêmes étapes que le
+# déploiement jusqu'à la construction, et rien de ce qui vient après.
+#
+# ## Il ne peut pas déployer, et ce n'est pas une promesse
+#
+# `infra/ci.tf` épingle la condition OIDC à `repo:…:ref:refs/heads/main`. Le
+# jeton que GitHub signe pour une pull request porte `ref:refs/pull/17/merge` :
+# AWS refuse de prêter le rôle. Ce job ne pourrait pas obtenir de droits même
+# si on lui en écrivait la commande.
+#
+# D'où l'absence de `permissions: id-token` ici — on ne demande pas un jeton
+# dont on n'a aucun usage.
+#
+# ## Ce qu'il attrape, et ce qu'il n'attrape pas
+#
+# Il attrape ce qui casse : un test, une compilation, un `@utility` mal écrit
+# que Tailwind refuse, un binaire qui ne démarre pas, une ponctuation double
+# qui peut tomber à la ligne.
+#
+# Il n'attrape pas ce qui est **juste mais faux**. Une échelle typographique
+# qui s'inverse sous 1024 px compile, passe les 66 tests, et se déploie. Il a
+# fallu un simulateur et une capture. Aucun job ne remplacera ça — voir §7 bis.
+
+name: Éprouver
+
+on:
+  pull_request:
+    branches: [main]
+
+# Une nouvelle poussée sur la même branche remplace la vérification en cours :
+# c'est l'inverse du déploiement, où le second attend parce que le premier a
+# peut-être déjà écrit. Ici rien n'est écrit nulle part.
+concurrency:
+  group: eprouver-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERSION_LEPTOS: v0.3.7
+
+jobs:
+  eprouver:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Les trois dépôts côte à côte, comme sur un poste de développement et
+      # comme dans `deployer.yml` : le site embarque `dist/` à la compilation
+      # par un chemin relatif, et dépend de `../ONTBibleApp/pipeline` comme
+      # caisse pour le schéma. `dist/` n'est pas dans le dépôt — c'est un
+      # produit, il naît de ce job.
+      - name: Le site
+        uses: actions/checkout@v4
+        with:
+          path: ONTBibleWebapp
+
+      - name: Le pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: ONTBible/ONTBibleApp
+          path: ONTBibleApp
+
+      - name: Le vault
+        uses: actions/checkout@v4
+        with:
+          repository: ONTBible/ONTBibleTranslation
+          path: ONTBibleTranslation
+
+      - name: Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ONTBibleWebapp
+            ONTBibleApp/pipeline
+
+      - name: Le corpus
+        working-directory: ONTBibleApp
+        env:
+          ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
+        # `--bin` explicite. La caisse du pipeline en porte deux depuis que le
+        # schéma engendre les liaisons Swift, et `cargo run` sans `--bin` refuse
+        # alors de choisir — la vérification s'arrêterait ici, sur une erreur
+        # qui ne parle ni du site ni du vault.
+        run: cargo run --manifest-path pipeline/Cargo.toml --bin ont-pipeline --release --quiet
+
+      # Les tests d'abord : ils tiennent en moins d'une seconde, et rien ne
+      # sert de construire dix minutes si le portage du verset du jour ne
+      # tombe plus sur le même verset que l'app.
+      - name: Les tests
+        working-directory: ONTBibleWebapp
+        run: cargo test --features ssr
+
+      - name: cargo-leptos, en glibc et pas en musl
+        # La version musl choisit un binaire Tailwind musl, qui réclame un
+        # chargeur absent d'Ubuntu — voir `deployer.yml`, où le piège est
+        # raconté en entier.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          gh release download "$VERSION_LEPTOS" \
+            --repo leptos-rs/cargo-leptos \
+            --pattern 'cargo-leptos-x86_64-unknown-linux-gnu.tar.gz' \
+            --output - | tar xz -C "$tmp"
+          install -m 755 "$(find "$tmp" -type f -name cargo-leptos | head -1)" \
+            "$HOME/.cargo/bin/cargo-leptos"
+
+      # C'est l'étape qui voit la feuille de style. Tailwind tourne ici : un
+      # `@utility` mal formé, un jeton qui n'existe pas, une `@source` perdue,
+      # et la construction s'arrête. Rien de tout cela n'apparaît dans
+      # `cargo test`.
+      #
+      # Le `mkdir` : cargo-leptos écrit le manifeste des empreintes à côté du
+      # binaire serveur, dans `target/release/`, que `--frontend-only` ne crée
+      # jamais.
+      - name: Le front
+        working-directory: ONTBibleWebapp
+        run: |
+          mkdir -p target/release
+          cargo leptos build --release --frontend-only
+
+      # Le serveur pour cette machine, et non pour la Lambda : on ne cherche
+      # pas à produire un artefact livrable, seulement à savoir qu'il compile
+      # et qu'il démarre. `cargo lambda` et zig restent l'affaire du
+      # déploiement.
+      - name: Le serveur
+        working-directory: ONTBibleWebapp
+        run: cargo build --release --no-default-features --features ssr
+
+      # Un binaire qui compile et ne démarre pas reste un binaire cassé. On le
+      # lance donc, et on lui pose de vraies questions.
+      #
+      # Le serveur, les routes et la composition tiennent dans **une seule**
+      # étape, et c'est délibéré : GitHub ouvre un shell par étape, et un
+      # processus laissé en fond dans l'un d'eux ne survit pas de façon garantie
+      # au suivant. Un serveur qui meurt entre deux étapes donnerait un échec
+      # qui ne parle de rien.
+      #
+      # `hash.txt` dans le répertoire courant : le serveur l'y cherche, et sans
+      # lui il écrit `ontbible.js` au lieu de `ontbible.<empreinte>.js`. Le même
+      # fichier voyage avec le paquet Lambda, pour la même raison.
+      #
+      # La composition se vérifie sur le **rendu** et non sur les sources :
+      # c'est la seule façon de voir les trois familles de textes à la fois — la
+      # prose écrite en Rust, les littéraux coupés par une continuation de
+      # ligne, et les chaînes nues du corpus. Voir §8 bis.
+      - name: Le site répond, et il est composé
+        working-directory: ONTBibleWebapp
+        env:
+          LEPTOS_OUTPUT_NAME: ontbible
+          LEPTOS_SITE_ROOT: target/site
+          LEPTOS_SITE_PKG_DIR: pkg
+          LEPTOS_SITE_ADDR: 127.0.0.1:3000
+          LEPTOS_HASH_FILES: "true"
+          LEPTOS_HASH_FILE: hash.txt
+        run: |
+          set -euo pipefail
+          cp target/release/hash.txt .
+          ./target/release/ontbible > /tmp/ontbible.log 2>&1 &
+          serveur=$!
+
+          for _ in $(seq 40); do
+            curl -sf -o /dev/null http://127.0.0.1:3000/fr && break
+            kill -0 "$serveur" 2>/dev/null || { echo "── le serveur est mort ──"; cat /tmp/ontbible.log; exit 1; }
+            sleep 1
+          done
+
+          for chemin in /fr /fr/lire /fr/lexique /sitemap.xml \
+                        /.well-known/apple-app-site-association; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000$chemin")
+            printf '%-46s %s\n' "$chemin" "$code"
+            [ "$code" = "200" ] || { cat /tmp/ontbible.log; exit 1; }
+          done
+
+          ./scripts/verifier-composition.py
+          kill "$serveur"

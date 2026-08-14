@@ -32,7 +32,7 @@ pub fn PageLegale(
 
             <h1 class="mt-6">{titre}</h1>
             <p class="mb-12 text-sm italic text-encre-douce">
-                "Dernière mise à jour : " {mise_a_jour}
+                "Dernière mise à jour : " {mise_a_jour}
             </p>
 
             <div class="[&_a]:text-accent [&_li]:mb-2 [&_ul]:mb-6 [&_ul]:list-disc [&_ul]:ps-6">

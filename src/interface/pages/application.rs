@@ -102,7 +102,7 @@ pub fn Application() -> impl IntoView {
 
             <dl class="m-0 grid gap-8 sm:grid-cols-2">
                 <Atout titre="Hors ligne">
-                    "Le corpus est dans l'app. Un tunnel, un avion, un village sans réseau : "
+                    "Le corpus est dans l'app. Un tunnel, un avion, un village sans réseau : "
                     "le texte est là."
                 </Atout>
                 <Atout titre="Le verset du jour">
@@ -124,17 +124,17 @@ pub fn Application() -> impl IntoView {
             <TitreDeSection numero="II" titre="Android" />
             <p class="text-encre-douce text-pretty">
                 "Il n'y a pas de version Android, et il serait malhonnête d'écrire "
-                "« bientôt » sans date. Mais ce site "<strong>"s'installe"</strong>", et le "
-                "résultat ressemble de près à une app : une icône sur l'écran d'accueil, "
+                "« bientôt » sans date. Mais ce site "<strong>"s'installe"</strong>", et le "
+                "résultat ressemble de près à une app : une icône sur l'écran d'accueil, "
                 "un nom, et l'ouverture en plein écran sans barre de navigateur."
             </p>
             <p class="text-encre-douce text-pretty">
-                "Dans Chrome, le menu ⋮ propose "<strong>"« Installer l'application »"</strong>
-                " — ou "<strong>"« Ajouter à l'écran d'accueil »"</strong>" selon la version. "
+                "Dans Chrome, le menu ⋮ propose "<strong>"« Installer l'application »"</strong>
+                " — ou "<strong>"« Ajouter à l'écran d'accueil »"</strong>" selon la version. "
                 "Firefox et Samsung Internet ont la même entrée."
             </p>
             <p class="text-encre-douce text-pretty">
-                "Ce qui manquera : la lecture hors ligne, le widget et les notifications du "
+                "Ce qui manquera : la lecture hors ligne, le widget et les notifications du "
                 "verset du jour. Le reste y est — "<a href="/fr/lire">"le corpus entier"</a>
                 ", les trois niveaux, et les mêmes réglages de lecture."
             </p>

@@ -13,6 +13,12 @@ use crate::interface::design::Entete;
 /// plus lointain. C'est le décalage entre les deux qui fait la profondeur — un
 /// massif isolé aurait l'air d'un autocollant.
 ///
+/// Ils sont dimensionnés par `horizon`, en **part d'écran** et non en largeur
+/// seule : une fenêtre de téléphone est deux fois plus haute que large, et les
+/// mêmes 165 % y donnaient une montagne tassée en bas, réduite au bout de crête
+/// qu'elle voulait éviter. Le pourquoi est dans `style/main.css` ; ici, seul
+/// `--part` se règle.
+///
 /// ## L'en-tête est **dans** l'ouverture
 ///
 /// La première chose qu'on voit doit être **une** unité qui remplit l'écran.
@@ -70,17 +76,16 @@ pub fn Hero(
         >
             <span
                 aria-hidden="true"
-                class="massif pointer-events-none absolute left-1/2 -z-10 -translate-x-1/2 text-aubergine"
+                class="massif horizon pointer-events-none absolute left-1/2 -z-10 -translate-x-1/2 text-aubergine"
                 class=("-bottom-[6%]", !sobre)
-                class=("w-[165%]", !sobre)
                 class=("opacity-80", !sobre)
                 class=("-bottom-[14%]", sobre)
-                class=("w-[150%]", sobre)
+                class=("[--part:150]", sobre)
                 class=("opacity-45", sobre)
             ></span>
             <span
                 aria-hidden="true"
-                class="massif pointer-events-none absolute -bottom-[13%] left-1/2 -z-10 w-[200%] -translate-x-1/2 text-or opacity-[0.055]"
+                class="massif horizon pointer-events-none absolute -bottom-[13%] left-1/2 -z-10 [--part:200] -translate-x-1/2 text-or opacity-[0.055]"
                 class=("hidden", sobre)
             ></span>
 

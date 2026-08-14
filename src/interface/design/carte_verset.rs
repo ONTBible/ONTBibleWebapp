@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 
 use crate::api::VersetDuJourDto;
+use crate::interface::design::verset::composer;
 
 /// La carte du verset du jour — un plan éclairé.
 ///
@@ -30,11 +31,16 @@ pub fn CarteVersetDuJour(verset: VersetDuJourDto) -> impl IntoView {
                 "Verset du jour"
             </p>
 
+            // Le verset arrive du vivier en **chaîne plate**, pas en nœuds : il
+            // ne passe donc pas par le rendu des trois niveaux, et la
+            // composition française ne lui était pas appliquée. Ses guillemets
+            // se détachaient — le fermant tombait seul à la ligne suivante sur
+            // la mesure d'un téléphone.
             <blockquote
                 cite=verset.chemin.clone()
                 class="m-0 text-lg leading-[1.6] text-pretty text-encre-vive"
             >
-                {verset.texte}
+                {composer(&verset.texte)}
             </blockquote>
 
             // Le renvoi mène au passage, dans son unité, à son verset. Une

@@ -76,7 +76,18 @@ fn rendre(noeuds: &[Noeud]) -> Vec<AnyView> {
 /// le pipeline coupait entre l'espace et sa ponctuation — un intraduisible
 /// suivi d'un deux-points — la paire lui échapperait. Les 2124 relevées sont
 /// toutes internes.
-fn composer(texte: &str) -> String {
+///
+/// ## Publique, parce que le corpus ne voyage pas qu'en nœuds
+///
+/// Elle ne s'appliquait qu'à `Noeud::Texte`, donc à ce qui traverse l'arbre.
+/// Or le pipeline livre aussi des **chaînes nues** : le rendu d'un
+/// intraduisible, l'extrait d'une occurrence. Elles sortaient droit du JSON,
+/// non composées — vingt-trois coupures possibles sur la seule fiche d'`adam`,
+/// et personne pour les voir puisque la page ne casse pas.
+///
+/// Toute chaîne du corpus posée dans une page passe donc par ici. La règle
+/// n'existe qu'une fois, et c'est la condition pour qu'elle reste vraie.
+pub fn composer(texte: &str) -> String {
     const FINE: char = '\u{202F}';
     const INSECABLE: char = '\u{00A0}';
 

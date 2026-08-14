@@ -64,7 +64,7 @@ pub fn Accueil() -> impl IntoView {
             </Suspense>
 
             <p class="mt-10 text-sm text-encre-douce">
-                "Une fonction de la date, non un tirage : le site, l'application et son widget "
+                "Une fonction de la date, non un tirage : le site, l'application et son widget "
                 "tombent sur le même verset le même matin, sans jamais se parler."
             </p>
         </Bloc>
@@ -89,7 +89,7 @@ pub fn Accueil() -> impl IntoView {
             />
 
             <p class="mt-10">
-                <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
+                <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
                 "un espace, attribuer des rôles, mettre en fonction. Le cosmos ne sort pas "
                 "d'une usine — il est inauguré comme on inaugure un Temple."
             </p>
@@ -119,7 +119,7 @@ pub fn Accueil() -> impl IntoView {
             </p>
             <Chiffres />
             <p class="mt-10 text-sm text-encre-douce">
-                "Une unité verrouillée a été relue et validée : elle fait référence. "
+                "Une unité verrouillée a été relue et validée : elle fait référence. "
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
             </p>
             <p class="mt-8">

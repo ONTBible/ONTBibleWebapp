@@ -32,7 +32,7 @@ pub fn LegendeNiveaux() -> impl IntoView {
                     <span class="font-semibold text-important">"Le terme important"</span>
                 </Terme>
                 "Un mot qui porte le poids de la phrase, mais qui se traduit. Il est marqué, "
-                "et il ne promet rien : il ne mène nulle part."
+                "et il ne promet rien : il ne mène nulle part."
             </Niveau>
 
             <Niveau>
@@ -40,7 +40,7 @@ pub fn LegendeNiveaux() -> impl IntoView {
                     <span class="italic text-encre-douce">"[La glose]"</span>
                 </Terme>
                 "Ce que le champ sémantique hébreu portait pour son lecteur, et que le "
-                "français perd. Elle explicite l'implicite ; elle n'invente pas."
+                "français perd. Elle explicite l'implicite ; elle n'invente pas."
             </Niveau>
 
             <Niveau>

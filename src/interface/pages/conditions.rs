@@ -24,7 +24,7 @@ pub fn Conditions() -> impl IntoView {
             <h2>"Une traduction en cours"</h2>
             <p>
                 "L'ONT n'est pas achevée. Une "<strong>"unité verrouillée"</strong>" a été "
-                "relue et validée par son auteur : elle fait référence. Une unité qui ne "
+                "relue et validée par son auteur : elle fait référence. Une unité qui ne "
                 "l'est pas est un brouillon, et l'app le signale."
             </p>
             <p>
@@ -36,7 +36,7 @@ pub fn Conditions() -> impl IntoView {
             <p>
                 "Le site et l'application sont fournis sans garantie d'aucune sorte, expresse "
                 "ou implicite. L'auteur n'est pas responsable d'une perte de données ni d'un "
-                "dommage découlant de leur usage. Vos annotations vous appartiennent : "
+                "dommage découlant de leur usage. Vos annotations vous appartiennent : "
                 "gardez-en une copie si elles comptent."
             </p>
 
@@ -49,8 +49,8 @@ pub fn Conditions() -> impl IntoView {
             <p>
                 "Le "<strong>"texte de la traduction"</strong>" est autre chose. Il est "
                 "consultable publiquement, mais aucune licence ne l'ouvre à la "
-                "redistribution ou à la modification : il reste la propriété de son auteur. "
-                "Citez-le librement, avec son renvoi ; pour un autre usage, écrivez."
+                "redistribution ou à la modification : il reste la propriété de son auteur. "
+                "Citez-le librement, avec son renvoi ; pour un autre usage, écrivez."
             </p>
 
             <h2>"Les fontes"</h2>

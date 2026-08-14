@@ -59,7 +59,7 @@ pub fn Auteur() -> impl IntoView {
         <Bloc eclaire=true>
             <TitreDeSection numero="I" titre="Ce que j'ai reçu" />
             <p class="lettrine">
-                "J'ai reçu un manteau d'antiquité. Et l'ordre qui allait avec : "
+                "J'ai reçu un manteau d'antiquité. Et l'ordre qui allait avec : "
                 "ramener ce qui a été perdu depuis d'anciens temps."
             </p>
             <Exergue>
@@ -108,7 +108,7 @@ pub fn Auteur() -> impl IntoView {
             </p>
             <p>
                 "Si une réalité fonctionne d'une manière distincte, elle mérite un nom "
-                "distinct. C'est le principe de qara : nommer, c'est faire entrer dans "
+                "distinct. C'est le principe de qara : nommer, c'est faire entrer dans "
                 "l'existence."
             </p>
         </Bloc>

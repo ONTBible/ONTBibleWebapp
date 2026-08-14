@@ -84,9 +84,35 @@
 
   /* ── Échelle typographique ───────────────────────────────────────────────
 
-     Une quarte juste (1,333). `clamp` fait varier la taille avec la fenêtre :
-     pas de rupture, pas de point de bascule. Les noms de Tailwind sont
-     conservés — qui connaît Tailwind lit la classe sans venir ici.
+     Une quarte juste (1,333) sur grand écran. `clamp` fait varier la taille
+     avec la fenêtre : pas de rupture, pas de point de bascule. Les noms de
+     Tailwind sont conservés — qui connaît Tailwind lit la classe sans venir
+     ici.
+
+     ── Un rapport se tient aux deux bouts, ou il ne se tient pas ────────────
+
+     Chaque palier portait son propre plancher, choisi à l'œil et sans regarder
+     le voisin. Le résultat : le plancher de `3xl` valait 2,25 rem et celui de
+     `2xl` 2,35 rem — **l'échelle s'inversait**. Sur un téléphone, le titre de
+     l'accueil mesurait 41,9 px et la phrase qui le suit 39,7 px : un rapport de
+     1,055 là où le grand écran en donne 1,333. Les deux lignes pesaient pareil,
+     et la page n'avait plus de premier mot.
+
+     Ça ne se voyait pas sur un grand écran, et ça ne pouvait pas s'y voir : les
+     planchers ne mordent que sous 1024 px. Un défaut de ce genre vit dans la
+     moitié de la page qu'on ne regarde jamais.
+
+     Les paliers sont donc **une seule interpolation** de 390 à 1280 px, chacun
+     de son plancher à son plafond. Les plafonds ne bougent pas d'un dixième —
+     le grand écran est exactement celui d'avant. Les planchers, eux, suivent une
+     tierce (1,2) : un rapport se resserre sur un téléphone, il ne s'y renverse
+     pas. Une hauteur de fenêtre plus courte porte moins de niveaux ; elle ne
+     doit pas les porter dans le désordre.
+
+     La propriété se vérifie sans essai : la valeur préférée de chaque palier
+     domine celle du palier d'en dessous terme à terme, et ses bornes aussi.
+     `clamp` étant monotone, l'ordre tient à **toute** largeur. Ajouter un palier
+     se vérifie de la même façon — jamais à l'œil.
 
      Le corps est à **21 px**, pas à 16. Deux effets se cumulent : Literata a
      une hauteur d'x généreuse mais une chasse étroite, et sur une nuit
@@ -104,10 +130,10 @@
      suivante.                                                               */
   --text-sm: 1rem;
   --text-base: 1.3125rem;
-  --text-lg: clamp(1.5rem, 1.32rem + 0.7vw, 1.75rem);
-  --text-xl: clamp(1.9rem, 1.6rem + 1.4vw, 2.33rem);
-  --text-2xl: clamp(2.35rem, 1.85rem + 2.6vw, 3.11rem);
-  --text-3xl: clamp(2.25rem, 1.5rem + 4.6vw, 4.15rem);
+  --text-lg: clamp(1.5rem, 1.39rem + 0.45vw, 1.75rem);
+  --text-xl: clamp(1.75rem, 1.5rem + 1.04vw, 2.33rem);
+  --text-2xl: clamp(2.1rem, 1.66rem + 1.82vw, 3.11rem);
+  --text-3xl: clamp(2.5rem, 1.78rem + 2.97vw, 4.15rem);
 
   /* Les capitales espacées du livre imprimé — jamais sur du bas de casse, où
      l'interlettrage ne fait que disloquer le mot. */
@@ -118,6 +144,18 @@
      points, la largeur de lecture de l'app sur iPad. */
   --container-mesure: 38rem;
   --container-large: 52rem;
+
+  /* La marque, dans l'en-tête. Elle **suit la même interpolation que le
+     texte**, et pour la même raison : posée à 224 px en dur, elle occupait
+     17 % de la largeur sur un écran d'ordinateur et 56 % sur un téléphone.
+     Un rapport de un à trois. Le lecteur ne mesure rien, mais il voit une
+     enseigne là où il devrait voir une signature — et le titre, qui porte le
+     propos, passait au second rang sur le seul écran où il n'a pas la place
+     de se défendre.
+
+     De 152 px à 390 px de fenêtre jusqu'à 224 px à 1280 : la part occupée
+     tombe de 56 % à 39 % sur téléphone, et le grand écran ne bouge pas. */
+  --container-marque: clamp(9.5rem, 7.53rem + 8.09vw, 14rem);
 
   /* `ONTRadius.card` — 22 points. */
   --radius-carte: 1.375rem;
@@ -404,12 +442,80 @@
 
 /* Le massif — la montagne employée en grand, comme un horizon ou un relief
  * lointain, jamais comme une illustration. Elle prend la couleur du texte
- * courant, donc son opacité se règle par la couleur et non par un filtre. */
+ * courant, donc son opacité se règle par la couleur et non par un filtre.
+ *
+ * Il ne pose **aucune largeur**, et c'est délibéré : il sert aussi de petit
+ * signe de quelques pixels dans un sommaire ou une carte, où c'est un `w-7` qui
+ * commande. Une largeur ici et une classe `w-*` là se retrouveraient sur le
+ * même élément à spécificité égale — et à spécificité égale, c'est l'ordre de
+ * la feuille qui tranche, jamais celui de l'attribut. Le piège a déjà coûté
+ * une page entière (voir `Bloc`). La largeur d'une ouverture est donc dans
+ * `horizon`, et les deux ne se rencontrent jamais. */
 @utility massif {
   background: currentColor;
   aspect-ratio: 502 / 249;
   -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
   mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* L'horizon — le massif d'une ouverture, celui qui ferme le bas de l'écran.
+ *
+ * ── La taille se donne en part d'écran, et l'écran a deux dimensions ────────
+ *
+ * `--part` est la part de la **largeur** occupée : 165 pour 165 %. C'est le
+ * seul nombre à régler, et il porte le nom de ce qu'il fait.
+ *
+ * Un masque garde ses proportions : à 165 % de largeur, sa hauteur vaut la
+ * moitié — près de 90 % de l'écran sur une fenêtre d'ordinateur, où la crête
+ * monte derrière le titre et l'on est **dans** un lieu. Sur un téléphone, les
+ * mêmes 165 % ne donnent plus que 37 % de la hauteur : la montagne se tasse en
+ * bas, on n'en voit qu'un bout de crête, et elle redevient l'autocollant qu'on
+ * voulait éviter.
+ *
+ * La largeur se prend donc au plus grand de deux termes — la part de largeur,
+ * ou la même part convertie en hauteur. Un `max()` et non une requête média :
+ * le seuil n'est pas une largeur, c'est le **rapport** de la fenêtre, et il
+ * bascule tout seul. Une fenêtre en paysage garde exactement la composition
+ * d'avant, le terme de largeur l'emportant dès qu'elle est plus large que
+ * haute. Sur un téléphone, c'est la hauteur qui commande, et la montagne est
+ * vue de plus près — on voit un tiers du tracé au lieu des trois cinquièmes,
+ * et la crête y garde presque toute son amplitude.
+ *
+ * ── Le coefficient est 0,904, et il n'est pas la parité géométrique ─────────
+ *
+ * La parité stricte vaudrait 1,067 : la montagne occuperait alors la même part
+ * de hauteur que sur la fenêtre de référence, 87 %. Essayée, mesurée — elle ne
+ * marche pas. Sur un écran étroit, une montagne haute de 87 % ne laisse plus
+ * de fond au-dessus de sa crête : la silhouette n'a plus rien contre quoi se
+ * détacher, et comme le massif est aubergine sur une nuit d'aubergine, l'écran
+ * devient une masse unie. On ne voit plus une montagne, on voit une couleur.
+ *
+ * Ce qui fait la montagne n'est pas sa masse, c'est **son bord**. Il lui faut
+ * donc du ciel. À 0,904 elle occupe 74 % de la hauteur, la crête monte derrière
+ * le titre comme sur un ordinateur, et l'en-tête reste dans le ciel.
+ *
+ * Un chiffre trouvé en regardant trois tailles côte à côte au simulateur, pas
+ * en le calculant. Le calcul donnait la bonne géométrie et la mauvaise image.
+ *
+ * Deux `width` de suite, et c'est le seul endroit du site où c'en est une
+ * bonne : la seconde écrase la première là où `max()` est compris, la première
+ * tient partout ailleurs. Un navigateur qui ne suit pas jette la déclaration
+ * qu'il ne comprend pas, pas la règle — sans ce repli, la montagne ne serait
+ * pas *approximative*, elle serait **absente**, et une largeur nulle ne casse
+ * rien : la page s'affiche, se lit, et le décor manque sans que rien ne le
+ * dise.
+ *
+ * La règle vit ici et non en classe Tailwind pour cette raison précise : une
+ * classe ne porte qu'une déclaration, donc pas de repli. Et un `max()` écrit
+ * entre crochets trois fois de suite ne se relit pas.
+ *
+ * `vh` et non `dvh` : la barre de Safari se rétracte au défilement, et un
+ * horizon qui grandit sous le doigt se remarque. Le décor garde sa taille ;
+ * c'est le bloc qui bouge. */
+@utility horizon {
+  --part: 165;
+  width: calc(var(--part) * 1%);
+  width: max(calc(var(--part) * 1%), calc(var(--part) * 0.904vh));
 }
 
 /* Le halo — ce qui distingue un plan éclairé d'un plan en retrait. Une ombre

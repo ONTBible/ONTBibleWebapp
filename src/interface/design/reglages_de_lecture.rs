@@ -222,7 +222,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                     <p class=NOTE>
                         "À la suite, les versets coulent en prose et leurs numéros passent en "
                         "exposant — c'est la lecture suivie. En blocs, chaque verset se tient "
-                        "seul : c'est le mode d'étude."
+                        "seul : c'est le mode d'étude."
                     </p>
 
                     <Groupe titre="Niveaux du texte">
@@ -243,7 +243,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                     </Groupe>
                     <p class=NOTE>
                         "Le corps de la traduction reste toujours visible. Les gloses "
-                        "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
+                        "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
                     </p>
             </div>
         </Show>
