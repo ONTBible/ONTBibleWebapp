@@ -11,6 +11,18 @@ use leptos_router::components::A;
 /// La navigation est en capitales espacées. En bas de casse, elle ressemblerait
 /// à une barre d'application ; ainsi, elle ressemble à un titre courant.
 ///
+/// ## La marque se mesure en part d'écran, comme le texte
+///
+/// Elle était posée à 224 px en dur — 17 % de la largeur sur un ordinateur,
+/// 56 % sur un téléphone. Le rapport à ce qui l'entoure n'était donc pas le
+/// même d'un écran à l'autre, et sur téléphone l'en-tête pesait plus lourd que
+/// le titre qui porte le propos. Le jeton `--container-marque` l'interpole
+/// comme l'échelle typographique interpole le texte : le grand écran ne bouge
+/// pas, le téléphone se resserre.
+///
+/// Le `max-w-[60vw]` qui la bornait est parti avec : une borne qui ne mord
+/// jamais est une borne qu'on croit active. Le `clamp` la contient déjà.
+///
 /// ## Elle n'a pas de fond, et elle vit dans l'ouverture
 ///
 /// `Hero` la contient : la marque et la navigation flottent dans le lieu au
@@ -41,7 +53,7 @@ pub fn Entete() -> impl IntoView {
                     alt="La Bible ONT — מקרא הקדם"
                     width="765"
                     height="307"
-                    class="block h-auto w-56 max-w-[60vw]"
+                    class="block h-auto w-marque"
                 />
             </A>
 

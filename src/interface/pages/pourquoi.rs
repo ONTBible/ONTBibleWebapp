@@ -45,13 +45,13 @@ pub fn Pourquoi() -> impl IntoView {
         </Bloc>
 
         <Bloc eclaire=true>
-            <TitreDeSection numero="II" titre="« Créer » ne veut pas dire fabriquer" />
+            <TitreDeSection numero="II" titre="« Créer » ne veut pas dire fabriquer" />
             <p>
-                "« Au commencement Dieu créa le ciel et la terre » suppose un atelier, de la "
+                "« Au commencement Dieu créa le ciel et la terre » suppose un atelier, de la "
                 "matière, un avant et un après. Rien de tout cela n'est dans le verbe hébreu."
             </p>
             <p>
-                <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
+                <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
                 "un espace, attribuer des rôles, mettre en fonction. Le cosmos ne sort pas "
                 "d'une usine. Il est inauguré comme on inaugure un Temple — et un Temple "
                 "commence à exister le jour où l'on y entre pour y résider."

@@ -18,11 +18,16 @@ Le serveur de développement doit tourner (`cargo leptos watch`).
 
 ## Ce qu'il ne montre pas
 
-QuickLook ne rend pas les masques CSS pointant un SVG externe : le signe de
-section apparaît donc comme un blanc entre deux filets. Ce n'est pas un défaut
-de la page — un vrai navigateur l'affiche. Ne pas « corriger » ce vide.
+Le responsive. QuickLook rend à une fenêtre fixe et large, puis réduit
+l'image : les requêtes média y voient toujours un grand écran. Pour un
+téléphone, c'est `scripts/sim.sh` et rien d'autre.
+
+Il montrait aussi les masques comme des blancs — le massif de l'ouverture, le
+signe de section — et l'on avait pris ça pour une limite. C'en était une du
+**chemin**, pas du masque : embarqué en `data:`, il est rendu. Voir plus bas.
 """
 
+import base64
 import pathlib
 import re
 import subprocess
@@ -56,9 +61,28 @@ def main() -> None:
     # La feuille compilée pointe /fontes/ et /images/ depuis la racine du site ;
     # ouverte comme un fichier, elle les chercherait à la racine du disque.
     css = feuille.read_text()
-    (RACINE / "pkg/apercu.css").write_text(
-        css.replace('url("/fontes/', 'url("../fontes/').replace('url("/images/', 'url("../images/')
+    css = css.replace('url("/fontes/', 'url("../fontes/').replace(
+        'url("/images/', 'url("../images/'
     )
+
+    # Les masques rentrent, et c'est ce qui rend cet outil utile.
+    #
+    # QuickLook refuse un masque CSS qui pointe un SVG **par son chemin** —
+    # le massif de l'ouverture et le signe de section arrivaient en blancs, et
+    # l'on a longtemps pris ces vides pour une limite à contourner. Ce n'en est
+    # pas une : le même masque **en `data:`** est rendu. Le fichier est donc
+    # embarqué dans la feuille d'aperçu, et une ouverture se juge enfin ici
+    # plutôt qu'au seul simulateur, qui ne montre qu'un téléphone.
+    #
+    # La feuille du site, elle, garde son chemin : un SVG de 4 Ko recopié en
+    # base64 dans la CSS de production la gonflerait et l'empêcherait d'être
+    # mise en cache à part.
+    for nom in ("logomark",):
+        source = RACINE.parent.parent / "public" / "images" / f"{nom}.svg"
+        uri = "data:image/svg+xml;base64," + base64.b64encode(source.read_bytes()).decode()
+        css = css.replace(f'url("../images/{nom}.svg")', f'url("{uri}")')
+
+    (RACINE / "pkg/apercu.css").write_text(css)
 
     fichiers = []
     for argument in sys.argv[2:]:

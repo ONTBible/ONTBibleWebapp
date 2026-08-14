@@ -270,7 +270,42 @@ redescendre sans qu'il le demande.
 |---|---|
 | `text-sm` | 16 px — capitales espacées, légendes |
 | `text-base` | **21 px** — le corps |
-| `text-lg` → `text-3xl` | quarte juste, en `clamp` |
+| `text-lg` → `text-3xl` | quarte juste sur grand écran, tierce sur téléphone |
+
+**Une échelle se tient aux deux bouts, ou elle ne se tient pas. Corrigé le
+14 août 2026.** Chaque palier portait son propre plancher, choisi à l'œil et
+sans regarder le voisin : celui de `3xl` valait 2,25 rem, celui de `2xl`
+2,35 rem — **l'échelle s'inversait**. Sur un téléphone, le titre de l'accueil
+mesurait 41,9 px et la phrase qui le suit 39,7 px, soit un rapport de 1,055 là
+où le grand écran en donne 1,333. Les deux lignes pesaient pareil et la page
+n'avait plus de premier mot.
+
+Ça ne pouvait pas se voir sur un grand écran : les planchers ne mordent que
+sous 1024 px. Un défaut de ce genre vit dans la moitié de la page qu'on ne
+regarde jamais.
+
+Les paliers sont maintenant **une seule interpolation** de 390 à 1280 px.
+Les plafonds n'ont pas bougé d'un dixième — le grand écran est exactement celui
+d'avant. Les planchers suivent une tierce (1,2) : un rapport se resserre sur un
+téléphone, il ne s'y renverse pas.
+
+La propriété se vérifie sans essai, et c'est la règle à appliquer au prochain
+palier : la valeur préférée de chaque taille domine celle d'en dessous terme à
+terme, et ses deux bornes aussi. `clamp` étant monotone, l'ordre tient alors à
+**toute** largeur. Jamais à l'œil.
+
+### La marque aussi se mesure en part d'écran
+
+Le wordmark était posé à 224 px en dur : 17 % de la largeur sur un ordinateur,
+**56 %** sur un téléphone. Un rapport de un à trois, sur la pièce la plus
+visible de la page. Le lecteur ne mesure rien, mais il voit une enseigne là où
+il devrait voir une signature — et le titre, qui porte le propos, passait au
+second rang sur le seul écran où il n'a pas la place de se défendre.
+
+Le jeton `--container-marque` l'interpole comme l'échelle interpole le texte :
+152 px à 390, 224 px à 1280. Le grand écran ne bouge pas. La règle vaut pour
+toute image d'interface — une taille en pixels est une taille juste sur un seul
+écran.
 
 **La mesure suit la taille**, et c'est la règle à retenir : à 21 px, 34 rem ne
 tiendraient plus que 52 signes par ligne — sous la fourchette confortable de 55
@@ -307,6 +342,44 @@ remplissent l'écran, donc toutes se centrent de la même façon, et l'unité se
 lit dans la règle plutôt que dans une coordonnée. Ne pas revenir à l'ancrage
 sans qu'il le demande.
 
+
+### Le massif se dimensionne en part d'écran, pas en largeur
+
+**Corrigé le 14 août 2026.** Les massifs de l'ouverture étaient dimensionnés à
+la seule largeur — 165 % de l'écran. Un masque garde ses proportions : sa
+hauteur vaut donc la moitié de sa largeur. Sur une fenêtre d'ordinateur, ces
+165 % donnent près de 90 % de la hauteur, la crête monte derrière le titre, et
+l'on est **dans** un lieu. Sur un téléphone, les mêmes 165 % ne donnent plus
+que 37 % de la hauteur : la montagne se tasse en bas, on n'en voit qu'un bout
+de crête, et elle redevient l'autocollant qu'on voulait éviter.
+
+L'utilitaire `horizon` prend donc la largeur au plus grand de deux termes — la
+part de largeur, ou la même part convertie en hauteur. Un `max()` et non une
+requête média : le seuil n'est pas une largeur, c'est le **rapport** de la
+fenêtre, et il bascule tout seul. Une fenêtre en paysage garde exactement la
+composition d'avant.
+
+Trois choses à ne pas refaire :
+
+- **Le coefficient est 0,904, pas la parité géométrique (1,067).** À parité, la
+  montagne occupe la même part de hauteur que sur un ordinateur — 87 % — et il
+  ne reste plus de fond au-dessus de sa crête. Comme le massif est aubergine
+  sur une nuit d'aubergine, l'écran devient une masse unie : on ne voit plus une
+  montagne, on voit une couleur. Ce qui fait la montagne n'est pas sa masse,
+  c'est **son bord**, et un bord a besoin de ciel. Chiffre trouvé en regardant
+  trois tailles côte à côte au simulateur ; le calcul donnait la bonne géométrie
+  et la mauvaise image.
+- **`horizon` est séparé de `massif`, et il le faut.** `massif` sert aussi de
+  petit signe de quelques pixels dans un sommaire ou une carte, où c'est un
+  `w-7` qui commande. Une largeur dans `massif` et une classe `w-*` sur le même
+  élément, c'est le piège de `Bloc` rejoué — à spécificité égale, c'est l'ordre
+  de la feuille qui tranche.
+- **La règle vit en CSS, pas en classe Tailwind.** Elle porte deux `width` de
+  suite : la seconde écrase la première là où `max()` est compris, la première
+  tient partout ailleurs. Une classe ne porte qu'une déclaration, donc pas de
+  repli — et sans repli la montagne ne serait pas *approximative*, elle serait
+  **absente**. Une largeur nulle ne casse rien : la page s'affiche, se lit, et
+  le décor manque sans que rien ne le dise.
 
 Ce qui frappe en arrivant sur un site bien fait, c'est un premier écran qui est
 une seule chose et qui le remplit. Le premier essai posait l'en-tête en bande
@@ -548,10 +621,23 @@ des témoins relevés en **exécutant le Swift** :
 
 ## 7 bis. Voir le site
 
-Deux outils, et ils ne servent pas à la même chose.
+Trois outils, et ils ne servent pas à la même chose.
 
 `scripts/apercu.py` rend une page avec QuickLook, qui embarque WebKit. Il suffit
 à juger une composition sur grand écran.
+
+`scripts/verifier-composition.py` lit les douze gabarits **rendus** et échoue
+s'il trouve une ponctuation double qui peut tomber à la ligne. À lancer après
+toute page écrite — voir §8 bis.
+
+**Avant toute vérification visuelle : `./scripts/dev-sync-empreintes.sh`.** En
+mode `watch`, cargo-leptos régénère `target/site/pkg/ontbible.{css,js,wasm}`
+mais **pas** les copies empreintées — et c'est celles-là que le serveur écrit
+dans le HTML, puisqu'il démarre avec `target/debug/hash.txt`. La page servie
+porte donc les assets du dernier **redémarrage complet**, pas ceux du dernier
+enregistrement. On corrige un jeton, on recharge, rien ne bouge, et l'on croit
+que la correction est fausse. Une heure a été perdue là-dessus, à débattre d'un
+rendu qui n'était pas celui du code.
 
 `scripts/sim.sh` ouvre une page dans le **simulateur iOS** et en capture
 l'écran. C'est la seule vérification qui vaille pour tout ce qui dépend de la
@@ -566,9 +652,15 @@ Le simulateur partage le réseau de l'hôte : `127.0.0.1:3000` lui répond. Le
 script prend l'appareil nommé « Web » s'il existe — les autres portent l'app
 ONT, et y ouvrir Safari les sortirait de leur état.
 
-**Une limite connue** : QuickLook ne rend pas les masques CSS pointant un SVG
-externe. Le signe de section et les massifs y apparaissent comme des vides.
-Ce n'est pas un défaut de la page — ne pas « corriger » ces blancs.
+**La limite des masques est levée.** QuickLook refuse un masque CSS qui pointe
+un SVG **par son chemin** — le signe de section et les massifs arrivaient en
+blancs, et l'on avait pris ça pour une limite de l'outil. C'en était une du
+chemin, pas du masque : le même fichier **en `data:`** est rendu. `apercu.py`
+l'embarque donc dans sa feuille d'aperçu, et une ouverture se juge enfin sur
+grand écran plutôt qu'au seul simulateur, qui ne montre qu'un téléphone.
+
+La feuille du site, elle, garde son chemin : un SVG recopié en base64 dans la
+CSS de production la gonflerait et l'empêcherait d'être mise en cache à part.
 
 ## 8. Où en est le site
 
@@ -749,6 +841,24 @@ Deux bugs trouvés par les tests en l'écrivant, et le second était grave :
 
 `Verset::corps()` passe désormais par la même fonction : la règle
 typographique n'existe **qu'une fois**.
+
+**Et elle ne s'appliquait qu'à la moitié du site. Corrigé le 14 août 2026.**
+`composer` ne voyait que `Noeud::Texte`, donc ce qui traverse l'arbre. Trois
+familles de textes lui échappaient, et chacune se coupait à la ligne :
+
+- la **prose du site**, écrite en littéraux Rust — 40 cas ;
+- les littéraux **coupés en deux** par une continuation de ligne, qu'aucune
+  recherche sur les sources ne rapproche : l'espace finit un littéral, la
+  ponctuation commence le suivant ;
+- les **chaînes nues du corpus** — le verset du jour, le rendu d'un
+  intraduisible, l'extrait d'une occurrence. Vingt-trois coupures possibles sur
+  la seule fiche d'`adam`.
+
+`composer` est donc publique, et toute chaîne du corpus posée dans une page y
+passe. La vérification, elle, se fait sur le **rendu** et pas sur les sources —
+c'est la seule qui voie les trois familles à la fois :
+
+    ./scripts/verifier-composition.py
 
 **Le bouton flotte, la feuille monte.** Une première version posait le panneau
 en haut du chapitre. Ça ne tenait pas : un chapitre fait jusqu'à quarante-six

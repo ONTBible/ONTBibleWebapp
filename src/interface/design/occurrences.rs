@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 
 use crate::domaine::corpus::Occurrence;
+use crate::interface::design::verset::composer;
 
 /// Où un terme paraît dans le corpus.
 ///
@@ -60,8 +61,12 @@ pub fn Occurrences(occurrences: Vec<Occurrence>) -> impl IntoView {
                                     <span class="mb-1.5 block text-sm uppercase tracking-capitales text-accent">
                                         {renvoi}
                                     </span>
+                                    // L'extrait vient du corpus en chaîne nue,
+                                    // pas en nœuds : il lui faut la même
+                                    // composition française qu'à un verset,
+                                    // sinon son deux-points tombe à la ligne.
                                     <span class="block text-[0.92em] leading-relaxed text-encre-douce">
-                                        {occurrence.extrait}
+                                        {composer(&occurrence.extrait)}
                                     </span>
                                 </a>
                             </li>

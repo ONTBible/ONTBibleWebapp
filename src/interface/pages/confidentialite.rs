@@ -39,7 +39,7 @@ pub fn Confidentialite() -> impl IntoView {
             <h2>"Le site ne vous suit pas"</h2>
             <p>
                 "Aucun cookie. Aucun traceur. Aucune mesure d'audience. Aucun service tiers "
-                "n'est appelé depuis vos pages : les fontes et les images sont servies par "
+                "n'est appelé depuis vos pages : les fontes et les images sont servies par "
                 "ce domaine, pas par un réseau de diffusion."
             </p>
             <p>
@@ -58,12 +58,12 @@ pub fn Confidentialite() -> impl IntoView {
             <h2>"L'application, avec un compte"</h2>
             <p>
                 "Créer un compte sert à retrouver vos annotations sur un autre appareil. "
-                "La connexion passe par Apple, Google ou GitHub. Nous recevons alors :"
+                "La connexion passe par Apple, Google ou GitHub. Nous recevons alors :"
             </p>
             <ul>
                 <li>
                     "un "<strong>"identifiant stable"</strong>" chez ce fournisseur — une "
-                    "chaîne opaque qui ne dit rien de vous ;"
+                    "chaîne opaque qui ne dit rien de vous ;"
                 </li>
                 <li>
                     "votre "<strong>"adresse électronique"</strong>", et seulement si le "
@@ -78,8 +78,8 @@ pub fn Confidentialite() -> impl IntoView {
 
             <h2>"Ce qui est synchronisé"</h2>
             <ul>
-                <li>"vos surlignages — le passage, la couleur ;"</li>
-                <li>"vos notes ;"</li>
+                <li>"vos surlignages — le passage, la couleur ;"</li>
+                <li>"vos notes ;"</li>
                 <li>"votre position de lecture."</li>
             </ul>
             <p>
@@ -92,18 +92,18 @@ pub fn Confidentialite() -> impl IntoView {
             <p>
                 "Ce que vous surlignez dans une Bible peut révéler vos convictions "
                 "religieuses. L'article 9 du RGPD range cette information parmi les données "
-                "sensibles, et l'app est conçue en conséquence :"
+                "sensibles, et l'app est conçue en conséquence :"
             </p>
             <ul>
                 <li>
                     "le rappel quotidien est une "<strong>"notification locale"</strong>". "
                     "Aucun jeton d'appareil n'est enregistré, donc il n'existe nulle part de "
-                    "liste de qui lit une Bible et à quelle heure ;"
+                    "liste de qui lit une Bible et à quelle heure ;"
                 </li>
                 <li>
                     "le rapport d'erreur "<strong>"ne joint ni capture d'écran, ni "
                     "hiérarchie de vues, ni donnée personnelle"</strong>" — ces options sont "
-                    "désactivées explicitement dans le code, qui est public ;"
+                    "désactivées explicitement dans le code, qui est public ;"
                 </li>
                 <li>"le widget et la lecture fonctionnent en mode avion."</li>
             </ul>
@@ -120,11 +120,11 @@ pub fn Confidentialite() -> impl IntoView {
             <p>
                 "Vous pouvez demander l'accès à vos données, leur rectification, leur "
                 "effacement, ou leur export dans un format lisible. Supprimer votre compte "
-                "depuis l'app efface les données synchronisées ; celles restées sur votre "
+                "depuis l'app efface les données synchronisées ; celles restées sur votre "
                 "appareil disparaissent avec l'app."
             </p>
             <p>
-                "Pour toute demande : "
+                "Pour toute demande : "
                 <a href=format!("mailto:{CONTACT}")>{CONTACT}</a>
                 ". Vous pouvez aussi saisir la CNIL."
             </p>

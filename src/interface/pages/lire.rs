@@ -29,7 +29,7 @@ pub fn Lire() -> impl IntoView {
             chapeau=Box::new(|| {
                 view! {
                     <p class="text-encre-douce text-pretty">
-                        "Le plan entier, et ce qui en est traduit. Les titres en or se lisent ; \
+                        "Le plan entier, et ce qui en est traduit. Les titres en or se lisent ; \
                          les autres attendent leur tour."
                     </p>
                 }

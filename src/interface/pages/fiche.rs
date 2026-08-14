@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 
 use crate::api::fiche;
+use crate::interface::design::verset::composer;
 use crate::interface::design::{Blocs, Occurrences, PageDeLecture};
 use crate::interface::tete::Tete;
 
@@ -81,7 +82,7 @@ pub fn Fiche() -> impl IntoView {
                                             .then(|| {
                                                 view! {
                                                     <p class="text-lg italic text-accent text-pretty">
-                                                        {rendu}
+                                                        {composer(&rendu)}
                                                     </p>
                                                 }
                                             })}
@@ -93,7 +94,7 @@ pub fn Fiche() -> impl IntoView {
                                             .then(|| {
                                                 view! {
                                                     <p class="mt-4 text-sm text-encre-douce">
-                                                        "Formes : " {formes.join(", ")}
+                                                        "Formes : " {formes.join(", ")}
                                                     </p>
                                                 }
                                             })}

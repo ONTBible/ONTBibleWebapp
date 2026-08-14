@@ -33,7 +33,7 @@ pub fn Assistance() -> impl IntoView {
 
         <PageLegale titre="Assistance" mise_a_jour="13 août 2026">
             <p>
-                "Une seule adresse, pour tout : "
+                "Une seule adresse, pour tout : "
                 <a href=format!("mailto:{CONTACT}")>{CONTACT}</a>"."
             </p>
 
@@ -43,17 +43,17 @@ pub fn Assistance() -> impl IntoView {
                 "d'yeux de plus vaut mieux qu'une relecture de plus."
             </p>
             <p>
-                "Indiquez le "<strong>"renvoi"</strong>" — « Bereshit 3:7 » — et ce qui "
+                "Indiquez le "<strong>"renvoi"</strong>" — « Bereshit 3:7 » — et ce qui "
                 "vous arrête. Une coquille, un mot qui sonne faux, une glose qui dit "
-                "autre chose que le verset : tout se prend."
+                "autre chose que le verset : tout se prend."
             </p>
             <p>
                 "Une correction acceptée atteint l'application "<strong>"en quelques "
-                "minutes"</strong>". Le texte n'est pas figé dans la version installée : "
+                "minutes"</strong>". Le texte n'est pas figé dans la version installée : "
                 "l'app va le chercher toute seule."
             </p>
 
-            <h2>"Une unité manque, ou porte « brouillon »"</h2>
+            <h2>"Une unité manque, ou porte « brouillon »"</h2>
             <p>
                 "Ce n'est pas une panne. Trois livres sur soixante-dix sont traduits, et "
                 "une unité qui n'a pas été relue le dit — c'est délibéré. Le sommaire du "
@@ -73,7 +73,7 @@ pub fn Assistance() -> impl IntoView {
 
             <h2>"Vos données"</h2>
             <p>
-                "Le compte est facultatif : l'application se lit entièrement sans. Si "
+                "Le compte est facultatif : l'application se lit entièrement sans. Si "
                 "vous en avez créé un, "<strong>"Vous → Supprimer mon compte"</strong>
                 " efface la copie sur le serveur, sans passer par nous."
             </p>
