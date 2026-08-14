@@ -97,7 +97,9 @@ mod tests {
     #[test]
     fn le_chemin_pointe_le_verset_et_non_l_unite() {
         let v = vivier(1);
-        let verset = VersetDuJour::new(&HorlogeFigee(0), &v).aujourd_hui().unwrap();
+        let verset = VersetDuJour::new(&HorlogeFigee(0), &v)
+            .aujourd_hui()
+            .unwrap();
         assert_eq!(verset.chemin(), "/fr/lire/bereshit/bereshit-1?v=1");
     }
 }

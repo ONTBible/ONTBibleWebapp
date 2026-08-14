@@ -55,7 +55,10 @@ pub enum Noeud {
     /// Niveau 2 — ce que le champ sémantique hébreu porte implicitement.
     Glose(Vec<Noeud>),
     /// Niveau 3 — la translittération et l'hébreu, toujours les deux.
-    Hebreu { translitteration: String, hebreu: String },
+    Hebreu {
+        translitteration: String,
+        hebreu: String,
+    },
     /// De l'hébreu **seul**, sans translittération.
     ///
     /// Il sert dans les fiches de lexique, où l'on cite parfois un fragment

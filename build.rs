@@ -28,6 +28,91 @@ fn main() {
     println!("cargo:rustc-env=ANNEE_DE_COMPILATION={}", annee());
     etat_du_corpus();
     livres_du_corpus();
+    empreintes_des_images();
+}
+
+/// L'empreinte de chaque image, en code.
+///
+/// ## Le défaut que ça corrige
+///
+/// Les feuilles et le WASM portent une empreinte dans leur **nom** :
+/// `ontbible.<empreinte>.css`. Un contenu nouveau a donc une adresse nouvelle,
+/// et ne peut pas être servi depuis un cache. Voir le §8 ter.
+///
+/// Les images n'ont jamais eu ce traitement. `wordmark.svg` reste
+/// `wordmark.svg` quand son dessin change, et il est servi avec un cache d'une
+/// journée : **une image corrigée reste invisible jusqu'à vingt-quatre heures**
+/// pour qui a déjà visité le site.
+///
+/// Ce n'est pas théorique. Le ® a été retiré de la marque le 13 août 2026, et
+/// le lendemain on en débattait encore en regardant deux versions différentes
+/// du même fichier — l'une servie par la production, l'autre par un cache de
+/// navigateur.
+///
+/// ## Pourquoi un paramètre et non un nom
+///
+/// Renommer les fichiers demanderait de les recopier au build, et `public/` est
+/// posé tel quel sur le seau. Le paramètre `?v=` change l'adresse sans toucher
+/// au fichier : le navigateur y voit une autre ressource, S3 l'ignore, et
+/// l'invalidation CloudFront du déploiement s'occupe du bord.
+///
+/// ## Pourquoi une empreinte maison
+///
+/// Ce qu'on demande à cette valeur, c'est de **changer quand le contenu
+/// change** — rien de plus. Une collision ne serait pas une faille, seulement
+/// une image périmée de plus, ce qu'on a déjà aujourd'hui sur toutes. FNV-1a
+/// tient en huit lignes et n'ajoute aucune dépendance à un site qui n'en a que
+/// ce qu'il lui faut.
+fn empreintes_des_images() {
+    let dossier = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("public/images");
+    println!("cargo:rerun-if-changed={}", dossier.display());
+
+    let mut entrees: Vec<(String, String)> = fs::read_dir(&dossier)
+        .expect("public/images illisible")
+        .filter_map(Result::ok)
+        .map(|entree| entree.path())
+        .filter(|chemin| chemin.is_file())
+        .filter_map(|chemin| {
+            let nom = chemin.file_name()?.to_str()?.to_string();
+            let octets = fs::read(&chemin).ok()?;
+            Some((nom, empreinte(&octets)))
+        })
+        .collect();
+
+    // Trié : un tableau dont l'ordre change à chaque build ferait recompiler
+    // tout ce qui en dépend sans qu'une seule image ait bougé.
+    entrees.sort();
+
+    let mut code = String::from("pub static EMPREINTES: &[(&str, &str)] = &[\n");
+    for (nom, empreinte) in &entrees {
+        code.push_str(&format!("    ({nom:?}, {empreinte:?}),\n"));
+    }
+    code.push_str("];\n");
+
+    fs::write(
+        PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("images.rs"),
+        code,
+    )
+    .expect("écriture de images.rs");
+}
+
+/// FNV-1a sur 64 bits, rendue en base 36.
+fn empreinte(octets: &[u8]) -> String {
+    let mut somme: u64 = 0xcbf2_9ce4_8422_2325;
+    for octet in octets {
+        somme ^= *octet as u64;
+        somme = somme.wrapping_mul(0x1000_0000_01b3);
+    }
+
+    let alphabet = b"0123456789abcdefghijklmnopqrstuvwxyz";
+    let mut sortie = Vec::new();
+    let mut reste = somme;
+    while reste > 0 {
+        sortie.push(alphabet[(reste % 36) as usize]);
+        reste /= 36;
+    }
+    sortie.reverse();
+    String::from_utf8(sortie).expect("base 36 est de l'ASCII")
 }
 
 /// La liste des livres écrits, en code.

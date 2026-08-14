@@ -143,7 +143,10 @@ mod tests {
             assert!(!vus[i], "le verset {i} revient au jour {jour}");
             vus[i] = true;
         }
-        assert!(vus.into_iter().all(|v| v), "des versets n'ont jamais été vus");
+        assert!(
+            vus.into_iter().all(|v| v),
+            "des versets n'ont jamais été vus"
+        );
     }
 
     #[test]

@@ -98,7 +98,19 @@ jobs:
       # tombe plus sur le même verset que l'app.
       - name: Les tests
         working-directory: ONTBibleWebapp
-        run: cargo test --features ssr
+        # `fmt --check` en premier, et il ne coûte rien. Ce dépôt ne le
+        # vérifiait pas — contrairement à celui de l'app — et la dérive s'était
+        # installée : sept fichiers reformatés d'un coup au premier passage,
+        # dans une PR qui n'en touchait aucun. Un diff de mise en forme mêlé à
+        # un diff de fond rend les deux illisibles.
+        #
+        # `clippy` n'y est pas encore : trois avertissements dorment dans du
+        # code que personne n'a rouvert depuis. Les corriger est un autre
+        # travail, et l'ajouter avant les avoir corrigés bloquerait toute PR.
+        run: |
+          set -o pipefail
+          cargo fmt --check
+          cargo test --features ssr
 
       - name: cargo-leptos, en glibc et pas en musl
         # La version musl choisit un binaire Tailwind musl, qui réclame un

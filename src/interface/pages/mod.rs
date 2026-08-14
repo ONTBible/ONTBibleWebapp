@@ -11,15 +11,15 @@
 mod accueil;
 mod assistance;
 // Compilé mais non routé : sa page attend une relecture. Voir `app.rs`.
+pub mod application;
 #[allow(dead_code)]
 mod auteur;
 mod conditions;
+pub mod confidentialite;
 mod fiche;
 mod lexique;
 mod lire;
 mod livre;
-pub mod application;
-pub mod confidentialite;
 mod negations;
 mod passage;
 mod pourquoi;
@@ -28,11 +28,11 @@ pub use accueil::Accueil;
 pub use application::Application;
 pub use assistance::Assistance;
 pub use conditions::Conditions;
+pub use confidentialite::Confidentialite;
 pub use fiche::Fiche;
 pub use lexique::Lexique;
 pub use lire::Lire;
 pub use livre::Livre;
-pub use confidentialite::Confidentialite;
 pub use negations::Negations;
 pub use passage::Passage;
 pub use pourquoi::Pourquoi;

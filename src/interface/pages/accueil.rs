@@ -2,7 +2,7 @@ use leptos::prelude::*;
 
 use crate::api::verset_du_jour;
 use crate::interface::design::{
-    Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait,
+    image, Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait,
     TitreDeSection,
 };
 use crate::interface::echantillon::{bereshit_1_1, SEGOND_1910, SEGOND_SOURCE};
@@ -133,8 +133,8 @@ pub fn Accueil() -> impl IntoView {
             <div class="md:grid md:grid-cols-[auto_1fr] md:items-end md:gap-10">
                 <div class="mx-auto w-52 md:mx-0 md:w-64 lg:-ml-32 lg:w-80">
                     <Portrait
-                        source="/images/portrait-640.webp"
-                        source_large="/images/portrait-1024.webp"
+                        source=image("portrait-640.webp")
+                        source_large=image("portrait-1024.webp")
                         texte="Gloire Bikouta"
                         largeur_rendue="(min-width: 64rem) 20rem, (min-width: 48rem) 16rem, 13rem"
                     />

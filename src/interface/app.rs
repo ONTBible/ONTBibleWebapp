@@ -5,10 +5,10 @@ use leptos_router::{
     ParamSegment, SsrMode, StaticSegment,
 };
 
-use crate::interface::design::{Bouton, Hero, PiedDePage};
-use crate::interface::pages::{Application, 
-    Accueil, Assistance, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre, Negations,
-    Passage, Pourquoi,
+use crate::interface::design::{image, Bouton, Hero, PiedDePage};
+use crate::interface::pages::{
+    Accueil, Application, Assistance, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre,
+    Negations, Passage, Pourquoi,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -31,13 +31,13 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 // Deux favicons, et l'ordre compte : un navigateur qui comprend
                 // le SVG prend le vecteur, net à toute densité ; les autres
                 // retombent sur le PNG.
-                <link rel="icon" href="/images/logomark.svg" type="image/svg+xml" />
-                <link rel="icon" href="/images/montagne-512.png" sizes="512x512" />
+                <link rel="icon" href=image("logomark.svg") type="image/svg+xml" />
+                <link rel="icon" href=image("montagne-512.png") sizes="512x512" />
                 // L'icône d'écran d'accueil est **opaque** : iOS ne gère pas la
                 // transparence d'une icône, il la remplit de noir. La montagne
                 // dorée sur transparence y deviendrait une tache sur un carré
                 // noir.
-                <link rel="apple-touch-icon" href="/images/touch-icon.png" />
+                <link rel="apple-touch-icon" href=image("touch-icon.png") />
 
                 // Le manifeste : c'est lui qui donne à Android le nom, l'icône
                 // et la couleur de l'app installée. Sans lui, « Ajouter à

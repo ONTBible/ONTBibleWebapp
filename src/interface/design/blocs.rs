@@ -312,7 +312,10 @@ mod tests {
             niveau_3: false,
             ..Default::default()
         });
-        assert!(!html.contains("font-hebreu"), "le niveau 3 doit disparaître");
+        assert!(
+            !html.contains("font-hebreu"),
+            "le niveau 3 doit disparaître"
+        );
         assert!(html.contains("nom divin"), "la glose doit rester");
     }
 
@@ -349,7 +352,11 @@ mod tests {
             continu: true,
             ..Default::default()
         });
-        assert_eq!(html.matches("<p ").count(), 1, "un seul paragraphe : {html}");
+        assert_eq!(
+            html.matches("<p ").count(),
+            1,
+            "un seul paragraphe : {html}"
+        );
         assert!(html.contains(r#"id="v1""#), "l'ancre doit rester");
     }
 }

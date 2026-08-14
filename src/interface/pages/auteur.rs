@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Bloc, Exergue, Hero, Portrait, TitreDeSection};
+use crate::interface::design::{image, Bloc, Exergue, Hero, Portrait, TitreDeSection};
 use crate::interface::tete::Tete;
 
 /// « L'auteur ».
@@ -41,8 +41,8 @@ pub fn Auteur() -> impl IntoView {
             // écran. C'est la hauteur disponible qui commande, pas la largeur.
             <div class="w-32 sm:w-56">
                 <Portrait
-                    source="/images/portrait-640.webp"
-                    source_large="/images/portrait-1024.webp"
+                    source=image("portrait-640.webp")
+                    source_large=image("portrait-1024.webp")
                     texte="Gloire Bikouta"
                     largeur_rendue="(min-width: 40rem) 14rem, 8rem"
                 />

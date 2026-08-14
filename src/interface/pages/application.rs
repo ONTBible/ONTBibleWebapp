@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Bloc, Hero, TitreDeSection};
+use crate::interface::design::{image, Bloc, Hero, TitreDeSection};
 use crate::interface::tete::Tete;
 
 /// `/fr/l-app` — la page qui fait installer l'application.
@@ -65,7 +65,7 @@ pub fn Application() -> impl IntoView {
                     // qu'on installera.
                     <div class="flex items-center gap-4 sm:gap-5">
                         <img
-                            src="/images/touch-icon.png"
+                            src=image("touch-icon.png")
                             alt=""
                             aria-hidden="true"
                             width="180"
@@ -186,7 +186,7 @@ fn Ecran() -> impl IntoView {
 
             <div class="rounded-[2.4rem] border border-or/15 bg-nuit p-2 shadow-2xl shadow-nuit/70">
                 <img
-                    src="/images/app-lecture.webp"
+                    src=image("app-lecture.webp")
                     alt="Bereshit 3 dans l'application : le texte, ses gloses en retrait, \
                          les intraduisibles en or et l'hébreu vocalisé."
                     width="880"
@@ -233,7 +233,7 @@ fn Installer() -> impl IntoView {
                 class="block no-underline"
             >
                 <img
-                    src="/images/app-store-fr.svg"
+                    src=image("app-store-fr.svg")
                     alt="Télécharger dans l'App Store"
                     width="127"
                     height="40"
@@ -247,7 +247,7 @@ fn Installer() -> impl IntoView {
             <div class="hidden flex-col items-center gap-2 sm:flex">
                 <span class="rounded-xl bg-encre-vive p-2.5 text-nuit">
                     <img
-                        src="/images/qr-app.svg"
+                        src=image("qr-app.svg")
                         alt=""
                         aria-hidden="true"
                         width="37"

@@ -206,7 +206,10 @@ mod tests {
 
     #[test]
     fn la_fine_insecable_precede_le_point_virgule_et_l_exclamation() {
-        assert_eq!(composer("se lisent ; les autres"), "se lisent\u{202F}; les autres");
+        assert_eq!(
+            composer("se lisent ; les autres"),
+            "se lisent\u{202F}; les autres"
+        );
         assert_eq!(composer("lumière !"), "lumière\u{202F}!");
         assert_eq!(composer("vraiment ?"), "vraiment\u{202F}?");
     }
