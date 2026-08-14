@@ -96,8 +96,31 @@ resource "aws_lambda_function" "site" {
   handler       = "bootstrap"
   architectures = ["arm64"]
 
+  // Terraform décrit la **forme**, la CI livre le **code**.
+  //
+  // Le partage était déjà celui-là dans les faits — `deployer.yml` remplace le
+  // binaire à chaque poussée sur `main`, et le rôle de CI n'a précisément que
+  // `UpdateFunctionCode` — mais Terraform continuait de posséder ces deux
+  // attributs. Le piège est silencieux : un `terraform apply` lancé d'un poste,
+  // pour ajouter une variable d'environnement ou toucher au routage, verrait un
+  // `source_code_hash` différent de celui d'AWS et **remettrait en production le
+  // zip qui traîne dans `target/`**. Une version d'il y a trois semaines, sans
+  // qu'aucune commande n'ait parlé de code, et sans qu'une seule ligne du plan
+  // ne s'appelle « déploiement ».
+  //
+  // `ignore_changes` l'écrit noir sur blanc. Le backend porte la même ligne, et
+  // pour la même raison.
+  //
+  // Le `fileexists` va avec : `filebase64sha256` est évalué au `plan`, donc sans
+  // lui il faudrait construire le zip avant chaque `apply`, y compris pour un
+  // changement qui n'a rien à voir avec le code. Rien ne lit le fichier tant
+  // qu'il n'y a pas de différence à appliquer.
   filename         = var.paquet
-  source_code_hash = filebase64sha256(var.paquet)
+  source_code_hash = fileexists(var.paquet) ? filebase64sha256(var.paquet) : null
+
+  lifecycle {
+    ignore_changes = [filename, source_code_hash]
+  }
 
   // 1024 Mo, et ce n'est pas pour la mémoire. Lambda alloue le processeur
   // **proportionnellement** à la mémoire déclarée : à 256 Mo le rendu d'une
