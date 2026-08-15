@@ -16,6 +16,15 @@
 
    ── Le site est sombre, et c'est une aubergine, pas un noir ────────────────
 
+   Cette peau s'appelle **mystique**. Le nom vient de ce que l'app la propose
+   désormais en quatrième thème de sa liseuse, à côté de Parchemin, Clair et
+   Sombre : il fallait bien la nommer dans un menu, et le nom est remonté ici
+   pour qu'il n'y en ait qu'un. Côté app, `ReadingTheme.mystique`.
+
+   **La rampe ci-dessous est la référence.** `ONTColors` la recopie — `nuit`,
+   `nuitSurface`, `nuitEncre` — en citant ces jetons par leur nom. Une teinte
+   se retouche ici, puis se reporte là-bas ; jamais l'inverse.
+
    Le premier essai suivait le thème du système et retombait sur un gris
    quasi noir : une page quelconque, sans matière. Le second l'a interdit et
    posé le site sur du parchemin. Les deux manquaient la cible.
