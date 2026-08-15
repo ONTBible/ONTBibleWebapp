@@ -176,6 +176,10 @@ pub fn Accueil() -> impl IntoView {
                 <div class="flex flex-wrap justify-center gap-4">
                     <Bouton href="/fr/le-pourquoi">"Le pourquoi"</Bouton>
                     <Bouton href="/fr/ce-que-l-ont-n-est-pas">"Ce que l'ONT n'est pas"</Bouton>
+                    // L'app n'était atteignable que par la navigation du haut.
+                    // Or c'est en bas de l'accueil qu'on se trouve quand on a
+                    // fini de lire, et c'est là qu'on emporte quelque chose.
+                    <Bouton href="/fr/l-app">"L'application"</Bouton>
                 </div>
             </div>
         </Bloc>

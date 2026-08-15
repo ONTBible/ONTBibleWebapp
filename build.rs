@@ -63,8 +63,32 @@ fn main() {
 /// une image périmée de plus, ce qu'on a déjà aujourd'hui sur toutes. FNV-1a
 /// tient en huit lignes et n'ajoute aucune dépendance à un site qui n'en a que
 /// ce qu'il lui faut.
+/// ## Le `rerun-if-changed` porte sur **chaque fichier**, pas seulement sur le
+/// dossier
+///
+/// Corrigé le 15 août 2026, et le défaut annulait tout ce qui précède.
+///
+/// La première version ne déclarait que le dossier. Cargo en regarde alors la
+/// date de modification — qui bouge quand une image apparaît ou disparaît, et
+/// **pas** quand on en réécrit une existante. Or c'est exactement le cas qu'on
+/// veut couvrir : une image *corrigée*, sous le même nom.
+///
+/// La table gardait donc l'ancienne empreinte, l'adresse ne changeait pas, et
+/// le navigateur resservait son cache. Le mécanisme entier — un `?v=` par
+/// contenu, une invalidation CloudFront au déploiement — ne protégeait que du
+/// cas qui n'arrive jamais.
+///
+/// Trouvé en régénérant le QR : le fichier changeait sur le disque, la page
+/// continuait d'afficher `?v=2m516j8kqleko`. Le même piège qu'au §8 quater bis,
+/// rejoué un cran plus bas.
+///
+/// `livres_du_corpus` n'en souffre pas, et son commentaire dit pourquoi : ses
+/// fichiers sont suivis par `rustc` du fait de l'`include_str!`. Ici rien ne les
+/// suit — on les lit, on les résume, et on jette. Il faut donc le dire.
 fn empreintes_des_images() {
     let dossier = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("public/images");
+
+    // Le dossier pour les apparitions et les disparitions.
     println!("cargo:rerun-if-changed={}", dossier.display());
 
     let mut entrees: Vec<(String, String)> = fs::read_dir(&dossier)
@@ -73,6 +97,9 @@ fn empreintes_des_images() {
         .map(|entree| entree.path())
         .filter(|chemin| chemin.is_file())
         .filter_map(|chemin| {
+            // Et chaque fichier pour les corrections, qui ne touchent pas à la
+            // date du dossier.
+            println!("cargo:rerun-if-changed={}", chemin.display());
             let nom = chemin.file_name()?.to_str()?.to_string();
             let octets = fs::read(&chemin).ok()?;
             Some((nom, empreinte(&octets)))

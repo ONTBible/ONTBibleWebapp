@@ -27,12 +27,18 @@ pub fn PiedDePage() -> impl IntoView {
                 // un seul : « Lire » et « Confidentialité » ne sont pas de même
                 // nature, et les aligner ferait de la liseuse une mention
                 // légale de plus.
+                //
+                // « L'app » est de ce rang-ci et pas du second : c'est une façon
+                // de lire le corpus, pas une mention. Le pied ne la portait pas
+                // du tout — or c'est le seul chemin d'installation du site, et
+                // un lecteur arrivé en bas de page l'y cherche.
                 <nav
-                    aria-label="Le corpus"
+                    aria-label="Le corpus et l'application"
                     class="flex flex-wrap justify-center gap-x-6 gap-y-2 uppercase tracking-capitales text-encre"
                 >
                     <a href="/fr/lire" class=LIEN>"Lire"</a>
                     <a href="/fr/lexique" class=LIEN>"Lexique"</a>
+                    <a href="/fr/l-app" class=LIEN>"L'app"</a>
                 </nav>
 
                 <nav
