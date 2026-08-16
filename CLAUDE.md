@@ -861,6 +861,31 @@ Alors ce n'est pas la boucle du clic, c'est la scène. Deux familles de causes
 séparées en cinq secondes, là où comparer les feuilles de style et les
 en-têtes servis n'avait rien donné — parce qu'ils étaient identiques.
 
+**Et le vrai coût était ailleurs : promouvoir un élément qu'on met à
+l'échelle.** L'enregistrement l'a montré sans ambiguïté — pendant que la page
+défile *vers* la porte, soixante images par seconde ; pendant que la porte
+**s'ouvre**, huit images en sept dixièmes de seconde. Ce n'était donc ni le
+bouton ni le défilement, mais l'animation elle-même.
+
+`will-change: transform` sur le portique semblait évident. Il était nuisible :
+une couche promue qu'on met à l'échelle doit être **re-rastérisée à chaque
+nouvelle échelle** pour rester nette, et le coût suit le **carré**. À
+l'échelle 7, quarante-neuf fois un écran par image — soixante-trois millions de
+pixels sur un MacBook, quinze sur un téléphone. D'où l'écart entre les deux
+appareils, une seconde fois.
+
+Deux corrections, et elles se multiplient :
+
+- **le portique n'est plus promu.** Peint dans la couche de son parent, il est
+  découpé à l'écran : le coût cesse de dépendre de l'échelle ;
+- **l'échelle maximale tombe de 7 à 4** — trois fois moins de pixels. La
+  géométrie en demandait 5,75 pour sortir le linteau du champ sur un grand
+  écran ; ce sont les dix-huit derniers centièmes d'effacement qui s'en
+  chargent. On paie en opacité ce qu'on ne peut plus payer en pixels.
+
+`will-change` reste sur ce qui bouge **sans grandir** — les battants, le fond,
+la lueur. C'est là qu'il fait ce qu'il promet, et nulle part ailleurs.
+
 **La vérification est mécanique**, et c'est ce qui la rend utile : relever
 toutes les propriétés dont la valeur contient `var(--ouverture)`, et vérifier
 qu'il n'y a que `transform` et `opacity`. Une propriété de plus dans cette
