@@ -832,6 +832,35 @@ recalculé sur un pan de la hauteur de l'écran, à chaque image. Il est
 **constant** maintenant : ce qu'on perd est le passage du net au flou, ce
 qu'on garde est l'essentiel — une étoffe n'a pas d'arête, même immobile.
 
+**Et il restait un poste, celui qui séparait les deux appareils.** Le mur du
+portail est une ombre portée d'un très grand étalement, sur un portique mis à
+l'échelle jusqu'à sept fois : sa surface peinte atteignait plusieurs dizaines
+de milliers de pixels de côté, et comme le portique est promu, le navigateur
+devait lui réserver une couche à cette taille.
+
+Sur un téléphone ça passait. Sur un écran d'ordinateur, l'étalement étant
+exprimé en part de fenêtre, il vaut trois fois et demie plus dans chaque
+dimension — douze fois la surface — et le défilement saccadait. C'est le seul
+poste qui explique un écart entre les deux appareils, et il l'explique
+entièrement.
+
+`contain: paint` sur le portique découpe sa peinture à sa propre boîte, qui est
+exactement l'étage — donc exactement ce qui est visible, puisque l'étage
+découpe déjà. **Aucun changement à l'écran**, et la couche cesse d'être
+démesurée. Le découpage se faisant dans son repère à lui, avant la mise à
+l'échelle, la zone conservée couvre sept écrans à la fin de la course : la
+borne est juste à toutes les échelles.
+
+L'étalement passe au passage de `100vmax` à `max(54vw, 16vh)`, **calculé** : il
+faut couvrir la moitié de ce qui dépasse du portail, soit 1274 px au pire des
+formats essayés — un ultra-large 3440×1440 — où la formule en donne 1858.
+
+Le diagnostic, lui, a tenu à une question posée à celui qui voyait le défaut :
+*descends le même passage à la main, sans toucher au bouton*. Saccadé aussi ?
+Alors ce n'est pas la boucle du clic, c'est la scène. Deux familles de causes
+séparées en cinq secondes, là où comparer les feuilles de style et les
+en-têtes servis n'avait rien donné — parce qu'ils étaient identiques.
+
 **La vérification est mécanique**, et c'est ce qui la rend utile : relever
 toutes les propriétés dont la valeur contient `var(--ouverture)`, et vérifier
 qu'il n'y a que `transform` et `opacity`. Une propriété de plus dans cette

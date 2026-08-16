@@ -878,6 +878,34 @@
       perspective: min(1100px, 130vw);
       perspective-origin: 50% 46%;
 
+      /* ── Il **borne sa peinture**, et c'est la correction de performance
+       * la plus lourde de la scène ────────────────────────────────────────
+       *
+       * Le mur du portail est une ombre portée d'un très grand étalement, et
+       * le portique est mis à l'échelle jusqu'à sept fois. Sa surface peinte
+       * atteignait donc plusieurs dizaines de milliers de pixels de côté — et
+       * comme il est promu par `will-change`, le navigateur devait lui
+       * réserver une couche à cette taille.
+       *
+       * Sur un téléphone ça passait. Sur un écran d'ordinateur, l'étalement
+       * étant exprimé en part de fenêtre, il vaut trois fois et demie plus
+       * dans chaque dimension — douze fois la surface — et le défilement
+       * saccadait. C'est le seul poste qui explique un écart entre les deux
+       * appareils, et il l'explique entièrement.
+       *
+       * `contain: paint` découpe sa peinture à sa propre boîte, qui est
+       * exactement l'étage — donc exactement ce qui est visible, puisque
+       * l'étage découpe déjà. **Aucun changement à l'écran**, et la couche
+       * cesse d'être démesurée.
+       *
+       * Et le découpage se fait dans son repère à lui, avant la mise à
+       * l'échelle : à l'échelle 7 la zone conservée couvre sept écrans, donc
+       * le mur ne manque jamais. La borne est juste à toutes les échelles.
+       *
+       * Ce n'est pas `overflow: hidden` : sur un élément qui porte
+       * `perspective`, mieux vaut la propriété qui ne dit que le découpage. */
+      contain: paint;
+
     transform: scale(
       calc(
         1 + var(--ouverture) * var(--ouverture) * var(--ouverture) *
@@ -1389,9 +1417,14 @@
 
 /* ── L'embrasure : le mur percé, et son épaisseur ─────────────────────────
  *
- * Trois ombres, et chacune fait une chose. La première, sans `inset` et de
- * `100vmax` d'étalement, **est** le mur — elle ne dessine rien dedans et
- * remplit tout dehors. Les deux autres sont intérieures et donnent au tableau
+ * Trois ombres, et chacune fait une chose. La première **est** le mur : elle
+ * ne dessine rien dedans et remplit tout dehors.
+ *
+ * Son étalement est `max(54vw, 16vh)`, et le nombre est **calculé** — il faut
+ * couvrir la moitié de ce qui dépasse du portail, soit 1274 px au pire des
+ * formats essayés, un ultra-large 3440×1440, où la formule en donne 1858.
+ * `100vmax` couvrait aussi, mais en peignant trois fois plus loin que
+ * nécessaire. Les deux autres sont intérieures et donnent au tableau
  * son épaisseur : un assombrissement sur tout le pourtour, et un pied plus
  * sombre encore. Sans elles la porte flotte au ras de la surface, ce qu'elle
  * faisait.
@@ -1428,7 +1461,7 @@
   border-bottom: 0;
 
   box-shadow:
-    0 0 0 100vmax var(--color-nuit),
+    0 0 0 max(54vw, 16vh) var(--color-nuit),
     inset 0 0 60px -12px rgb(0 0 0 / 0.9),
     inset 0 -40px 44px -34px rgb(0 0 0 / 0.95);
 }
