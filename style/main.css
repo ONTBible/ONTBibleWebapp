@@ -782,8 +782,8 @@
   /* Toute la ferrure se déduit de `--portail`, comme le reste : la barre de la
    * poignée, ses deux rosaces, et les pentures en travers du battant. Elle ne
    * peut donc pas se désaccorder de la porte qu'elle équipe. */
-  --poignee: calc(var(--portail) * 0.034);
-  --rosace: calc(var(--poignee) * 1.9);
+  --poignee: calc(var(--portail) * 0.023);
+  --rosace: calc(var(--poignee) * 2.5);
   --penture: calc(var(--portail) * 0.046);
   /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
   --naissance: calc(7% + var(--portail) / 2);
@@ -1132,18 +1132,18 @@
       transparent 84%
     ),
     repeating-linear-gradient(
-      64deg,
+      154deg,
       transparent 0 3px,
       rgb(0 0 0 / 0.3) 3px 4.5px,
       color-mix(in srgb, var(--color-or) 40%, var(--color-encre-vive)) 4.5px 5.5px,
       transparent 5.5px 10px
     ),
     linear-gradient(
-      to bottom,
+      to right,
       color-mix(in srgb, var(--color-or) 40%, var(--color-nuit)) 0 9%,
-      color-mix(in srgb, var(--color-or) 74%, var(--color-encre-vive)) 24%,
-      color-mix(in srgb, var(--color-or) 72%, var(--color-surface)) 54%,
-      color-mix(in srgb, var(--color-or) 22%, var(--color-nuit)) 84%,
+      color-mix(in srgb, var(--color-or) 74%, var(--color-encre-vive)) 26%,
+      color-mix(in srgb, var(--color-or) 72%, var(--color-surface)) 56%,
+      color-mix(in srgb, var(--color-or) 22%, var(--color-nuit)) 86%,
       rgb(0 0 0 / 0.72) 100%
     ),
     radial-gradient(
@@ -1192,12 +1192,12 @@
     );
   background-size:
     var(--rosace) var(--rosace), var(--rosace) var(--rosace),
-    40% var(--poignee), 40% var(--poignee), var(--penture) var(--penture),
+    var(--poignee) 22%, var(--poignee) 22%, var(--penture) var(--penture),
     var(--penture) var(--penture), 44% var(--penture), 44% var(--penture),
     var(--tuile-grain), auto;
   background-position:
-    var(--vers-fente) 13.8% top 46.8%, var(--vers-fente) 55.7% top 46.8%,
-    var(--vers-fente) 28% top 47%, var(--vers-fente) 28% top 47%,
+    var(--vers-fente) 28.5% top 37.1%, var(--vers-fente) 28.5% top 58%,
+    var(--vers-fente) 30% top 47%, var(--vers-fente) 30% top 47%,
     var(--vers-charniere) 40% top 20%, var(--vers-charniere) 40% top 72%,
     var(--vers-charniere) 0 top 20%, var(--vers-charniere) 0 top 72%, 0 0, 0 0;
   background-repeat:
