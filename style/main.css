@@ -909,16 +909,37 @@
     transform: scale(
       calc(
         1 + var(--ouverture) * var(--ouverture) * var(--ouverture) *
-          var(--ouverture) * 6
+          var(--ouverture) * 3
       )
     );
     transform-origin: 50% 46%;
-    /* L'assurance, et rien d'autre. À l'échelle 7 il ne reste rien à l'écran ;
-     * ces derniers centièmes effacent ce que la géométrie aurait laissé sur un
-     * format qu'on n'a pas essayé. Un mur qui s'estompe se remarque — celui-ci
-     * est déjà à sept fois l'écran quand il commence à s'effacer. */
-    opacity: calc(1 - max(0, (var(--ouverture) - 0.9) * 10));
-    will-change: transform, opacity;
+
+    /* L'effacement de la fin, et il fait maintenant du travail.
+     *
+     * À l'échelle 4 le linteau peut rester en travers du verset sur un grand
+     * écran — la géométrie en demanderait 5,75. Ces derniers dix-huit
+     * centièmes l'effacent. C'est le prix de l'échelle qu'on n'a plus le droit
+     * de payer, et il est invisible : à ce moment-là le portique fait déjà
+     * quatre fois l'écran et tout y va très vite. */
+    opacity: calc(1 - max(0, (var(--ouverture) - 0.82) / 0.18));
+
+    /* **Pas de `will-change` ici**, et c'est le contraire de ce qu'on croit.
+     *
+     * Promouvoir un élément qu'on **met à l'échelle** ne l'accélère pas : le
+     * navigateur doit re-rastériser sa couche à chaque nouvelle échelle pour
+     * la garder nette, et le coût suit le **carré** de l'échelle. À 7, c'était
+     * quarante-neuf fois un écran par image — soixante-trois millions de
+     * pixels sur un MacBook. L'animation tombait à dix images par seconde,
+     * mesuré au dépouillement d'un enregistrement : huit images en sept
+     * dixièmes de seconde, là où le simple défilement vers la porte en tenait
+     * soixante.
+     *
+     * Sans promotion, le portique est peint dans la couche de son parent, donc
+     * **découpé à l'écran** : le coût cesse de dépendre de l'échelle. Il
+     * repeint des dégradés à chaque image, mais sur une surface bornée.
+     *
+     * `will-change` reste sur ce qui bouge sans grandir — les battants, le
+     * fond, la lueur. C'est là qu'il fait ce qu'il promet. */
     }
 
     /* Le fond, c'est-à-dire le bloc du verset.
@@ -1411,6 +1432,15 @@
  * À la puissance quatre : rien avant les deux tiers — la porte tient, on
  * l'approche —, puis tout à la fin. C'est aussi ce que fait un objet qu'on
  * franchit vraiment : il ne grandit pas régulièrement, il passe.
+ *
+ * ── Et le coefficient est retombé de 6 à 3, pour une raison de coût ───────
+ *
+ * L'échelle maximale passe donc de 7 à 4. Une couche mise à l'échelle se
+ * re-rastérise, et le coût suit le **carré** : 49 écrans par image à 7, 16 à
+ * 4 — trois fois moins. La géométrie seule en demandait 5,75 pour sortir le
+ * linteau du champ sur un grand écran ; c'est l'effacement des derniers
+ * dix-huit centièmes qui s'en charge à la place. On paie en opacité ce qu'on
+ * ne peut plus payer en pixels.
  *
  * Même origine que le fond, `50% 46%`, sinon les deux plans partiraient de
  * deux points et le travelling se dédoublerait. */
