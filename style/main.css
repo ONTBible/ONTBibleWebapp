@@ -779,6 +779,11 @@
 
   --portail: min(96vw, 62svh);
   --linteau: calc(var(--portail) * 0.105);
+  /* L'anneau de la poignée — un dixième de la largeur du portail. Comme tout
+   * le reste, il se déduit de `--portail` : il ne peut pas se désaccorder de
+   * la porte qu'il équipe. Un dixième, essayé d'abord, se lisait comme un œillet
+   * plutôt que comme une prise : une poignée doit avoir la taille d'une main. */
+  --anneau: calc(var(--portail) * 0.15);
   /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
   --naissance: calc(7% + var(--portail) / 2);
 }
@@ -957,13 +962,24 @@
      * retournée**, posée au-dessus de tout, mur compris. La lumière ne s'arrête
      * plus à la jonction, elle la traverse.
      *
-     * Et c'est bien la sienne, à la valeur près : `ellipse 120% 70%` sur toute
-     * la hauteur de l'étape, ancrée en haut là où `voute` l'ancre en bas. Les
-     * deux courbes sont alors le miroir l'une de l'autre et se rejoignent à
-     * la même valeur **en tout point de la couture** — pas seulement au
-     * milieu. Un premier essai avait redessiné une ellipse à l'œil, plus
-     * courte et plus large : elle rattrapait le centre et laissait un liséré
-     * aux deux bords, c'est-à-dire là où l'on ne pense pas à regarder.
+     * ── Le rayon horizontal fait la couture, le vertical fait la portée ───
+     *
+     * Ce sont deux réglages **indépendants**, et c'est ce qui sauve la règle.
+     * Sur la ligne `y = 0`, la valeur d'un dégradé radial ne dépend que de la
+     * distance horizontale rapportée au rayon horizontal : le terme vertical
+     * y est nul. Le `120 %` est donc celui de `voute`, à la virgule près — les
+     * deux courbes se rejoignent à la même valeur **en tout point de la
+     * couture**, pas seulement au milieu. Un premier essai avait redessiné une
+     * ellipse à l'œil, plus courte et plus large : elle rattrapait le centre et
+     * laissait un liséré aux deux bords, là où l'on ne pense pas à regarder.
+     *
+     * Le rayon vertical, lui, se règle librement — et il est passé de 70 à
+     * 26 %. À 70 il valait celui de `voute` par symétrie, ce qui était juste
+     * tant que la scène n'avait rien à montrer dessous. Depuis le portail,
+     * l'aubergine à pleine force couvrait les trois quarts du mur : la nuit
+     * franche autour de la porte disparaissait, et il n'y avait plus de fondu
+     * parce que **tout** était fondu. À 26 il raccorde la couture et rend la
+     * nuit deux pouces plus bas.
      *
      * Elle s'éteint à mesure qu'on ouvre. Ce n'est pas une économie : passé
      * l'épinglage, le Hero est hors de l'écran et il n'y a plus de couture à
@@ -978,7 +994,7 @@
       opacity: calc(1 - var(--ouverture));
       will-change: opacity;
       background: radial-gradient(
-        ellipse 120% 70% at 50% 0%,
+        ellipse 120% 26% at 50% 0%,
         var(--color-aubergine) 0%,
         transparent 70%
       );
@@ -1064,6 +1080,35 @@
   inset-block: calc(var(--naissance) + var(--linteau) / 2) 4%;
   background-color: var(--color-surface);
   background-image:
+    /* ── L'anneau, et son ombre ─────────────────────────────────────────
+     *
+     * Une porte sans poignée n'est pas une porte, c'est un panneau — il l'a vu
+     * en la montrant à sa femme, et c'est la seule pièce qui manquait pour
+     * qu'on sache par où on la pousse.
+     *
+     * Deux couches, et il en faut deux : un dégradé radial est **isotrope**,
+     * donc un anneau seul n'a ni haut ni bas et se lit comme un cercle dessiné.
+     * La seconde est le même anneau, en noir, décalé de quelques pixels vers le
+     * bas : c'est ce décalage qui donne l'épaisseur, et rien d'autre. Le métal
+     * ne se dessine pas, il se déduit d'une ombre.
+     *
+     * Un anneau et pas une barre : la barre est le geste moderne, et le site en
+     * a déjà un — la fente d'or. Deux verticales dorées côte à côte se
+     * disputeraient l'œil au milieu de la porte. */
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 25%,
+      color-mix(in srgb, var(--color-or) 84%, transparent) 28.5%,
+      color-mix(in srgb, var(--color-or) 36%, transparent) 39%,
+      transparent 43%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 25%,
+      rgb(0 0 0 / 0.8) 28.5%,
+      rgb(0 0 0 / 0.32) 40%,
+      transparent 45%
+    ),
     /* Le même grain, et il porte le battant aussi : une porte lisse dans une
      * embrasure grenue se lit comme une découpe collée dessus. */
     var(--grain-pierre),
@@ -1074,8 +1119,10 @@
       transparent 96.5%,
       color-mix(in srgb, var(--color-or) 58%, transparent) 100%
     );
-  background-size: var(--tuile-grain), auto;
-  background-repeat: repeat, no-repeat;
+  background-size:
+    var(--anneau) var(--anneau), var(--anneau) var(--anneau),
+    var(--tuile-grain), auto;
+  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
 
   /* L'avancée est **proportionnelle à la focale**, et il faut qu'elle le soit.
    *
@@ -1106,6 +1153,10 @@
 
 .seuil-vantail--g {
   left: calc(50% - var(--portail) / 2);
+  /* Près de la fente, où se pose la main. Et à la même hauteur des deux côtés,
+   * sinon ce sont deux poignées et non une paire. L'ombre est décalée d'un
+   * demi-pour-cent vers le bas — c'est tout ce qu'il faut. */
+  background-position: right 15% top 47%, right 15% top 47.6%, 0 0, 0 0;
   --vers-charniere: left;
   --vers-fente: right;
   transform-origin: left center;
@@ -1116,6 +1167,7 @@
 
 .seuil-vantail--d {
   right: calc(50% - var(--portail) / 2);
+  background-position: left 15% top 47%, left 15% top 47.6%, 0 0, 0 0;
   --vers-charniere: right;
   --vers-fente: left;
   transform-origin: right center;
