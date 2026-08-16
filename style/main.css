@@ -782,7 +782,7 @@
   /* Toute la ferrure se déduit de `--portail`, comme le reste : la barre de la
    * poignée, ses deux rosaces, et les pentures en travers du battant. Elle ne
    * peut donc pas se désaccorder de la porte qu'elle équipe. */
-  --poignee: calc(var(--portail) * 0.023);
+  --poignee: calc(var(--portail) * 0.016);
   --rosace: calc(var(--poignee) * 2.5);
   --penture: calc(var(--portail) * 0.046);
   /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
@@ -1133,10 +1133,10 @@
     ),
     repeating-linear-gradient(
       154deg,
-      transparent 0 3px,
-      rgb(0 0 0 / 0.3) 3px 4.5px,
-      color-mix(in srgb, var(--color-or) 40%, var(--color-encre-vive)) 4.5px 5.5px,
-      transparent 5.5px 10px
+      transparent 0 2px,
+      rgb(0 0 0 / 0.32) 2px 3px,
+      color-mix(in srgb, var(--color-or) 40%, var(--color-encre-vive)) 3px 3.7px,
+      transparent 3.7px 6.6px
     ),
     linear-gradient(
       to right,
@@ -1196,8 +1196,8 @@
     var(--penture) var(--penture), 44% var(--penture), 44% var(--penture),
     var(--tuile-grain), auto;
   background-position:
-    var(--vers-fente) 28.5% top 37.1%, var(--vers-fente) 28.5% top 58%,
-    var(--vers-fente) 30% top 47%, var(--vers-fente) 30% top 47%,
+    var(--vers-fente) 12.1% top 37%, var(--vers-fente) 12.1% top 58.1%,
+    var(--vers-fente) 14% top 47%, var(--vers-fente) 14% top 47%,
     var(--vers-charniere) 40% top 20%, var(--vers-charniere) 40% top 72%,
     var(--vers-charniere) 0 top 20%, var(--vers-charniere) 0 top 72%, 0 0, 0 0;
   background-repeat:
