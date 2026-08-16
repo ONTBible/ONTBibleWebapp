@@ -784,6 +784,10 @@
    * la porte qu'il équipe. Un dixième, essayé d'abord, se lisait comme un œillet
    * plutôt que comme une prise : une poignée doit avoir la taille d'une main. */
   --anneau: calc(var(--portail) * 0.15);
+  /* L'écusson derrière l'anneau, et les pentures en travers du battant. Toute
+   * la ferrure se déduit de `--portail`, comme le reste. */
+  --ecusson: calc(var(--anneau) * 1.5);
+  --penture: calc(var(--portail) * 0.046);
   /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
   --naissance: calc(7% + var(--portail) / 2);
 }
@@ -1080,34 +1084,93 @@
   inset-block: calc(var(--naissance) + var(--linteau) / 2) 4%;
   background-color: var(--color-surface);
   background-image:
-    /* ── L'anneau, et son ombre ─────────────────────────────────────────
+    /* ── La ferrure ─────────────────────────────────────────────────────
      *
-     * Une porte sans poignée n'est pas une porte, c'est un panneau — il l'a vu
-     * en la montrant à sa femme, et c'est la seule pièce qui manquait pour
-     * qu'on sache par où on la pousse.
+     * Une porte sans poignée n'est pas une porte, c'est un panneau. Un anneau
+     * seul n'est pas une ferrure non plus : c'est un cercle posé sur du bois.
+     * Ce qui fait la porte de nef, ce sont les **pentures** — les bandes de
+     * métal qui traversent le battant depuis la charnière et le tiennent.
      *
-     * Deux couches, et il en faut deux : un dégradé radial est **isotrope**,
-     * donc un anneau seul n'a ni haut ni bas et se lit comme un cercle dessiné.
-     * La seconde est le même anneau, en noir, décalé de quelques pixels vers le
-     * bas : c'est ce décalage qui donne l'épaisseur, et rien d'autre. Le métal
-     * ne se dessine pas, il se déduit d'une ombre.
+     * Sept couches, de la plus haute à la plus basse, et chacune répond à un
+     * problème de rendu :
      *
-     * Un anneau et pas une barre : la barre est le geste moderne, et le site en
-     * a déjà un — la fente d'or. Deux verticales dorées côte à côte se
-     * disputeraient l'œil au milieu de la porte. */
+     * 1. **l'anneau**, en or, épais ;
+     * 2. **son ombre**, le même anneau en noir décalé vers le bas — un dégradé
+     *    radial est isotrope, donc un anneau seul n'a ni haut ni bas ; c'est le
+     *    décalage qui donne l'épaisseur, et rien d'autre. Le métal ne se
+     *    dessine pas, il se déduit d'une ombre ;
+     * 3. **l'écusson**, le cercle fin sur lequel l'anneau est monté. Sans lui
+     *    l'anneau flotte ; avec lui il est **fixé**. Un cercle et non un
+     *    disque : plein, il bouchait le trou de l'anneau, et l'ensemble se
+     *    lisait comme un œil — pupille sombre, iris d'or, cerne. Sur ce
+     *    site-là, ce n'est pas un détail ;
+     * 4 et 5. **les deux clous**, au bout libre de chaque penture. Ils sont
+     *    exactement de l'épaisseur de la bande et posés au même `top` : les
+     *    deux se centrent alors sur la même ligne par construction, quelle que
+     *    soit la hauteur du battant. C'est eux qui font lire une ferrure — une
+     *    bande sans clou est une étagère ;
+     * 6 et 7. **les deux pentures**, hautes et basses, calées sur la
+     *    charnière. Elles disent d'où la porte est pendue, donc de quel côté
+     *    elle s'ouvre, et elles le disent avant l'anneau.
+     *
+     * Tout est positionné par `--vers-charniere` et `--vers-fente`, donc une
+     * seule règle sert les deux battants. Écrite deux fois, elle finirait par
+     * ne l'être qu'une. */
     radial-gradient(
       circle at 50% 50%,
-      transparent 0 25%,
-      color-mix(in srgb, var(--color-or) 84%, transparent) 28.5%,
-      color-mix(in srgb, var(--color-or) 36%, transparent) 39%,
+      transparent 0 21%,
+      color-mix(in srgb, var(--color-or) 88%, transparent) 25%,
+      color-mix(in srgb, var(--color-or) 52%, transparent) 34%,
+      color-mix(in srgb, var(--color-or) 20%, transparent) 40%,
       transparent 43%
     ),
     radial-gradient(
       circle at 50% 50%,
-      transparent 0 25%,
-      rgb(0 0 0 / 0.8) 28.5%,
-      rgb(0 0 0 / 0.32) 40%,
-      transparent 45%
+      transparent 0 21%,
+      rgb(0 0 0 / 0.85) 25%,
+      rgb(0 0 0 / 0.38) 41%,
+      transparent 46%
+    ),
+    radial-gradient(
+      circle at 50% 45%,
+      transparent 0 33%,
+      color-mix(in srgb, var(--color-or) 30%, transparent) 35.5%,
+      color-mix(in srgb, var(--color-or) 8%, transparent) 38%,
+      transparent 41%
+    ),
+    radial-gradient(
+      circle at 40% 36%,
+      color-mix(in srgb, var(--color-or) 88%, transparent) 0 16%,
+      color-mix(in srgb, var(--color-or) 48%, var(--color-surface)) 34%,
+      color-mix(in srgb, var(--color-nuit) 58%, var(--color-surface)) 60%,
+      rgb(0 0 0 / 0.6) 74%,
+      transparent 79%
+    ),
+    radial-gradient(
+      circle at 40% 36%,
+      color-mix(in srgb, var(--color-or) 88%, transparent) 0 16%,
+      color-mix(in srgb, var(--color-or) 48%, var(--color-surface)) 34%,
+      color-mix(in srgb, var(--color-nuit) 58%, var(--color-surface)) 60%,
+      rgb(0 0 0 / 0.6) 74%,
+      transparent 79%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-or) 72%, transparent) 0 6%,
+      color-mix(in srgb, var(--color-or) 38%, var(--color-surface)) 6% 34%,
+      color-mix(in srgb, var(--color-or) 20%, var(--color-surface)) 34% 66%,
+      color-mix(in srgb, var(--color-nuit) 60%, var(--color-surface)) 66% 82%,
+      rgb(0 0 0 / 0.62) 82% 92%,
+      rgb(0 0 0 / 0.3) 92% 100%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-or) 72%, transparent) 0 6%,
+      color-mix(in srgb, var(--color-or) 38%, var(--color-surface)) 6% 34%,
+      color-mix(in srgb, var(--color-or) 20%, var(--color-surface)) 34% 66%,
+      color-mix(in srgb, var(--color-nuit) 60%, var(--color-surface)) 66% 82%,
+      rgb(0 0 0 / 0.62) 82% 92%,
+      rgb(0 0 0 / 0.3) 92% 100%
     ),
     /* Le même grain, et il porte le battant aussi : une porte lisse dans une
      * embrasure grenue se lit comme une découpe collée dessus. */
@@ -1121,8 +1184,17 @@
     );
   background-size:
     var(--anneau) var(--anneau), var(--anneau) var(--anneau),
+    var(--ecusson) var(--ecusson), var(--penture) var(--penture),
+    var(--penture) var(--penture), 44% var(--penture), 44% var(--penture),
     var(--tuile-grain), auto;
-  background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+  background-position:
+    var(--vers-fente) 15% top 47%, var(--vers-fente) 15% top 47.7%,
+    var(--vers-fente) 12.5% top 46.6%, var(--vers-charniere) 40% top 20%,
+    var(--vers-charniere) 40% top 72%, var(--vers-charniere) 0 top 20%,
+    var(--vers-charniere) 0 top 72%, 0 0, 0 0;
+  background-repeat:
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, repeat, no-repeat;
 
   /* L'avancée est **proportionnelle à la focale**, et il faut qu'elle le soit.
    *
@@ -1153,10 +1225,6 @@
 
 .seuil-vantail--g {
   left: calc(50% - var(--portail) / 2);
-  /* Près de la fente, où se pose la main. Et à la même hauteur des deux côtés,
-   * sinon ce sont deux poignées et non une paire. L'ombre est décalée d'un
-   * demi-pour-cent vers le bas — c'est tout ce qu'il faut. */
-  background-position: right 15% top 47%, right 15% top 47.6%, 0 0, 0 0;
   --vers-charniere: left;
   --vers-fente: right;
   transform-origin: left center;
@@ -1167,7 +1235,6 @@
 
 .seuil-vantail--d {
   right: calc(50% - var(--portail) / 2);
-  background-position: left 15% top 47%, left 15% top 47.6%, 0 0, 0 0;
   --vers-charniere: right;
   --vers-fente: left;
   transform-origin: right center;
