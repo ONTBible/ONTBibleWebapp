@@ -2,8 +2,8 @@ use leptos::prelude::*;
 
 use crate::api::verset_du_jour;
 use crate::interface::design::{
-    image, Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait,
-    TitreDeSection,
+    image, traverser, Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux,
+    Porte, Portrait, TitreDeSection,
 };
 use crate::interface::echantillon::{bereshit_1_1, SEGOND_1910, SEGOND_SOURCE};
 use crate::interface::tete::Tete;
@@ -42,14 +42,29 @@ pub fn Accueil() -> impl IntoView {
             <p class="text-sm uppercase tracking-capitales text-accent">"Restitution"</p>
             <h1 class="text-balance">"Le cosmos hébreu n'est pas une usine"</h1>
             <p class="font-titre text-2xl text-accent">"C'est un Temple."</p>
-            <Bouton href="#aujourd-hui" principal=true>"Entrer"</Bouton>
+            <Bouton
+                href="#aujourd-hui"
+                principal=true
+                au_clic=Callback::new(traverser("aujourd-hui"))
+            >
+                "Entrer"
+            </Bouton>
         </Hero>
 
-        // ── Le verset du jour ─────────────────────────────────────────────
+        // ── Le verset du jour, derrière le seuil ──────────────────────────
         //
         // Premier, et c'est délibéré : c'est ce qu'on vient chercher. Le
         // raisonnement suit, pour qui veut savoir d'où il sort.
-        <Bloc id="aujourd-hui" eclaire=true>
+        //
+        // La porte l'**enveloppe** au lieu de le précéder. Le premier montage
+        // la posait avant, avec un décor à elle : on ouvrait sur une image,
+        // puis on arrivait sur le verset. La porte ne donnait sur rien.
+        //
+        // Elle ne le cache pas pour autant — il est ici, dans le HTML du
+        // serveur, à sa place dans le document. Sans la porte, il est
+        // simplement là.
+        <Porte id="aujourd-hui">
+        <Bloc eclaire=true>
             <TitreDeSection numero="I" titre="Aujourd'hui" />
 
             <Suspense fallback=|| ()>
@@ -68,6 +83,7 @@ pub fn Accueil() -> impl IntoView {
                 "tombent sur le même verset le même matin, sans jamais se parler."
             </p>
         </Bloc>
+        </Porte>
 
         // ── La démonstration ──────────────────────────────────────────────
         <Bloc large=true>

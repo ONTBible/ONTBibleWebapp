@@ -1,0 +1,70 @@
+<!-- Signature de courriel — contact@ontbible.com
+
+     Ce fichier est le **corps** de la signature. Il ne se colle pas dans
+     l'éditeur de Mail : voir plus bas.
+
+     ## La tuile est à côté du texte, et ça se paie
+
+     Le filet d'or sépare la marque du texte, comme dans le combination mark.
+     C'est un tableau à trois cellules — et l'éditeur de signatures de Mail
+     **aplatit les tableaux** : collé là, le logo remonte au-dessus du texte.
+
+     Une version empilée avait été dessinée pour contourner ça. Écartée : elle
+     résolvait le problème en renonçant au dessin.
+
+     ## Le chemin qui marche
+
+     Mail garde ses signatures dans
+     `~/Library/Mail/V*/MailData/Signatures/*.mailsignature`. Chaque fichier est
+     un message : quelques en-têtes, une ligne vide, puis le HTML.
+
+     1. Créer une signature quelconque dans Mail, puis **quitter Mail** ;
+     2. ouvrir le `.mailsignature` le plus récent (Finder y donne accès sans
+        rien débloquer — un terminal, non : macOS répond « Operation not
+        permitted ») ;
+     3. remplacer **tout** le fichier par les quatre en-têtes, une ligne vide,
+        puis ce corps. **Conserver le `Message-Id` d'origine** : c'est lui qui
+        relie le fichier à la signature dans les réglages ;
+     4. verrouiller le fichier (Lire les informations → Verrouillé), sinon Mail
+        le réécrit à la première ouverture ;
+     5. rouvrir Mail.
+
+     Le prix : la signature ne s'édite plus depuis les réglages. Le dessin exact
+     contre l'édition dans l'interface.
+
+     Mail incorpore la tuile au message à l'envoi — inutile de la mettre en
+     pièce jointe soi-même, comme il l'avait fait tout seul au premier essai.
+
+     ## Pourquoi des styles en ligne, et un PNG
+
+     Le HTML des courriels est resté en 2005 : ni grille, ni feuille externe.
+     Des `style=` sur chaque balise, c'est le seul dialecte que Gmail, Outlook
+     et Mail parlent tous. Et Gmail comme Outlook **suppriment les SVG** : la
+     tuile est donc `touch-icon.png`, servie depuis `ontbible.com/images/`.
+     Elle est **opaque**, donc elle tient sur un fond clair comme sur un sombre
+     — la raison même pour laquelle ce fichier existe (§6).
+
+     ## Pourquoi aucune requête de thème
+
+     Le premier essai portait un `@media (prefers-color-scheme: dark)`. Dans un
+     client en mode sombre qui garde le fond clair du message, il donnait du
+     **crème sur du blanc**. La signature porte donc un fond blanc explicite, et
+     Mail se charge très bien de l'adapter en mode sombre : fond aubergine,
+     encre crème, l'or qui ressort.
+
+     ## La pile de polices
+
+     Jost n'est installée chez personne. Avenir Next prend le relais chez Apple,
+     Helvetica ailleurs — géométriques toutes deux. Le corps retombe sur
+     Georgia, faute de Literata.
+
+     ## Sur iPhone
+
+     Les signatures d'iOS sont en **texte brut** : ni image, ni couleur, ni
+     filet. Y mettre :
+
+         Gloire Bikouta
+         Auteur de la restitution
+         contact@ontbible.com — ontbible.com -->
+
+<body style="margin:0"><table cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-collapse:collapse;background-color:#ffffff;font-family:Georgia,'Times New Roman',serif;"><tr><td style="padding:2px 18px 2px 0;vertical-align:middle;background-color:#ffffff;"><img src="https://ontbible.com/images/touch-icon.png" width="56" height="56" alt="La Bible ONT" style="display:block;width:56px;height:56px;border:0;border-radius:13px;"></td><td width="1" bgcolor="#CDBE83" style="width:1px;background-color:#CDBE83;font-size:0;line-height:0;">&nbsp;</td><td style="padding:2px 0 2px 18px;vertical-align:middle;background-color:#ffffff;"><div style="font-family:Jost,'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:17px;line-height:1.3;color:#421B26;letter-spacing:.01em;">Gloire Bikouta</div><div style="margin-top:3px;font-family:Jost,'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;line-height:1.4;color:#6F6660;text-transform:uppercase;letter-spacing:.16em;">Auteur de la restitution</div><div style="margin-top:10px;font-size:13px;line-height:1.6;"><a href="mailto:contact@ontbible.com" style="color:#421B26;text-decoration:none;">contact@ontbible.com</a><br><a href="https://ontbible.com" style="color:#8A6A3B;text-decoration:none;">ontbible.com</a></div></td></tr></table></body>
