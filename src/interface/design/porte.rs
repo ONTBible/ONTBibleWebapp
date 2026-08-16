@@ -38,53 +38,10 @@ pub fn Porte(
     /// L'ancre du bloc enveloppé — c'est vers elle que pointe « Entrer ».
     #[prop(into)]
     id: String,
-    /// Lequel des trois dessins. Le temps de la comparaison seulement : deux
-    /// d'entre eux seront supprimés, et ce paramètre avec.
-    #[prop(optional)]
-    dessin: Dessin,
-    /// Fige la scène à une progression donnée, entre 0 et 1.
-    ///
-    /// C'est l'outil de comparaison, pas une fonctionnalité. Une porte au
-    /// défilement ne se juge pas sur une capture — mais une porte **figée**,
-    /// si, et c'est la seule façon de mettre trois dessins côte à côte au lieu
-    /// de les regarder l'un après l'autre en se fiant à sa mémoire.
-    ///
-    /// `default = None` et non `optional` : sur un type déjà optionnel,
-    /// `optional` retire l'enveloppe et réclamerait un `f64` nu à l'appel.
-    #[prop(default = None)]
-    ouverture: Option<f64>,
     children: Children,
 ) -> impl IntoView {
-    let classe = match ouverture {
-        Some(_) => format!("seuil seuil--fige {}", dessin.classe()),
-        None => format!("seuil {}", dessin.classe()),
-    };
-    // Le style en ligne ne sert à rien sans `seuil--fige`, qui coupe
-    // l'animation : une animation gagne toujours sur la cascade d'auteur, style
-    // en ligne compris. Les deux vont ensemble ou aucun des deux.
-    let style = ouverture.map(|o| format!("--ouverture: {}", o.clamp(0.0, 1.0)));
-
-    // Le mode figé **se dit**, et il le faut.
-    //
-    // Il pose la scène en `position: fixed` par-dessus la page et coupe son
-    // animation : la porte ne bouge plus, et le reste glisse derrière. C'est
-    // exactement ce qu'on veut d'un banc d'essai — et c'est indiscernable
-    // d'une porte cassée. Il a passé dix minutes à filmer un défaut qui
-    // n'existait pas, sur une URL que je lui avais donnée sans la marquer.
-    //
-    // L'étiquette dit où l'on est et comment en sortir. Elle disparaîtra avec
-    // les trois dessins écartés, comme le reste de l'outillage.
-    let temoin = ouverture.map(|o| {
-        view! {
-            <p class="seuil-temoin">
-                {format!("banc d'essai — {dessin:?} figé à {o} · retirer ?ouverture= pour revenir au site")}
-            </p>
-        }
-    });
-
     view! {
-        <div id=id class=classe style=style>
-            {temoin}
+        <div id=id class="seuil">
             <div class="seuil-etape">
                 // Le fond, c'est-à-dire le contenu. Il n'y a pas de décor ici :
                 // ce qu'on voit par la fente est ce qu'on est venu chercher.
@@ -98,24 +55,20 @@ pub fn Porte(
 
                 // Le portique — tout ce qui est bâti, et qui avance d'un bloc.
                 //
-                // Il existe pour `portail`, qui a un linteau : le mur grandit
-                // avec la caméra, et si les battants ne grandissaient pas avec
-                // lui, une bande de fond s'ouvrirait entre les deux dès le
-                // premier dixième de course. Ce qui se tient doit avancer
-                // ensemble, donc être enveloppé ensemble.
-                //
-                // Les trois autres dessins le traversent sans le voir : sans
-                // transformation, il ne fait rien.
+                // Le mur grandit avec la caméra ; si les battants ne
+                // grandissaient pas avec lui, une bande de fond s'ouvrirait
+                // entre le linteau et eux dès le premier dixième de course. Ce
+                // qui se tient doit avancer ensemble, donc être enveloppé
+                // ensemble.
                 <div aria-hidden="true" class="seuil-portique">
                     <div class="seuil-vantail seuil-vantail--g"></div>
                     <div class="seuil-vantail seuil-vantail--d"></div>
 
-                    // Le mur percé d'une arche, pour `portail` seul. Il se pose
-                    // **au-dessus** des battants et non autour : c'est son ombre
-                    // portée qui peint la nuit, et un battant qui s'ouvre
-                    // disparaît derrière lui, comme dans un vrai tableau. Il
-                    // porte aussi le tympan et le linteau, qui sont donc calés
-                    // sur l'arche sans qu'on ait rien à accorder.
+                    // Le mur percé d'une arche. Il se pose **au-dessus** des
+                    // battants et non autour : c'est son ombre portée qui peint
+                    // la nuit, et un battant qui s'ouvre disparaît derrière lui,
+                    // comme une porte dans son tableau. Il porte aussi le tympan
+                    // et le linteau, calés sur l'arche sans rien à accorder.
                     <div class="seuil-embrasure"></div>
                 </div>
             </div>
@@ -277,62 +230,5 @@ mod traversee {
         options.set_top(y);
         options.set_behavior(web_sys::ScrollBehavior::Instant);
         fenetre.scroll_to_with_scroll_to_options(&options);
-    }
-}
-
-/// Les dessins soumis au choix.
-///
-/// Ils partagent le mécanisme, les durées et la caméra — sans ça la
-/// comparaison ne comparerait rien, et l'on choisirait un réglage en croyant
-/// choisir un dessin. `Portail` ajoute seulement une couche par-dessus ; il ne
-/// touche ni à la course ni à la rotation.
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
-pub enum Dessin {
-    /// La marque gravée à cheval sur la fente : entière porte close, déchirée
-    /// en son milieu quand elle s'ouvre.
-    Montagne,
-    /// La `voute` pour seule face — indiscernable du Hero au repos, donc pas
-    /// un panneau qui arrive mais une couture qui apparaît. Le plus retenu,
-    /// donc le défaut tant que rien n'est tranché.
-    #[default]
-    Nus,
-    /// Deux pans qui se floutent et se dissipent. Aucune arête franche, et le
-    /// seul des trois qui dise quelque chose : le voile du Temple.
-    Voile,
-    /// Le grand portail — la porte enfin **vue en entier**.
-    ///
-    /// Les trois autres occupent tout l'écran, bord à bord : ils se lisent
-    /// donc comme un mur qui se fend, et l'on ne voit jamais qu'il y a une
-    /// porte. Celui-ci la pose au milieu, arche arrondie, la nuit franche
-    /// autour, et la lumière qui sort de la fente en éventail.
-    ///
-    /// Puis on la **franchit** : le mur grandit et sort du cadre au lieu de
-    /// s'estomper. Un mur qui s'efface se remarque ; un mur qu'on dépasse, non.
-    Portail,
-}
-
-impl Dessin {
-    fn classe(self) -> &'static str {
-        match self {
-            Self::Montagne => "seuil--montagne",
-            Self::Nus => "seuil--nus",
-            Self::Voile => "seuil--voile",
-            Self::Portail => "seuil--portail",
-        }
-    }
-
-    /// Le nom tel qu'il s'écrit dans l'URL de comparaison.
-    ///
-    /// Un nom inconnu rend `None` plutôt que le défaut : `?porte=montange` mal
-    /// tapé donnerait sinon le dessin par défaut sans rien dire, et l'on
-    /// comparerait deux fois la même chose en croyant en voir deux.
-    pub fn depuis_le_nom(nom: &str) -> Option<Self> {
-        match nom {
-            "montagne" => Some(Self::Montagne),
-            "nus" => Some(Self::Nus),
-            "voile" => Some(Self::Voile),
-            "portail" => Some(Self::Portail),
-            _ => None,
-        }
     }
 }

@@ -693,6 +693,96 @@
   display: none;
 }
 
+/* Les jetons du seuil. Ils vivent sur la scène et non sur les pièces : `--portail`
+ * sert à la fois de largeur au mur, de rayon à l'arche, de hauteur au tympan, de
+ * naissance au linteau et de largeur aux battants. Un seul nombre, donc rien qui
+ * puisse se désaccorder. */
+.seuil {
+  /* ── Le grain de la pierre ────────────────────────────────────────────
+   *
+   * Un dégradé répété ne fera jamais une matière. Essayé deux fois : d'abord
+   * des stries à 8 %, qui donnaient une grille ; puis deux périodes premières
+   * entre elles à 5 %, qui ne donnaient rien du tout. Le problème n'est pas le
+   * réglage, c'est l'outil — une matière est **irrégulière à toutes les
+   * échelles**, et un dégradé ne l'est à aucune.
+   *
+   * Le site a déjà la bonne technique et elle est deux cents lignes plus haut :
+   * le `feTurbulence` de `grain-page`. Là il sert à casser les bandes d'un
+   * dégradé sombre, à 3,5 % ; ici il sert de grain de taille, bien plus fort,
+   * et il est **désaturé** — la turbulence brute est colorée, et une pierre
+   * mouchetée de vert n'est pas une pierre.
+   *
+   * `feComponentTransfer` resserre le bruit autour du gris moyen : sans lui il
+   * couvre tout l'intervalle et bouche les ombres. Avec, il module au lieu de
+   * repeindre.
+   *
+   * ── Le grain est **sur la rampe**, et aucune fusion ne l'y met ────────
+   *
+   * Deux fusions ont été essayées et les deux sortent de la rampe. `overlay`
+   * amenait la table du linteau à `#5C3D3D` — teinte 0° — et `soft-light`, cru
+   * plus sûr, à `#5A3B3A`. Teinte 1,7°, saturation tombée de 41 à 21 %, quand
+   * toute la peau du site tient une teinte constante de 343°.
+   *
+   * Ce n'est pas un réglage à corriger, c'est mécanique. Les deux fusions
+   * passent la base par une racine ou un produit **canal par canal**, et sur
+   * une couleur sombre c'est le canal le plus faible qui gagne le plus en
+   * proportion : le vert de l'aubergine monte trois fois quand le rouge monte
+   * deux, et la teinte tourne vers l'orange. Un grain gris désature tout ce
+   * qu'il touche, quelle que soit la façon dont on le pose.
+   *
+   * Le grain est donc **teinté à la source**. Un second `feColorMatrix` mappe
+   * le bruit désaturé sur la rampe elle-même, et lui donne une opacité
+   * constante. Il se pose alors normalement, sans fusion : le résultat est un
+   * mélange de deux couleurs de la rampe, donc il est sur la rampe par
+   * construction. Il n'y a plus rien à vérifier.
+   *
+   * Sa moyenne est calée sur **l'aubergine exactement** — le bruit vaut 0,5 en
+   * moyenne, et les pentes 0,52 / 0,225 / 0,30 le ramènent à `#421B26`. Une
+   * moyenne mal calée déplacerait la valeur de tout ce qu'il touche : au
+   * premier essai elle était au-dessus de l'aubergine, et le grain
+   * *éclaircissait* les battants au lieu de les moucheter.
+   *
+   * L'œil n'aurait rien dit : le linteau paraissait juste, et c'est la pipette
+   * qui a tranché. Sur une rampe dérivée au calcul, une dérive de teinte se
+   * mesure — elle ne se regarde pas.
+   *
+   * ── Et c'est sa **taille** qui compte, pas sa force ───────────────────
+   *
+   * À `baseFrequency: 1.15` — la valeur voisine de celle de `grain-page` — les
+   * grains font moins d'un pixel. Au pixel près ils sont là ; à bout de bras
+   * ils ne se lisent pas comme de la pierre, seulement comme un flou. On monte
+   * alors l'amplitude, et l'on obtient un flou plus sale.
+   *
+   * `0,34` donne des grains de trois pixels, et trois octaves leur donnent de
+   * la structure à plusieurs échelles — c'est ce qui distingue une matière
+   * d'un bruit. `grain-page` cherche exactement l'inverse : il doit casser des
+   * bandes sans jamais se voir, d'où sa fréquence quatre fois plus haute. Même
+   * filtre, deux réglages opposés, deux raisons opposées.
+   *
+   * ── Et c'est une **tuile**, pas un filtre étiré ───────────────────────
+   *
+   * Le SVG porte une taille — 168 px — et se répète. Sans elle il n'a pas de
+   * dimension propre : le navigateur l'étire alors à la boîte, donc il
+   * **rejoue le `feTurbulence` à chaque changement de taille**. Or le portique
+   * est mis à l'échelle à chaque image du défilement : trois octaves de bruit,
+   * recalculés soixante fois par seconde, sur quatre éléments et en double
+   * passe. C'est la première cause de la latence qu'on a mesurée, et elle ne
+   * se voit dans aucun profil de style — elle est dans la rastérisation.
+   *
+   * Avec une taille fixe, le bruit est calculé une fois et l'image est
+   * réutilisée. `stitchTiles='stitch'` est là pour ça : il fait raccorder la
+   * turbulence d'une tuile à l'autre.
+   *
+   * Aucun fichier : c'est du SVG en ligne, comme `grain-page`. */
+  --grain-pierre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='168'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeColorMatrix values='0.52 0 0 0 0 0.225 0 0 0 0 0.30 0 0 0 0 0 0 0 0 0.22'/%3E%3C/filter%3E%3Crect width='168' height='168' filter='url(%23p)'/%3E%3C/svg%3E");
+  --tuile-grain: 168px 168px;
+
+  --portail: min(96vw, 62svh);
+  --linteau: calc(var(--portail) * 0.105);
+  /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
+  --naissance: calc(7% + var(--portail) / 2);
+}
+
 @supports (animation-timeline: scroll()) {
   @media (prefers-reduced-motion: no-preference) {
     /* La course : un écran de défilement en plus, pas un de plus. La scène
@@ -781,6 +871,20 @@
       z-index: 2;
       perspective: min(1100px, 130vw);
       perspective-origin: 50% 46%;
+
+    transform: scale(
+      calc(
+        1 + var(--ouverture) * var(--ouverture) * var(--ouverture) *
+          var(--ouverture) * 6
+      )
+    );
+    transform-origin: 50% 46%;
+    /* L'assurance, et rien d'autre. À l'échelle 7 il ne reste rien à l'écran ;
+     * ces derniers centièmes effacent ce que la géométrie aurait laissé sur un
+     * format qu'on n'a pas essayé. Un mur qui s'estompe se remarque — celui-ci
+     * est déjà à sept fois l'écran quand il commence à s'effacer. */
+    opacity: calc(1 - max(0, (var(--ouverture) - 0.9) * 10));
+    will-change: transform, opacity;
     }
 
     /* Le fond, c'est-à-dire le bloc du verset.
@@ -882,57 +986,10 @@
 
     .seuil-vantail,
     .seuil-lueur,
-    .seuil--portail .seuil-embrasure {
+    .seuil-embrasure {
       display: block;
     }
 
-    /* Le mode figé — l'outil de comparaison, pas une fonctionnalité.
-     *
-     * `--ouverture` arrive en style en ligne, et il faut couper l'animation
-     * pour qu'il serve à quelque chose : une animation gagne toujours sur la
-     * cascade d'auteur, style en ligne compris.
-     *
-     * Il **couvre l'écran**, et ce n'est pas un excès de zèle : les deux outils
-     * de capture ne voient que le premier écran d'une page. QuickLook rend une
-     * vignette du haut, le simulateur ne sait pas défiler. Laissée à sa place
-     * dans le flux, sous une ouverture qui fait déjà un écran, la porte
-     * n'entrait dans aucun des deux — quatre aperçus sont sortis identiques à
-     * l'octet près, et l'on cherchait le défaut dans le dessin.
-     *
-     * Il vit **dans** la garde, donc QuickLook ne le montre pas : il ne
-     * comprend pas les animations au défilement, et la scène entière lui est
-     * invisible. C'est assumé — le §7 bis dit que le simulateur est la seule
-     * vérification qui vaille, et `scripts/portes.sh` ne se sert que de lui.
-     *
-     * `.seuil.seuil--fige` et non `.seuil--fige` : les deux règles portent
-     * `height`, et à spécificité égale ce serait l'ordre de la feuille qui
-     * trancherait. C'est le piège de `Bloc`, où un prop n'a rien fait pendant
-     * des mois. Doubler la classe rend l'emport explicite. */
-    .seuil.seuil--fige {
-      position: fixed;
-      inset: 0;
-      z-index: 60;
-      height: 100svh;
-    }
-
-    .seuil--fige .seuil-etape {
-      animation: none;
-    }
-
-    /* L'étiquette du banc d'essai. Elle est laide exprès : rien sur ce site
-     * n'a cette allure, donc on ne peut pas la prendre pour le site. */
-    .seuil-temoin {
-      position: absolute;
-      inset: 0 0 auto;
-      z-index: 70;
-      padding: 0.4rem 0.6rem;
-      background: #000;
-      color: #ff5c8a;
-      font-family: ui-monospace, monospace;
-      font-size: 11px;
-      line-height: 1.3;
-      text-align: center;
-    }
   }
 }
 
@@ -959,13 +1016,26 @@
   width: 90%;
   transform: translateX(-50%)
     scaleX(calc(0.035 + var(--ouverture) * 0.965));
-  opacity: calc(0.45 + var(--ouverture) * 0.55);
   will-change: transform, opacity;
-  background: radial-gradient(
-    ellipse 62% 72% at 50% 46%,
-    color-mix(in srgb, var(--color-or) 30%, transparent) 0%,
-    transparent 72%
-  );
+
+  /* Elle s'éteint sur la fin, et au carré comme les rais. Laissée pleine, la
+   * colonne de lumière restait posée **sur** le verset une fois la porte
+   * franchie : on avait traversé, et le jour de l'autre côté éclairait encore
+   * le texte comme un projecteur. Une lumière qui a fini son travail se
+   * retire. */
+  opacity: calc(1 - var(--ouverture) * var(--ouverture) * 0.92);
+  background:
+    linear-gradient(
+      to right,
+      transparent 44%,
+      color-mix(in srgb, var(--color-or) 58%, transparent) 50%,
+      transparent 56%
+    ),
+    radial-gradient(
+      ellipse 62% 72% at 50% 46%,
+      color-mix(in srgb, var(--color-or) 34%, transparent) 0%,
+      transparent 72%
+    );
 }
 
 /* ── Les vantaux ──────────────────────────────────────────────────────────
@@ -986,11 +1056,26 @@
  * file sur le côté, et c'est elle qu'on voit passer. */
 .seuil-vantail {
   position: absolute;
-  inset-block: 0;
   z-index: 2;
-  width: 50%;
   pointer-events: none;
   will-change: transform;
+
+  width: calc(var(--portail) / 2);
+  inset-block: calc(var(--naissance) + var(--linteau) / 2) 4%;
+  background-color: var(--color-surface);
+  background-image:
+    /* Le même grain, et il porte le battant aussi : une porte lisse dans une
+     * embrasure grenue se lit comme une découpe collée dessus. */
+    var(--grain-pierre),
+    linear-gradient(
+      to var(--vers-fente),
+      rgb(0 0 0 / 0.62) 0%,
+      rgb(0 0 0 / 0.12) 58%,
+      transparent 96.5%,
+      color-mix(in srgb, var(--color-or) 58%, transparent) 100%
+    );
+  background-size: var(--tuile-grain), auto;
+  background-repeat: repeat, no-repeat;
 
   /* L'avancée est **proportionnelle à la focale**, et il faut qu'elle le soit.
    *
@@ -1020,7 +1105,7 @@
 }
 
 .seuil-vantail--g {
-  left: 0;
+  left: calc(50% - var(--portail) / 2);
   --vers-charniere: left;
   --vers-fente: right;
   transform-origin: left center;
@@ -1030,7 +1115,7 @@
 }
 
 .seuil-vantail--d {
-  right: 0;
+  right: calc(50% - var(--portail) / 2);
   --vers-charniere: right;
   --vers-fente: left;
   transform-origin: right center;
@@ -1083,181 +1168,6 @@
     transparent 62%,
     color-mix(in srgb, var(--color-or) 72%, transparent) 100%
   );
-}
-
-/* ── Les trois dessins ────────────────────────────────────────────────────
- *
- * Ils ne diffèrent **que** par ce qui est sur les vantaux. Le mécanisme, les
- * durées, la caméra et l'ombre sont partagés — sinon la comparaison ne
- * comparerait rien, et l'on choisirait un réglage en croyant choisir un
- * dessin. Deux d'entre eux seront supprimés une fois le choix fait.
- *
- * Le filet d'or est sur le bord **intérieur**, à 18 % comme tous les filets du
- * site : sur une nuit chaude, un gris paraît sale. Porte close les deux se
- * touchent et se lisent comme un seul trait ; ouverte, chaque battant garde
- * son arête éclairée, et c'est elle qu'on voit filer sur le côté. */
-.seuil--montagne .seuil-vantail--g,
-.seuil--nus .seuil-vantail--g {
-  border-inline-end: 1px solid color-mix(in srgb, var(--color-or) 18%, transparent);
-}
-
-.seuil--montagne .seuil-vantail--d,
-.seuil--nus .seuil-vantail--d {
-  border-inline-start: 1px solid color-mix(in srgb, var(--color-or) 18%, transparent);
-}
-
-/* ── `montagne` — la marque fendue ────────────────────────────────────────
- *
- * La montagne du logo est gravée à cheval sur la fente : entière porte close,
- * déchirée en son milieu quand elle s'ouvre. On réemploie la marque au lieu
- * d'inventer un ornement — et le site n'a qu'un signe, autant que ce soit lui
- * qui tienne le seuil.
- *
- * ── La gravure fait la largeur de la porte, pas celle du battant ──────────
- *
- * C'est tout le calage, et il tient à ça. Le pseudo-élément est large de
- * `200 %` — donc de la porte entière — et calé par son bord sur la fente ; le
- * vantail le rogne à sa moitié. La montagne est alors `center` d'une boîte qui
- * est la porte, et les deux moitiés se recomposent sans que rien n'ait été
- * calculé.
- *
- * Le premier montage masquait dans le vantail et rattrapait le décalage avec
- * `calc(100% - largeur / 2)`. Il ne pouvait pas marcher : dans
- * `mask-position`, un pourcentage ne mesure pas la boîte, il aligne l'image —
- * `100 %` veut dire « bord droit contre bord droit », soit `boîte − image`. Le
- * vantail gauche recevait donc un décalage de plusieurs centaines de pixels et
- * paraissait vide, pendant que le droit, calé par une longueur nue, était
- * juste. Un dessin faux d'un seul côté ressemble à un dessin qu'on a raté, pas
- * à une formule qu'on a mal lue.
- *
- * ── Et la taille se borne par la porte ────────────────────────────────────
- *
- * C'est le pendant d'`horizon` et **son contraire**. L'horizon a le droit de
- * déborder l'écran : c'est un décor, on n'en voit qu'un morceau et c'est ce
- * morceau qui fait la crête. Une gravure, non — un logo dont on ne voit que le
- * milieu ne se lit plus comme un logo, il se lit comme un défaut d'affichage.
- * 84 % de la porte, en pourcentage et jamais en `vw` : sur un ordinateur la
- * barre de défilement sépare les deux, et les deux moitiés se décaleraient
- * d'une dizaine de pixels à la fente — exactement là où l'œil regarde. */
-.seuil--montagne .seuil-vantail {
-  background-color: var(--color-surface);
-  overflow: hidden;
-}
-
-.seuil--montagne .seuil-vantail::before {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  width: 200%;
-  background: color-mix(in srgb, var(--color-or) 30%, transparent);
-  -webkit-mask: url("/images/logomark.svg") center / 84% auto no-repeat;
-  mask: url("/images/logomark.svg") center / 84% auto no-repeat;
-}
-
-/* Le vantail gauche est la moitié gauche de la porte : son pseudo-élément se
- * cale donc à **gauche**, et le vantail rogne tout ce qui dépasse à droite —
- * il n'en reste que la moitié gauche de la gravure. Calé sur la fente comme au
- * premier essai, chaque battant montrait la moitié de l'autre : deux pentes
- * qui descendent vers l'extérieur, une vallée au lieu d'un sommet. Le dessin
- * était symétrique, donc l'erreur ne se voyait qu'à la forme. */
-.seuil--montagne .seuil-vantail--g::before {
-  left: 0;
-}
-
-.seuil--montagne .seuil-vantail--d::before {
-  right: 0;
-}
-
-/* ── `nus` — deux vantaux, rien dessus ────────────────────────────────────
- *
- * La face est la `voute` elle-même, donc **indiscernable du Hero** au repos :
- * le lecteur ne voit pas un panneau arriver, il voit une couture apparaître au
- * milieu de la page où il se trouve déjà. Puis ça s'ouvre.
- *
- * Le fond est étiré à `200%` et calé sur son bord extérieur, parce que la
- * `voute` est une lumière qui tombe au centre de ce qu'elle éclaire : posée
- * telle quelle, chaque vantail aurait sa propre source, et l'on verrait deux
- * demi-lumières au lieu d'une. Étirée sur deux fois la largeur du battant,
- * elle couvre la porte entière et se recompose à la fente.
- *
- * C'est le candidat le plus proche de la doctrine du §5 — l'ancien donne la
- * structure, le moderne donne la retenue. */
-.seuil--nus .seuil-vantail {
-  @apply voute;
-  background-size: 200% 100%;
-}
-
-.seuil--nus .seuil-vantail--g {
-  background-position: left center;
-}
-
-.seuil--nus .seuil-vantail--d {
-  background-position: right center;
-}
-
-/* ── `voile` — pas une porte ──────────────────────────────────────────────
- *
- * Deux pans qui s'écartent, se floutent et se dissipent. Aucune arête
- * franche, aucune rotation : rien qui puisse mal tomber sur un téléphone, où
- * un plan à 82° laisse voir une tranche que personne n'a dessinée.
- *
- * Et c'est le seul des trois qui **dise** quelque chose : le voile du Temple.
- *
- * Le bord intérieur est mangé par un dégradé plutôt que coupé net — un voile
- * n'a pas de bord, il a une retombée. La fente laisse donc passer la lueur
- * avant même que rien n'ait bougé.
- *
- * Les plis sont un dégradé répété à très faible contraste. Sans eux, un pan
- * uni qui s'écarte est un rectangle qui glisse ; avec eux, c'est une étoffe.
- * Le flou est plafonné à 10 px : c'est la seule chose ici que le processeur
- * paie à chaque image, et une porte qui saute vaut moins qu'une porte nette. */
-.seuil--voile .seuil-vantail {
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      transparent 0 1.4rem,
-      rgb(0 0 0 / 0.16) 1.4rem 1.55rem,
-      transparent 1.55rem 2.9rem
-    ),
-    linear-gradient(to bottom, var(--color-surface-haute), var(--color-nuit) 88%);
-  /* Un flou **constant**, et c'est une correction de performance autant qu'un
-   * choix. Animé, `filter` est la seule propriété de toute la scène qui
-   * ramène l'animation sur le fil principal : chaque image force un nouveau
-   * flou gaussien sur un pan de la hauteur de l'écran. Constant, il est
-   * rastérisé une fois et la couche se contente ensuite de glisser.
-   *
-   * Ce qu'on perd est le passage du net au flou ; ce qu'on garde est
-   * l'essentiel — une étoffe n'a pas d'arête, même immobile. Elle se dissipe
-   * par l'opacité et l'écart, qui suffisent à la faire disparaître. */
-  filter: blur(7px);
-  /* En carré, pas en droite. `--ouverture` court linéairement, or une étoffe
-   * ne s'efface pas à vitesse constante : elle tient, puis lâche. Au linéaire
-   * le voile était à demi transparent à mi-course — c'est-à-dire déjà absent
-   * au moment où l'on croit encore le regarder. */
-  opacity: calc(1 - var(--ouverture) * var(--ouverture) * 0.97);
-  will-change: transform, opacity, filter;
-}
-
-.seuil--voile .seuil-vantail::after {
-  content: none;
-}
-
-/* La retombée mange le cinquième du pan, pas la moitié.
- *
- * À 52 % le voile était translucide sur tout son bord intérieur : porte close,
- * on lisait déjà le verset au travers, et il n'y avait plus rien à dévoiler.
- * Un voile a une retombée, pas un fondu — il tient, et il ne laisse passer la
- * lumière qu'à la fente elle-même. */
-.seuil--voile .seuil-vantail--g {
-  transform: translateX(calc(var(--ouverture) * -58%));
-  -webkit-mask: linear-gradient(to right, #000 80%, transparent 100%);
-  mask: linear-gradient(to right, #000 80%, transparent 100%);
-}
-
-.seuil--voile .seuil-vantail--d {
-  transform: translateX(calc(var(--ouverture) * 58%));
-  -webkit-mask: linear-gradient(to left, #000 80%, transparent 100%);
-  mask: linear-gradient(to left, #000 80%, transparent 100%);
 }
 
 /* ── `portail` — la porte enfin vue en entier ─────────────────────────────
@@ -1319,91 +1229,6 @@
  * mord que d'un côté : sur un téléphone c'est la largeur qui commande, sur un
  * écran d'ordinateur c'est la hauteur. Le second a été remonté de 46 à 62 —
  * à 46, le portail d'un grand écran devenait une meurtrière. */
-.seuil--portail {
-  /* ── Le grain de la pierre ────────────────────────────────────────────
-   *
-   * Un dégradé répété ne fera jamais une matière. Essayé deux fois : d'abord
-   * des stries à 8 %, qui donnaient une grille ; puis deux périodes premières
-   * entre elles à 5 %, qui ne donnaient rien du tout. Le problème n'est pas le
-   * réglage, c'est l'outil — une matière est **irrégulière à toutes les
-   * échelles**, et un dégradé ne l'est à aucune.
-   *
-   * Le site a déjà la bonne technique et elle est deux cents lignes plus haut :
-   * le `feTurbulence` de `grain-page`. Là il sert à casser les bandes d'un
-   * dégradé sombre, à 3,5 % ; ici il sert de grain de taille, bien plus fort,
-   * et il est **désaturé** — la turbulence brute est colorée, et une pierre
-   * mouchetée de vert n'est pas une pierre.
-   *
-   * `feComponentTransfer` resserre le bruit autour du gris moyen : sans lui il
-   * couvre tout l'intervalle et bouche les ombres. Avec, il module au lieu de
-   * repeindre.
-   *
-   * ── Le grain est **sur la rampe**, et aucune fusion ne l'y met ────────
-   *
-   * Deux fusions ont été essayées et les deux sortent de la rampe. `overlay`
-   * amenait la table du linteau à `#5C3D3D` — teinte 0° — et `soft-light`, cru
-   * plus sûr, à `#5A3B3A`. Teinte 1,7°, saturation tombée de 41 à 21 %, quand
-   * toute la peau du site tient une teinte constante de 343°.
-   *
-   * Ce n'est pas un réglage à corriger, c'est mécanique. Les deux fusions
-   * passent la base par une racine ou un produit **canal par canal**, et sur
-   * une couleur sombre c'est le canal le plus faible qui gagne le plus en
-   * proportion : le vert de l'aubergine monte trois fois quand le rouge monte
-   * deux, et la teinte tourne vers l'orange. Un grain gris désature tout ce
-   * qu'il touche, quelle que soit la façon dont on le pose.
-   *
-   * Le grain est donc **teinté à la source**. Un second `feColorMatrix` mappe
-   * le bruit désaturé sur la rampe elle-même, et lui donne une opacité
-   * constante. Il se pose alors normalement, sans fusion : le résultat est un
-   * mélange de deux couleurs de la rampe, donc il est sur la rampe par
-   * construction. Il n'y a plus rien à vérifier.
-   *
-   * Sa moyenne est calée sur **l'aubergine exactement** — le bruit vaut 0,5 en
-   * moyenne, et les pentes 0,52 / 0,225 / 0,30 le ramènent à `#421B26`. Une
-   * moyenne mal calée déplacerait la valeur de tout ce qu'il touche : au
-   * premier essai elle était au-dessus de l'aubergine, et le grain
-   * *éclaircissait* les battants au lieu de les moucheter.
-   *
-   * L'œil n'aurait rien dit : le linteau paraissait juste, et c'est la pipette
-   * qui a tranché. Sur une rampe dérivée au calcul, une dérive de teinte se
-   * mesure — elle ne se regarde pas.
-   *
-   * ── Et c'est sa **taille** qui compte, pas sa force ───────────────────
-   *
-   * À `baseFrequency: 1.15` — la valeur voisine de celle de `grain-page` — les
-   * grains font moins d'un pixel. Au pixel près ils sont là ; à bout de bras
-   * ils ne se lisent pas comme de la pierre, seulement comme un flou. On monte
-   * alors l'amplitude, et l'on obtient un flou plus sale.
-   *
-   * `0,34` donne des grains de trois pixels, et trois octaves leur donnent de
-   * la structure à plusieurs échelles — c'est ce qui distingue une matière
-   * d'un bruit. `grain-page` cherche exactement l'inverse : il doit casser des
-   * bandes sans jamais se voir, d'où sa fréquence quatre fois plus haute. Même
-   * filtre, deux réglages opposés, deux raisons opposées.
-   *
-   * ── Et c'est une **tuile**, pas un filtre étiré ───────────────────────
-   *
-   * Le SVG porte une taille — 168 px — et se répète. Sans elle il n'a pas de
-   * dimension propre : le navigateur l'étire alors à la boîte, donc il
-   * **rejoue le `feTurbulence` à chaque changement de taille**. Or le portique
-   * est mis à l'échelle à chaque image du défilement : trois octaves de bruit,
-   * recalculés soixante fois par seconde, sur quatre éléments et en double
-   * passe. C'est la première cause de la latence qu'on a mesurée, et elle ne
-   * se voit dans aucun profil de style — elle est dans la rastérisation.
-   *
-   * Avec une taille fixe, le bruit est calculé une fois et l'image est
-   * réutilisée. `stitchTiles='stitch'` est là pour ça : il fait raccorder la
-   * turbulence d'une tuile à l'autre.
-   *
-   * Aucun fichier : c'est du SVG en ligne, comme `grain-page`. */
-  --grain-pierre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='168' height='168'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeColorMatrix values='0.52 0 0 0 0 0.225 0 0 0 0 0.30 0 0 0 0 0 0 0 0 0.22'/%3E%3C/filter%3E%3Crect width='168' height='168' filter='url(%23p)'/%3E%3C/svg%3E");
-  --tuile-grain: 168px 168px;
-
-  --portail: min(96vw, 62svh);
-  --linteau: calc(var(--portail) * 0.105);
-  /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
-  --naissance: calc(7% + var(--portail) / 2);
-}
 
 /* ── Le franchissement ────────────────────────────────────────────────────
  *
@@ -1434,21 +1259,6 @@
  *
  * Même origine que le fond, `50% 46%`, sinon les deux plans partiraient de
  * deux points et le travelling se dédoublerait. */
-.seuil--portail .seuil-portique {
-  transform: scale(
-    calc(
-      1 + var(--ouverture) * var(--ouverture) * var(--ouverture) *
-        var(--ouverture) * 6
-    )
-  );
-  transform-origin: 50% 46%;
-  /* L'assurance, et rien d'autre. À l'échelle 7 il ne reste rien à l'écran ;
-   * ces derniers centièmes effacent ce que la géométrie aurait laissé sur un
-   * format qu'on n'a pas essayé. Un mur qui s'estompe se remarque — celui-ci
-   * est déjà à sept fois l'écran quand il commence à s'effacer. */
-  opacity: calc(1 - max(0, (var(--ouverture) - 0.9) * 10));
-  will-change: transform, opacity;
-}
 
 /* ── L'embrasure : le mur percé, et son épaisseur ─────────────────────────
  *
@@ -1463,7 +1273,7 @@
  * la clef de l'arche tombe exactement sur le bord de l'écran : la courbe y
  * meurt au lieu de se fermer. Sans le retrait bas, la porte n'a rien sous
  * elle, et une porte qui ne pose sur rien n'a pas de poids. */
-.seuil--portail .seuil-embrasure {
+.seuil-embrasure {
   position: absolute;
   inset-block: 7% 4%;
   left: 50%;
@@ -1509,7 +1319,7 @@
  *
  * Un filet d'or à la clef, une lueur montant du linteau, et l'ombre qui se
  * creuse vers le bas : la pierre est éclairée du haut comme tout le site. */
-.seuil--portail .seuil-embrasure::before {
+.seuil-embrasure::before {
   content: "";
   position: absolute;
   /* `inset: 0` et non `1px` : les rayons se lisent sur **sa** boîte — 50 % de
@@ -1561,7 +1371,7 @@
  *
  * Elle passe par-dessus les battants sans qu'on ait rien à demander :
  * l'embrasure est au troisième plan, eux au deuxième. */
-.seuil--portail .seuil-embrasure::after {
+.seuil-embrasure::after {
   content: "";
   position: absolute;
   /* Il **déborde** de l'embrasure. Un linteau qui affleure est un trait ; un
@@ -1628,32 +1438,6 @@
  * battant — le premier réglage — ce n'était plus un joint mais une bande
  * peinte au milieu de la porte : la lumière ne venait plus de derrière, elle
  * était *sur* le bois. Un joint est étroit ou n'est pas. */
-.seuil--portail .seuil-vantail {
-  width: calc(var(--portail) / 2);
-  inset-block: calc(var(--naissance) + var(--linteau) / 2) 4%;
-  background-color: var(--color-surface);
-  background-image:
-    /* Le même grain, et il porte le battant aussi : une porte lisse dans une
-     * embrasure grenue se lit comme une découpe collée dessus. */
-    var(--grain-pierre),
-    linear-gradient(
-      to var(--vers-fente),
-      rgb(0 0 0 / 0.62) 0%,
-      rgb(0 0 0 / 0.12) 58%,
-      transparent 96.5%,
-      color-mix(in srgb, var(--color-or) 58%, transparent) 100%
-    );
-  background-size: var(--tuile-grain), auto;
-  background-repeat: repeat, no-repeat;
-}
-
-.seuil--portail .seuil-vantail--g {
-  left: calc(50% - var(--portail) / 2);
-}
-
-.seuil--portail .seuil-vantail--d {
-  right: calc(50% - var(--portail) / 2);
-}
 
 /* Le panneau creusé.
  *
@@ -1677,7 +1461,7 @@
  * Trois panneaux la redonneraient deux fois. Un seul, haut, ne laisse que le
  * joint vertical — et c'est d'ailleurs le dessin des portes de nef, dont les
  * vantaux sont d'une seule pièce. */
-.seuil--portail .seuil-vantail::before {
+.seuil-vantail::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1714,7 +1498,7 @@
  *   porte close, nuls une fois dedans, au plus fort à mi-course. Des rais qui
  *   subsistent sur le verset ne sont plus une lumière, ce sont des rayures sur
  *   du texte. */
-.seuil--portail .seuil-lueur::after {
+.seuil-lueur::after {
   content: "";
   position: absolute;
   inset: -50%;
@@ -1738,23 +1522,3 @@
  *
  * Il reste étroit et **franc** plutôt que large et pâle : c'est un joint, pas
  * un halo. Le halo, c'est ce que fait le dégradé autour. */
-.seuil--portail .seuil-lueur {
-  /* Elle s'éteint sur la fin, et au carré comme les rais. Laissée pleine, la
-   * colonne de lumière restait posée **sur** le verset une fois la porte
-   * franchie : on avait traversé, et le jour de l'autre côté éclairait encore
-   * le texte comme un projecteur. Une lumière qui a fini son travail se
-   * retire. */
-  opacity: calc(1 - var(--ouverture) * var(--ouverture) * 0.92);
-  background:
-    linear-gradient(
-      to right,
-      transparent 44%,
-      color-mix(in srgb, var(--color-or) 58%, transparent) 50%,
-      transparent 56%
-    ),
-    radial-gradient(
-      ellipse 62% 72% at 50% 46%,
-      color-mix(in srgb, var(--color-or) 34%, transparent) 0%,
-      transparent 72%
-    );
-}

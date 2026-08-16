@@ -547,17 +547,21 @@ scène, `200lvh`. S'il pèse, elle descend.
   gros, dans une échelle typographique dont chaque palier a été mesuré. Elle va
   de 0,88 à 1 — c'est le début qui recule.
 
-#### `portail` — la porte enfin vue en entier
+#### Le portail — le dessin retenu
 
-**Ajouté le 16 août 2026**, après qu'il a regardé les trois premiers dessins et
-demandé « une porte façon *gates of heaven* ».
+**Quatre dessins ont été comparés le 16 août 2026, et c'est celui-ci qu'il a
+retenu.** Les trois écartés — `montagne`, la marque gravée à cheval sur la
+fente ; `nus`, la `voute` pour seule face ; `voile`, deux pans qui se
+dissipent — vivent dans le commit « Comparer quatre seuils avant d'en retenir
+un ». Ne pas les réinventer sans l'avoir lu : chacun a été mené jusqu'au bout
+et écarté en connaissance de cause.
 
-Le reproche est juste, et il vaut pour les trois : la porte occupe **tout
-l'écran**, bord à bord. Elle se lit donc comme un mur qui se fend. On ne voit
-jamais la porte *en entier*, donc on ne voit jamais qu'il y en a une. C'est le
-même reproche que celui de sa femme sur le bouton, un cran plus loin.
+Le reproche qui a produit celui-ci vaut pour les trois autres : la porte
+occupait **tout l'écran**, bord à bord. Elle se lisait donc comme un mur qui se
+fend. On ne voyait jamais la porte *en entier*, donc jamais qu'il y en avait
+une. C'est le reproche de sa femme sur le bouton, un cran plus loin.
 
-`portail` la pose au milieu — arche en demi-cercle, la nuit franche autour, la
+Le portail la pose au milieu — arche en demi-cercle, la nuit franche autour, la
 lumière qui sort de la fente en éventail — et l'on **la franchit** : le mur
 grandit et sort du cadre au lieu de s'estomper. Un mur qui s'efface se
 remarque ; un mur qu'on dépasse, non.
@@ -570,11 +574,10 @@ Rien de doré, rien de nuageux : la grandeur vient de la proportion et de la
 lumière. Un portail chargé ferait basculer la page chez l'antiquaire en trois
 secondes.
 
-**Et pas de marque dessus.** La montagne y était gravée au premier jet, comme
-sur le dessin `montagne` ; il l'a fait retirer, et il a raison. Le portail
-porte déjà son signe : c'est l'arche. Un second signe posé dessus les met en
-concurrence, et le dessin cesse d'être une porte pour redevenir l'image d'une
-porte. La marque reste dans le dessin qui n'a qu'elle.
+**Et pas de marque dessus.** La montagne y était gravée au premier jet ; il l'a
+fait retirer, et il a raison. Le portail porte déjà son signe : c'est l'arche.
+Un second signe posé dessus les met en concurrence, et le dessin cesse d'être
+une porte pour redevenir l'image d'une porte.
 
 ##### Le premier jet était un contour, et il faisait de la peine
 
@@ -867,45 +870,29 @@ l'épinglage, le Hero est hors de l'écran et il n'y a plus de couture à
 masquer. Un voile d'aubergine posé sur le verset ne serait plus qu'un voile
 d'aubergine posé sur le verset.
 
-#### Le mode figé, et pourquoi il existe
+#### Ce qu'a coûté la comparaison, et ce qu'elle a appris
 
-Une porte au défilement ne se juge pas sur une capture — c'est le piège du
-§7 bis. Mais une porte **figée**, si.
+Quatre dessins menés de front demandent un banc d'essai : `?porte=` choisissait
+le dessin, `?ouverture=` figeait la scène à une progression donnée pour la
+photographier, `scripts/portes.sh` en tirait une planche de seize images. Tout
+ça est **supprimé** avec les trois écartés — c'était l'instrument d'un choix,
+pas une fonctionnalité. Deux leçons en restent, et elles resserviront.
 
-`?porte=montagne|nus|voile` choisit le dessin, `?ouverture=0.35` fige la scène
-à une progression donnée et la pose **par-dessus la page**. Ce dernier point
-n'est pas un excès : les deux outils de capture ne voient que le premier écran.
-QuickLook rend une vignette du haut, le simulateur ne sait pas défiler. Laissée
-à sa place dans le flux, sous une ouverture qui fait déjà un écran, la porte
-n'entrait dans aucun des deux — quatre aperçus sont sortis identiques à
-l'octet près, et l'on a cherché le défaut dans le dessin.
+**Une porte au défilement ne se juge pas sur une capture, mais une porte figée,
+si.** Encore fallait-il la poser **par-dessus la page** : les deux outils de
+capture ne voient que le premier écran — QuickLook rend une vignette du haut,
+le simulateur ne sait pas défiler. Laissée à sa place dans le flux, sous une
+ouverture qui fait déjà un écran, elle n'entrait dans aucun des deux. Quatre
+aperçus sont sortis identiques à l'octet près, et l'on a cherché le défaut dans
+le dessin.
 
-Pour la même raison, le mode figé vit **hors** de la garde `@supports` :
-QuickLook ne comprend pas les animations au défilement, et l'outil censé
-montrer la porte l'effaçait.
-
-`scripts/portes.sh` en tire une planche de trois dessins sur quatre
-progressions. Le mouvement, lui, ne s'y voit pas — pour lui,
-`xcrun simctl io booted recordVideo`.
-
-**Le banc d'essai se dit, et il le faut.** Le mode figé pose la scène en
-`position: fixed` par-dessus la page et coupe son animation : la porte ne bouge
-plus, et le reste glisse derrière. C'est exactement ce qu'on demande à un banc
-d'essai — et c'est **indiscernable d'une porte cassée**.
-
-Il a filmé dix secondes d'un défaut qui n'existait pas, sur une URL que je lui
-avais donnée sans la marquer. Le diagnostic a tenu à une image : juste après un
-rechargement, à défilement zéro, on voyait la porte au lieu du Hero. Aucun mode
-vivant ne fait ça.
-
-Une étiquette dit maintenant où l'on est et comment en sortir. Elle est laide
-exprès — rien sur ce site n'a cette allure, donc on ne peut pas la prendre pour
-le site. **Un outil qui imite le produit doit porter sa marque**, sinon c'est le
-produit qu'on croit lire.
-
-Tout ça — les deux paramètres, le mode figé, l'étiquette, le script — disparaît
-avec les dessins écartés. C'est l'instrument d'un choix, pas une
-fonctionnalité.
+**Un outil qui imite le produit doit porter sa marque.** Le mode figé posait la
+scène en `position: fixed` et coupait son animation : la porte ne bougeait
+plus, et le reste glissait derrière. C'est exactement ce qu'on demande à un
+banc d'essai — et c'est indiscernable d'une porte cassée. Il a filmé dix
+secondes d'un défaut qui n'existait pas, sur une URL donnée sans étiquette. Le
+diagnostic a tenu à une image : juste après un rechargement, à défilement zéro,
+on voyait la porte au lieu du Hero. Aucun mode vivant ne fait ça.
 
 ### Le massif se dimensionne en part d'écran, pas en largeur
 
@@ -1794,21 +1781,6 @@ worker qui met en cache sans qu'on l'ait pensé sert du HTML périmé pendant de
 jours, exactement le défaut que les empreintes du §8 ter viennent de corriger.
 
 ## 9. Ce qui reste à trancher
-
-- **Lequel des quatre seuils.** Tous sont écrits et comparables en ligne (§5).
-  `montagne` grave la marque à cheval sur la fente — entière porte close,
-  déchirée en s'ouvrant. `nus` n'a que la `voute` pour face : indiscernable du
-  Hero au repos, donc pas un panneau qui arrive mais une couture qui apparaît.
-  `voile` n'est pas une porte — deux pans qui se floutent et se dissipent, sans
-  une arête franche, et le seul des quatre qui dise quelque chose. `portail`
-  est le seul qu'on voie **en entier** : une arche au milieu, la nuit autour,
-  et l'on la franchit.
-
-  `Dessin::Nus` est le défaut tant que rien n'est tranché, parce que c'est le
-  plus retenu. **Le jour du choix**, supprimer les trois autres dans
-  `style/main.css` et `design/porte.rs`, retirer le prop, effacer
-  `scripts/portes.sh` et les deux paramètres d'URL de `pages/accueil.rs`.
-  Rien ne reste « au cas où » (`design/mod.rs`).
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.
   **Rien de cette page ne doit être mis en ligne avant.**

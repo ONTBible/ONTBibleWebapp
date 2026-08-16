@@ -68,7 +68,7 @@ pub use occurrences::Occurrences;
 pub use page_de_lecture::PageDeLecture;
 pub use page_legale::PageLegale;
 pub use pied::PiedDePage;
-pub use porte::{traverser, Dessin, Porte};
+pub use porte::{traverser, Porte};
 pub use portrait::Portrait;
 pub use principe::Principe;
 pub use reglages_de_lecture::{fournir_preferences, preferences, ReglagesDeLecture};
