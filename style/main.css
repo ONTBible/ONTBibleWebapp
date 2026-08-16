@@ -779,14 +779,11 @@
 
   --portail: min(96vw, 62svh);
   --linteau: calc(var(--portail) * 0.105);
-  /* L'anneau de la poignée — un dixième de la largeur du portail. Comme tout
-   * le reste, il se déduit de `--portail` : il ne peut pas se désaccorder de
-   * la porte qu'il équipe. Un dixième, essayé d'abord, se lisait comme un œillet
-   * plutôt que comme une prise : une poignée doit avoir la taille d'une main. */
-  --anneau: calc(var(--portail) * 0.15);
-  /* L'écusson derrière l'anneau, et les pentures en travers du battant. Toute
-   * la ferrure se déduit de `--portail`, comme le reste. */
-  --ecusson: calc(var(--anneau) * 1.5);
+  /* Toute la ferrure se déduit de `--portail`, comme le reste : la barre de la
+   * poignée, ses deux rosaces, et les pentures en travers du battant. Elle ne
+   * peut donc pas se désaccorder de la porte qu'elle équipe. */
+  --poignee: calc(var(--portail) * 0.034);
+  --rosace: calc(var(--poignee) * 1.9);
   --penture: calc(var(--portail) * 0.046);
   /* La naissance de l'arche : le haut des battants, le milieu du linteau. */
   --naissance: calc(7% + var(--portail) / 2);
@@ -1117,26 +1114,37 @@
      * seule règle sert les deux battants. Écrite deux fois, elle finirait par
      * ne l'être qu'une. */
     radial-gradient(
-      circle at 50% 50%,
-      transparent 0 21%,
-      color-mix(in srgb, var(--color-or) 88%, transparent) 25%,
-      color-mix(in srgb, var(--color-or) 52%, transparent) 34%,
-      color-mix(in srgb, var(--color-or) 20%, transparent) 40%,
-      transparent 43%
+      circle at 38% 34%,
+      color-mix(in srgb, var(--color-or) 78%, var(--color-encre-vive)) 0 13%,
+      color-mix(in srgb, var(--color-or) 92%, var(--color-surface)) 30%,
+      color-mix(in srgb, var(--color-or) 46%, var(--color-surface)) 52%,
+      color-mix(in srgb, var(--color-nuit) 62%, var(--color-surface)) 68%,
+      rgb(0 0 0 / 0.55) 78%,
+      transparent 84%
     ),
     radial-gradient(
-      circle at 50% 50%,
-      transparent 0 21%,
-      rgb(0 0 0 / 0.85) 25%,
-      rgb(0 0 0 / 0.38) 41%,
-      transparent 46%
+      circle at 38% 34%,
+      color-mix(in srgb, var(--color-or) 78%, var(--color-encre-vive)) 0 13%,
+      color-mix(in srgb, var(--color-or) 92%, var(--color-surface)) 30%,
+      color-mix(in srgb, var(--color-or) 46%, var(--color-surface)) 52%,
+      color-mix(in srgb, var(--color-nuit) 62%, var(--color-surface)) 68%,
+      rgb(0 0 0 / 0.55) 78%,
+      transparent 84%
     ),
-    radial-gradient(
-      circle at 50% 45%,
-      transparent 0 33%,
-      color-mix(in srgb, var(--color-or) 30%, transparent) 35.5%,
-      color-mix(in srgb, var(--color-or) 8%, transparent) 38%,
-      transparent 41%
+    repeating-linear-gradient(
+      64deg,
+      transparent 0 3px,
+      rgb(0 0 0 / 0.3) 3px 4.5px,
+      color-mix(in srgb, var(--color-or) 40%, var(--color-encre-vive)) 4.5px 5.5px,
+      transparent 5.5px 10px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-or) 40%, var(--color-nuit)) 0 9%,
+      color-mix(in srgb, var(--color-or) 74%, var(--color-encre-vive)) 24%,
+      color-mix(in srgb, var(--color-or) 72%, var(--color-surface)) 54%,
+      color-mix(in srgb, var(--color-or) 22%, var(--color-nuit)) 84%,
+      rgb(0 0 0 / 0.72) 100%
     ),
     radial-gradient(
       circle at 40% 36%,
@@ -1183,18 +1191,18 @@
       color-mix(in srgb, var(--color-or) 58%, transparent) 100%
     );
   background-size:
-    var(--anneau) var(--anneau), var(--anneau) var(--anneau),
-    var(--ecusson) var(--ecusson), var(--penture) var(--penture),
+    var(--rosace) var(--rosace), var(--rosace) var(--rosace),
+    40% var(--poignee), 40% var(--poignee), var(--penture) var(--penture),
     var(--penture) var(--penture), 44% var(--penture), 44% var(--penture),
     var(--tuile-grain), auto;
   background-position:
-    var(--vers-fente) 15% top 47%, var(--vers-fente) 15% top 47.7%,
-    var(--vers-fente) 12.5% top 46.6%, var(--vers-charniere) 40% top 20%,
-    var(--vers-charniere) 40% top 72%, var(--vers-charniere) 0 top 20%,
-    var(--vers-charniere) 0 top 72%, 0 0, 0 0;
+    var(--vers-fente) 13.8% top 46.8%, var(--vers-fente) 55.7% top 46.8%,
+    var(--vers-fente) 28% top 47%, var(--vers-fente) 28% top 47%,
+    var(--vers-charniere) 40% top 20%, var(--vers-charniere) 40% top 72%,
+    var(--vers-charniere) 0 top 20%, var(--vers-charniere) 0 top 72%, 0 0, 0 0;
   background-repeat:
     no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
-    no-repeat, repeat, no-repeat;
+    no-repeat, no-repeat, repeat, no-repeat;
 
   /* L'avancée est **proportionnelle à la focale**, et il faut qu'elle le soit.
    *
