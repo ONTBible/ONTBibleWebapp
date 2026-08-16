@@ -1,26 +1,46 @@
 <!-- Signature de courriel — contact@ontbible.com
 
-     ## Pourquoi des tableaux et des styles en ligne
+     ## Elle est empilée, et ce n'est pas un choix esthétique
+
+     Le premier dessin mettait la tuile **à côté** du texte, séparée par le
+     filet d'or — le patron du combination mark. Il ne survit pas.
+
+     L'éditeur de signatures de Mail convertit ce qu'on lui colle en texte
+     enrichi : il garde les images, les couleurs, les liens et les sauts de
+     ligne, et il **aplatit les tableaux**. Le logo se retrouvait au-dessus du
+     texte, dans un désordre qu'on n'avait pas dessiné.
+
+     Deux issues, et une seule est raisonnable. Écrire le HTML directement dans
+     le `.mailsignature` de `~/Library/Mail/V*/MailData/Signatures/` préserve
+     tout — mais macOS protège ce dossier, il faut accorder l'accès disque
+     complet au terminal, quitter Mail, puis verrouiller le fichier pour qu'il
+     ne le réécrive pas. Baisser une barrière de sécurité du système pour une
+     signature n'en vaut pas le prix.
+
+     On dessine donc ce qui passe : une colonne. Le filet d'or y sépare
+     l'identité des adresses, comme il sépare un titre de section de son texte
+     sur le site.
+
+     ## Pourquoi des styles en ligne
 
      Le HTML des courriels est resté en 2005 : ni grille, ni flexbox, ni
-     feuille externe. Un tableau et des `style=` sur chaque balise, c'est le
-     seul dialecte que Gmail, Outlook et Mail parlent tous.
+     feuille externe. Des `style=` sur chaque balise, c'est le seul dialecte que
+     Gmail, Outlook et Mail parlent tous.
 
      ## Pourquoi un PNG et pas le vecteur
 
      Gmail et Outlook **suppriment** les SVG. La tuile est donc
      `touch-icon.png`, servie depuis `ontbible.com/images/` — notre domaine,
      déjà déployé, déjà en cache. Et elle est **opaque** : elle porte son fond
-     d'aubergine, donc elle tient sur un fond clair comme sur un fond sombre,
-     exactement la raison pour laquelle ce fichier existe (§6).
+     d'aubergine, donc elle tient sur un fond clair comme sur un fond sombre.
+     C'est la raison même pour laquelle ce fichier existe (§6).
 
      ## Pourquoi un fond blanc explicite, et aucune requête de thème
 
      Le premier essai portait un `@media (prefers-color-scheme: dark)`. Rendu
      dans un client en mode sombre qui garde le fond clair du message, il
      donnait du **crème sur du blanc** — illisible, et invisible à l'auteur qui
-     compose en sombre. Une signature ne doit dépendre de rien : elle porte donc
-     son propre fond, et se lit partout de la même façon.
+     compose en sombre. Une signature ne doit dépendre de rien.
 
      ## La pile de polices
 
@@ -28,49 +48,40 @@
      Helvetica ailleurs — géométriques toutes deux, donc l'esprit tient. Le
      corps retombe sur Georgia, faute de Literata.
 
-     ## L'installer dans Mail
+     ## Sur iPhone
 
-     **Ne pas la coller dans l'éditeur de signatures** : il aplatit les
-     tableaux, et le logo se retrouve au-dessus du texte au lieu d'être à côté.
-     Il faut écrire le HTML directement dans le `.mailsignature` de
-     `~/Library/Mail/V*/MailData/Signatures/`, Mail quitté, puis verrouiller le
-     fichier pour qu'il ne le réécrive pas.
+     Les signatures d'iOS sont en **texte brut** : ni image, ni couleur, ni
+     filet. Y mettre la version texte :
 
-     Sur iPhone, les signatures sont en texte brut : ni image, ni tableau.
-     Prévoir une version texte à part. -->
+         Gloire Bikouta
+         Auteur de la restitution
+         contact@ontbible.com — ontbible.com -->
 
-<table cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#ffffff"
-       style="border-collapse:collapse;background-color:#ffffff;
-              font-family:Georgia,'Times New Roman',serif;">
-  <tr>
-    <td style="padding:2px 18px 2px 0;vertical-align:middle;background-color:#ffffff;">
-      <img src="https://ontbible.com/images/touch-icon.png"
-           width="56" height="56" alt="La Bible ONT"
-           style="display:block;width:56px;height:56px;border:0;border-radius:13px;" />
-    </td>
+<div style="background-color:#ffffff;font-family:Georgia,'Times New Roman',serif;">
+  <div style="margin:0 0 10px 0;">
+    <img src="https://ontbible.com/images/touch-icon.png"
+         width="48" height="48" alt="La Bible ONT"
+         style="display:block;width:48px;height:48px;border:0;border-radius:11px;" />
+  </div>
 
-    <!-- Le filet qui sépare, comme dans le combination mark. -->
-    <td width="1" bgcolor="#CDBE83"
-        style="width:1px;background-color:#CDBE83;font-size:0;line-height:0;">&nbsp;</td>
+  <div style="font-family:Jost,'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif;
+              font-size:17px;line-height:1.3;color:#421B26;letter-spacing:.01em;">
+    Gloire Bikouta
+  </div>
 
-    <td style="padding:2px 0 2px 18px;vertical-align:middle;background-color:#ffffff;">
-      <div style="font-family:Jost,'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif;
-                  font-size:17px;line-height:1.3;color:#421B26;letter-spacing:.01em;">
-        Gloire Bikouta
-      </div>
+  <div style="margin:3px 0 0 0;font-family:Jost,'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif;
+              font-size:11px;line-height:1.4;color:#6F6660;
+              text-transform:uppercase;letter-spacing:.16em;">
+    Auteur de la restitution
+  </div>
 
-      <div style="margin-top:3px;font-family:Jost,'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif;
-                  font-size:11px;line-height:1.4;color:#6F6660;
-                  text-transform:uppercase;letter-spacing:.16em;">
-        Auteur de la restitution
-      </div>
+  <div style="margin:11px 0 10px 0;width:190px;height:1px;
+              background-color:#CDBE83;font-size:0;line-height:0;">&nbsp;</div>
 
-      <div style="margin-top:10px;font-size:13px;line-height:1.6;">
-        <a href="mailto:contact@ontbible.com"
-           style="color:#421B26;text-decoration:none;">contact@ontbible.com</a><br />
-        <a href="https://ontbible.com"
-           style="color:#8A6A3B;text-decoration:none;">ontbible.com</a>
-      </div>
-    </td>
-  </tr>
-</table>
+  <div style="font-size:13px;line-height:1.6;">
+    <a href="mailto:contact@ontbible.com"
+       style="color:#421B26;text-decoration:none;">contact@ontbible.com</a><br />
+    <a href="https://ontbible.com"
+       style="color:#8A6A3B;text-decoration:none;">ontbible.com</a>
+  </div>
+</div>
