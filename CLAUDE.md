@@ -1226,32 +1226,6 @@ grand écran plutôt qu'au seul simulateur, qui ne montre qu'un téléphone.
 La feuille du site, elle, garde son chemin : un SVG recopié en base64 dans la
 CSS de production la gonflerait et l'empêcherait d'être mise en cache à part.
 
-<<<<<<< HEAD
-=======
-**Et cette levée ne tenait qu'à un fil. Corrigé le 15 août 2026.** `apercu.py`
-prenait la **première** feuille du dossier par ordre alphabétique. Tant qu'il
-n'y en a qu'une, ça marche — mais il y en a deux dès qu'on a lancé
-`dev-sync-empreintes.sh` : `ontbible.css` et sa copie empreintée. L'ordre
-désignait la première, la page référence la seconde, et le remplacement ne
-trouvait plus rien à remplacer. L'aperçu chargeait alors la **vraie** feuille,
-dont les masques pointent `/images/…` en absolu — que QuickLook ne résout pas
-depuis un fichier. Les masques revenaient en blancs, c'est-à-dire exactement le
-défaut que ce script existe pour éviter.
-
-Il a fait croire que la montagne avait disparu du creux du QR. Elle n'avait
-jamais bougé. On va la chercher dans le code, on ne la trouve pas, et le seul
-endroit où elle manque est l'outil censé la montrer.
-
-La feuille se lit donc dans le **HTML servi**. Et deux garde-fous, parce qu'un
-aperçu faux coûte plus qu'un aperçu absent :
-
-- si la feuille référencée manque du dossier, le script refuse et renvoie à
-  `dev-sync-empreintes.sh` ;
-- si elle **diffère** de `ontbible.css`, il refuse aussi — c'est le piège du
-  début de ce §7 bis, `watch` ayant régénéré l'une sans l'autre. Sans ce
-  témoin, l'aperçu montre le style du dernier redémarrage complet et l'on
-  débat d'un rendu qui n'est pas celui du code.
-
 ### Et le navigateur gardait quand même l'ancienne feuille
 
 **Corrigé le 16 août 2026**, et c'est le troisième piège de cette section — le
@@ -1282,7 +1256,6 @@ pas touchée : CloudFront envoie `/pkg/` au seau, jamais à la Lambda.
 simulateur alors que `target/site/pkg/ontbible.css` la contient. Vérifier
 d'abord `curl -sI …/pkg/ontbible.<empreinte>.css`, pas la règle.
 
->>>>>>> 6967d0a (Comparer quatre seuils avant d'en retenir un)
 ## 8. Où en est le site
 
 **Fait** — squelette Leptos SSR, couches, design system, verset du jour accordé
