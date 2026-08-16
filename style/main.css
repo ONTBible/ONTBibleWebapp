@@ -657,18 +657,178 @@
    jeton de texte, et un jeton de texte ne s'interpole pas. Sans `@property`,
    l'animation basculerait de 0 à 1 d'un coup au milieu de la course.        */
 
-@property --ouverture {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
+/* ── Sept animations, et pas une grandeur ─────────────────────────────────
+ *
+ * Le mécanisme reposait sur `--ouverture`, un nombre de 0 à 1 dont tout
+ * dérivait : rotation, échelle, opacité, lueur. C'était élégant, et **c'était
+ * la cause de la latence**.
+ *
+ * Un navigateur ne sait accélérer que deux propriétés, `transform` et
+ * `opacity`, et seulement quand il les voit **animées**. Or
+ * `transform: scale(calc(var(--ouverture) …))` n'est pas une transformation
+ * animée : c'est une transformation *statique* dont la valeur change parce
+ * qu'une propriété personnalisée s'anime. Le compositeur ne peut pas la
+ * prendre. Chaque image repassait donc par le fil principal — recalcul de
+ * style sur tout le sous-arbre qui hérite du nombre, puis peinture.
+ *
+ * Mesuré au dépouillement d'un enregistrement : soixante images par seconde
+ * pendant que la page défile *vers* la porte — `--ouverture` y est figé à 0,
+ * donc rien ne se recalcule — et **dix** pendant qu'elle s'ouvre. Deux
+ * corrections antérieures avaient visé la rastérisation ; elles n'ont rien
+ * donné, et c'est ce qui a fini par désigner la vraie cause.
+ *
+ * Chaque pièce porte donc maintenant **ses propres images-clés**, sur la même
+ * ligne de temps et la même plage. Les courbes qui étaient des `calc` — le
+ * cube du dégagement, la quatrième puissance de l'échelle, la parabole des
+ * rais — sont échantillonnées en butées : `linear` entre des points assez
+ * serrés donne la même courbe à l'œil, et cette fois le compositeur peut la
+ * jouer.
+ *
+ * On perd la grandeur unique, et avec elle la garantie qu'aucune pièce ne
+ * dérive. C'est le prix, et il est explicite : sept blocs à tenir d'accord au
+ * lieu d'un nombre. */
+
+/* Les courbes, échantillonnées. `linear` entre ces butées redonne à l'œil ce
+ * que les `calc` faisaient exactement — et cette fois le compositeur peut les
+ * jouer. Les valeurs sont **calculées**, pas choisies : le cube pour le
+ * dégagement des battants, la quatrième puissance pour l'échelle du portique,
+ * une parabole pour les rais, un carré pour l'extinction de la lueur. */
+
+@keyframes seuil-couture {
+  to {
+    opacity: 0;
+  }
 }
 
-@keyframes ouvrir {
+@keyframes seuil-fond {
   from {
-    --ouverture: 0;
+    transform: scale(0.88);
   }
   to {
-    --ouverture: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes seuil-portique {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.188);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.949);
+    opacity: 1;
+  }
+  82% {
+    transform: scale(2.356);
+    opacity: 1;
+  }
+  90% {
+    transform: scale(2.968);
+    opacity: 0.556;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes seuil-lueur {
+  0% {
+    transform: translateX(-50%) scaleX(0.035);
+    opacity: 1;
+  }
+  25% {
+    transform: translateX(-50%) scaleX(0.276);
+    opacity: 0.943;
+  }
+  50% {
+    transform: translateX(-50%) scaleX(0.518);
+    opacity: 0.77;
+  }
+  75% {
+    transform: translateX(-50%) scaleX(0.759);
+    opacity: 0.483;
+  }
+  100% {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 0.08;
+  }
+}
+
+@keyframes seuil-rais {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25%,
+  75% {
+    opacity: 0.488;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes seuil-ombre {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.78;
+  }
+}
+
+@keyframes seuil-vantail-g {
+  0% {
+    transform: translateX(0) translateZ(0) rotateY(0);
+  }
+  25% {
+    transform: translateX(-0.94%) translateZ(calc(var(--avancee) * 0.25))
+      rotateY(-20.5deg);
+  }
+  50% {
+    transform: translateX(-7.5%) translateZ(calc(var(--avancee) * 0.5))
+      rotateY(-41deg);
+  }
+  75% {
+    transform: translateX(-25.31%) translateZ(calc(var(--avancee) * 0.75))
+      rotateY(-61.5deg);
+  }
+  90% {
+    transform: translateX(-43.74%) translateZ(calc(var(--avancee) * 0.9))
+      rotateY(-73.8deg);
+  }
+  100% {
+    transform: translateX(-60%) translateZ(var(--avancee)) rotateY(-82deg);
+  }
+}
+
+@keyframes seuil-vantail-d {
+  0% {
+    transform: translateX(0) translateZ(0) rotateY(0);
+  }
+  25% {
+    transform: translateX(0.94%) translateZ(calc(var(--avancee) * 0.25))
+      rotateY(20.5deg);
+  }
+  50% {
+    transform: translateX(7.5%) translateZ(calc(var(--avancee) * 0.5))
+      rotateY(41deg);
+  }
+  75% {
+    transform: translateX(25.31%) translateZ(calc(var(--avancee) * 0.75))
+      rotateY(61.5deg);
+  }
+  90% {
+    transform: translateX(43.74%) translateZ(calc(var(--avancee) * 0.9))
+      rotateY(73.8deg);
+  }
+  100% {
+    transform: translateX(60%) translateZ(var(--avancee)) rotateY(82deg);
   }
 }
 
@@ -837,9 +997,6 @@
       top: 0;
       height: 100svh;
       overflow: hidden;
-      animation: ouvrir linear both;
-      animation-timeline: --seuil;
-      animation-range: contain 0% contain 100%;
     }
 
     /* Le portique — tout ce qui est bâti, et qui avance d'un bloc.
@@ -906,40 +1063,21 @@
        * `perspective`, mieux vaut la propriété qui ne dit que le découpage. */
       contain: paint;
 
-    transform: scale(
-      calc(
-        1 + var(--ouverture) * var(--ouverture) * var(--ouverture) *
-          var(--ouverture) * 3
-      )
-    );
     transform-origin: 50% 46%;
+    animation: seuil-portique linear both;
+    animation-timeline: --seuil;
+    animation-range: contain 0% contain 100%;
 
-    /* L'effacement de la fin, et il fait maintenant du travail.
-     *
-     * À l'échelle 4 le linteau peut rester en travers du verset sur un grand
-     * écran — la géométrie en demanderait 5,75. Ces derniers dix-huit
-     * centièmes l'effacent. C'est le prix de l'échelle qu'on n'a plus le droit
-     * de payer, et il est invisible : à ce moment-là le portique fait déjà
-     * quatre fois l'écran et tout y va très vite. */
-    opacity: calc(1 - max(0, (var(--ouverture) - 0.82) / 0.18));
 
-    /* **Pas de `will-change` ici**, et c'est le contraire de ce qu'on croit.
+    /* Aucun `will-change` nulle part dans le seuil, et il n'en faut plus.
      *
-     * Promouvoir un élément qu'on **met à l'échelle** ne l'accélère pas : le
-     * navigateur doit re-rastériser sa couche à chaque nouvelle échelle pour
-     * la garder nette, et le coût suit le **carré** de l'échelle. À 7, c'était
-     * quarante-neuf fois un écran par image — soixante-trois millions de
-     * pixels sur un MacBook. L'animation tombait à dix images par seconde,
-     * mesuré au dépouillement d'un enregistrement : huit images en sept
-     * dixièmes de seconde, là où le simple défilement vers la porte en tenait
-     * soixante.
-     *
-     * Sans promotion, le portique est peint dans la couche de son parent, donc
-     * **découpé à l'écran** : le coût cesse de dépendre de l'échelle. Il
-     * repeint des dégradés à chaque image, mais sur une surface bornée.
-     *
-     * `will-change` reste sur ce qui bouge sans grandir — les battants, le
-     * fond, la lueur. C'est là qu'il fait ce qu'il promet. */
+     * Il en portait cinq. Sur un élément qu'on met à l'échelle, la promotion
+     * est même nuisible : la couche doit être re-rastérisée à chaque nouvelle
+     * échelle, et le coût suit le carré. Mais surtout, elle ne servait qu'à
+     * compenser le vrai défaut — une transformation qui n'était pas animée aux
+     * yeux du navigateur. Depuis que chaque pièce porte ses propres
+     * images-clés sur `transform` et `opacity`, il promeut ce qu'il faut de
+     * lui-même, et il le fait mieux : il sait quand ça s'arrête. */
     }
 
     /* Le fond, c'est-à-dire le bloc du verset.
@@ -972,14 +1110,15 @@
       z-index: 0;
       display: flex;
       flex-direction: column;
-      transform: scale(calc(0.88 + var(--ouverture) * 0.12));
       transform-origin: 50% 46%;
+      animation: seuil-fond linear both;
+      animation-timeline: --seuil;
+      animation-range: contain 0% contain 100%;
       /* Le fond porte le bloc du verset, donc du **texte**. Sans promotion,
        * le navigateur le re-rastérise à chaque image pour le garder net à la
        * nouvelle échelle — c'est le poste le plus cher de la scène, et il ne
        * porte que douze pour cent d'agrandissement, qu'aucun œil ne mesure. */
-      will-change: transform;
-    }
+        }
 
     .seuil-fond > * {
       flex: 1;
@@ -1041,8 +1180,9 @@
       inset: 0;
       z-index: 4;
       pointer-events: none;
-      opacity: calc(1 - var(--ouverture));
-      will-change: opacity;
+      animation: seuil-couture linear both;
+      animation-timeline: --seuil;
+      animation-range: contain 0% contain 100%;
       background: radial-gradient(
         ellipse 120% 26% at 50% 0%,
         var(--color-aubergine) 0%,
@@ -1080,16 +1220,15 @@
    * là ; tout le reste ramène une animation au défilement sur le fil
    * principal, et lui retire précisément ce qui la rendait fluide. */
   width: 90%;
-  transform: translateX(-50%)
-    scaleX(calc(0.035 + var(--ouverture) * 0.965));
-  will-change: transform, opacity;
+  animation: seuil-lueur linear both;
+  animation-timeline: --seuil;
+  animation-range: contain 0% contain 100%;
 
   /* Elle s'éteint sur la fin, et au carré comme les rais. Laissée pleine, la
    * colonne de lumière restait posée **sur** le verset une fois la porte
    * franchie : on avait traversé, et le jour de l'autre côté éclairait encore
    * le texte comme un projecteur. Une lumière qui a fini son travail se
    * retire. */
-  opacity: calc(1 - var(--ouverture) * var(--ouverture) * 0.92);
   background:
     linear-gradient(
       to right,
@@ -1124,7 +1263,6 @@
   position: absolute;
   z-index: 2;
   pointer-events: none;
-  will-change: transform;
 
   width: calc(var(--portail) / 2);
   inset-block: calc(var(--naissance) + var(--linteau) / 2) 4%;
@@ -1266,18 +1404,6 @@
    * grossissement vaut 1,28 partout. */
   --avancee: min(240px, 28.4vw);
 
-  /* Le dégagement, au cube.
-   *
-   * La rotation seule ne suffit pas à libérer le cadre : à 82°, un battant
-   * garde le neuvième de sa largeur, que la perspective regrossit encore. Il
-   * finit donc sa course **hors de l'écran**, tiré vers l'extérieur.
-   *
-   * Au cube et non linéairement, parce que le mouvement change alors de
-   * nature : linéaire, la porte glisse autant qu'elle pivote et cesse d'être
-   * une porte. Au cube, il ne vaut rien avant les deux tiers de la course — on
-   * voit un battant tourner sur sa charnière — puis il l'emporte sur la fin,
-   * quand il n'y a plus qu'à dégager le champ. */
-  --degagement: calc(var(--ouverture) * var(--ouverture) * var(--ouverture));
 }
 
 .seuil-vantail--g {
@@ -1285,9 +1411,9 @@
   --vers-charniere: left;
   --vers-fente: right;
   transform-origin: left center;
-  transform: translateX(calc(var(--degagement) * -60%))
-    translateZ(calc(var(--ouverture) * var(--avancee)))
-    rotateY(calc(var(--ouverture) * -82deg));
+  animation: seuil-vantail-g linear both;
+  animation-timeline: --seuil;
+  animation-range: contain 0% contain 100%;
 }
 
 .seuil-vantail--d {
@@ -1295,9 +1421,9 @@
   --vers-charniere: right;
   --vers-fente: left;
   transform-origin: right center;
-  transform: translateX(calc(var(--degagement) * 60%))
-    translateZ(calc(var(--ouverture) * var(--avancee)))
-    rotateY(calc(var(--ouverture) * 82deg));
+  animation: seuil-vantail-d linear both;
+  animation-timeline: --seuil;
+  animation-range: contain 0% contain 100%;
 }
 
 /* L'ombre du battant, et c'est le poste le plus rentable de toute la scène.
@@ -1337,7 +1463,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  opacity: calc(var(--ouverture) * 0.78);
+  animation: seuil-ombre linear both;
+  animation-timeline: --seuil;
+  animation-range: contain 0% contain 100%;
   background: linear-gradient(
     to var(--vers-fente),
     rgb(0 0 0 / 0.95) 0%,
@@ -1692,8 +1820,9 @@
   content: "";
   position: absolute;
   inset: -50%;
-  opacity: calc(var(--ouverture) * (1 - var(--ouverture)) * 2.6);
-  will-change: opacity;
+  animation: seuil-rais linear both;
+  animation-timeline: --seuil;
+  animation-range: contain 0% contain 100%;
   background: repeating-conic-gradient(
     from 0deg at 50% 46%,
     transparent 0deg 4.4deg,

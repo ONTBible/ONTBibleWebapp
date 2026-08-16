@@ -886,10 +886,43 @@ Deux corrections, et elles se multiplient :
 `will-change` reste sur ce qui bouge **sans grandir** — les battants, le fond,
 la lueur. C'est là qu'il fait ce qu'il promet, et nulle part ailleurs.
 
-**La vérification est mécanique**, et c'est ce qui la rend utile : relever
-toutes les propriétés dont la valeur contient `var(--ouverture)`, et vérifier
-qu'il n'y a que `transform` et `opacity`. Une propriété de plus dans cette
-liste, et la scène retombe sur le fil principal.
+**Et la règle était encore trop faible.** Elle disait « ne piloter que
+`transform` et `opacity` ». Il faut ajouter : **et les animer directement**.
+
+`transform: scale(calc(var(--ouverture) …))` n'est pas une transformation
+animée aux yeux du navigateur : c'est une transformation *statique* dont la
+valeur change parce qu'une propriété personnalisée s'anime. Le compositeur ne
+peut pas la prendre. Chaque image repassait donc par le fil principal —
+recalcul de style sur tout le sous-arbre qui hérite du nombre, puis peinture.
+
+C'est ce qui restait après avoir borné la peinture et retiré les promotions :
+soixante images par seconde pendant que la page défile *vers* la porte —
+`--ouverture` y est figé à 0, donc rien ne se recalcule — et **dix** pendant
+qu'elle s'ouvre. Deux corrections avaient visé la rastérisation ; leur
+inefficacité est ce qui a fini par désigner la vraie cause.
+
+**`--ouverture` n'existe plus.** Chaque pièce porte ses propres images-clés sur
+`transform` et `opacity`, sur la même ligne de temps et la même plage. Les
+courbes qui étaient des `calc` — le cube du dégagement, la quatrième puissance
+de l'échelle, la parabole des rais — sont échantillonnées en butées : `linear`
+entre des points assez serrés donne la même courbe à l'œil.
+
+On perd la grandeur unique et la garantie qu'aucune pièce ne dérive. C'est le
+prix, et il est explicite : sept blocs d'images-clés à tenir d'accord au lieu
+d'un nombre. **Une élégance qui coûte cinquante images par seconde n'en est
+pas une.**
+
+Et `will-change` a disparu du seuil entièrement. Sur un élément qu'on met à
+l'échelle il est même nuisible — la couche se re-rastérise à chaque échelle, au
+carré. Mais surtout il ne servait qu'à compenser le vrai défaut. Depuis que les
+animations sont directes, le navigateur promeut ce qu'il faut de lui-même, et
+mieux : il sait quand ça s'arrête.
+
+**La vérification est mécanique** : relever toutes les propriétés animées du
+seuil, et vérifier qu'il n'y a que `transform` et `opacity`, **dans des
+`@keyframes`**. Une propriété de plus, ou une valeur qui passe par un `calc`
+sur une propriété personnalisée animée, et la scène retombe sur le fil
+principal.
 
 #### La couture avec l'ouverture
 
