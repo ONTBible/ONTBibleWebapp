@@ -1,9 +1,10 @@
 use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
 
 use crate::api::verset_du_jour;
 use crate::interface::design::{
-    image, Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux, Portrait,
-    TitreDeSection,
+    image, traverser, Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Dessin, Hero,
+    LegendeNiveaux, Porte, Portrait, TitreDeSection,
 };
 use crate::interface::echantillon::{bereshit_1_1, SEGOND_1910, SEGOND_SOURCE};
 use crate::interface::tete::Tete;
@@ -29,6 +30,25 @@ pub fn Accueil() -> impl IntoView {
     // recherche comme pour un lecteur sans JavaScript.
     let verset = Resource::new_blocking(|| (), |_| async { verset_du_jour().await });
 
+    // ── Les deux paramètres de comparaison du seuil ───────────────────────
+    //
+    // `?porte=montagne|nus|voile` choisit le dessin, `?ouverture=0.35` fige la
+    // scène pour la photographier. Ils disparaîtront avec les deux dessins
+    // écartés — c'est un outil de choix, pas une fonctionnalité du site.
+    //
+    // La lecture vit ici et non dans `Porte` : le design system ignore ce
+    // qu'il affiche, il reçoit un dessin et pas une URL. Et elle est
+    // **non réactive**, parce qu'on compare en rechargeant la page depuis le
+    // simulateur, jamais en naviguant.
+    let requete = use_query_map().get_untracked();
+    let dessin = requete
+        .get_str("porte")
+        .and_then(Dessin::depuis_le_nom)
+        .unwrap_or_default();
+    let ouverture = requete
+        .get_str("ouverture")
+        .and_then(|v| v.parse::<f64>().ok());
+
     view! {
         <Tete
             titre="La Bible ONT"
@@ -42,14 +62,29 @@ pub fn Accueil() -> impl IntoView {
             <p class="text-sm uppercase tracking-capitales text-accent">"Restitution"</p>
             <h1 class="text-balance">"Le cosmos hébreu n'est pas une usine"</h1>
             <p class="font-titre text-2xl text-accent">"C'est un Temple."</p>
-            <Bouton href="#aujourd-hui" principal=true>"Entrer"</Bouton>
+            <Bouton
+                href="#aujourd-hui"
+                principal=true
+                au_clic=Callback::new(traverser("aujourd-hui"))
+            >
+                "Entrer"
+            </Bouton>
         </Hero>
 
-        // ── Le verset du jour ─────────────────────────────────────────────
+        // ── Le verset du jour, derrière le seuil ──────────────────────────
         //
         // Premier, et c'est délibéré : c'est ce qu'on vient chercher. Le
         // raisonnement suit, pour qui veut savoir d'où il sort.
-        <Bloc id="aujourd-hui" eclaire=true>
+        //
+        // La porte l'**enveloppe** au lieu de le précéder. Le premier montage
+        // la posait avant, avec un décor à elle : on ouvrait sur une image,
+        // puis on arrivait sur le verset. La porte ne donnait sur rien.
+        //
+        // Elle ne le cache pas pour autant — il est ici, dans le HTML du
+        // serveur, à sa place dans le document. Sans la porte, il est
+        // simplement là.
+        <Porte id="aujourd-hui" dessin=dessin ouverture=ouverture>
+        <Bloc eclaire=true>
             <TitreDeSection numero="I" titre="Aujourd'hui" />
 
             <Suspense fallback=|| ()>
@@ -68,6 +103,7 @@ pub fn Accueil() -> impl IntoView {
                 "tombent sur le même verset le même matin, sans jamais se parler."
             </p>
         </Bloc>
+        </Porte>
 
         // ── La démonstration ──────────────────────────────────────────────
         <Bloc large=true>

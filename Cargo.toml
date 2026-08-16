@@ -21,11 +21,24 @@ leptos_axum = { version = "0.8", optional = true }
 lambda_http = { version = "0.13", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
-# Le stockage local, pour retenir les réglages de lecture. Leptas réexporte
-# `web_sys`, mais sans la fonctionnalité `Storage` : chaque interface du
-# navigateur est derrière son propre drapeau, et seules celles qu'on demande
-# entrent dans le binaire wasm.
-web-sys = { version = "0.3", features = ["Storage"], optional = true }
+# Le stockage local pour les réglages de lecture, et de quoi mesurer le temps
+# et la page pour la traversée du seuil. Leptos réexporte `web_sys`, mais
+# chaque interface du navigateur est derrière son propre drapeau, et seules
+# celles qu'on demande entrent dans le binaire wasm.
+web-sys = { version = "0.3", features = [
+    "Storage",
+    # `getBoundingClientRect` — la hauteur de la scène du seuil.
+    "DomRect",
+    # L'horloge du navigateur. Une animation comptée en images serait deux
+    # fois plus rapide sur une dalle à 120 Hz que sur une à 60.
+    "Performance",
+    # Défiler **sans** repasser par le `scroll-behavior` de la feuille. Sans
+    # elles, `window.scrollTo(x, y)` hérite du `smooth` posé sur `html` : la
+    # traversée du seuil relançait alors un défilement doux du navigateur à
+    # chaque image, et les deux se disputaient la page.
+    "ScrollToOptions",
+    "ScrollBehavior",
+], optional = true }
 # Lire un fichier et lire l'heure sont deux besoins du serveur seul. Les
 # embarquer dans le paquet WASM l'alourdirait sans que rien ne s'en serve —
 # la table des fuseaux horaires pèse à elle seule plus que tout le reste.

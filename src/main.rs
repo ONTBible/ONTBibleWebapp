@@ -222,9 +222,41 @@ pub fn main() {}
 /// qu'on ait à y penser.
 ///
 /// Une réponse qui porte déjà un `cache-control` n'est pas touchée.
+///
+/// ## En développement, **rien** n'est gardé
+///
+/// Et ce n'est pas un confort, c'est une correction. En mode `watch`,
+/// `hash.txt` n'est pas recalculé : la feuille garde son nom empreinté pendant
+/// qu'on en réécrit le contenu. Le serveur ne posant aucune politique sur
+/// `/pkg/`, un navigateur applique alors son cache heuristique — et Safari
+/// resservait sa copie sans même revalider.
+///
+/// La page capturée au simulateur portait donc le style d'il y a une heure. On
+/// mesure un décalage, on cherche la cause dans la règle qu'on vient d'écrire,
+/// et la règle n'est jamais arrivée. C'est le §8 ter à l'envers : les
+/// empreintes protègent la production précisément parce que le nom change avec
+/// le contenu, et en développement il ne change pas.
+///
+/// La production n'est pas touchée : CloudFront envoie `/pkg/` au seau, jamais
+/// à la Lambda, et c'est lui qui pose l'année d'`immutable`.
 #[cfg(feature = "ssr")]
 async fn sans_cache(mut reponse: axum::response::Response) -> axum::response::Response {
     use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
+
+    if reponse.headers().contains_key(CACHE_CONTROL) {
+        return reponse;
+    }
+
+    // `no-store` et non `no-cache` : on ne veut pas d'une révalidation, on veut
+    // qu'il n'y ait rien à révalider. Un `304` sur une feuille dont le nom n'a
+    // pas bougé rendrait exactement l'ancienne.
+    if cfg!(debug_assertions) {
+        reponse.headers_mut().insert(
+            CACHE_CONTROL,
+            axum::http::HeaderValue::from_static("no-store"),
+        );
+        return reponse;
+    }
 
     let html = reponse
         .headers()
@@ -232,7 +264,10 @@ async fn sans_cache(mut reponse: axum::response::Response) -> axum::response::Re
         .and_then(|valeur| valeur.to_str().ok())
         .is_some_and(|valeur| valeur.starts_with("text/html"));
 
-    if html && !reponse.headers().contains_key(CACHE_CONTROL) {
+    // `no-cache` et non `no-store` : le premier autorise le retour arrière et
+    // la mise en cache mémoire, il exige seulement de revalider avant de
+    // réafficher. Le second interdirait jusqu'au bouton « précédent ».
+    if html {
         reponse.headers_mut().insert(
             CACHE_CONTROL,
             axum::http::HeaderValue::from_static("no-cache"),
