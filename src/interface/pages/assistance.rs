@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::PageLegale;
+use crate::interface::design::{Lien, PageLegale};
 use crate::interface::pages::confidentialite::CONTACT;
 use crate::interface::tete::Tete;
 
@@ -34,7 +34,7 @@ pub fn Assistance() -> impl IntoView {
         <PageLegale titre="Assistance" mise_a_jour="13 août 2026">
             <p>
                 "Une seule adresse, pour tout : "
-                <a href=format!("mailto:{CONTACT}")>{CONTACT}</a>"."
+                <Lien href=format!("mailto:{CONTACT}")>{CONTACT}</Lien>"."
             </p>
 
             <h2>"Signaler une faute dans le texte"</h2>
@@ -57,7 +57,7 @@ pub fn Assistance() -> impl IntoView {
             <p>
                 "Ce n'est pas une panne. Trois livres sur soixante-dix sont traduits, et "
                 "une unité qui n'a pas été relue le dit — c'est délibéré. Le sommaire du "
-                <a href="/fr/lire">"corpus"</a>" montre ce qui se lit aujourd'hui."
+                <Lien href="/fr/lire">"corpus"</Lien>" montre ce qui se lit aujourd'hui."
             </p>
 
             <h2>"Un problème technique"</h2>
@@ -68,7 +68,7 @@ pub fn Assistance() -> impl IntoView {
             <p>
                 "L'application signale ses pannes toute seule, sans rien envoyer de ce "
                 "que vous lisez ni de ce que vous notez — voir la "
-                <a href="/fr/confidentialite">"politique de confidentialité"</a>"."
+                <Lien href="/fr/confidentialite">"politique de confidentialité"</Lien>"."
             </p>
 
             <h2>"Vos données"</h2>

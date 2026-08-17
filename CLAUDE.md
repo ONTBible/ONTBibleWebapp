@@ -1071,6 +1071,37 @@ class=("max-w-large", large)
 Le même piège dormait dans `blocs.rs` (`px-4` et `ps-5`) : il marchait, mais par
 l'ordre de la feuille, donc jusqu'au jour où Tailwind rangerait autrement.
 
+### Les liens de prose n'étaient pas soulignés — `Lien`, le 15 août 2026
+
+La feuille porte une règle `a` qui décide **tout** du soulignement : sa couleur
+(l'or à 55 %), son décalage, son épaisseur, et son passage à l'or plein au
+survol. Son commentaire dit même pourquoi il s'épaissit au lieu d'apparaître —
+« un lien déjà souligné ne saute pas, il se confirme ».
+
+Le trait n'existait pas. Le **preflight de Tailwind** pose
+`text-decoration: inherit` sur les ancres, ce qui écrase le soulignement du
+navigateur — et une couleur de décoration ne dessine rien quand il n'y a pas de
+décoration. Toute la prose du site pointait donc vers des liens que rien ne
+distinguait d'une phrase : dix-huit sur quatre pages, dont l'adresse de contact
+des pages légales et le renvoi vers le corpus.
+
+Encore un défaut qui ne casse rien. La page s'affiche, le lien fonctionne pour
+qui le trouve, et personne ne le trouve. Repéré à l'œil, pas par un test — comme
+l'échelle qui s'inversait sous 1024 px.
+
+**La correction est un composant, pas une règle globale.** Rendre le trait à
+toutes les ancres soulignerait aussi les intraduisibles — chaque mot d'or du
+corpus mène à sa fiche, et un chapitre entier se retrouverait souligné mot après
+mot. Et les unités du sommaire, les cartes, le fil d'Ariane : autant de liens
+qui disent déjà ce qu'ils sont par leur forme.
+
+`design/lien.rs` ne nomme donc qu'un cas, le seul que rien d'autre ne distingue :
+le lien **noyé dans une phrase**. Sa classe se réduit à `underline`, tout le
+reste étant déjà dans la feuille. Il trie aussi les destinations — un chemin du
+site passe par le routeur, une ancre reste une ancre, une adresse extérieure
+prend `noopener` — ce que chaque `<a>` écrit à la main faisait ou oubliait
+séparément.
+
 ### Un écran par bloc
 
 Chaque `Bloc` occupe au moins la hauteur de la fenêtre, contenu centré. Sans
@@ -1150,6 +1181,7 @@ synchroniser les deux, et l'un des deux finirait périmé.
 | `icone-masquable-512.png` | la même, montagne à 50 % — voir ci-dessous |
 | `app-store-fr.svg` | le badge officiel d'Apple, en français et en blanc |
 | `qr-app.svg` | le QR vers la fiche — `scripts/qr-app.py` |
+| `qr-beta.svg` | le QR vers la bêta TestFlight — même script, seconde cible |
 | `app-lecture.webp` | une capture de l'app, prise dans `ONTBibleApp/app/Captures/` |
 
 Les SVG sortent d'Affinity et passent par `scripts/normaliser-svg.py`, **puis
@@ -1299,6 +1331,30 @@ grand écran plutôt qu'au seul simulateur, qui ne montre qu'un téléphone.
 
 La feuille du site, elle, garde son chemin : un SVG recopié en base64 dans la
 CSS de production la gonflerait et l'empêcherait d'être mise en cache à part.
+
+**Et cette levée ne tenait qu'à un fil. Corrigé le 15 août 2026.** `apercu.py`
+prenait la **première** feuille du dossier par ordre alphabétique. Tant qu'il
+n'y en a qu'une, ça marche — mais il y en a deux dès qu'on a lancé
+`dev-sync-empreintes.sh` : `ontbible.css` et sa copie empreintée. L'ordre
+désignait la première, la page référence la seconde, et le remplacement ne
+trouvait plus rien à remplacer. L'aperçu chargeait alors la **vraie** feuille,
+dont les masques pointent `/images/…` en absolu — que QuickLook ne résout pas
+depuis un fichier. Les masques revenaient en blancs, c'est-à-dire exactement le
+défaut que ce script existe pour éviter.
+
+Il a fait croire que la montagne avait disparu du creux du QR. Elle n'avait
+jamais bougé. On va la chercher dans le code, on ne la trouve pas, et le seul
+endroit où elle manque est l'outil censé la montrer.
+
+La feuille se lit donc dans le **HTML servi**. Et deux garde-fous, parce qu'un
+aperçu faux coûte plus qu'un aperçu absent :
+
+- si la feuille référencée manque du dossier, le script refuse et renvoie à
+  `dev-sync-empreintes.sh` ;
+- si elle **diffère** de `ontbible.css`, il refuse aussi — c'est le piège du
+  début de ce §7 bis, `watch` ayant régénéré l'une sans l'autre. Sans ce
+  témoin, l'aperçu montre le style du dernier redémarrage complet et l'on
+  débat d'un rendu qui n'est pas celui du code.
 
 ### Et le navigateur gardait quand même l'ancienne feuille
 
@@ -1839,6 +1895,172 @@ en dessous de `sm` — on ne scanne pas l'écran qu'on tient.
 1.0. La page affiche alors « en relecture » à la place du badge : un badge qui
 mène à une page d'erreur est pire qu'une absence, on l'essaie et le projet a
 l'air cassé. Un seul booléen à basculer le jour de l'approbation.
+
+### La bêta publique — fait le 15 août 2026
+
+Un lien public TestFlight existe, sur le groupe externe « Beta » :
+`https://testflight.apple.com/join/RAe4uzMu`, iPhone en iOS 18 ou plus récent.
+`application.rs::BETA` le porte, et `EN_BETA` — `!PUBLIEE && BETA.is_some()` —
+gouverne les trois choses qui doivent basculer ensemble : le rappel de
+l'ouverture, la description de la page, la numérotation des sections. Le jour de
+l'approbation, `PUBLIEE = true` suffit : la bêta s'efface d'elle-même.
+
+**Le lien ne répond que si le groupe a une version approuvée.** App Store Connect
+le dit lui-même — « Testers cannot join public link until this group has an
+approved build ». Sans elle, le bouton mène à un refus poli, c'est-à-dire
+exactement le défaut qu'on évite sur le badge. `BETA = None` rend la mention « en
+relecture », et c'est une ligne.
+
+**La bannière Safari est éteinte** — `tete.rs::IDENTIFIANT_APP_STORE` vaut
+`None`. Elle fonctionnait, et c'était le problème : l'identifiant naît avec la
+fiche, donc le bandeau s'affichait en haut de **toutes** les pages et menait à
+une fiche App Store qui ne répond pas. Et elle ne sait pas mener ailleurs :
+`apple-itunes-app` ne prend qu'un `app-id`, TestFlight n'a aucune balise
+équivalente. À rallumer en même temps que `PUBLIEE` — c'est la même nouvelle
+dite à deux endroits.
+
+**La page explique TestFlight, et c'est la section la plus longue.** Un badge
+App Store ne demande rien ; TestFlight demande d'installer une app pour en
+installer une autre, puis de revenir au lien. Quatre gestes que rien n'annonce,
+devant un public qui n'est pas développeur et qui a tous les âges. Chaque étape
+dit **ce qu'on voit à l'écran** en la faisant, pas seulement ce qu'il faut
+toucher : « le lien ouvre l'App Store sur la fiche de TestFlight » permet de
+reconnaître qu'on s'est trompé, « touchez Obtenir » suppose qu'on ait trouvé le
+bouton.
+
+Et les surprises sont annoncées — les quatre-vingt-dix jours d'une version
+d'essai, le point orange, la version qui peut casser. Annoncées, ce sont des
+détails ; découvertes, ce sont des pannes.
+
+**TestFlight a son lien direct**, `TESTFLIGHT` —
+`apps.apple.com/fr/app/testflight/id899247664`, une fiche d'Apple publiée depuis
+2015, qui ne bougera pas. Le lien de bêta ouvert sans TestFlight installé mène
+déjà à une page qui propose de l'installer, mais il y passe par un écran de plus
+— et c'est exactement le moment où l'on croit s'être trompé de lien. D'où la
+seconde pastille, cerclée : la forme que le design system réserve à la seconde
+voie.
+
+Les deux boutons sont **empilés**, jamais côte à côte : ensemble ils font plus
+de six cents pixels en capitales espacées, et la colonne de gauche n'en offre
+pas tant sur un grand écran. Et le QR repasse **sous** eux à partir de `lg` —
+seuil inversé, parce que c'est en montant que la place se perd ici : à `lg` la
+capture passe à droite et la colonne tombe à la moitié de l'écran. Sans ça le QR
+volait la largeur, sa légende partait sur quatre lignes et « plus récent » se
+coupait en « plus RÉ-CENT ».
+
+**La page pose tous les liens qu'elle peut** : la bêta et TestFlight deux fois
+chacun, les ancres `#installer` et `#la-beta` qui renvoient l'une à l'autre, puis
+le corpus, le lexique, la confidentialité et les conditions en clôture. Ce
+dernier paragraphe n'est pas du remplissage : quelqu'un sans iPhone repartirait
+les mains vides alors que le texte entier est à deux clics, et une bêta est le
+moment où l'on se demande ce qu'une app fait de ce qu'on lui confie.
+
+**`/fr/l-app` a gagné deux entrées hors de sa page** — le pied (premier rang,
+avec Lire et Lexique : c'est une façon de lire le corpus, pas une mention
+légale) et la clôture de l'accueil. Elle n'était atteignable que par la
+navigation du haut, alors que c'est en bas qu'on se trouve quand on a fini de
+lire.
+
+### Le QR a été redessiné — et la leçon est sur la méthode
+
+Il faisait 80 px de carrés à angles vifs : une grille dure dans une page qui n'a
+pas un seul angle vif, à la taille d'une vignette. Il fait maintenant **144 px**,
+ses données sont des **points**, ses repères restent des **carrés francs**, et la
+**montagne occupe un creux de neuf modules** au centre. C'est le dessin de la
+Bible App de YouVersion, relevé sur leur page de téléchargement.
+
+**Le chemin pour y arriver vaut plus que le résultat.**
+
+Le premier essai en points ne se décodait pas — zéro fois sur neuf. J'en ai
+conclu que *réduire les modules* cassait la lecture, je l'ai écrit ici avec un
+tableau à l'appui, et j'ai livré un dessin timide : des carrés aux angles
+adoucis, plus laids et sans raison de l'être.
+
+C'était faux. Dans ce test, les repères étaient **eux aussi** dessinés en
+points. Deux variables changeaient à la fois, et j'ai attribué l'échec à la
+mauvaise. Une fois isolées :
+
+| données | repères | décodages |
+|---|---|---|
+| carrés pleins (l'ancien) | carrés | 9/9 |
+| **points, r = 0,36 à 0,48** | **carrés** | **9/9 à tous les rayons** |
+| angles adoucis à 0,4 | adoucis | 7/9 |
+| points r = 0,50 | arrondis | 7/9 |
+| points r = 0,42 | **en points** | **0/9** |
+
+**Les données se dessinent comme on veut, les repères ne se dessinent pas.** Ils
+sont ce qu'un lecteur cherche en premier, et il les cherche à leurs proportions
+1:1:3:1:1 ; le reste du code est reconstruit par correction d'erreur, et il en
+faut beaucoup pour l'empêcher. Le creux central, lui, ne coûte rien — 6,7 % des
+modules pleins contre 25 % que `Q` absorbe.
+
+La correction passe de `L` à `Q` (le creux dépasse à lui seul la tolérance de
+`L`), et **pas** à `H` : l'habitude du QR à logo vient de logos qui mangent
+quinze à vingt-cinq pour cent, le nôtre en mange sept. `H` paierait une marge
+inutile en modules dix pour cent plus petits, et c'est la taille du module qui
+décide à trente centimètres.
+
+La montagne n'est pas dans le fichier engendré : la page la superpose au creux
+par `signe-montagne`. `logomark.svg` est déjà chargé, le masque suit la couleur
+du texte, et une marque inlinée dans un fichier engendré cesse de suivre
+l'original le jour où l'original bouge.
+
+Tout se vérifie par `scripts/qr-app.py` puis un décodage : rastériser le SVG
+avec `qlmanage -t -s 512`, le passer à `cv2.QRCodeDetector` à plusieurs tailles.
+Un QR ne se juge pas à l'œil.
+
+### La Dynamic Island se dessine, elle ne se capture pas
+
+Le châssis de `Ecran` porte maintenant l'île. Elle n'était pas dans
+`app-lecture.webp` et n'y sera jamais : c'est une découpe physique de la dalle,
+doublée d'une surcouche du système, et le framebuffer ne porte que ce que l'app
+y met. `simctl io screenshot` n'en montrera rien, quel que soit l'appareil.
+
+Ce que la capture porte, c'est son **empreinte** : iOS pousse l'heure à gauche
+et les indicateurs à droite, laissant un trou central — mesuré à 47 % de la
+largeur, ce qui prouve au passage que la capture vient bien d'un appareil à île.
+
+Les proportions viennent de l'appareil : 126 pt sur 37,33, à 11 pt du haut, pour
+un écran de 402 pt — soit 31,4 % de large, un rapport de 126/37,33 et un retrait
+de 1,26 %. En **pourcentages**, parce que le châssis change trois fois de taille
+selon l'écran et qu'une valeur en pixels ne serait juste que sur une.
+
+Elle est en `nuit`, pas en noir pur : une portion de dalle éteinte est la même
+matière que la coque qui l'entoure, et le site n'a pas un seul noir pur.
+
+### Les empreintes d'images ne suivaient pas les corrections
+
+**Corrigé le 15 août 2026**, et le défaut annulait le §8 quater bis en entier.
+
+`build.rs` déclarait `cargo:rerun-if-changed` sur le **dossier**
+`public/images`. Cargo en regarde alors la date de modification — qui bouge
+quand une image apparaît ou disparaît, et **pas** quand on en réécrit une
+existante. Or c'est exactement le cas que le mécanisme existe pour couvrir :
+une image *corrigée*, sous le même nom.
+
+La table gardait donc l'ancienne empreinte, `?v=` ne changeait pas, et le
+navigateur resservait son cache pendant une journée. Le paramètre par contenu et
+l'invalidation CloudFront ne protégeaient que du cas qui n'arrive jamais.
+
+Trouvé en régénérant le QR : le fichier changeait sur le disque, la page servait
+toujours `?v=2m516j8kqleko`. Le `rerun-if-changed` porte maintenant sur **chaque
+fichier** en plus du dossier.
+
+`livres_du_corpus` n'en souffrait pas, et son propre commentaire disait
+pourquoi : ses fichiers sont suivis par `rustc` du fait de l'`include_str!`. Ici
+rien ne les suivait — on les lit, on les résume, on jette.
+
+**Et `cargo leptos watch` ne le verra jamais.** Il traite une image modifiée
+comme un asset à recopier, sans relancer `cargo` : `build.rs` ne repasse pas, et
+le `?v=` servi reste celui du dernier **build complet**. Après avoir touché à
+`public/images/`, il faut relancer `cargo leptos build` pour voir le vrai
+comportement.
+
+**`/fr/l-app` manquait dans `tete::PAGES`**, donc dans `/sitemap.xml`, depuis
+toujours. La route existait, la page était complète, et aucun moteur ne pouvait
+la trouver autrement qu'en suivant un lien interne. C'est le défaut que le
+commentaire de `PAGES` annonce, arrivé sur la seule page qui porte un chemin
+d'acquisition.
 
 ### Le site s'installe sur Android
 

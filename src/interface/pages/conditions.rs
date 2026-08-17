@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::PageLegale;
+use crate::interface::design::{Lien, PageLegale};
 use crate::interface::pages::confidentialite::CONTACT;
 use crate::interface::tete::Tete;
 
@@ -43,7 +43,7 @@ pub fn Conditions() -> impl IntoView {
             <h2>"Le code est ouvert, le texte ne l'est pas encore"</h2>
             <p>
                 "Le code du site, de l'application et du pipeline est public sur "
-                <a href="https://github.com/ONTBible" rel="noopener">"GitHub"</a>
+                <Lien href="https://github.com/ONTBible">"GitHub"</Lien>
                 ", avec sa licence."
             </p>
             <p>
@@ -57,7 +57,7 @@ pub fn Conditions() -> impl IntoView {
             <p>
                 "Les caractères employés — EB Garamond, Jost, Literata, Frank Ruhl Libre, "
                 "Ezra SIL — sont diffusés sous "
-                <a href="https://openfontlicense.org" rel="noopener">"SIL Open Font License"</a>
+                <Lien href="https://openfontlicense.org">"SIL Open Font License"</Lien>
                 ". Leur texte de licence accompagne les fichiers, comme cette licence "
                 "l'exige."
             </p>
@@ -77,7 +77,7 @@ pub fn Conditions() -> impl IntoView {
             <p>"Droit français."</p>
 
             <h2>"Contact"</h2>
-            <p><a href=format!("mailto:{CONTACT}")>{CONTACT}</a></p>
+            <p><Lien href=format!("mailto:{CONTACT}")>{CONTACT}</Lien></p>
         </PageLegale>
     }
 }

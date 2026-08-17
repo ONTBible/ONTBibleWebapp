@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::PageLegale;
+use crate::interface::design::{Lien, PageLegale};
 use crate::interface::tete::Tete;
 
 /// L'adresse de contact.
@@ -125,7 +125,7 @@ pub fn Confidentialite() -> impl IntoView {
             </p>
             <p>
                 "Pour toute demande : "
-                <a href=format!("mailto:{CONTACT}")>{CONTACT}</a>
+                <Lien href=format!("mailto:{CONTACT}")>{CONTACT}</Lien>
                 ". Vous pouvez aussi saisir la CNIL."
             </p>
 
