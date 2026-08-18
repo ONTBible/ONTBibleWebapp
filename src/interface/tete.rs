@@ -55,21 +55,22 @@ pub const PAGES: &[&str] = &[
 /// avec un identifiant faux ne produit rien de visible, mais elle laisse croire
 /// que le travail est fait.
 ///
-/// ## Pourquoi il vaut `None` pendant la bêta
+/// ## Pourquoi il est resté `None` pendant toute la bêta
 ///
-/// L'identifiant existe — `6801192372`, il est né avec la fiche — et la
-/// bannière fonctionnait donc déjà. C'est le problème : elle menait à une fiche
-/// App Store qui ne répond pas, en haut de **toutes** les pages du site, sur le
-/// seul appareil où l'app compte.
+/// L'identifiant existait depuis le premier jour — il naît avec la fiche — et
+/// la bannière fonctionnait donc déjà. C'était le problème : elle menait à une
+/// fiche App Store qui ne répondait pas, en haut de **toutes** les pages du
+/// site, sur le seul appareil où l'app compte.
 ///
 /// Et elle ne sait pas mener ailleurs. `apple-itunes-app` ne prend qu'un
 /// `app-id` d'App Store ; TestFlight n'a aucune balise équivalente, aucun
-/// bandeau que Safari saurait dessiner. La bêta se rejoint par un lien ou par
-/// un QR, sur `/fr/l-app`, et par rien d'autre.
+/// bandeau que Safari saurait dessiner. La bêta se rejoignait par un lien ou
+/// par un QR, sur `/fr/l-app`, et par rien d'autre.
 ///
-/// À rallumer le jour de l'approbation, en même temps que
-/// `pages::application::PUBLIEE` — les deux disent la même chose, et laisser
-/// l'une en arrière rendrait le site incohérent avec lui-même.
+/// Elle est allumée depuis le 18 août 2026, jour où Apple a approuvé la 1.0, et
+/// en même temps que `pages::application::PUBLIEE` : les deux disent la même
+/// chose, et laisser l'une en arrière rendrait le site incohérent avec
+/// lui-même.
 ///
 /// ## Ce qu'elle ne fait pas
 ///
@@ -83,7 +84,7 @@ pub const PAGES: &[&str] = &[
 /// « Ouvrir dans la web app » que propose Safari relève d'une autre mécanique —
 /// le lecteur a lui-même ajouté le site au Dock, et aucune balise ne la
 /// déclenche.
-pub const IDENTIFIANT_APP_STORE: Option<&str> = None;
+pub const IDENTIFIANT_APP_STORE: Option<&str> = Some("6801192372");
 
 /// Les métadonnées d'une page.
 ///

@@ -358,7 +358,19 @@ fn Installer() -> impl IntoView {
     }
 
     view! {
-        <div class="flex flex-col items-center gap-8 sm:flex-row sm:items-center lg:items-start">
+        // Le QR repasse **sous** le badge à `lg`, comme il repasse sous les
+        // boutons dans l'état bêta — et pour la même raison, qui est une
+        // mesure et non un goût.
+        //
+        // À `lg`, la capture passe à droite et cette colonne tombe à la moitié
+        // de la mesure large, soit 376 px. Le badge en fait 203 et le QR 224 :
+        // côte à côte avec leur écart, 459. Le QR se faisait donc écraser, et
+        // sa légende partait sur deux lignes — le seul symptôme visible d'un
+        // dépassement qui, lui, ne se voit pas.
+        //
+        // Le seuil est l'inverse de l'habituel : on repasse en colonne **en
+        // montant**, parce que c'est en montant que la place se perd ici.
+        <div class="flex flex-col items-center gap-8 sm:flex-row sm:items-center lg:flex-col lg:items-start">
             <a
                 href=FICHE
                 // Le badge sort du site : `noopener` coupe l'accès de la page
@@ -373,8 +385,20 @@ fn Installer() -> impl IntoView {
                     width="127"
                     height="40"
                     // La hauteur minimale du badge est fixée par les directives
-                    // d'Apple. 40 px la respecte avec de la marge.
-                    class="block h-11 w-auto"
+                    // d'Apple — 40 px. Ce n'est pas elle qui décide ici : c'est
+                    // le QR d'à côté.
+                    //
+                    // Ce bloc n'avait jamais été **regardé**, la page vivant
+                    // en bêta depuis toujours ; entre-temps le QR est passé de
+                    // 80 à 224 px. Le badge, resté à 44, faisait le cinquième
+                    // de son voisin — l'action principale cinq fois plus
+                    // petite que la seconde voie. À 64 px il fait 203 px de
+                    // large contre les 224 du QR : deux objets de même poids,
+                    // qui est ce que la page dit d'eux.
+                    //
+                    // Le badge se met à l'échelle, il ne se redessine pas
+                    // (§8 quinquies) — une hauteur, et la largeur suit.
+                    class="block h-16 w-auto"
                 />
             </a>
 
@@ -597,15 +621,25 @@ fn Etape(numero: &'static str, titre: &'static str, children: Children) -> impl 
     }
 }
 
-/// Faux tant qu'Apple n'a pas approuvé la version 1.0.
+/// Vrai depuis le 18 août 2026 : Apple a approuvé la 1.0, et la fiche répond.
 ///
-/// Soumise le 13 août 2026. À passer à `true` le jour de l'approbation — c'est
-/// tout ce qu'il y a à faire, le badge et le QR apparaissent ensemble, et la
-/// bêta disparaît de la page sans qu'on y touche.
+/// Elle avait été soumise le 13 août, renvoyée le 14 au titre de la
+/// Guideline 2.1 — des informations manquaient au dossier de revue, rien dans
+/// l'app — puis resoumise et approuvée. La version était en mise en vente
+/// automatique : Apple l'a publiée lui-même en clôturant la relecture.
 ///
-/// Le jour venu, `tete::IDENTIFIANT_APP_STORE` se rallume en même temps : c'est
-/// la même nouvelle dite à deux endroits.
-const PUBLIEE: bool = false;
+/// Le basculement suffisait, et c'est ce que la page promettait : le badge et
+/// le QR sont apparus ensemble, et la bêta s'est effacée d'elle-même — sa
+/// section, le rappel de l'ouverture, la description de la page et la
+/// numérotation des sections, toutes suspendues à [`EN_BETA`].
+///
+/// `tete::IDENTIFIANT_APP_STORE` s'est rallumé dans le même mouvement : c'est
+/// la même nouvelle dite à deux endroits, et laisser l'un en arrière rendrait
+/// le site incohérent avec lui-même.
+///
+/// Le repasser à `false` rend la page à la bêta, tant que [`BETA`] porte un
+/// lien. C'est la sortie de secours si la fiche devait être retirée.
+const PUBLIEE: bool = true;
 
 /// Le lien public du groupe de test externe, quand il y en a un.
 ///
