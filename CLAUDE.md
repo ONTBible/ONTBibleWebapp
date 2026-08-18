@@ -1631,10 +1631,15 @@ son propre drapeau.
 
 ### La bannière d'app
 
-`tete.rs::IDENTIFIANT_APP_STORE` vaut `None`, et tant qu'il vaut `None` la
-balise n'est pas écrite. Le jour où la fiche existe dans App Store Connect,
-coller son `Apple ID` — dix chiffres, attribué **à la création de la fiche**,
-avant toute publication — allume la bannière sur toutes les pages.
+`tete.rs::IDENTIFIANT_APP_STORE` porte l'`Apple ID` de la fiche —
+`6801192372`, dix chiffres, attribué **à la création de la fiche** et non à sa
+publication. Tant qu'il valait `None`, la balise n'était pas écrite ; il est
+allumé depuis le 18 août 2026, et la bannière est sur toutes les pages.
+
+Il ne l'a pas été plus tôt **parce qu'il aurait marché** : l'identifiant existait
+dès le premier jour, donc le bandeau se serait posé en haut de chaque page en
+menant à une fiche qui ne répondait pas. Une bannière n'a que deux états justes,
+et « allumée vers rien » n'en est pas un.
 
 Elle ne remplace pas les liens universels : ceux-là ouvrent l'app *directement*
 sur `/fr/lire/*`. La bannière s'adresse à qui n'a **pas** l'app. Et elle
@@ -1891,12 +1896,44 @@ s'installe sur un téléphone. Un badge cliqué depuis un ordinateur ouvre une p
 web, il ne pose rien sur l'appareil qui compte. Le QR fait le pont, et disparaît
 en dessous de `sm` — on ne scanne pas l'écran qu'on tient.
 
-**`application.rs::PUBLIEE` vaut `false`** tant qu'Apple n'a pas approuvé la
-1.0. La page affiche alors « en relecture » à la place du badge : un badge qui
-mène à une page d'erreur est pire qu'une absence, on l'essaie et le projet a
-l'air cassé. Un seul booléen à basculer le jour de l'approbation.
+**`application.rs::PUBLIEE` vaut `true` depuis le 18 août 2026** — Apple a
+approuvé la 1.0 ce matin-là, et la version étant en mise en vente automatique,
+il l'a publiée lui-même en clôturant la relecture. Le booléen a suffi : le badge
+et le QR sont apparus ensemble, la bêta s'est effacée d'elle-même, et
+`tete.rs::IDENTIFIANT_APP_STORE` s'est allumé dans le même commit.
 
-### La bêta publique — fait le 15 août 2026
+Tant qu'il valait `false`, la page disait « en relecture » à la place du badge :
+un badge qui mène à une page d'erreur est pire qu'une absence, on l'essaie et le
+projet a l'air cassé.
+
+#### Une branche qu'on ne regarde jamais dérive de celle qu'on regarde
+
+Le bloc App Store avait été écrit d'avance, puis jamais **vu** — la page a vécu
+en bêta depuis son premier jour. Entre-temps le QR est passé de 80 à 144 puis à
+224 px, et le badge est resté à 44. À l'allumage, l'action principale faisait
+donc le cinquième de la seconde voie, et la mise en page ne tenait plus : à `lg`
+la colonne de gauche tombe à 376 px, où 203 de badge et 224 de QR côte à côte ne
+rentrent pas. Le QR se faisait écraser et sa légende partait sur deux lignes —
+le seul symptôme visible d'un dépassement qui, lui, ne se voit pas.
+
+Deux corrections, toutes deux déjà écrites dans la branche voisine : le badge
+monte à 64 px, et le QR repasse **sous** lui à `lg`, du même seuil inversé que
+l'état bêta. Ce n'était pas une décision à prendre, c'était une décision à
+recopier.
+
+La règle : **une branche conditionnelle qu'aucun état du site ne rend n'est pas
+du code testé, c'est du code écrit.** Avant de basculer un booléen qui en
+découvre une, la regarder — ici, en découpant l'ouverture du HTML servi et en le
+passant à `apercu.py`, les deux outils de capture ne voyant que le premier
+écran.
+
+### La bêta publique — du 15 au 18 août 2026
+
+**Elle est finie**, et c'est l'App Store qui a pris le relais. Ce qui suit décrit
+un état que la page ne rend plus : `EN_BETA` est faux, donc rien de cette section
+n'est à l'écran. Le code, lui, est resté entier — repasser `PUBLIEE` à `false` y
+rend la page en une ligne, ce qui est la sortie de secours si la fiche devait
+être retirée.
 
 Un lien public TestFlight existe, sur le groupe externe « Beta » :
 `https://testflight.apple.com/join/RAe4uzMu`, iPhone en iOS 18 ou plus récent.
@@ -1911,13 +1948,15 @@ approved build ». Sans elle, le bouton mène à un refus poli, c'est-à-dire
 exactement le défaut qu'on évite sur le badge. `BETA = None` rend la mention « en
 relecture », et c'est une ligne.
 
-**La bannière Safari est éteinte** — `tete.rs::IDENTIFIANT_APP_STORE` vaut
-`None`. Elle fonctionnait, et c'était le problème : l'identifiant naît avec la
+**La bannière Safari était éteinte pendant toute la bêta** —
+`tete.rs::IDENTIFIANT_APP_STORE` valait `None`. Elle fonctionnait, et c'était le
+problème : l'identifiant naît avec la
 fiche, donc le bandeau s'affichait en haut de **toutes** les pages et menait à
 une fiche App Store qui ne répond pas. Et elle ne sait pas mener ailleurs :
 `apple-itunes-app` ne prend qu'un `app-id`, TestFlight n'a aucune balise
-équivalente. À rallumer en même temps que `PUBLIEE` — c'est la même nouvelle
-dite à deux endroits.
+équivalente. Elle s'est rallumée en même temps que `PUBLIEE` — c'est la même
+nouvelle dite à deux endroits, et laisser l'une en arrière rendrait le site
+incohérent avec lui-même.
 
 **La page explique TestFlight, et c'est la section la plus longue.** Un badge
 App Store ne demande rien ; TestFlight demande d'installer une app pour en
