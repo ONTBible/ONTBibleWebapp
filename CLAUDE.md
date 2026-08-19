@@ -3,6 +3,24 @@
 Document de reprise. Il contient ce qu'une nouvelle session ne peut pas
 deviner : les décisions déjà prises, leurs raisons, et ce qui reste ouvert.
 
+> ## À faire à la fin de **chaque** travail, sans exception
+>
+> Ce dépôt est l'un des **trois** d'un même projet — avec `ONTBibleTranslation`
+> (le vault) et `ONTBibleApp` (le pipeline, la liseuse iOS, le backend). Ils
+> sont côte à côte : `~/ONTBible/<dépôt>`.
+>
+> Avant de dire qu'un travail est fini, **lire [`SYNCHRONISATION.md`](SYNCHRONISATION.md)
+> et appliquer sa règle** : demander ce que ce travail change pour les deux
+> autres dépôts, le porter chez eux dans la même session, et inscrire la ligne
+> au journal.
+>
+> Ce dépôt est en amont sur un point et en aval sur un autre : il **porte les
+> originaux de la marque** — la palette de `style/main.css`, les vecteurs de
+> `public/images/` — que l'app recopie ; et il **lit `../ONTBibleApp/dist/`** à
+> la compilation. Une couleur retouchée ici fait diverger la peau de l'app ; un
+> format de sortie modifié là-bas casse la compilation d'ici. Ni l'un ni l'autre
+> ne se voit depuis le dépôt où l'on travaille.
+
 ---
 
 ## 1. Ce qu'est ce site, et pour qui
@@ -2181,3 +2199,7 @@ Les trois portent le même ruleset : `main` protégée, passage par PR
 obligatoire, **signatures exigées**, suppression de branche après fusion.
 Signer les commits — `commit.gpgsign` et une clé SSH sont déjà configurés
 globalement sur cette machine.
+
+Ce qui traverse les trois, et la règle qui oblige à les tenir synchronisés,
+sont dans [`SYNCHRONISATION.md`](SYNCHRONISATION.md) — fichier **identique dans
+les trois dépôts**.
