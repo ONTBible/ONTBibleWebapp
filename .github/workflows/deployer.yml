@@ -66,6 +66,27 @@ env:
   # La même version qu'en local, pour que le site construit ici soit celui
   # qu'on a vu tourner.
   VERSION_LEPTOS: v0.3.7
+  # Épinglée, et pas `stable`.
+  #
+  # Le 19 août, `stable` valait 1.97.1 et le déploiement passait. Le 20, il
+  # vaut 1.98.0 et la construction du serveur s'arrête net :
+  #
+  #     error: unsupported linker arg: --fix-cortex-a53-843419
+  #     error: could not compile `wasm-streams`
+  #
+  # Rust émet cet argument pour les cibles aarch64 ; le linker de Zig, par
+  # lequel `cargo-lambda` passe pour viser Amazon Linux, ne le connaît pas et
+  # refuse. Ni Zig — 0.16.0 dans les deux cas — ni `cargo-lambda` — 1.9.1 —
+  # n'avaient bougé : seule la chaîne Rust s'était mise à jour toute seule.
+  #
+  # Le déploiement du site est le seul endroit du projet où trois outils
+  # doivent s'accorder au même moment. Le laisser suivre `stable`, c'est
+  # accepter qu'il casse un matin sans que personne n'ait rien poussé — et
+  # c'est arrivé.
+  #
+  # **Quand la remonter :** dès que `cargo-zigbuild` sait filtrer cet argument.
+  # Essayer une version, laisser un déploiement tourner, garder si c'est vert.
+  VERSION_RUST: "1.97.1"
 
 jobs:
   deployer:
@@ -91,8 +112,10 @@ jobs:
 
       - name: Rust
         run: |
-          rustup toolchain install stable --profile minimal
+          rustup toolchain install "$VERSION_RUST" --profile minimal
+          rustup default "$VERSION_RUST"
           rustup target add wasm32-unknown-unknown
+          rustc --version
 
       # Le cache porte sur `~/.cargo` et les deux `target/`. Sans lui, chaque
       # déploiement recompile Leptos entier — dix minutes contre une.
