@@ -564,7 +564,25 @@
  * L'initiale sur trois lignes du livre imprimé. C'est le signe le plus ancien
  * qu'une page puisse porter — et c'est l'exécution qui décide s'il paraît
  * antiquaire ou contemporain : pas d'enluminure, pas de fond, pas de cadre.
- * Une lettre en or, dans la fonte des titres, alignée sur la troisième ligne.
+ * Une lettre en or, alignée sur la troisième ligne.
+ *
+ * ## Dans la fonte du corps, et non dans celle des titres
+ *
+ * Elle était en Jost. Une lettrine n'ouvre pas un titre : elle est la première
+ * lettre du texte, agrandie. La composer dans une autre fonte que le texte,
+ * c'est poser un objet devant le paragraphe au lieu de le laisser en sortir —
+ * et le `L` géométrique de Jost, sans empattement, tombait en équerre froide
+ * au bord d'une page qui est entièrement en Literata.
+ *
+ * Les deux fontes ont la **même hauteur de capitale** — 0,706 em contre
+ * 0,703 — donc le corps de 3,4 em cale toujours ses trois lignes.
+ *
+ * ## Et en demi-gras
+ *
+ * Parce que le corps de la page est `antialiased` : sur la nuit, les traits
+ * clairs s'amincissent (voir la note du `body`). Un Literata régulier à cette
+ * taille y perdait la matière qu'une initiale doit avoir. Le demi-gras rend
+ * l'épaisseur que l'écran retire — il ne l'ajoute pas.
  *
  * `initial-letter` fait le calage lui-même là où il est reconnu ; le repli
  * flotté donne le même résultat partout ailleurs.
@@ -572,7 +590,8 @@
 @utility lettrine {
   &::first-letter {
     float: left;
-    font-family: var(--font-titre);
+    font-family: var(--font-corps);
+    font-weight: 600;
     font-size: 3.4em;
     line-height: 0.82;
     padding-inline-end: 0.08em;

@@ -1149,7 +1149,7 @@ qui empêche la page de virer à l'antiquaire.
 | le signe, ancien | l'exécution, moderne |
 |---|---|
 | chiffres romains sur les sections (`TitreDeSection`) | un chiffre, un filet court, beaucoup d'air — ni cartouche ni enluminure |
-| lettrine sur trois lignes (`lettrine`) | une lettre d'or dans la fonte des titres, sans fond ni cadre |
+| lettrine sur trois lignes (`lettrine`) | une lettre d'or **dans la fonte du corps, en demi-gras**, sans fond ni cadre |
 | chiffres elzéviriens dans le texte | et chiffres alignés de chasse fixe dans les tableaux — une colonne n'est pas une phrase |
 | ponctuation suspendue | `hanging-punctuation`, que le navigateur fait seul |
 | portrait en arche, comme une gravure | un filet d'or d'un pixel, une surface unie, un recadrage net |
