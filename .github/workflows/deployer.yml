@@ -98,11 +98,71 @@ jobs:
         with:
           path: ONTBibleWebapp
 
+      # **`dev`, et non la branche par défaut.**
+      #
+      # Le pipeline sert deux consommateurs de cadences opposées. Le corpus
+      # publié ici atteint les apps **déjà installées** en quelques minutes, par
+      # `CorpusUpdater`, sans revue. Le binaire iOS, lui, met des jours —
+      # TestFlight interne, bêta externe, revue Apple.
+      #
+      # Tant que cette étape clonait `main`, la publication du corpus héritait
+      # du filtre de toute la chaîne de promotion : une correction de pipeline
+      # ne pouvait pas atteindre un lecteur sans qu'un build parte chez Apple.
+      # C'est ce qui a tenu `read_fiches` — et les cent six fiches de lexique —
+      # hors de portée des lecteurs alors que le code était fusionné et testé.
+      #
+      # `dev` porte la même garantie qui compte ici : `tests.yml` passe sur
+      # chaque PR qui y entre. Ce qu'on perd, c'est le passage par TestFlight —
+      # qui ne dit rien du pipeline, seulement du binaire.
+      #
+      # Le garde-fou qui suit couvre la seule chose que cette accélération
+      # pouvait casser.
       - name: Le pipeline
         uses: actions/checkout@v4
         with:
           repository: ONTBible/ONTBibleApp
+          ref: dev
           path: ONTBibleApp
+
+      # Le schéma publié doit être celui que l'app en vente sait lire.
+      #
+      # `CorpusUpdater` **s'abstient en silence** devant un manifeste dont le
+      # schéma lui est inconnu : elle ne rend aucune erreur, elle reste sur son
+      # bundle. Publier un schéma monté cesserait donc de mettre à jour tous
+      # les lecteurs installés, sans que rien ne le dise — ni ici, ni chez eux,
+      # ni dans Sentry.
+      #
+      # Deux constantes, dans deux dépôts, qu'aucun test ne rapprochait : celle
+      # que `corpus-publie.py` écrit, et celle que la liseuse lit. On les
+      # compare avant de construire quoi que ce soit.
+      #
+      # La référence est **`main` de l'app** — ce qui est en vente, non ce qui
+      # est en cours. Le clone ci-dessus est sur `dev` : on va chercher `main`
+      # à part, en profondeur 1.
+      - name: Le schéma du corpus
+        working-directory: ONTBibleApp
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin main
+          LISEUSE="app/Packages/ONTData/Sources/ONTData/Remote/CorpusUpdater.swift"
+          attendu=$(git show "origin/main:$LISEUSE" \
+            | sed -n 's/.*static let schema = \([0-9]*\).*/\1/p' | head -1)
+          publie=$(sed -n 's/.*"schema": *\([0-9]*\).*/\1/p' \
+            ../ONTBibleWebapp/scripts/corpus-publie.py | head -1)
+
+          if [ -z "$attendu" ] || [ -z "$publie" ]; then
+            echo "::error::Schéma illisible — attendu « $attendu », publié « $publie »."
+            echo "::error::L'une des deux constantes a été renommée ou déplacée."
+            exit 1
+          fi
+          if [ "$attendu" != "$publie" ]; then
+            echo "::error::Le corpus publierait le schéma $publie, l'app en vente lit le $attendu."
+            echo "::error::CorpusUpdater s'abstiendrait sans rien dire : tous les lecteurs"
+            echo "::error::installés cesseraient d'être mis à jour, en silence."
+            echo "::error::Livrer d'abord une version de l'app qui lit le $publie."
+            exit 1
+          fi
+          echo "  schéma $publie — l'app en vente le lit"
 
       - name: Le vault
         uses: actions/checkout@v4
