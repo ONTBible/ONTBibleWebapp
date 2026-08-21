@@ -64,6 +64,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ONTBible/ONTBibleApp
+          # `dev`, comme `deployer.yml` — et pour la même raison. Sans `ref:`,
+          # on clonait la branche par défaut, c'est-à-dire `main` : les tests
+          # s'exerçaient sur un pipeline que le déploiement n'utilise pas. Une
+          # épreuve verte ne disait alors rien de ce qui allait être publié.
+          ref: dev
           path: ONTBibleApp
 
       - name: Le vault

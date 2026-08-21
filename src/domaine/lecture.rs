@@ -14,10 +14,10 @@
 //!
 //! ## Ce qui n'est **pas** réglable, et pourquoi
 //!
-//! Ni les intraduisibles, ni les termes importants. L'app n'en offre pas la
+//! Ni les intraduisibles, ni les accentuations. L'app n'en offre pas la
 //! bascule non plus, et son moteur de rendu dit pourquoi :
 //!
-//! > Un terme important survit à l'extinction des niveaux : il appartient au
+//! > Une accentuation survit à l'extinction des niveaux : elle appartient au
 //! > corps, pas à l'appareil critique.
 //!
 //! Un intraduisible n'est pas un commentaire ajouté au texte — c'est le texte,
@@ -113,10 +113,10 @@ fn retirer(noeuds: &[Noeud], p: Preferences) -> Vec<Noeud> {
             Noeud::Hebreu { .. } | Noeud::HebreuNu(_) if !p.niveau_3 => None,
 
             // Les conteneurs sont conservés, mais leur contenu est nettoyé :
-            // une glose peut en contenir une autre, et un terme important peut
+            // une glose peut en contenir une autre, et une accentuation peut
             // contenir une translittération.
             Noeud::Glose(enfants) => Some(Noeud::Glose(retirer(enfants, p))),
-            Noeud::Important(enfants) => Some(Noeud::Important(retirer(enfants, p))),
+            Noeud::Accentuation(enfants) => Some(Noeud::Accentuation(retirer(enfants, p))),
             Noeud::Emphase(enfants) => Some(Noeud::Emphase(retirer(enfants, p))),
             Noeud::Lien { href, enfants } => Some(Noeud::Lien {
                 href: href.clone(),
@@ -139,7 +139,7 @@ fn fondre(noeuds: Vec<Noeud>) -> Vec<Noeud> {
     for noeud in noeuds {
         let noeud = match noeud {
             Noeud::Glose(enfants) => Noeud::Glose(fondre(enfants)),
-            Noeud::Important(enfants) => Noeud::Important(fondre(enfants)),
+            Noeud::Accentuation(enfants) => Noeud::Accentuation(fondre(enfants)),
             Noeud::Emphase(enfants) => Noeud::Emphase(fondre(enfants)),
             Noeud::Lien { href, enfants } => Noeud::Lien {
                 href,
@@ -175,7 +175,7 @@ fn resserrer(noeuds: Vec<Noeud>) -> Vec<Noeud> {
                 Noeud::Texte(resserrer_texte(&texte, rang == 0, rang == dernier))
             }
             Noeud::Glose(enfants) => Noeud::Glose(resserrer(enfants)),
-            Noeud::Important(enfants) => Noeud::Important(resserrer(enfants)),
+            Noeud::Accentuation(enfants) => Noeud::Accentuation(resserrer(enfants)),
             Noeud::Emphase(enfants) => Noeud::Emphase(resserrer(enfants)),
             Noeud::Lien { href, enfants } => Noeud::Lien {
                 href,
@@ -264,7 +264,7 @@ mod tests {
                 lemme: "elohim".into(),
             },
             Noeud::Texte(" ".into()),
-            Noeud::Important(vec![Noeud::Texte("Cieux".into())]),
+            Noeud::Accentuation(vec![Noeud::Texte("Cieux".into())]),
         ];
         assert_eq!(preparer(&noeuds, Preferences::default()), noeuds);
     }
@@ -351,12 +351,12 @@ mod tests {
         );
     }
 
-    /// Un terme important **survit** à l'extinction des niveaux — c'est la
+    /// Une accentuation **survit** à l'extinction des niveaux — c'est la
     /// règle de l'app, et elle tient au sens : il appartient au corps.
     /// Mais ses enfants sont nettoyés.
     #[test]
-    fn un_terme_important_survit_mais_son_contenu_est_nettoye() {
-        let noeuds = vec![Noeud::Important(vec![
+    fn une_accentuation_survit_mais_son_contenu_est_nettoye() {
+        let noeuds = vec![Noeud::Accentuation(vec![
             Noeud::Texte("Cieux".into()),
             Noeud::Hebreu {
                 translitteration: "shamayim".into(),
@@ -365,7 +365,7 @@ mod tests {
         ])];
         assert_eq!(
             preparer(&noeuds, Preferences::nu()),
-            vec![Noeud::Important(vec![Noeud::Texte("Cieux".into())])]
+            vec![Noeud::Accentuation(vec![Noeud::Texte("Cieux".into())])]
         );
     }
 
@@ -419,7 +419,7 @@ pub fn corps(noeuds: &[Noeud]) -> String {
             match noeud {
                 Noeud::Texte(t) => sortie.push_str(t),
                 Noeud::Intraduisible { mot, .. } => sortie.push_str(mot),
-                Noeud::Important(enfants)
+                Noeud::Accentuation(enfants)
                 | Noeud::Emphase(enfants)
                 | Noeud::Lien { enfants, .. } => aplatir(enfants, sortie),
                 Noeud::Saut => sortie.push(' '),
