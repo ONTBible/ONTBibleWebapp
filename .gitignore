@@ -18,3 +18,7 @@ target/site/apercu-*.html
 # Résidus de compilation Python — les scripts sont la source, pas leur cache.
 __pycache__/
 *.pyc
+
+# Engendré par scripts/linker-local.sh — le chemin du linker porte le nom de la
+# toolchain installée, donc il est propre à la machine.
+.cargo/config.toml

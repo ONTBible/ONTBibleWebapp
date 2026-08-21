@@ -1173,12 +1173,69 @@ raison d'être de tout le pipeline (voir `ONTBibleApp/README.md`) :
 |---|---|---|
 | texte nu | niveau 1 — le corps | encre |
 | `**mot**` | intraduisible | **or**, cliquable vers sa fiche |
-| `==mot==` | accentuation | **`#862742`**, semi-gras, **inerte** |
+| `==mot==` | accentuation **et tout nom propre** | **`#862742`**, semi-gras, **inerte** |
 | `*[glose]*` | niveau 2 | plus petit, encre atténuée |
 | `(*translit* / hébreu)` | niveau 3 | italique + Ezra SIL, isolation bidi FSI/PDI |
 
 L'or **promet** une fiche et la tient. Le bordeaux clair marque sans rien
 promettre. Ne pas les confondre.
+
+**L'accentuation porte les noms propres depuis le 19 août 2026.** Le vault
+balise tout nom propre en `==…==`, à chacune de ses occurrences, gloses
+comprises (§2.5 bis du vault, et
+`ONTBibleTranslation/scripts/marquer-les-noms-propres.py`, idempotent).
+
+**Le site n'a rien eu à changer**, et c'est ce qui a fait retenir `==` plutôt
+qu'une quatrième marque : le pipeline le produit déjà en `Accentuation`, le site
+le rend déjà, l'app aussi. Une couleur de plus aurait demandé un type de nœud,
+une teinte dans la rampe, un rendu Swift et un rendu Rust — quatre endroits à
+tenir d'accord pour dire ce que la marque existante disait.
+
+`Shem` et `Adam` restent nus : tantôt noms propres, tantôt intraduisibles, et
+seule une lecture verset par verset tranche. Ils attendent l'auteur.
+
+### La prose du site porte les mêmes marques — `Terme` et `Nom`
+
+**Corrigé le 19 août 2026, et le défaut est le §8 bis rejoué à l'identique.**
+
+Le vault venait d'être balisé et « Yerushalayim » s'affichait toujours en encre
+ordinaire sur `/fr/le-pourquoi`, c'est-à-dire sur la page qui explique pourquoi
+on le laisse en hébreu. Les intraduisibles y étaient en `<b>` : du gras, pas de
+l'or.
+
+La raison est mécanique. Le corpus porte ses marques dans le `.md`, et
+`verset.rs` les rend. **La prose du site est écrite en littéraux Rust et ne
+traverse aucun de ces mécanismes** — exactement comme `composer` ne voyait que
+`Noeud::Texte` et laissait quarante ponctuations doubles se couper à la ligne.
+
+D'où `design/marques.rs`, et deux composants qui **citent** les classes de
+`verset.rs` au lieu de les redéfinir :
+
+| | |
+|---|---|
+| `<Terme lemme="bara">` | l'intraduisible — or, et un lien vers sa fiche |
+| `<Terme>` | l'intraduisible sans entrée au glossaire — or, sans lien |
+| `<Nom>` | le nom propre hébreu — accentué, inerte |
+
+**Les noms non hébreux restent en encre.** Platon, Jérôme, Alexandre, Ptolémée.
+La marque répond à une difficulté de lecture — un lecteur français ne reconnaît
+ni Mitsrayim comme un lieu ni Yason comme une personne — et non à une catégorie
+grammaticale.
+
+**Un test tient la promesse de l'or.** `chaque_lemme_cite_par_une_page_a_sa_fiche`
+relit les pages telles qu'elles sont écrites et vérifie que chaque `lemme=` mène
+à une fiche réelle. Sans lui, un lemme mal orthographié donne un mot d'or qui
+mène à un 404, et personne ne clique sur les mots d'or d'un site pour vérifier.
+
+**La règle pour toute page écrite désormais** : un intraduisible passe par
+`Terme`, un nom propre hébreu par `Nom`. Jamais `<b>`, jamais `<i>`.
+
+**Et un prop de type texte ferme la porte à cette règle.** `Jalon` prenait un
+`titre: String` : « La déportation à Bavel » restait en encre pendant que le
+même nom était accentué trois lignes plus bas, et rien dans la signature ne
+disait pourquoi. Le titre est un **slot** depuis. La question à se poser en
+écrivant un composant : *ce texte peut-il contenir un nom propre ou un
+intraduisible ?* Si oui, il lui faut des enfants, pas une chaîne.
 
 ## 6. Les ressources
 
@@ -2147,6 +2204,111 @@ Ce que l'installation ne donne pas : la lecture hors ligne, le widget et les
 notifications. Il n'y a **pas de service worker**, et c'est délibéré — un
 worker qui met en cache sans qu'on l'ait pensé sert du HTML périmé pendant des
 jours, exactement le défaut que les empreintes du §8 ter viennent de corriger.
+
+## 8 sexies. « Le pourquoi » — l'essai de fond
+
+**Refait le 19 août 2026.** La page tenait en trois blocs de quatre phrases.
+Elle **affirmait** que le cosmos hébreu est un Temple sans donner de quoi le
+constater : ni l'histoire qui explique pourquoi le lecteur ne le voit plus, ni
+le texte qui le montre, ni la méthode qui le restitue. Elle en porte
+**quatorze** maintenant.
+
+### Le cadre se pose en premier, et explicitement
+
+C'est la leçon d'une épreuve qu'il a menée lui-même : il a demandé à un modèle
+de langage de juger le site. Le retour a été sévère. Il lui a ensuite demandé de
+relire **depuis l'ontologie hébraïque antique**, et le jugement a changé — alors
+que rien du site n'avait bougé.
+
+Une machine entraînée sur l'écrit du monde retombe donc par défaut dans le cadre
+grec. Un lecteur humain n'a aucune raison de faire mieux. **Un site qui ne nomme
+pas son cadre est lu depuis celui du lecteur, et jugé faux.** D'où l'ordre de la
+page : le cadre d'abord, nommé, situé, et assumé comme le **bon**.
+
+C'est une position, pas une précaution : « ce n'est pas une grille culturelle
+qu'on restituerait par respect pour les anciens ; c'est la façon dont le réel
+fonctionne, et le reste est distorsion ».
+
+### Ce que la page contient, et pourquoi dans cet ordre
+
+| | |
+|---|---|
+| I | le cadre invisible — l'épreuve du modèle de langage |
+| II | ce que le mot **ontologie** attrape |
+| III | l'ontologie grecque, dont nous descendons |
+| IV | la question hébraïque, et le **tohu vavohu** |
+| V | une langue qui **constitue** au lieu de définir |
+| VI | et c'est le bon cadre |
+| VII | l'hellénisation — de 586 av. à nos jours |
+| VIII | neuf mots, et ce qu'ils sont devenus |
+| IX | l'arbre — le corpus nomme lui-même le geste |
+| X | *bara*, *asah*, *yatsar* — et le Temple cosmique |
+| XI | le **tselem**, et non l'âme |
+| XII | la méthode — les trois niveaux et les quatre règles |
+| XIII | pourquoi des mots restent debout |
+| XIV | le corpus, et le critère ontologique |
+
+**L'ordre est un argument.** On ne peut pas juger une restitution depuis le
+cadre qu'elle défait. La démonstration par le texte vient **après** l'histoire,
+parce qu'un lecteur qui ignore que « âme » est un choix de traducteur alexandrin
+lit le **nefesh** comme une bizarrerie.
+
+### L'histoire est datée, et vérifiée
+
+- **La déportation est exacte.** Ptolémée Iᵉʳ prend Yerushalayim en 312 av. et
+  emmène des captifs en Égypte ; c'est son fils qui fait traduire la Torah. La
+  Septante naît bien d'une communauté née d'une déportation.
+- **L'hellénisation a été achetée, pas subie.** En 175 av., Yason achète le
+  grand-sacerdoce puis le droit d'ouvrir un *gymnasion*, et les kohanim y
+  courent. L'élite qui transmet le texte se fait former à penser dans l'autre
+  cadre. Les Maccabées ont rendu le Temple ; pas le cadre.
+
+**Et la page ne polémique pas** — règle du §10 du vault. Les traducteurs
+d'Alexandrie ont fait ce qu'il fallait ; ce qui s'est perdu, c'est le souvenir
+qu'une traduction avait eu lieu.
+
+**La guématrie n'y figure pas**, et c'est délibéré. Sa condition de possibilité
+— les lettres portant une valeur numérique — est elle-même un emprunt grec,
+adapté du système milésien entre 200 et 78 av., donc **pendant** l'hellénisation
+que la page raconte. Le mot lui-même vient de γεωμετρία. Une pratique dont le
+nom et l'outil sont grecs ne peut pas servir de strate antérieure au grec.
+
+### Les versets viennent du corpus, et un test les garde
+
+`api::versets` tire des versets nommés de `../ONTBibleApp/dist/`, jamais
+recopiés : une citation figée continuerait d'afficher l'ancienne forme d'un
+verset corrigé au vault.
+
+`citer` **se tait** quand elle ne trouve rien — bon comportement en production,
+mais le pire des silences : une unité renumérotée ferait perdre la pièce à la
+démonstration. `les_versets_cites_existent` rend la disparition bruyante, et il
+a été éprouvé en le faisant échouer.
+
+### Trois formes nouvelles
+
+- **`Correspondances`** — la descente d'un mot : hébreu, grec, français. **La
+  dégradation est dans la couleur, pas dans le commentaire** : l'or plein, puis
+  l'encre, puis l'encre douce entre guillemets. Literata porte le grec
+  polytonique — 87 glyphes, vérifié dans le woff2 — donc aucune fonte à charger.
+- **`Chronologie`** — le filet vertical dit que les jalons sont *enchaînés*. La
+  pastille se pose **sur** le trait, à un retrait calculé. Son titre est un
+  **slot**, pour qu'il puisse porter ses noms propres.
+- **`Citation`** — elle **déborde** la mesure, elle ne l'élargit pas. Un verset
+  porte ses trois niveaux imbriqués : à 38 rem il se césure à chaque ligne. Le
+  réflexe est de passer le bloc en `large` — et c'est faux : à 52 rem, c'est la
+  **prose** qui monte à 79 signes et se césure à son tour. `lg:-mx-16` sur la
+  seule citation. C'est le patron du portrait.
+
+### Voir une page de quatorze écrans
+
+Les deux outils de capture ne montrent que le premier écran. On isole donc la
+section voulue — retirer les autres `<section>` du HTML servi, poser le fichier
+dans `target/site/`, servi à la racine en développement — puis on la passe à
+`sim.sh` ou à `qlmanage`. C'est ainsi que la césure des versets et les lettrines
+décapitées ont été vues ; aucune ne se voyait dans le code.
+
+Au simulateur, `ATTENTE=25` au minimum : à six secondes la capture est
+**blanche**, et une page blanche ressemble trop à une page cassée.
 
 ## 9. Ce qui reste à trancher
 
