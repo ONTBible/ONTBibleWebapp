@@ -5,7 +5,7 @@ use crate::interface::tete::Tete;
 
 /// L'adresse de contact.
 ///
-/// Sur le domaine du projet, et non sur une messagerie personnelle : une
+/// Sur le domaine du projet, et non sur une messagerie personnelle : une
 /// demande d'effacement doit pouvoir être adressée sans connaître le nom de
 /// l'auteur, et l'adresse doit survivre à un changement de fournisseur.
 pub const CONTACT: &str = "contact@ontbible.com";
@@ -17,14 +17,14 @@ pub const CONTACT: &str = "contact@ontbible.com";
 /// trois seules choses qui quittent l'appareil, et `Observability.swift`
 /// désactive explicitement les captures d'écran et les données personnelles.
 ///
-/// Une politique fausse est pire qu'une politique absente : elle engage.
+/// Une politique fausse est pire qu'une politique absente : elle engage.
 #[component]
 pub fn Confidentialite() -> impl IntoView {
     view! {
             <Tete
                 titre="Confidentialité"
                 description="Ce que le site et l'app collectent, et ce qu'ils ne collectent pas. \
-                             Aucun traceur sur le site ; sur l'app, le strict nécessaire à la \
+                             Aucun traceur sur le site ; sur l'app, le strict nécessaire à la \
                              synchronisation."
                 chemin="/fr/confidentialite"
             />
@@ -97,15 +97,15 @@ pub fn Confidentialite() -> impl IntoView {
                 <ul>
                     <li>
                         "le rappel quotidien est une "<strong>"notification locale"</strong>". "
-                        "Il est préparé sur l'appareil à partir de la date : rien n'est demandé "
+                        "Il est préparé sur l'appareil à partir de la date : rien n'est demandé "
                         "à un serveur, et il n'existe nulle part de liste de qui lit une Bible "
-                        "et à quelle heure ;"
+                        "et à quelle heure ;"
                     </li>
                     <li>
                         "les parutions vous sont signalées "<strong>"sans rien envoyer"</strong>", "
-                        "tant que vous n'activez pas les notifications distantes : l'app compare "
+                        "tant que vous n'activez pas les notifications distantes : l'app compare "
                         "le corpus qu'elle vient de télécharger à ce qu'elle en savait, et vous "
-                        "prévient elle-même ;"
+                        "prévient elle-même ;"
                     </li>
                     <li>
                         "le rapport d'erreur "<strong>"ne joint ni capture d'écran, ni "
@@ -118,7 +118,7 @@ pub fn Confidentialite() -> impl IntoView {
                             <h2>"Être prévenu des parutions"</h2>
                 <p>
                     "Ce réglage est "<strong>"fermé par défaut"</strong>". Tant qu'il l'est, rien "
-                    "ne quitte votre appareil : vous êtes prévenu d'un livre, d'un chapitre ou "
+                    "ne quitte votre appareil : vous êtes prévenu d'un livre, d'un chapitre ou "
                     "d'un terme qui paraît à la prochaine ouverture de l'app, ou lorsque iOS la "
                     "réveille."
                 </p>
@@ -130,7 +130,7 @@ pub fn Confidentialite() -> impl IntoView {
                 <p>
                     "Nous savons ce que cette donnée dit de vous. Un jeton conservé chez nous "
                     "signifie qu'un appareil lit une Bible, ce qui relève de l'article 9 du "
-                    "RGPD. C'est irréductible : sans ce jeton, aucune notification n'est "
+                    "RGPD. C'est irréductible : sans ce jeton, aucune notification n'est "
                     "possible. Ce qui restait décidable, nous l'avons décidé."
                 </p>
                 <ul>
@@ -141,7 +141,7 @@ pub fn Confidentialite() -> impl IntoView {
                     <li>
                         "Rien de ce que vous lisez n'est transmis — ni le passage, ni l'heure, "
                         "ni la fréquence. La notification est "<strong>"la même pour tout le "
-                        "monde"</strong>" : il n'y a pas de ciblage, et il ne peut pas y en avoir."
+                        "monde"</strong>" : il n'y a pas de ciblage, et il ne peut pas y en avoir."
                     </li>
                     <li>
                         "Le jeton est rangé sous son empreinte, jamais sous un identifiant de "
@@ -149,7 +149,7 @@ pub fn Confidentialite() -> impl IntoView {
                         "signe de vie."
                     </li>
                     <li>
-                        "Couper le réglage "<strong>"l'efface de nos serveurs"</strong>" : l'app "
+                        "Couper le réglage "<strong>"l'efface de nos serveurs"</strong>" : l'app "
                         "le retire avant de se désabonner d'Apple. Désinstaller l'app suffit "
                         "aussi — Apple nous signale l'appareil comme injoignable, et nous le "
                         "supprimons."
@@ -157,7 +157,7 @@ pub fn Confidentialite() -> impl IntoView {
                 </ul>
                 <p>
                     "La base légale est "<strong>"votre consentement"</strong>", donné en activant "
-                    "le réglage et retiré en le coupant. La livraison passe par Apple (APNs) ; le "
+                    "le réglage et retiré en le coupant. La livraison passe par Apple (APNs) ; le "
                     "jeton, lui, est conservé sur nos serveurs en Europe."
                 </p>
 
