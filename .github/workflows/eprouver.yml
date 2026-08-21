@@ -31,9 +31,22 @@
 
 name: Éprouver
 
+# **Toute** pull request, et non les seules qui visent `main`.
+#
+# La restriction `branches: [main]` a laissé passer une PR non éprouvée : un
+# travail qui dépend d'un autre encore en revue se base sur *sa* branche, pas
+# sur `main`. GitHub affichait alors « no checks » — et rien ne le signalait,
+# puisqu'une absence de vérification ne ressemble pas à un échec.
+#
+# Le risque était réel : cette PR-là finit par arriver dans `main` par sa base,
+# donc sans jamais avoir été éprouvée. Élargir coûte quelques minutes de CI sur
+# les branches empilées ; ne pas élargir coûte un déploiement cassé.
+#
+# Aucune de ces exécutions ne peut déployer, pour la raison écrite plus haut :
+# le jeton d'une pull request porte `ref:refs/pull/<n>/merge`, qu'`infra/ci.tf`
+# refuse. C'est vrai quelle que soit la branche visée.
 on:
   pull_request:
-    branches: [main]
 
 # Une nouvelle poussée sur la même branche remplace la vérification en cours :
 # c'est l'inverse du déploiement, où le second attend parce que le premier a
