@@ -102,7 +102,10 @@ mod tests {
             }
         }
 
-        assert!(!cites.is_empty(), "aucun lemme trouvé — le relevé est cassé");
+        assert!(
+            !cites.is_empty(),
+            "aucun lemme trouvé — le relevé est cassé"
+        );
 
         for lemme in &cites {
             assert!(
