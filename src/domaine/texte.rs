@@ -8,7 +8,7 @@
 //! |---|---|---|
 //! | texte nu | 1 — le corps | encre |
 //! | `**mot**` | intraduisible | or, et **cliquable** vers sa fiche |
-//! | `==mot==` | terme important | bordeaux clair, et **inerte** |
+//! | `==mot==` | accentuation | bordeaux clair, et **inerte** |
 //! | `*[glose]*` | 2 | plus petit, encre atténuée |
 //! | `(*translit* / hébreu)` | 3 | italique + Ezra SIL |
 //!
@@ -46,12 +46,12 @@ pub enum Noeud {
     Texte(String),
     /// Un intraduisible. `lemme` désigne sa fiche de lexique.
     Intraduisible { mot: String, lemme: String },
-    /// Un terme important — marqué, mais sans fiche.
+    /// Une accentuation — marquée, mais sans fiche.
     ///
     /// Il porte des enfants et non une chaîne, parce que le pipeline en met :
     /// un `==…==` peut contenir un intraduisible. L'aplatir ici perdrait le
     /// lien vers la fiche, en silence.
-    Important(Vec<Noeud>),
+    Accentuation(Vec<Noeud>),
     /// Niveau 2 — ce que le champ sémantique hébreu porte implicitement.
     Glose(Vec<Noeud>),
     /// Niveau 3 — la translittération et l'hébreu, toujours les deux.

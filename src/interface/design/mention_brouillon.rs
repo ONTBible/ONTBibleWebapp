@@ -15,7 +15,7 @@ use leptos::prelude::*;
 ///
 /// Le bordeaux clair, et non l'or : l'or promet une fiche partout ailleurs sur
 /// le site, et le laisser marquer autre chose brouillerait la promesse. Le
-/// `#D87994` est déjà la couleur du terme important — celle qui **marque sans
+/// `#D87994` est déjà la couleur de l'accentuation — celle qui **marque sans
 /// rien promettre**, ce qui est exactement le propos ici.
 #[component]
 pub fn MentionBrouillon(
@@ -28,7 +28,7 @@ pub fn MentionBrouillon(
 ) -> impl IntoView {
     view! {
         <p
-            class="m-0 inline-flex items-center gap-2.5 rounded-full border border-important/30 text-important"
+            class="m-0 inline-flex items-center gap-2.5 rounded-full border border-accentuation/30 text-accentuation"
             class=("px-4", !breve)
             class=("py-1.5", !breve)
             class=("text-sm", !breve)

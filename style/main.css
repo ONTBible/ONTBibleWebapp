@@ -60,9 +60,9 @@
   --color-encre-vive: #ede3d6; /* un titre       — 15,3:1 */
   --color-encre-douce: #9d948b; /* le niveau 2    —  6,5:1 */
 
-  /* Le terme important — l'aubergine remontée en clarté à teinte constante,
+  /* L'accentuation — l'aubergine remontée en clarté à teinte constante,
      jusqu'à 6,5:1 sur le fond. C'est la valeur du thème sombre de l'app. */
-  --color-important: #d87994;
+  --color-accentuation: #d87994;
 
   /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri
      comme il le fallait sur le parchemin. Le jeton garde son nom de **rôle**,

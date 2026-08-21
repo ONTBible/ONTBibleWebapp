@@ -307,7 +307,7 @@ vérifie la dérivation.
 | `encre` | `#CFC5B9` | le corps — 11,4:1 |
 | `encre-vive` | `#EDE3D6` | un titre — 15,3:1 |
 | `encre-douce` | `#9D948B` | le niveau 2 — 6,5:1 |
-| `important` | `#D87994` | le terme important — 6,5:1 |
+| `accentuation` | `#D87994` | l'accentuation — 6,5:1 |
 
 **Jamais de blanc pur**, et jamais un gris. La halation fait déborder un texte
 clair dans le noir qui l'entoure : les lettres paraissent plus grasses, vibrent
@@ -1173,7 +1173,7 @@ raison d'être de tout le pipeline (voir `ONTBibleApp/README.md`) :
 |---|---|---|
 | texte nu | niveau 1 — le corps | encre |
 | `**mot**` | intraduisible | **or**, cliquable vers sa fiche |
-| `==mot==` | terme important | **`#862742`**, semi-gras, **inerte** |
+| `==mot==` | accentuation | **`#862742`**, semi-gras, **inerte** |
 | `*[glose]*` | niveau 2 | plus petit, encre atténuée |
 | `(*translit* / hébreu)` | niveau 3 | italique + Ezra SIL, isolation bidi FSI/PDI |
 
@@ -1490,9 +1490,9 @@ manquait quatre types qui ne vivent que dans les définitions du lexique :
 
 | blocs | nœuds |
 |---|---|
-| `verses` `heading` `list` `para` `quote` `table` `rule` | `text` `term` `important` `gloss` `em` `translit` `heb` `link` `break` |
+| `verses` `heading` `list` `para` `quote` `table` `rule` | `text` `term` `accentuation` `gloss` `em` `translit` `heb` `link` `break` |
 
-`important` porte des **enfants**, pas une chaîne : un `==…==` peut contenir un
+`accentuation` porte des **enfants**, pas une chaîne : un `==…==` peut contenir un
 intraduisible, et l'aplatir perdrait le lien vers sa fiche en silence.
 
 Les DTO tolèrent un type inconnu et l'omettent, pour qu'un ajout au pipeline ne
@@ -1556,7 +1556,7 @@ notes. Un lecteur qui passe du téléphone au site doit retrouver les mêmes mot
 | Niveaux du texte | Translittération et hébreu | oui |
 
 **Il n'y a pas de bascule pour les intraduisibles**, et l'app n'en a pas non
-plus. Son moteur de rendu dit pourquoi : « un terme important survit à
+plus. Son moteur de rendu dit pourquoi : « une accentuation survit à
 l'extinction des niveaux : il appartient au corps, pas à l'appareil critique ».
 Un intraduisible n'est pas un commentaire ajouté au texte — c'est le texte,
 qu'on a refusé de traduire. L'éteindre laisserait un trou, et la promesse de

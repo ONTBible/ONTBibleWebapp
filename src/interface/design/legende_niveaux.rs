@@ -29,7 +29,7 @@ pub fn LegendeNiveaux() -> impl IntoView {
 
             <Niveau>
                 <Terme slot>
-                    <span class="font-semibold text-important">"Le terme important"</span>
+                    <span class="font-semibold text-accentuation">"L'accentuation"</span>
                 </Terme>
                 "Un mot qui porte le poids de la phrase, mais qui se traduit. Il est marqué, "
                 "et il ne promet rien : il ne mène nulle part."

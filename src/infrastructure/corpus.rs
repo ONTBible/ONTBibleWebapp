@@ -92,7 +92,7 @@ fn noeud(source: pipeline::Inline) -> Noeud {
             mot: v,
             lemme: lemma,
         },
-        pipeline::Inline::Important { children } => Noeud::Important(noeuds(children)),
+        pipeline::Inline::Accentuation { children } => Noeud::Accentuation(noeuds(children)),
         pipeline::Inline::Gloss { children } => Noeud::Glose(noeuds(children)),
         pipeline::Inline::Em { children } => Noeud::Emphase(noeuds(children)),
         pipeline::Inline::Translit { translit, hebrew } => Noeud::Hebreu {

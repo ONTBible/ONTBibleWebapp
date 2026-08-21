@@ -10,7 +10,7 @@ use crate::domaine::texte::{Noeud, Verset as VersetDomaine};
 ///
 /// Deux marquages, deux promesses, et il ne faut jamais les confondre :
 /// **l'or promet une fiche** et le lien la tient ; le bordeaux clair marque un
-/// terme important et ne promet rien, donc il n'est pas cliquable. Un bordeaux
+/// une accentuation et ne promet rien, donc il n'est pas cliquable. Un bordeaux
 /// cliquable mentirait ; un or inerte trahirait.
 #[component]
 pub fn Verset(verset: VersetDomaine) -> impl IntoView {
@@ -132,8 +132,8 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         }
         .into_any(),
 
-        Noeud::Important(enfants) => view! {
-            <b class="font-semibold text-important">{rendre(enfants)}</b>
+        Noeud::Accentuation(enfants) => view! {
+            <b class="font-semibold text-accentuation">{rendre(enfants)}</b>
         }
         .into_any(),
 
