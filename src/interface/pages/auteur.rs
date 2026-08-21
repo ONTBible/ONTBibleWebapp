@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{image, Bloc, Exergue, Hero, Portrait, TitreDeSection};
+use crate::interface::design::{image, Bloc, Exergue, Hero, Portrait, Terme, TitreDeSection};
 use crate::interface::tete::Tete;
 
 /// « L'auteur ».
@@ -81,7 +81,11 @@ pub fn Auteur() -> impl IntoView {
             </p>
             <p>
                 "Et je laisse debout ce qui ne se traduit pas. "
-                "Elohim, ruach, nefesh, kavod, tsedaqah. "
+                <Terme lemme="elohim">"Elohim"</Terme> ", "
+                <Terme lemme="ruach">"ruach"</Terme> ", "
+                <Terme lemme="nefesh">"nefesh"</Terme> ", "
+                <Terme lemme="kavod">"kavod"</Terme> ", "
+                <Terme lemme="tsedaqah">"tsedaqah"</Terme> ". "
                 "Un mot mal traduit vaut moins qu'un mot laissé en hébreu."
             </p>
         </Bloc>
@@ -108,8 +112,9 @@ pub fn Auteur() -> impl IntoView {
             </p>
             <p>
                 "Si une réalité fonctionne d'une manière distincte, elle mérite un nom "
-                "distinct. C'est le principe de qara : nommer, c'est faire entrer dans "
-                "l'existence."
+                "distinct. C'est le principe de "
+                <Terme lemme="qara">"qara"</Terme>
+                " : nommer, c'est faire entrer dans l'existence."
             </p>
         </Bloc>
     }

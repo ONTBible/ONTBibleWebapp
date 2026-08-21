@@ -96,6 +96,25 @@ ssr = [
 
 # Le paquet WASM part sur le réseau à chaque visite : on l'optimise pour la
 # taille, pas pour la vitesse d'exécution. Un site vitrine ne calcule rien.
+# Le corpus embarqué dépasse ce qu'un objet Mach-O sait porter.
+#
+# Le site embarque tout `dist/` par `include_str!` (§8 bis) — près de deux
+# mégaoctets de données statiques dans un seul crate. Au-delà d'un seuil, la
+# génération de code rend « cannot encode offset of relocations; object file
+# too large », et le linker d'Apple **plante** dans
+# `ld::FixupFromRelocs::arm64_b26`.
+#
+# Deux réglages sont nécessaires, et aucun ne suffit seul : `debug = 0` retire
+# les métadonnées DWARF qui doublent la taille de l'objet, `codegen-units = 256`
+# disperse les constantes — et `scripts/linker-local.sh` remplace le linker
+# d'Apple par celui de LLVM.
+#
+# On perd le débogueur pas à pas en local. Ni la CI (Ubuntu) ni le déploiement
+# (`cargo lambda` et zig) n'empruntent ce chemin.
+[profile.dev]
+debug = 0
+codegen-units = 256
+
 [profile.wasm-release]
 inherits = "release"
 opt-level = 'z'

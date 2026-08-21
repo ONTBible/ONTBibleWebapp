@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use crate::api::verset_du_jour;
 use crate::interface::design::{
     image, traverser, Bloc, Bouton, CarteVersetDuJour, Chiffres, Comparaison, Hero, LegendeNiveaux,
-    Porte, Portrait, TitreDeSection,
+    Porte, Portrait, Terme, TitreDeSection,
 };
 use crate::interface::echantillon::{bereshit_1_1, SEGOND_1910, SEGOND_SOURCE};
 use crate::interface::tete::Tete;
@@ -105,7 +105,7 @@ pub fn Accueil() -> impl IntoView {
             />
 
             <p class="mt-10">
-                <i>"Bara"</i> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
+                <Terme lemme="bara">"Bara"</Terme> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
                 "un espace, attribuer des rôles, mettre en fonction. Le cosmos ne sort pas "
                 "d'une usine — il est inauguré comme on inaugure un Temple."
             </p>
