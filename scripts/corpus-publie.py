@@ -104,7 +104,7 @@ def main() -> None:
     genere = json.loads((SOURCE / "manifest.json").read_text()).get("generatedAt", "")
 
     manifeste = {
-        "schema": 1,
+        "schema": 2,
         "genere": genere,
         "fichiers": fichiers,
         "livres": livres,
