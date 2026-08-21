@@ -340,10 +340,49 @@ jobs:
         working-directory: ONTBibleWebapp
         run: |
           ./scripts/corpus-publie.py
+
+          # Le plan **encore en ligne**, avant qu'on l'écrase.
+          #
+          # C'est le seul instant où l'ancien et le neuf existent côte à côte,
+          # donc le seul où l'on peut savoir ce qui vient de paraître. Une
+          # minute plus tard, S3 ne porte plus que le neuf et la comparaison
+          # est perdue.
+          #
+          # `|| true` : au tout premier déploiement il n'y a rien à récupérer,
+          # et l'absence de plan précédent fait taire l'annonce plutôt que
+          # d'échouer.
+          ancien=$(curl -sf https://ontbible.com/corpus/manifeste.json \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["fichiers"]["plan"]["chemin"])' \
+            2>/dev/null || true)
+          if [ -n "$ancien" ]; then
+            curl -sf "https://ontbible.com/corpus/$ancien" -o /tmp/plan-precedent.json || true
+          fi
+
           aws s3 sync target/corpus "s3://$SEAU/corpus" --delete --exclude "manifeste.json" \
             --cache-control "public, max-age=31536000, immutable" --no-progress
           aws s3 cp target/corpus/manifeste.json "s3://$SEAU/corpus/manifeste.json" \
             --cache-control "public, max-age=300" --no-progress
+
+      # L'annonce aux lecteurs qui l'ont demandée.
+      #
+      # **Après** la publication, jamais avant : une notification qui arrive
+      # devant un corpus pas encore en ligne renvoie le lecteur sur un texte
+      # absent.
+      #
+      # Non fatale. Le corpus est publié, les lecteurs l'auront de toute façon
+      # à leur prochaine ouverture — faire échouer le déploiement pour une
+      # notification manquée laisserait le site à moitié déployé pour un
+      # agrément perdu.
+      - name: L'annonce de la parution
+        working-directory: ONTBibleWebapp
+        continue-on-error: true
+        env:
+          ONT_API: ${{ vars.ONT_API }}
+          SECRET_DIFFUSION: ${{ secrets.SECRET_DIFFUSION }}
+        run: |
+          ./scripts/annoncer-la-parution.py \
+            --avant /tmp/plan-precedent.json \
+            --apres "$(ls target/corpus/plan.*.json | head -1)"
 
       - name: Le code
         working-directory: ONTBibleWebapp
