@@ -183,6 +183,37 @@ pub async fn passage(livre: String, unite: String) -> Result<Option<PassageDto>,
     }))
 }
 
+/// Quelques versets nommés, tirés du corpus.
+///
+/// C'est ce dont une page d'argumentation a besoin : citer *Bereshit* 1:2
+/// pour montrer le **tohu vavohu**, sans embarquer les trente et un versets du
+/// chapitre dans le HTML pour en montrer un.
+///
+/// Les numéros absents du chapitre sont **omis** plutôt que signalés : une
+/// page qui cite se tait sur ce qu'elle ne trouve pas, elle ne tombe pas. Le
+/// jour où une unité serait renumérotée, la démonstration perdrait un verset —
+/// visible à la relecture, et sans page d'erreur pour le lecteur.
+#[server(prefix = "/api", endpoint = "versets")]
+pub async fn versets(
+    livre: String,
+    unite: String,
+    numeros: Vec<u32>,
+) -> Result<Vec<crate::domaine::texte::Verset>, ServerFnError> {
+    let Some(ouvrage) = corpus()?.livre(&livre) else {
+        return Ok(Vec::new());
+    };
+    let Some(chapitre) = ouvrage.chapitre(&unite) else {
+        return Ok(Vec::new());
+    };
+
+    // L'ordre est celui de `numeros` et non celui du chapitre : une
+    // démonstration cite parfois à rebours, et c'est elle qui décide.
+    Ok(numeros
+        .into_iter()
+        .filter_map(|n| chapitre.verset(n).cloned())
+        .collect())
+}
+
 /// Le résumé d'une fiche, pour l'index du lexique.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResumeDto {
