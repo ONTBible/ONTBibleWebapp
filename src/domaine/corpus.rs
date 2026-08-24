@@ -182,6 +182,9 @@ pub struct EntreeDeLivre {
     pub unites: u32,
     /// Le conteneur auquel il appartient, s'il y en a un.
     pub conteneur: Option<String>,
+    /// Ce que le nom ONT veut dire — absent quand il n'a rien à dire de plus
+    /// que son pont. *Marqus* est un nom d'homme.
+    pub glose: Option<String>,
 }
 
 /// Un conteneur de livres — les *Eduyot*, les *Trei Asar*, les deux *Igerot*.
@@ -210,6 +213,11 @@ pub struct Conteneur {
 pub struct Section {
     pub id: String,
     pub titre: String,
+    /// Le pont — « la Loi », « Écrits apocalyptiques ».
+    pub francais: String,
+    /// Ce que le nom dit — « la Fondation », « les Réalités voilées ».
+    /// Absent quand il redirait le pont.
+    pub glose: Option<String>,
     /// Dans l'ordre où leurs livres paraissent. Vide pour la plupart.
     pub conteneurs: Vec<Conteneur>,
     pub livres: Vec<EntreeDeLivre>,
@@ -220,6 +228,8 @@ pub struct Section {
 pub struct Ensemble {
     pub id: String,
     pub titre: String,
+    pub francais: String,
+    pub glose: Option<String>,
     pub sections: Vec<Section>,
 }
 

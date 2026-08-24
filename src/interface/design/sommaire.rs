@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 
-use crate::domaine::corpus::{Conteneur, EntreeDeLivre, Ensemble, Section};
+use crate::domaine::corpus::{Conteneur, Ensemble, EntreeDeLivre, Section};
+use crate::interface::design::reglages_de_lecture::preferences;
 
 /// Le sommaire du corpus — les 70 livres, écrits ou non.
 ///
@@ -44,6 +45,7 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                         <span class="massif w-8 shrink-0 text-accent"></span>
                         {ensemble.titre}
                     </h2>
+                    {sous_titre(ensemble.francais.clone(), ensemble.glose.clone(), "mb-8 -mt-6")}
 
                     {ensemble
                         .sections
@@ -51,9 +53,10 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                         .map(|section| {
                             view! {
                                 <div class="mb-12 last:mb-0">
-                                    <h3 class="mb-5 text-sm uppercase tracking-capitales text-accent">
+                                    <h3 class="mb-1 text-sm uppercase tracking-capitales text-accent">
                                         {section.titre.clone()}
                                     </h3>
+                                    {sous_titre(section.francais.clone(), section.glose.clone(), "mb-5")}
                                     <ul class="m-0 list-none p-0">
                                         {disposer(section)
                                             .into_iter()
@@ -65,7 +68,22 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                                                     Element::Livre(l) => l,
                                                 };
                                                 let nom = livre.titre.clone();
-                                                let francais = livre.francais.clone();
+                                                // Le second nom suit le registre choisi. Un livre
+                                                // sans glose garde son pont : *Marqus* est un nom
+                                                // d'homme, « Marc » est tout ce qu'il y a à dire.
+                                                let second = {
+                                                    let fr = livre.francais.clone();
+                                                    let gl = livre.glose.clone();
+                                                    let prefs = preferences();
+                                                    Signal::derive(move || {
+                                                        if prefs.get().francais {
+                                                            fr.clone()
+                                                        } else {
+                                                            gl.clone().unwrap_or_else(|| fr.clone())
+                                                        }
+                                                    })
+                                                };
+                                                let francais = second;
                                                 let hebreu = livre.hebreu.clone();
                                                 // Le nom hébreu n'est lu par
                                                 // personne à voix haute ici : il
@@ -189,5 +207,33 @@ fn entete(c: Conteneur) -> impl IntoView {
             </p>
             <p class="m-0 mb-2 text-[0.82em] text-encre-douce/70">{c.francais}</p>
         </li>
+    }
+}
+
+/// Le second nom, dans le registre que le lecteur a choisi.
+///
+/// **Le français par défaut**, parce qu'un lecteur qui arrive doit pouvoir se
+/// repérer avec les mots qu'il connaît. En glose, il lit ce que le nom ONT
+/// veut dire — et l'écart entre les deux est ce que le projet montre : *torah*,
+/// l'instruction qui vise, est devenue « la Loi », le code qui contraint.
+///
+/// Rien ne s'affiche quand il n'y a rien à dire : une section dont la glose
+/// redirait le pont — *Ketouvim* est « Écrits » des deux côtés — n'en porte
+/// pas, et la ligne disparaît plutôt que de se répéter.
+fn sous_titre(francais: String, glose: Option<String>, marge: &'static str) -> impl IntoView {
+    let prefs = preferences();
+    move || {
+        let texte = if prefs.get().francais {
+            francais.clone()
+        } else {
+            glose.clone().unwrap_or_else(|| francais.clone())
+        };
+        (!texte.is_empty()).then(|| {
+            view! {
+                <p class=format!("m-0 text-[0.82em] text-encre-douce/70 {marge}")>
+                    {texte.clone()}
+                </p>
+            }
+        })
     }
 }

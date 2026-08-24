@@ -30,7 +30,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
 use crate::application::ports::{Corpus, Lexique};
-use crate::domaine::corpus::{Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section, SousTitre, Statut};
+use crate::domaine::corpus::{
+    Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section,
+    SousTitre, Statut,
+};
 use crate::domaine::texte::{Noeud, Verset};
 
 // `LIVRES: &[(&str, &str)]` — l'identifiant du livre et son JSON.
@@ -213,12 +216,16 @@ impl CorpusEmbarque {
             .map(|e| Ensemble {
                 id: e.id,
                 titre: e.title,
+                francais: e.french,
+                glose: e.glose,
                 sections: e
                     .modes
                     .into_iter()
                     .map(|s| Section {
                         id: s.id,
                         titre: s.title,
+                        francais: s.french,
+                        glose: s.glose,
                         conteneurs: s
                             .groups
                             .into_iter()
@@ -241,6 +248,7 @@ impl CorpusEmbarque {
                                 ecrit: !l.empty,
                                 unites: l.chapters.len() as u32,
                                 conteneur: l.group_id,
+                                glose: l.glose,
                             })
                             .collect(),
                     })

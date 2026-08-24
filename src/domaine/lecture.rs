@@ -53,6 +53,21 @@ pub struct Preferences {
     pub niveau_3: bool,
     /// Les versets coulent en prose, numéros en exposant.
     pub continu: bool,
+    /// Nommer les livres et les sections dans le français reçu.
+    ///
+    /// **Vrai par défaut**, et c'est délibéré : un lecteur qui arrive doit
+    /// pouvoir se repérer avec les mots qu'il connaît. « Apocalypse », « la
+    /// Loi », « Actes des Apôtres ».
+    ///
+    /// À faux, il lit ce que le nom ONT veut dire — « le *machazeh* de
+    /// Yohanan », « la Fondation », « les *gevurot* de YHWH par ses *neviim* ».
+    /// Les intraduisibles y restent en hébreu, là où le français les rend.
+    ///
+    /// **L'écart entre les deux est le projet lui-même** : *torah*,
+    /// l'instruction qui vise, est devenue *nomos*, le code qui contraint. Le
+    /// réglage laisse le lecteur passer d'un monde à l'autre au lieu de le lui
+    /// raconter.
+    pub francais: bool,
 }
 
 impl Default for Preferences {
@@ -64,6 +79,7 @@ impl Default for Preferences {
     /// en retirer.
     fn default() -> Self {
         Self {
+            francais: true,
             gloses: true,
             niveau_3: true,
             continu: false,
@@ -83,6 +99,11 @@ impl Preferences {
     /// `composeBare` force les deux à faux, indépendamment des réglages.
     pub fn nu() -> Self {
         Self {
+            // Le registre reste le français : une citation sortie de son
+            // appareil critique doit être **reconnaissable**. « Apocalypse »
+            // hors contexte situe le lecteur ; « le machazeh de Yohanan » le
+            // laisse devant un mot qu'aucune fiche n'accompagne plus.
+            francais: true,
             gloses: false,
             niveau_3: false,
             continu: false,
