@@ -180,6 +180,29 @@ pub struct EntreeDeLivre {
     pub ecrit: bool,
     /// Le nombre d'unités déjà traduites.
     pub unites: u32,
+    /// Le conteneur auquel il appartient, s'il y en a un.
+    pub conteneur: Option<String>,
+}
+
+/// Un conteneur de livres — les *Eduyot*, les *Trei Asar*, les deux *Igerot*.
+///
+/// Il existait déjà dans les données, sous forme d'un identifiant porté par
+/// chaque livre, et **aucune interface ne l'affichait**. Les vingt-et-une
+/// *Igerot* se lisaient comme une liste plate, alors que leur ordre encode un
+/// argument.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Conteneur {
+    pub id: String,
+    pub titre: String,
+    pub francais: String,
+    /// Ce que le nom dit, quand ça n'est pas déjà le français.
+    pub glose: Option<String>,
+    /// La ligne de sens qui **précède** ce conteneur, quand la coupure est une
+    /// rupture et non un rangement.
+    ///
+    /// Le *Ḥurban* est le seul à en porter une. Une césure marquée partout ne
+    /// marquerait plus rien.
+    pub rupture: Option<String>,
 }
 
 /// Une section du sommaire — Torah, Nevi'im, Ketouvim, Nistarot.
@@ -187,6 +210,8 @@ pub struct EntreeDeLivre {
 pub struct Section {
     pub id: String,
     pub titre: String,
+    /// Dans l'ordre où leurs livres paraissent. Vide pour la plupart.
+    pub conteneurs: Vec<Conteneur>,
     pub livres: Vec<EntreeDeLivre>,
 }
 
