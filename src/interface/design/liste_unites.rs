@@ -2,7 +2,7 @@ use leptos::prelude::*;
 
 use crate::api::UniteDto;
 use crate::interface::design::reglages_de_lecture::preferences;
-use crate::interface::design::MentionBrouillon;
+use crate::interface::design::{MentionBrouillon, Terme};
 
 /// Les unités d'un livre.
 ///
@@ -46,7 +46,7 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
                                 href=format!("/fr/lire/{livre}/{}", unite.id)
                                 class="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 py-4 no-underline"
                             >
-                                <span class="text-accent">{libelle(&unite)}</span>
+                                {libelle(&unite)}
 
                                 {unite
                                     .reference
@@ -78,21 +78,33 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
 
 /// Le libellé d'une unité, dans le registre choisi.
 ///
+/// En français reçu, c'est du texte : « Chapitre 7 » ne promet rien et n'a
+/// rien à expliquer.
+///
+/// En glose ONT, **`Parashah` est un intraduisible** — en or, et il ouvre sa
+/// fiche. C'est peut-être le premier que le lecteur rencontre : il apparaît
+/// au moment précis où l'on retire la béquille du français, et il vaut qu'on
+/// puisse le toucher pour savoir ce qu'on vient de gagner.
+///
 /// Une introduction — rang zéro — garde son titre : elle n'a pas de rang à
 /// afficher, et « Chapitre 0 » ne voudrait rien dire.
 fn libelle(unite: &UniteDto) -> impl IntoView {
-    if unite.numero == 0 {
-        let titre = unite.titre.clone();
-        return Signal::stored(titre);
-    }
+    let titre = unite.titre.clone();
     let n = unite.numero;
     let prefs = preferences();
-    Signal::derive(move || {
-        let mot = if prefs.get().francais {
-            "Chapitre"
-        } else {
-            "Parashah"
-        };
-        format!("{mot} {n}")
-    })
+    move || {
+        if n == 0 {
+            return view! { <span class="text-accent">{titre.clone()}</span> }.into_any();
+        }
+        if prefs.get().francais {
+            return view! { <span class="text-accent">"Chapitre " {n}</span> }.into_any();
+        }
+        view! {
+            <span>
+                <Terme lemme="parashah">"Parashah"</Terme>
+                <span class="text-accent">" " {n}</span>
+            </span>
+        }
+        .into_any()
+    }
 }

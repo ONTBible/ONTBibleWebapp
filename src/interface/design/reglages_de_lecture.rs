@@ -245,6 +245,13 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "l'instruction qui vise ; le grec l'a rendue par nomos, le code qui "
                         "contraint, et le français en a hérité « la Loi »."
                     </p>
+                    <p class=NOTE>
+                        "Ce réglage est une béquille, et il est allumé pour qu'on puisse marcher "
+                        "avant de savoir. En l'éteignant, des mots apparaissent que vous n'avez "
+                        "peut-être jamais lus — parashah, par exemple, la division que le scribe "
+                        "hébreu traçait en laissant un blanc, mille ans avant qu'on numérote des "
+                        "chapitres. Ils sont en or : ils se touchent, et ils expliquent."
+                    </p>
 
                     <Groupe titre="Niveaux du texte">
                         <Bascule
