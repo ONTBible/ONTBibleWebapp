@@ -213,58 +213,113 @@ impl CorpusEmbarque {
         let sommaire = plan
             .corpora
             .into_iter()
-            .map(|e| Ensemble {
-                id: e.id,
-                // Le pont vers le français est **facultatif** dans le schéma, et
-                // il le faut : le corpus publié atteint des liseuses plus
-                // anciennes que lui, qui n'ont pas cette clé.
-                //
-                // Le site, lui, embarque le corpus à la compilation — il ne
-                // lira jamais un corpus d'hier. Mais il partage la structure du
-                // pipeline, donc il doit décider quoi faire de l'absence.
-                //
-                // Il retombe sur le titre ONT plutôt que sur rien : c'est la
-                // règle déjà suivie deux lignes plus bas pour la glose, et un
-                // sommaire qui affiche une ligne vide se lit comme une panne.
-                francais: e.french.unwrap_or_else(|| e.title.clone()),
-                titre: e.title,
-                glose: e.glose,
-                sections: e
-                    .modes
-                    .into_iter()
-                    .map(|s| Section {
-                        id: s.id,
-                        francais: s.french.unwrap_or_else(|| s.title.clone()),
-                        titre: s.title,
-                        glose: s.glose,
-                        conteneurs: s
-                            .groups
-                            .into_iter()
-                            .map(|g| Conteneur {
-                                id: g.id,
-                                titre: g.title,
-                                francais: g.french,
-                                glose: g.glose,
-                                rupture: g.rupture,
-                            })
-                            .collect(),
-                        livres: s
-                            .books
-                            .into_iter()
-                            .map(|l| EntreeDeLivre {
-                                id: l.id,
-                                titre: l.title,
-                                francais: l.french,
-                                hebreu: l.hebrew.unwrap_or_default(),
-                                ecrit: !l.empty,
-                                unites: l.chapters.len() as u32,
-                                conteneur: l.group_id,
-                                glose: l.glose,
-                            })
-                            .collect(),
-                    })
-                    .collect(),
-            })
+            // **Déstructuration exhaustive, et c'est une garde.**
+            //
+            // Le mappage se faisait par accès de champ — `e.id`, `e.title`. Un
+            // champ ajouté au schéma du pipeline passait alors en silence : le
+            // site ne le voyait jamais, et rien ne le disait. C'est déjà
+            // arrivé, `groups` a existé en amont bien avant d'atteindre le
+            // sommaire.
+            //
+            // Écrit ainsi, le compilateur devient le contrôle : un champ neuf
+            // donne `error[E0027]: pattern does not mention field`, sur la
+            // ligne du mappage, sans test à écrire ni à se rappeler d'écrire.
+            //
+            // Et un champ qu'on ignore **délibérément** s'écrit `_` : la
+            // décision est dans le code au lieu d'être une omission. `order` en
+            // est un — le pipeline range déjà les corpus dans l'ordre voulu.
+            //
+            // **Ne jamais mettre `..` dans ces motifs** : ça rétablit
+            // exactement le silence qu'on vient de supprimer.
+            .map(
+                |pipeline::CorpusOutline {
+                     id,
+                     title,
+                     french,
+                     glose,
+                     order: _,
+                     modes,
+                 }| Ensemble {
+                    id,
+                    // Le pont vers le français est **facultatif** dans le schéma, et
+                    // il le faut : le corpus publié atteint des liseuses plus
+                    // anciennes que lui, qui n'ont pas cette clé.
+                    //
+                    // Le site, lui, embarque le corpus à la compilation — il ne
+                    // lira jamais un corpus d'hier. Mais il partage la structure du
+                    // pipeline, donc il doit décider quoi faire de l'absence.
+                    //
+                    // Il retombe sur le titre ONT plutôt que sur rien : c'est la
+                    // règle déjà suivie deux lignes plus bas pour la glose, et un
+                    // sommaire qui affiche une ligne vide se lit comme une panne.
+                    francais: french.unwrap_or_else(|| title.clone()),
+                    titre: title,
+                    glose,
+                    sections: modes
+                        .into_iter()
+                        .map(
+                            |pipeline::ModeOutline {
+                                 id,
+                                 title,
+                                 french,
+                                 glose,
+                                 order: _,
+                                 groups,
+                                 books,
+                             }| Section {
+                                id,
+                                francais: french.unwrap_or_else(|| title.clone()),
+                                titre: title,
+                                glose,
+                                conteneurs: groups
+                                    .into_iter()
+                                    .map(
+                                        |pipeline::Group {
+                                             id,
+                                             title,
+                                             french,
+                                             glose,
+                                             rupture,
+                                         }| Conteneur {
+                                            id,
+                                            titre: title,
+                                            francais: french,
+                                            glose,
+                                            rupture,
+                                        },
+                                    )
+                                    .collect(),
+                                livres: books
+                                    .into_iter()
+                                    .map(
+                                        |pipeline::BookOutline {
+                                             id,
+                                             slot: _,
+                                             title,
+                                             french,
+                                             glose,
+                                             hebrew,
+                                             group_id,
+                                             empty,
+                                             intro: _,
+                                             chapters,
+                                         }| EntreeDeLivre {
+                                            id,
+                                            titre: title,
+                                            francais: french,
+                                            hebreu: hebrew.unwrap_or_default(),
+                                            ecrit: !empty,
+                                            unites: chapters.len() as u32,
+                                            conteneur: group_id,
+                                            glose,
+                                        },
+                                    )
+                                    .collect(),
+                            },
+                        )
+                        .collect(),
+                },
+            )
             .collect();
 
         let livres = LIVRES
