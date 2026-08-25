@@ -2354,8 +2354,55 @@ rien de `public/` n'est joignable en production hors `/pkg/`, `/images/`,
 la compilation, et `eprouver.yml` vérifie qu'il répond.
 
 **Il n'indexe rien.** C'est une carte pour qui est déjà arrivé, pas une porte
-d'entrée. Les deux soumissions ci-dessus restent le seul geste qui fasse entrer
-le site dans un index.
+d'entrée.
+
+### La moitié qui ne demandait aucun compte — IndexNow
+
+**Faite le 25 août 2026.** Le §ci-dessus disait « les deux soumissions restent le
+seul geste ». C'était faux pour Bing, et donc pour ChatGPT.
+
+**IndexNow n'exige aucun compte** : on pose une clé à la racine du domaine, on
+POSTe la liste des adresses à `api.indexnow.org`, et **Bing, Yandex, Naver,
+Seznam et Yep se la partagent**. Un seul dépôt les atteint tous.
+
+- `public/7162566e429a0cd82fba80f161e32026.txt` — la clé, servie par une **route**, comme le manifeste ;
+- `scripts/soumettre-aux-index.py` — le dépôt, relançable après chaque
+  déploiement.
+
+**La clé n'est pas un secret, et la traiter comme tel serait une erreur** : sa
+publication *est* sa fonction. Elle ne donne aucun droit sur le site ; elle
+atteste seulement que celui qui soumet les adresses est celui qui sert le
+domaine. Elle est donc au dépôt, en clair, et c'est correct.
+
+**Le corps du fichier est la clé nue** — pas de saut de ligne final. Bing compare
+l'octet, et un `\n` de trop rend 403 sans dire lequel des deux fichiers il
+refuse.
+
+**Le script refuse de partir si la clé n'est pas déjà servie en ligne**, et il
+vérifie qu'elle vaut la nôtre — un déploiement en retard sert l'ancienne, cas où
+tout paraît en place et où le dépôt rend 403. C'est la leçon du journal appliquée
+à un outil qu'on écrit : ne pas répondre à une question qu'on ne peut pas
+trancher vaut mieux que rendre une réponse bien formée. Éprouvé en le lançant
+**avant** le déploiement : il a refusé, comme prévu.
+
+**Google reste hors de portée.** Il a refusé le protocole en 2021 et n'a pas
+changé d'avis en 2026. Son index — donc **Gemini** — passe obligatoirement par la
+Search Console, qui demande le compte de Gloire. C'est la moitié qui reste, et
+elle ne peut pas être automatisée.
+
+### Ce qu'un modèle fait quand l'index lui manque
+
+Gemini, interrogé le 25 août, a été plus honnête que ChatGPT : il a dit que le
+texte n'était pas dans ses bases, au lieu d'accuser le site de ne pas s'ouvrir.
+Mais dans la même réponse il a **inventé** — l'ONT attribuée à « des passionnés
+de langues anciennes », rattachée à un projet tiers, l'app désignée au pluriel
+possessif, et la question « tu as accès à leur application ? » posée à l'auteur
+lui-même.
+
+**Un modèle qui n'a pas les données ne dit pas qu'il ne sait pas : il comble.**
+Et ce qu'il comble ici efface Gloire de son propre projet. C'est ce qui rend les
+deux soumissions urgentes plutôt que souhaitables : tant que l'index manque, la
+seule version qui circule est celle qu'on invente à sa place.
 
 ## 9. Ce qui reste à trancher
 
