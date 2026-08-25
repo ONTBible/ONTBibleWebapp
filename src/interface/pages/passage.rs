@@ -4,7 +4,7 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use crate::api::passage;
 use crate::domaine::selection;
 use crate::interface::design::{
-    fournir_preferences, Blocs, MentionBrouillon, PageDeLecture, ReglagesDeLecture,
+    fournir_preferences, nom_d_unite, Blocs, MentionBrouillon, PageDeLecture, ReglagesDeLecture,
 };
 use crate::interface::tete::Tete;
 
@@ -112,7 +112,18 @@ pub fn Passage() -> impl IntoView {
                                         p.livre_titre.clone(),
                                     ),
                                 ]
-                                titre=chapitre.titre.clone()
+                                // Le nom **dans le registre du lecteur**, et non
+                                // le nom ONT brut. Sans ça, on touche
+                                // « Chapitre 2 » au sommaire et l'on arrive sur
+                                // une page intitulée « Bereshit 2 » : deux
+                                // écrans, un seul calcul, l'autre oublié.
+                                //
+                                // La balise `<title>` ci-dessus garde le nom
+                                // ONT, elle : rendue par le serveur, qui ne
+                                // connaît pas les préférences, et employée pour
+                                // le référencement et le partage — deux usages
+                                // où un nom stable vaut mieux qu'un nom juste.
+                                titre=nom_d_unite(chapitre.titre.clone(), chapitre.numero)
                                 chapeau=chapeau
                             >
                                 <ReglagesDeLecture preferences />
@@ -165,10 +176,11 @@ fn Voisins(
         <nav class="mt-20 flex flex-wrap justify-between gap-6 border-t border-filet pt-10 text-sm uppercase tracking-capitales">
             {precedent
                 .map(|v| {
+                    let nom = nom_d_unite(v.titre, v.numero);
                     view! {
                         <a href=v.chemin class="text-accent no-underline">
                             <span aria-hidden="true">"← "</span>
-                            {v.titre}
+                            {move || nom.get()}
                         </a>
                     }
                 })}
@@ -176,9 +188,10 @@ fn Voisins(
             // précédent manque — sur la première unité d'un livre.
             {suivant
                 .map(|v| {
+                    let nom = nom_d_unite(v.titre, v.numero);
                     view! {
                         <a href=v.chemin class="ms-auto text-accent no-underline">
-                            {v.titre}
+                            {move || nom.get()}
                             <span aria-hidden="true">" →"</span>
                         </a>
                     }
