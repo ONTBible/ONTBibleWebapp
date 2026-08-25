@@ -1,7 +1,8 @@
 use leptos::prelude::*;
 
 use crate::api::UniteDto;
-use crate::interface::design::MentionBrouillon;
+use crate::interface::design::reglages_de_lecture::preferences;
+use crate::interface::design::{MentionBrouillon, Terme};
 
 /// Les unités d'un livre.
 ///
@@ -16,6 +17,22 @@ use crate::interface::design::MentionBrouillon;
 /// D'où le **renvoi classique** à droite de chaque ligne. Sans lui, quelqu'un
 /// qui cherche « Genèse 9 » ne saurait pas dans laquelle des deux entrer, et
 /// conclurait que le corpus est incomplet.
+///
+/// ## Le nom du livre ne se répète pas
+///
+/// Le titre d'une unité est « Bereshit 7 ». Le poser vingt fois de suite dans
+/// la page de *Bereshit* n'apprend rien et noie le seul chiffre utile. La
+/// liste compose donc son libellé à partir du rang.
+///
+/// Et elle le nomme selon le registre choisi — **`Chapitre 7`** en français
+/// reçu, **`Parashah 7`** en glose ONT. La paire est instructive à elle
+/// seule : « chapitre » est la division de Stephen Langton, XIIIᵉ siècle,
+/// que le §2.3 écarte comme « administrative médiévale — souvent
+/// arbitraire » ; la *parashah* est la division native de l'hébreu, attestée
+/// à Qumrân, et elle marque qu'un propos se clôt, non qu'un compteur avance.
+///
+/// Le renvoi classique reste à côté, et c'est lui qui dit la vérité quand le
+/// mot français ment : « Chapitre 7 · 7-8 ».
 #[component]
 pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
     view! {
@@ -29,7 +46,7 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
                                 href=format!("/fr/lire/{livre}/{}", unite.id)
                                 class="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 py-4 no-underline"
                             >
-                                <span class="text-accent">{unite.titre}</span>
+                                {libelle(&unite)}
 
                                 {unite
                                     .reference
@@ -56,5 +73,38 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
                 })
                 .collect_view()}
         </ul>
+    }
+}
+
+/// Le libellé d'une unité, dans le registre choisi.
+///
+/// En français reçu, c'est du texte : « Chapitre 7 » ne promet rien et n'a
+/// rien à expliquer.
+///
+/// En glose ONT, **`Parashah` est un intraduisible** — en or, et il ouvre sa
+/// fiche. C'est peut-être le premier que le lecteur rencontre : il apparaît
+/// au moment précis où l'on retire la béquille du français, et il vaut qu'on
+/// puisse le toucher pour savoir ce qu'on vient de gagner.
+///
+/// Une introduction — rang zéro — garde son titre : elle n'a pas de rang à
+/// afficher, et « Chapitre 0 » ne voudrait rien dire.
+fn libelle(unite: &UniteDto) -> impl IntoView {
+    let titre = unite.titre.clone();
+    let n = unite.numero;
+    let prefs = preferences();
+    move || {
+        if n == 0 {
+            return view! { <span class="text-accent">{titre.clone()}</span> }.into_any();
+        }
+        if prefs.get().francais {
+            return view! { <span class="text-accent">"Chapitre " {n}</span> }.into_any();
+        }
+        view! {
+            <span>
+                <Terme lemme="parashah">"Parashah"</Terme>
+                <span class="text-accent">" " {n}</span>
+            </span>
+        }
+        .into_any()
     }
 }

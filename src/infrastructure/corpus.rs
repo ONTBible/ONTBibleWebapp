@@ -31,7 +31,8 @@ use std::sync::{Arc, OnceLock};
 
 use crate::application::ports::{Corpus, Lexique};
 use crate::domaine::corpus::{
-    Bloc, Chapitre, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section, SousTitre, Statut,
+    Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section,
+    SousTitre, Statut,
 };
 use crate::domaine::texte::{Noeud, Verset};
 
@@ -215,12 +216,27 @@ impl CorpusEmbarque {
             .map(|e| Ensemble {
                 id: e.id,
                 titre: e.title,
+                francais: e.french,
+                glose: e.glose,
                 sections: e
                     .modes
                     .into_iter()
                     .map(|s| Section {
                         id: s.id,
                         titre: s.title,
+                        francais: s.french,
+                        glose: s.glose,
+                        conteneurs: s
+                            .groups
+                            .into_iter()
+                            .map(|g| Conteneur {
+                                id: g.id,
+                                titre: g.title,
+                                francais: g.french,
+                                glose: g.glose,
+                                rupture: g.rupture,
+                            })
+                            .collect(),
                         livres: s
                             .books
                             .into_iter()
@@ -231,6 +247,8 @@ impl CorpusEmbarque {
                                 hebreu: l.hebrew.unwrap_or_default(),
                                 ecrit: !l.empty,
                                 unites: l.chapters.len() as u32,
+                                conteneur: l.group_id,
+                                glose: l.glose,
                             })
                             .collect(),
                     })

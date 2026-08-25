@@ -70,6 +70,12 @@ pub async fn sommaire() -> Result<Vec<crate::domaine::corpus::Ensemble>, ServerF
 pub struct UniteDto {
     pub id: String,
     pub titre: String,
+    /// Le rang de l'unité dans son livre — 0 pour une introduction.
+    ///
+    /// La liste compose son libellé à partir de lui, au lieu de reprendre
+    /// `titre` : celui-ci porte le nom du livre — « Bereshit 7 » — répété à
+    /// chaque ligne alors qu'on est déjà dans *Bereshit*.
+    pub numero: u32,
     /// Le renvoi classique — « 1:1 — 2:3 ». Absent sur une introduction.
     pub reference: Option<String>,
     pub brouillon: bool,
@@ -107,6 +113,7 @@ pub async fn livre(id: String) -> Result<Option<LivreDto>, ServerFnError> {
         .map(|c| UniteDto {
             id: c.id.clone(),
             titre: c.titre.clone(),
+            numero: c.numero,
             reference: c.sous_titre.as_ref().and_then(|s| s.reference.clone()),
             brouillon: c.statut.est_provisoire(),
             versets: c.nombre_de_versets,

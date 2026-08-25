@@ -180,17 +180,34 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
 
         // Un lien vers une source extérieure. `noopener` parce que `_blank`
         // donne sinon à la page ouverte une prise sur celle-ci.
-        Noeud::Lien { href, enfants } => view! {
-            <a
-                href=href.clone()
-                target="_blank"
-                rel="noopener noreferrer"
-                class="underline decoration-filet underline-offset-4 hover:decoration-accent"
-            >
-                {rendre(enfants)}
-            </a>
+        Noeud::Lien { href, enfants } => {
+            // **Un renvoi interne n'ouvre pas d'onglet.**
+            //
+            // Le pipeline lie « Bereshit 9:5 » vers l'unité qui le contient —
+            // service que seule la machine peut rendre, puisque les unités ONT
+            // ne coïncident pas avec les chapitres reçus. Mais il l'écrit en
+            // adresse **absolue**, pour qu'une liseuse installée qui ne sait
+            // pas intercepter ouvre quand même quelque chose d'utile.
+            //
+            // Ici, on est déjà sur le site : on rend le chemin relatif et on
+            // navigue en place. Envoyer le lecteur dans un onglet neuf pour
+            // aller trois écrans plus loin dans le même livre serait absurde.
+            const SITE: &str = "https://ontbible.com";
+            let interne = href.strip_prefix(SITE).map(str::to_string);
+            let cible = interne.clone().unwrap_or_else(|| href.clone());
+            let externe = interne.is_none();
+            view! {
+                <a
+                    href=cible
+                    target=externe.then_some("_blank")
+                    rel=externe.then_some("noopener noreferrer")
+                    class="underline decoration-filet underline-offset-4 hover:decoration-accent"
+                >
+                    {rendre(enfants)}
+                </a>
+            }
+            .into_any()
         }
-        .into_any(),
 
         Noeud::Emphase(enfants) => view! { <em>{rendre(enfants)}</em> }.into_any(),
 

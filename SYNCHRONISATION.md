@@ -491,3 +491,75 @@ main.
 
 Cette page-ci a été écrite depuis trois worktrees, un par dépôt — les branches
 en cours des sessions sœurs n'ont pas été touchées.
+### 25 août 2026 — le corpus se nomme dans deux registres
+
+**Source : le pipeline, mais la décision vient du vault.**
+
+Chaque section et chaque livre porte désormais **deux noms**. La règle qui les
+sépare tient en une ligne : **en français les intraduisibles sont rendus, en
+glose ils restent en hébreu.**
+
+    Torah              la Loi                  ⟨la Fondation⟩
+    Nistarot           Écrits apocalyptiques   ⟨les Réalités voilées⟩
+    Machazeh Yohanan   Apocalypse              ⟨le machazeh de Yohanan⟩
+
+Un interrupteur laisse le lecteur passer de l'un à l'autre, **allumé par
+défaut** : il faut pouvoir marcher avant de savoir. L'écart entre les deux
+colonnes n'est pas une nuance de traduction — c'est ce que le projet montre.
+
+**Pour le vault :** le pont français d'un livre vient du **nom de dossier** de
+`in-writing/`. Quatorze ne menaient nulle part — `44. marqus (Marqus)` répétait
+le nom ONT, `48. gevurot-ha-neviim (les Gevurot des Neviim)` n'était pas du
+français. Renommer le libellé suffit ; l'identifiant, donc les URL, ne bouge
+pas. La glose ONT, elle, se déclare dans `config.rs` : les libellés de dossiers
+mélangent les registres et ne peuvent pas servir de source.
+
+**Pour les liseuses :** `Chapitre 7` en français, **`Parashah 7`** en glose — et
+`parashah` est un intraduisible, en or, avec sa fiche. C'est peut-être le
+premier que le lecteur rencontre, puisqu'il apparaît au moment où il éteint
+l'aide.
+
+### 25 août 2026 — les renvois d'un verset à un autre mènent quelque part
+
+**Source : le pipeline. Conséquence pour les trois liseuses.**
+
+Une glose écrit « déjà posé en *Bereshit* 9:27 ». Ailleurs, on ouvre le
+chapitre 9 et on descend. **Ici c'est impossible** : les unités ONT ne
+coïncident pas avec les chapitres reçus. Le renvoi biblique est à la fois la
+seule chose que le lecteur sait et précisément ce qu'il ne peut pas suivre.
+
+218 renvois sont désormais liés. « Bereshit 9:27 » mène à `bereshit-9?v=10` —
+le verset 27 est le dixième de l'unité, qui commence à 9:18.
+
+**Le calcul refuse de conclure quand il ne peut pas.** L'unité 2 annonce
+`2:4-25`, soit vingt-deux versets, et n'en porte que vingt et un : deux ont été
+réunis. 48 renvois sur 218 visent un verset ; les 170 autres mènent à l'unité
+**par prudence, pas par oubli**.
+
+**Aucune montée de schéma**, à dessein : un type de nœud inédit ferait *lever*
+les liseuses installées. On réemploie `Inline::Link` avec une adresse **absolue**
+vers `ontbible.com` — une app ancienne l'ouvre dans le navigateur, une app à
+jour reconnaît son domaine et navigue au-dedans. Le site rend le chemin relatif
+et n'ouvre pas d'onglet.
+
+### 25 août 2026 — tout champ ajouté au corpus est facultatif
+
+**La règle a été payée deux fois dans la même journée**, et elle vaut pour les
+trois dépôts.
+
+`groups`, puis `french`, ont été ajoutés au schéma **sans valeur par défaut**.
+Chaque fois, une app compilée depuis la branche ne pouvait plus lire le corpus
+**publié** — qui, lui, ne porte pas encore la clé.
+
+La distinction qui a produit le défaut, deux fois : une clé **en trop** est
+ignorée par un décodeur ; une clé **manquante** sur un champ non optionnel
+**lève**. Éprouver la première ne dit rien de la seconde.
+
+**Et le numéro de schéma ne protège pas ici** : il ne bouge pas quand on ajoute
+une clé. La seule garde qui l'ait attrapé, les deux fois, est le test
+d'intégration qui interroge le **vrai serveur** — parce que seul un corpus
+réellement publié, plus ancien que le code, peut révéler le manque.
+
+Le corpus atteint des liseuses plus anciennes **et** plus récentes que lui.
+Cela vaut aussi dans l'autre sens : un champ retiré casse les liseuses qui
+l'attendent. Ajouter est sûr, retirer ne l'est pas.

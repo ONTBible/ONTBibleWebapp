@@ -225,6 +225,34 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "seul : c'est le mode d'étude."
                     </p>
 
+                    <Groupe titre="Nom des livres">
+                        <Bascule
+                            libelle="Le français reçu"
+                            actif=Signal::derive(move || preferences.get().francais)
+                            au_changement=move |v| {
+                                preferences.update(|p| p.francais = v);
+                            }
+                        />
+                    </Groupe>
+                    <p class=NOTE>
+                        "Allumé, les livres portent le nom qu'on leur connaît — « Apocalypse », "
+                        "« la Loi », « Actes des Apôtres ». Éteint, ils portent ce que leur nom "
+                        "hébreu veut dire : « le machazeh de Yohanan », « la Fondation », « les "
+                        "gevurot de YHWH par ses neviim »."
+                    </p>
+                    <p class=NOTE>
+                        "L'écart entre les deux n'est pas une nuance de traduction. La torah est "
+                        "l'instruction qui vise ; le grec l'a rendue par nomos, le code qui "
+                        "contraint, et le français en a hérité « la Loi »."
+                    </p>
+                    <p class=NOTE>
+                        "Ce réglage est une béquille, et il est allumé pour qu'on puisse marcher "
+                        "avant de savoir. En l'éteignant, des mots apparaissent que vous n'avez "
+                        "peut-être jamais lus — parashah, par exemple, la division que le scribe "
+                        "hébreu traçait en laissant un blanc, mille ans avant qu'on numérote des "
+                        "chapitres. Ils sont en or : ils se touchent, et ils expliquent."
+                    </p>
+
                     <Groupe titre="Niveaux du texte">
                         <Bascule
                             libelle="Gloses"

@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 
-use crate::domaine::corpus::Ensemble;
+use crate::domaine::corpus::{Conteneur, Ensemble, EntreeDeLivre, Section};
+use crate::interface::design::reglages_de_lecture::preferences;
 
 /// Le sommaire du corpus — les 70 livres, écrits ou non.
 ///
@@ -18,6 +19,21 @@ use crate::domaine::corpus::Ensemble;
 /// tient 6,5:1, au-delà du seuil AA. Ce qui les distingue est qu'ils ne sont
 /// pas cliquables : un lien qui ne mène nulle part est la seule chose qu'un
 /// sommaire ne doit pas faire.
+/// ## Pourquoi les conteneurs apparaissent
+///
+/// Chaque livre portait déjà son conteneur — `eduyot`, `trei-asar`, les deux
+/// `igerot` — et **rien ne l'affichait**. Les vingt-et-une *Igerot* se lisaient
+/// comme une liste plate, alors que leur ordre porte un argument.
+///
+/// L'une de ces coupures n'est pas un rangement. `corpus-order.md` la nomme
+/// *pivot herméneutique* : le **Ḥurban**, la destruction du Second Temple en
+/// 70. Les lettres d'avant parlent du Temple au présent — *Igeret HaIvrim* est
+/// « le dernier mot du *Bayit* vivant » ; trois numéros plus loin, il n'existe
+/// plus.
+///
+/// D'où deux traitements distincts, et c'est délibéré : un simple intertitre
+/// pour ce qui **regroupe**, une césure marquée pour ce qui **fracture**. Une
+/// césure partout ne marquerait plus rien.
 #[component]
 pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
     ensembles
@@ -29,6 +45,7 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                         <span class="massif w-8 shrink-0 text-accent"></span>
                         {ensemble.titre}
                     </h2>
+                    {sous_titre(ensemble.francais.clone(), ensemble.glose.clone(), "mb-8 -mt-6")}
 
                     {ensemble
                         .sections
@@ -36,16 +53,37 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                         .map(|section| {
                             view! {
                                 <div class="mb-12 last:mb-0">
-                                    <h3 class="mb-5 text-sm uppercase tracking-capitales text-accent">
-                                        {section.titre}
+                                    <h3 class="mb-1 text-sm uppercase tracking-capitales text-accent">
+                                        {section.titre.clone()}
                                     </h3>
+                                    {sous_titre(section.francais.clone(), section.glose.clone(), "mb-5")}
                                     <ul class="m-0 list-none p-0">
-                                        {section
-                                            .livres
+                                        {disposer(section)
                                             .into_iter()
-                                            .map(|livre| {
+                                            .map(|element| {
+                                                let livre = match element {
+                                                    Element::Entete(c) => {
+                                                        return entete(c).into_any();
+                                                    }
+                                                    Element::Livre(l) => l,
+                                                };
                                                 let nom = livre.titre.clone();
-                                                let francais = livre.francais.clone();
+                                                // Le second nom suit le registre choisi. Un livre
+                                                // sans glose garde son pont : *Marqus* est un nom
+                                                // d'homme, « Marc » est tout ce qu'il y a à dire.
+                                                let second = {
+                                                    let fr = livre.francais.clone();
+                                                    let gl = livre.glose.clone();
+                                                    let prefs = preferences();
+                                                    Signal::derive(move || {
+                                                        if prefs.get().francais {
+                                                            fr.clone()
+                                                        } else {
+                                                            gl.clone().unwrap_or_else(|| fr.clone())
+                                                        }
+                                                    })
+                                                };
+                                                let francais = second;
                                                 let hebreu = livre.hebreu.clone();
                                                 // Le nom hébreu n'est lu par
                                                 // personne à voix haute ici : il
@@ -96,6 +134,7 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                                                         }}
                                                     </li>
                                                 }
+                                                    .into_any()
                                             })
                                             .collect_view()}
                                     </ul>
@@ -107,4 +146,94 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
             }
         })
         .collect_view()
+}
+
+/// Ce que le sommaire pose l'un après l'autre : un livre, ou l'en-tête du
+/// conteneur qui s'ouvre.
+enum Element {
+    Entete(Conteneur),
+    Livre(EntreeDeLivre),
+}
+
+/// Intercale les en-têtes de conteneur dans la suite des livres.
+///
+/// L'ordre vient des **livres**, jamais de la liste des conteneurs : c'est le
+/// corpus qui décide où tombe une coupure. Un conteneur déclaré mais dont
+/// aucun livre ne se réclame n'apparaît donc pas, et un identifiant porté par
+/// un livre sans déclaration ne fait qu'être ignoré — un sommaire qui refuse
+/// de se rendre pour un ornement coûterait plus au lecteur qu'il ne lui donne.
+fn disposer(section: Section) -> Vec<Element> {
+    let conteneurs = section.conteneurs;
+    let mut elements = Vec::new();
+    let mut courant: Option<String> = None;
+    for livre in section.livres {
+        if livre.conteneur != courant {
+            courant = livre.conteneur.clone();
+            if let Some(id) = &courant {
+                if let Some(c) = conteneurs.iter().find(|c| &c.id == id) {
+                    elements.push(Element::Entete(c.clone()));
+                }
+            }
+        }
+        elements.push(Element::Livre(livre));
+    }
+    elements
+}
+
+/// L'en-tête d'un conteneur, et sa césure quand il en a une.
+///
+/// **Deux poids, deux traitements.** Un conteneur qui regroupe reçoit un
+/// intertitre discret ; celui qui fracture reçoit d'abord un filet appuyé et
+/// la ligne qui dit ce que la fracture change pour lire. C'est la seule chose
+/// qui distingue *Trei Asar* — douze livres rangés ensemble — du *Ḥurban*, où
+/// le monde du texte a cessé d'exister entre deux lignes.
+fn entete(c: Conteneur) -> impl IntoView {
+    let rupture = c.rupture.map(|texte| {
+        view! {
+            // Le filet est en accentuation et non en or : l'or dit
+            // l'intraduisible partout ailleurs sur le site, et une règle
+            // horizontale n'en est pas un.
+            <div class="mt-10 mb-8 flex flex-col gap-3 border-t-2 border-accentuation/50 pt-6">
+                <p class="m-0 max-w-prose text-[0.92em] italic text-encre-douce">{texte}</p>
+            </div>
+        }
+    });
+
+    view! {
+        <li class="list-none border-0">
+            {rupture}
+            <p class="m-0 mt-6 mb-1 text-xs uppercase tracking-capitales text-encre-douce first:mt-0">
+                {c.titre}
+            </p>
+            <p class="m-0 mb-2 text-[0.82em] text-encre-douce/70">{c.francais}</p>
+        </li>
+    }
+}
+
+/// Le second nom, dans le registre que le lecteur a choisi.
+///
+/// **Le français par défaut**, parce qu'un lecteur qui arrive doit pouvoir se
+/// repérer avec les mots qu'il connaît. En glose, il lit ce que le nom ONT
+/// veut dire — et l'écart entre les deux est ce que le projet montre : *torah*,
+/// l'instruction qui vise, est devenue « la Loi », le code qui contraint.
+///
+/// Rien ne s'affiche quand il n'y a rien à dire : une section dont la glose
+/// redirait le pont — *Ketouvim* est « Écrits » des deux côtés — n'en porte
+/// pas, et la ligne disparaît plutôt que de se répéter.
+fn sous_titre(francais: String, glose: Option<String>, marge: &'static str) -> impl IntoView {
+    let prefs = preferences();
+    move || {
+        let texte = if prefs.get().francais {
+            francais.clone()
+        } else {
+            glose.clone().unwrap_or_else(|| francais.clone())
+        };
+        (!texte.is_empty()).then(|| {
+            view! {
+                <p class=format!("m-0 text-[0.82em] text-encre-douce/70 {marge}")>
+                    {texte.clone()}
+                </p>
+            }
+        })
+    }
 }
