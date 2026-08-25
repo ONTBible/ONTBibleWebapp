@@ -2385,6 +2385,20 @@ tout paraît en place et où le dépôt rend 403. C'est la leçon du journal app
 trancher vaut mieux que rendre une réponse bien formée. Éprouvé en le lançant
 **avant** le déploiement : il a refusé, comme prévu.
 
+**Fait le 25 août 2026, et accepté** : `202`, les 162 adresses du sitemap
+déposées. Le `202` est le cas normal d'une première fois — « accepté, clé en
+cours de validation », et non un demi-succès.
+
+Ce que ça ne donne pas : une date. Bing décide quand il vient, et l'apparition
+dans la recherche de ChatGPT suit son propre délai. **Il n'y a rien de plus à
+faire de ce côté** — refaire tourner le script n'accélère rien.
+
+Quand le relancer, alors : après un **ajout de pages**, pas après chaque
+déploiement. IndexNow attend qu'on déclare ce qui a changé ; redéposer les 162
+adresses à chaque mise en ligne est du bruit, et c'est ce qui fait qu'on cesse
+d'être écouté. C'est pourquoi le script n'est **pas** branché sur
+`deployer.yml` : le geste doit rester une décision.
+
 **Google reste hors de portée.** Il a refusé le protocole en 2021 et n'a pas
 changé d'avis en 2026. Son index — donc **Gemini** — passe obligatoirement par la
 Search Console, qui demande le compte de Gloire. C'est la moitié qui reste, et
