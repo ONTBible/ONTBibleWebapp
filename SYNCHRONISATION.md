@@ -707,3 +707,39 @@ doit pas devenir une perte. Le fichier qu'on n'a pas su lire est mis de côté �
 `lecteur.illisible.json` — avant qu'on reparte à vide. Repartir vide est le bon
 comportement ; l'écraser ensuite transformait un incident de lecture en
 destruction définitive.
+
+---
+
+## Un outil qui déclare un système cassé peut s'être trompé de geste
+
+**25 août 2026, sur le site — et la leçon vaut pour les trois dépôts.**
+
+Un modèle de langage interrogé sur `ontbible.com` a répondu qu'il n'arrivait pas
+à en récupérer le texte : « Le moteur ne l'indexe pas, **et le site ne s'ouvre
+pas correctement depuis mon outil** ». La seconde moitié est fausse, et c'est
+elle qui envoyait chercher un défaut.
+
+Mesuré avant d'y croire : `robots.txt` autorise tout, chaque page porte
+`index, follow`, Googlebot, ChatGPT-User, curl et une requête sans agent
+reçoivent tous 200 et **le même octet**, le texte est en clair dans le HTML —
+27 302 caractères lisibles — et une récupération directe rend les cinq premiers
+versets de *Bereshit*, intégralement.
+
+L'outil avait **cherché**, pas **ouvert**. Il a rapporté l'échec du premier geste
+comme une panne du second. La cause réelle n'était pas dans le système : le
+domaine était en ligne depuis dix jours sans avoir été soumis à aucun index.
+
+**La règle** : quand un outil déclare qu'une de nos pièces est cassée, mesurer la
+pièce elle-même avant de la réparer. Le verdict d'un outil porte sur ce qu'il a
+tenté, qui n'est pas toujours ce qu'il croit avoir tenté.
+
+C'est la sœur d'une règle déjà écrite ici — **suspecter la mesure avant la
+donnée** — et l'inverse du piège de `apercu.py` au §7 bis du site, où c'était
+l'instrument qui montrait un défaut inexistant. Ici l'instrument annonçait la
+panne au lieu de la montrer ; dans les deux cas, ce qu'on allait corriger était
+intact.
+
+Ce que le site en a tiré : `/llms.txt`, qui pose le cadre de lecture ONT à la
+racine plutôt que dans une page qu'il faut avoir trouvée. Il n'indexe rien — les
+soumissions à Bing et Google restent le seul geste qui fasse entrer un site dans
+un index, et elles appartiennent à Gloire.
