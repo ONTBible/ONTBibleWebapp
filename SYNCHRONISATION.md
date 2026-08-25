@@ -708,11 +708,7 @@ doit pas devenir une perte. Le fichier qu'on n'a pas su lire est mis de côté �
 comportement ; l'écraser ensuite transformait un incident de lecture en
 destruction définitive.
 
----
-
-## Un outil qui déclare un système cassé peut s'être trompé de geste
-
-**25 août 2026, sur le site — et la leçon vaut pour les trois dépôts.**
+### 25 août 2026 — un outil qui déclare un système cassé peut s'être trompé de geste
 
 Un modèle de langage interrogé sur `ontbible.com` a répondu qu'il n'arrivait pas
 à en récupérer le texte : « Le moteur ne l'indexe pas, **et le site ne s'ouvre
@@ -739,7 +735,7 @@ l'instrument qui montrait un défaut inexistant. Ici l'instrument annonçait la
 panne au lieu de la montrer ; dans les deux cas, ce qu'on allait corriger était
 intact.
 
-### La parade, et elle coûte une ligne
+#### La parade, et elle coûte une ligne
 
 **Un instrument se valide sur un cas dont on connaît la réponse, jamais sur
 celui qu'on étudie.**
@@ -760,6 +756,26 @@ C'est ce qui rend la relecture inopérante : un zéro ne donne **aucun
 appariement à regarder**, donc relire les lignes ne peut rien attraper là où il
 n'y a rien à lire. Seul un témoin dont on connaît d'avance la réponse distingue
 « rien trouvé » de « rien cherché ».
+
+#### Et elle innocente aussi souvent qu'elle accuse
+
+La forme séduisante de cette leçon est « les outils mentent ». Elle est fausse,
+et il faut l'écrire ici parce qu'elle se retient mieux que la vraie.
+
+Le jour même, `concorder-la-synchronisation.py` a annoncé le site à 709 lignes
+quand son disque en portait 763. L'écart était réel, l'accusation était prête —
+et l'instrument avait raison : sa colonne d'empreinte donne ce qui **fait foi**,
+c'est-à-dire l'état publié, et il signalait `disque ≠ origin/main` sur la même
+ligne. L'entrée manquante vivait sur une branche, donc n'était pas publiée, donc
+était à bon droit hors du compte.
+
+La règle a mordu **dans l'autre sens** : on a validé l'instrument sur un cas dont
+on connaissait la réponse, et c'est la lecture qui a cédé. Un instrument juste
+qu'on n'a pas lu jusqu'au bout se présente exactement comme un instrument
+fautif — et le réécrire aurait cassé la garde qui protège ce fichier-ci.
+
+Ce qu'on éprouve n'est donc pas la sincérité de l'outil, c'est **l'appariement
+entre ce qu'il mesure et ce qu'on lui demande**. Il tombe des deux côtés.
 
 Ce que le site en a tiré : `/llms.txt`, qui pose le cadre de lecture ONT à la
 racine plutôt que dans une page qu'il faut avoir trouvée. Il n'indexe rien — les
