@@ -205,6 +205,20 @@ et un oubli coûte une journée.
    que la branche est poussée**, sans attendre la fusion. Le travail vit alors
    sur le distant, et il n'y a plus rien à retenir.
 
+6. **Ne jamais écrire dans la copie de la racine puis diffuser.**
+   `~/ONTBible/SYNCHRONISATION.md` se présente comme la source des quatre, et
+   c'est la seule que **rien** ne synchronise : la racine n'est pas un dépôt,
+   aucun `pull` ne l'atteint, aucune fusion ne la corrige. Elle dérive donc en
+   silence, et la recopier dans les dépôts n'y perd rien — elle y **impose un
+   état périmé**.
+
+   C'est arrivé le 25 août : trois entrées écrites à la racine puis recopiées
+   ont effacé de l'app toute cette section-ci, arrivée par une fusion que la
+   racine ignorait. Le vault et le site n'ont survécu que par accident, leurs
+   propres PR la rapportant en parallèle.
+
+   Partir d'un dépôt à jour, toujours, et porter le changement dans chacun.
+
 **Ce que ça ne remplace pas.** Se parler. Le worktree protège les fichiers, pas
 les décisions : deux sessions qui refondent le même module chacune de leur côté
 produiront deux refontes, proprement isolées et incompatibles.
@@ -498,6 +512,7 @@ main.
 
 Cette page-ci a été écrite depuis trois worktrees, un par dépôt — les branches
 en cours des sessions sœurs n'ont pas été touchées.
+
 ### 25 août 2026 — le corpus se nomme dans deux registres
 
 **Source : le pipeline, mais la décision vient du vault.**
