@@ -1485,6 +1485,7 @@ hreflang, Open Graph, JSON-LD), **et la liseuse complète** (voir §8 bis).
 /fr/lexique/{lemme}                la fiche — définition **et** occurrences
 /.well-known/apple-app-site-association   application/json, aucune redirection
 /manifest.webmanifest              ce qui rend le site installable sur Android
+/llms.txt                          le cadre de lecture, posé avant toute page
 /sitemap.xml                       157 adresses, calculées, jamais écrites
 ```
 
@@ -2309,6 +2310,52 @@ décapitées ont été vues ; aucune ne se voyait dans le code.
 
 Au simulateur, `ATTENTE=25` au minimum : à six secondes la capture est
 **blanche**, et une page blanche ressemble trop à une page cassée.
+
+## 8 septies. Le cadre, posé pour un agent — `/llms.txt`, le 25 août 2026
+
+**Le site n'était trouvé par aucun moteur.** Vérifié le 25 août : `robots.txt`
+autorise tout, chaque page porte `index, follow`, tous les robots reçoivent
+200 et le même octet, le texte est en clair dans le HTML servi — 27 302
+caractères lisibles sur un chapitre — et une récupération directe rend bien les
+cinq premiers versets de *Bereshit*. **Rien ne bloque.** Une recherche sur le
+nom ne rend pourtant aucune adresse du domaine.
+
+La cause est l'âge. Un site mis en ligne il y a dix jours n'est dans aucun index
+tant que personne ne l'y a déclaré ; la découverte naturelle prend des semaines.
+
+**Et un outil confond les deux.** Le modèle interrogé a rapporté « le site ne
+s'ouvre pas correctement depuis mon outil » — il s'ouvrait parfaitement. Il
+avait *cherché*, pas *ouvert*. Ne pas prendre ce diagnostic pour argent
+comptant : mesurer la récupération avant de croire au verdict.
+
+### Ce qui reste à faire, et qui demande ses comptes
+
+- **Bing Webmaster Tools** — `bing.com/webmasters`. C'est l'index qui alimente
+  la recherche de ChatGPT ; c'est donc lui qui débloque le test qu'il refait.
+- **Google Search Console** — `search.google.com/search-console`.
+
+Soumettre `https://ontbible.com/sitemap.xml` aux deux. Les 157 adresses y sont.
+
+### Le fichier lui-même
+
+`/llms.txt` répond au §I de « Le pourquoi », mais par l'infrastructure. La page
+raconte qu'un modèle a jugé le site sévèrement jusqu'à ce qu'on lui demande de
+relire depuis l'ontologie hébraïque — et le site ne pouvait pas le lui dire
+lui-même, puisque le cadre vit *dans* une page qu'il faut avoir trouvée. Le
+fichier le pose à la racine, avant toute lecture.
+
+Il dit trois choses qu'un lecteur du cadre grec prend pour des fautes, et qui
+n'en sont pas : des mots restent en hébreu, les rendus s'écartent des
+traductions reçues, les noms propres gardent leur forme. Puis la carte du site.
+
+Il est servi par une **route**, comme le manifeste et le fichier d'association —
+rien de `public/` n'est joignable en production hors `/pkg/`, `/images/`,
+`/fontes/` et `robots.txt`. Le fichier reste la source, `include_str!` le lit à
+la compilation, et `eprouver.yml` vérifie qu'il répond.
+
+**Il n'indexe rien.** C'est une carte pour qui est déjà arrivé, pas une porte
+d'entrée. Les deux soumissions ci-dessus restent le seul geste qui fasse entrer
+le site dans un index.
 
 ## 9. Ce qui reste à trancher
 

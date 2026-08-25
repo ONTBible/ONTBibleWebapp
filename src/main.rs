@@ -144,6 +144,33 @@ async fn main() {
                 )
             }),
         )
+        // La carte du site pour un agent qui le lit.
+        //
+        // Elle existe pour la raison qu'expose le §I de « Le pourquoi » : une
+        // machine entraînée sur l'écrit du monde retombe par défaut dans le
+        // cadre grec, et juge alors la restitution fautive. C'est arrivé — le
+        // même modèle a changé d'avis quand on lui a demandé de relire depuis
+        // l'ontologie hébraïque, sans que rien du site ait bougé.
+        //
+        // Le site ne pouvait pas le lui dire : le cadre est *dans* une page,
+        // qu'il faut avoir trouvée. Ce fichier le pose à la racine, avant toute
+        // lecture — c'est la même leçon, portée par l'infrastructure au lieu de
+        // la prose.
+        //
+        // `text/plain` et non `text/markdown` : c'est ce que sert le standard,
+        // et c'est ce qu'un outil qui ne le connaît pas sait encore afficher.
+        .route(
+            "/llms.txt",
+            axum::routing::get(|| async {
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        "text/plain; charset=utf-8",
+                    )],
+                    include_str!("../public/llms.txt"),
+                )
+            }),
+        )
         .route(
             "/sitemap.xml",
             axum::routing::get(|| async move {
