@@ -135,6 +135,12 @@ pub async fn livre(id: String) -> Result<Option<LivreDto>, ServerFnError> {
 pub struct VoisinDto {
     pub chemin: String,
     pub titre: String,
+    /// Le rang de l'unité — pour la nommer dans le registre du lecteur.
+    ///
+    /// Le titre seul ne suffit pas : « Bereshit 2 » ne dit pas que c'est la
+    /// deuxième, et la navigation afficherait le nom ONT là où le reste de la
+    /// page suit le réglage.
+    pub numero: u32,
 }
 
 /// Un passage, avec ce qu'il faut pour le situer.
@@ -178,6 +184,7 @@ pub async fn passage(livre: String, unite: String) -> Result<Option<PassageDto>,
             .map(|c: &&crate::domaine::corpus::Chapitre| VoisinDto {
                 chemin: format!("/fr/lire/{livre}/{}", c.id),
                 titre: c.titre.clone(),
+                numero: c.numero,
             })
     };
 
