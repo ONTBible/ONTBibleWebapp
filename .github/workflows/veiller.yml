@@ -1,0 +1,181 @@
+# Le contrat avec le pipeline tient-il encore ?
+#
+# ## Pourquoi ce fichier existe
+#
+# Le site compile contre `pipeline/src/schema.rs` de l'app, cloné depuis `dev`.
+# Ce schéma bouge sans que le site en soit averti : le 25 août 2026, deux champs
+# sont passés de `String` à `Option<String>`, et **`main` a cessé de compiler**.
+#
+# Rien ne l'a dit. Le site en ligne est resté figé sur la dernière version
+# compilable, et tout déploiement aurait échoué. Le seul témoin a été la CI
+# d'une pull request de documentation, ouverte pour une autre raison — le
+# hasard.
+#
+# `eprouver.yml` regarde pourtant la bonne chose : il clone déjà le pipeline
+# depuis `dev`. Le trou n'est pas dans **ce** qu'il regarde, il est dans
+# **quand** : seulement à l'ouverture d'une pull request. Entre deux, `main`
+# peut rester cassée des jours.
+#
+# ## Pourquoi ici, et non côté app
+#
+# L'épreuve serait meilleure là-bas — celui qui casse l'apprendrait dans la
+# pull request qui casse. Mais pour compiler ce dépôt, la CI de l'app aurait
+# besoin d'un jeton vers lui, sur un événement `pull_request`, donc **sur du
+# code non relu**. C'est la posture que `livraison.yml` de l'app s'interdit
+# depuis un incident : ce qui porte des clés ne tourne jamais sur du code non
+# relu.
+#
+# Ce job-ci ne porte aucun secret et n'en demande aucun. Il referme la fenêtre
+# sans rien ouvrir.
+#
+# ## Ce qu'il ne règle pas
+#
+# Il **détecte** la dérive, il ne l'**empêche** pas : le site suit un pipeline
+# mouvant, et c'est un choix — « le site suit l'app sans qu'on y pense ».
+# L'empêcher demanderait d'épingler un commit de pipeline et de le monter
+# délibérément, ce qui coûterait cette propriété-là. Le jour où la dérive se
+# répète malgré ce garde-fou, c'est cet arbitrage qu'il faudra rouvrir.
+
+name: Veiller
+
+on:
+  schedule:
+    # Quatre fois par jour. Le défaut se mesure en jours quand personne
+    # n'ouvre de pull request ; quelques heures suffisent à le ramener à une
+    # taille où l'on sait encore quel changement l'a causé.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+# Une exécution à la fois. Deux veilles simultanées ne diraient rien de plus.
+concurrency:
+  group: veiller
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Pour ouvrir l'issue qui rend l'échec visible. Un cron rouge que personne ne
+  # regarde ne vaut pas mieux que pas de cron du tout.
+  issues: write
+
+jobs:
+  veiller:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Le site
+        uses: actions/checkout@v4
+        with:
+          path: ONTBibleWebapp
+
+      - name: Le pipeline
+        uses: actions/checkout@v4
+        with:
+          repository: ONTBible/ONTBibleApp
+          # `dev`, comme `eprouver.yml` et `deployer.yml` — c'est ce pipeline
+          # que le déploiement emploie, donc c'est celui contre lequel le
+          # contrat doit tenir.
+          ref: dev
+          path: ONTBibleApp
+
+      - name: Le vault
+        uses: actions/checkout@v4
+        with:
+          repository: ONTBible/ONTBibleTranslation
+          path: ONTBibleTranslation
+
+      # **Le commit du pipeline, relevé avant tout le reste.**
+      #
+      # Sans lui, « `main` ne compile plus » n'accuse personne et la recherche
+      # recommence à zéro. Avec, le changement qui a rompu le contrat est nommé
+      # dans le titre de l'issue.
+      - name: Ce que le pipeline porte aujourd'hui
+        id: pipeline
+        working-directory: ONTBibleApp
+        run: |
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          {
+            echo "titre=$(git log -1 --format=%s | cut -c1-72)"
+            echo "date=$(git log -1 --format=%cI)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ONTBibleWebapp
+            ONTBibleApp/pipeline
+
+      - name: Le corpus
+        working-directory: ONTBibleApp
+        env:
+          ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
+        run: cargo run --manifest-path pipeline/Cargo.toml --bin ont-pipeline --release --quiet
+
+      # `check` et non `build` : on éprouve le **contrat de types**, pas la
+      # capacité à produire un binaire. Le déploiement s'en charge, et `check`
+      # coûte trois fois moins.
+      - name: Le site compile contre ce pipeline
+        id: compiler
+        working-directory: ONTBibleWebapp
+        run: cargo check --features ssr --quiet
+
+      # L'issue n'est ouverte qu'une fois : si la veille précédente en a déjà
+      # laissé une ouverte, on ne fait qu'y ajouter un commentaire. Sans ça,
+      # quatre issues par jour tant que personne ne répare — et un signal noyé
+      # dans son propre bruit ne signale plus rien.
+      - name: Dire l'échec, une seule fois
+        if: failure() && steps.compiler.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.pipeline.outputs.sha }}
+          TITRE: ${{ steps.pipeline.outputs.titre }}
+          DATE: ${{ steps.pipeline.outputs.date }}
+          LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          EXISTANTE=$(gh issue list --state open --label contrat-pipeline \
+                        --json number --jq '.[0].number // empty')
+
+          CORPS=$(cat <<TEXTE
+          \`main\` du site ne compile plus contre le pipeline de \`dev\`.
+
+          | | |
+          |---|---|
+          | pipeline | \`$SHA\` — $TITRE |
+          | poussé le | $DATE |
+          | veille | $LIEN |
+
+          Le site embarque le schéma du pipeline à la compilation. Un champ dont
+          le type change là-bas rompt le contrat ici, et rien d'autre ne le dit :
+          \`eprouver.yml\` ne tourne qu'à l'ouverture d'une pull request, et le
+          déploiement qu'au push.
+
+          **Tant que ceci n'est pas réparé, aucun déploiement du site ne peut
+          aboutir**, et le site en ligne reste figé sur la dernière version
+          compilable.
+          TEXTE
+          )
+
+          if [ -n "$EXISTANTE" ]; then
+            gh issue comment "$EXISTANTE" --body "$CORPS"
+          else
+            gh issue create \
+              --title "Le contrat avec le pipeline est rompu — $SHA" \
+              --label contrat-pipeline \
+              --body "$CORPS"
+          fi
+
+      # Refermer ce qu'on a ouvert. Une issue qui survit à sa cause apprend au
+      # lecteur à ne plus les croire.
+      - name: Refermer si c'est réparé
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          for n in $(gh issue list --state open --label contrat-pipeline --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Le contrat tient de nouveau — [veille]($LIEN)."
+          done
