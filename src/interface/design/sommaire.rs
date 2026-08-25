@@ -190,10 +190,18 @@ fn disposer(section: Section) -> Vec<Element> {
 fn entete(c: Conteneur) -> impl IntoView {
     let rupture = c.rupture.map(|texte| {
         view! {
-            // Le filet est en accentuation et non en or : l'or dit
-            // l'intraduisible partout ailleurs sur le site, et une règle
-            // horizontale n'en est pas un.
-            <div class="mt-10 mb-8 flex flex-col gap-3 border-t-2 border-accentuation/50 pt-6">
+            // **Le filet est en or, et c'est un revirement.**
+            //
+            // Il a d'abord été posé en accentuation, au motif que l'or dit
+            // l'intraduisible partout ailleurs et qu'une règle horizontale n'en
+            // est pas un. L'argument était juste sur le mot, faux sur la page :
+            // l'accentuation est une couleur *de texte*, et un filet bordeaux
+            // au milieu d'un sommaire se lit comme une alerte — quelque chose
+            // ne va pas —, alors qu'il annonce une charnière.
+            //
+            // L'or est la couleur de direction artistique du projet, celle des
+            // filets et des cadres. C'est ce que le lecteur y attend.
+            <div class="mt-10 mb-8 flex flex-col gap-3 border-t-2 border-or/70 pt-6">
                 <p class="m-0 max-w-prose text-[0.92em] italic text-encre-douce">{texte}</p>
             </div>
         }
