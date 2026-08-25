@@ -111,6 +111,37 @@ fn libelle(unite: &UniteDto) -> impl IntoView {
 
 /// Le mot qui nomme une unité, dans chacun des deux registres.
 ///
+/// ## Ce n'est pas une préférence, c'est une exactitude
+///
+/// On a d'abord pris ce réglage pour un confort de lecture — le lecteur
+/// choisirait le mot qu'il préfère —, et le site a failli passer en français
+/// seul à ce titre. L'auteur l'a corrigé, et son argument change la nature de
+/// la chose :
+///
+/// > quand des parashah ne couvrent pas les mêmes chapitres que dans les
+/// > traductions habituelles, là c'est parashah qui est utilisé
+///
+/// Une unité ONT se clôt quand une fonction cosmique est accomplie, pas quand
+/// un numéro de chapitre change (§2.3 du vault). *Bereshit* 7 en recouvre donc
+/// deux — le sous-titre de référence l'affiche : « 7-8 ». L'appeler
+/// « Chapitre 7 » n'est pas moins élégant : c'est **faux**.
+///
+/// Et ça compte davantage ici que dans l'app. Le site est la porte d'entrée de
+/// quelqu'un qui arrive avec sa Bible ouverte à côté, et qui va comparer.
+///
+/// ## Ce que le corpus sait et qu'aucune liseuse n'emploie
+///
+/// `reference` porte « 3 » quand l'unité coïncide avec un chapitre reçu, et
+/// « 7-8 » ou « 9:18-29 » quand elle n'y coïncide pas. L'information qui
+/// dirait *lesquelles* méritent le mot juste est donc déjà là, et ni le site
+/// ni les deux applications ne s'en servent — les trois se contentent d'un
+/// réglage global.
+///
+/// Ce n'est pas un défaut à corriger aujourd'hui : ce serait décider d'un
+/// troisième comportement quand l'auteur vient d'en arrêter un. Mais le jour où
+/// la question revient — « pourquoi Chapitre 7 quand ça couvre 7 et 8 ? » —, la
+/// réponse est dans les données.
+///
 /// Ils sont ici et nulle part ailleurs. Deux vues les emploient — le sommaire,
 /// qui rend `Parashah` en or et cliquable, et [`nom_d_unite`], qui n'en donne
 /// que le texte — et chacune les écrivait pour son compte. Deux copies d'un
