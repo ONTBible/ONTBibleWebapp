@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 
 use crate::api::livre;
-use crate::interface::design::{ListeDUnites, PageDeLecture};
+use crate::interface::design::{fournir_preferences, ListeDUnites, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// `/fr/lire/{livre}` — les unités d'un livre.
@@ -17,6 +17,16 @@ pub fn Livre() -> impl IntoView {
     let identifiant = move || parametres.read().get("livre").unwrap_or_default();
 
     let ouvrage = Resource::new_blocking(identifiant, |id| async move { livre(id).await });
+
+    // **Les réglages sont installés ici aussi**, bien que cette page n'offre
+    // pas de panneau pour les changer.
+    //
+    // Ce qu'elle compose lit les réglages retenus — un lecteur qui a éteint les
+    // gloses les veut éteintes ici aussi. Sans ce contexte, tout ce qui lit les
+    // préférences reçoit un signal *constant* : la page s'affiche, le texte est
+    // juste, et le réglage n'a jamais d'effet. La panne ressemble alors
+    // exactement à un fonctionnement.
+    let _preferences = fournir_preferences();
 
     view! {
         <Suspense fallback=|| ()>

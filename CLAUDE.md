@@ -1485,6 +1485,7 @@ hreflang, Open Graph, JSON-LD), **et la liseuse complète** (voir §8 bis).
 /fr/lexique/{lemme}                la fiche — définition **et** occurrences
 /.well-known/apple-app-site-association   application/json, aucune redirection
 /manifest.webmanifest              ce qui rend le site installable sur Android
+/llms.txt                          le cadre de lecture, posé avant toute page
 /sitemap.xml                       157 adresses, calculées, jamais écrites
 ```
 
@@ -2309,6 +2310,113 @@ décapitées ont été vues ; aucune ne se voyait dans le code.
 
 Au simulateur, `ATTENTE=25` au minimum : à six secondes la capture est
 **blanche**, et une page blanche ressemble trop à une page cassée.
+
+## 8 septies. Le cadre, posé pour un agent — `/llms.txt`, le 25 août 2026
+
+**Le site n'était trouvé par aucun moteur.** Vérifié le 25 août : `robots.txt`
+autorise tout, chaque page porte `index, follow`, tous les robots reçoivent
+200 et le même octet, le texte est en clair dans le HTML servi — 27 302
+caractères lisibles sur un chapitre — et une récupération directe rend bien les
+cinq premiers versets de *Bereshit*. **Rien ne bloque.** Une recherche sur le
+nom ne rend pourtant aucune adresse du domaine.
+
+La cause est l'âge. Un site mis en ligne il y a dix jours n'est dans aucun index
+tant que personne ne l'y a déclaré ; la découverte naturelle prend des semaines.
+
+**Et un outil confond les deux.** Le modèle interrogé a rapporté « le site ne
+s'ouvre pas correctement depuis mon outil » — il s'ouvrait parfaitement. Il
+avait *cherché*, pas *ouvert*. Ne pas prendre ce diagnostic pour argent
+comptant : mesurer la récupération avant de croire au verdict.
+
+### Ce qui reste à faire, et qui demande ses comptes
+
+- **Bing Webmaster Tools** — `bing.com/webmasters`. C'est l'index qui alimente
+  la recherche de ChatGPT ; c'est donc lui qui débloque le test qu'il refait.
+- **Google Search Console** — `search.google.com/search-console`.
+
+Soumettre `https://ontbible.com/sitemap.xml` aux deux. Les 157 adresses y sont.
+
+### Le fichier lui-même
+
+`/llms.txt` répond au §I de « Le pourquoi », mais par l'infrastructure. La page
+raconte qu'un modèle a jugé le site sévèrement jusqu'à ce qu'on lui demande de
+relire depuis l'ontologie hébraïque — et le site ne pouvait pas le lui dire
+lui-même, puisque le cadre vit *dans* une page qu'il faut avoir trouvée. Le
+fichier le pose à la racine, avant toute lecture.
+
+Il dit trois choses qu'un lecteur du cadre grec prend pour des fautes, et qui
+n'en sont pas : des mots restent en hébreu, les rendus s'écartent des
+traductions reçues, les noms propres gardent leur forme. Puis la carte du site.
+
+Il est servi par une **route**, comme le manifeste et le fichier d'association —
+rien de `public/` n'est joignable en production hors `/pkg/`, `/images/`,
+`/fontes/` et `robots.txt`. Le fichier reste la source, `include_str!` le lit à
+la compilation, et `eprouver.yml` vérifie qu'il répond.
+
+**Il n'indexe rien.** C'est une carte pour qui est déjà arrivé, pas une porte
+d'entrée.
+
+### La moitié qui ne demandait aucun compte — IndexNow
+
+**Faite le 25 août 2026.** Le §ci-dessus disait « les deux soumissions restent le
+seul geste ». C'était faux pour Bing, et donc pour ChatGPT.
+
+**IndexNow n'exige aucun compte** : on pose une clé à la racine du domaine, on
+POSTe la liste des adresses à `api.indexnow.org`, et **Bing, Yandex, Naver,
+Seznam et Yep se la partagent**. Un seul dépôt les atteint tous.
+
+- `public/7162566e429a0cd82fba80f161e32026.txt` — la clé, servie par une **route**, comme le manifeste ;
+- `scripts/soumettre-aux-index.py` — le dépôt, relançable après chaque
+  déploiement.
+
+**La clé n'est pas un secret, et la traiter comme tel serait une erreur** : sa
+publication *est* sa fonction. Elle ne donne aucun droit sur le site ; elle
+atteste seulement que celui qui soumet les adresses est celui qui sert le
+domaine. Elle est donc au dépôt, en clair, et c'est correct.
+
+**Le corps du fichier est la clé nue** — pas de saut de ligne final. Bing compare
+l'octet, et un `\n` de trop rend 403 sans dire lequel des deux fichiers il
+refuse.
+
+**Le script refuse de partir si la clé n'est pas déjà servie en ligne**, et il
+vérifie qu'elle vaut la nôtre — un déploiement en retard sert l'ancienne, cas où
+tout paraît en place et où le dépôt rend 403. C'est la leçon du journal appliquée
+à un outil qu'on écrit : ne pas répondre à une question qu'on ne peut pas
+trancher vaut mieux que rendre une réponse bien formée. Éprouvé en le lançant
+**avant** le déploiement : il a refusé, comme prévu.
+
+**Fait le 25 août 2026, et accepté** : `202`, les 162 adresses du sitemap
+déposées. Le `202` est le cas normal d'une première fois — « accepté, clé en
+cours de validation », et non un demi-succès.
+
+Ce que ça ne donne pas : une date. Bing décide quand il vient, et l'apparition
+dans la recherche de ChatGPT suit son propre délai. **Il n'y a rien de plus à
+faire de ce côté** — refaire tourner le script n'accélère rien.
+
+Quand le relancer, alors : après un **ajout de pages**, pas après chaque
+déploiement. IndexNow attend qu'on déclare ce qui a changé ; redéposer les 162
+adresses à chaque mise en ligne est du bruit, et c'est ce qui fait qu'on cesse
+d'être écouté. C'est pourquoi le script n'est **pas** branché sur
+`deployer.yml` : le geste doit rester une décision.
+
+**Google reste hors de portée.** Il a refusé le protocole en 2021 et n'a pas
+changé d'avis en 2026. Son index — donc **Gemini** — passe obligatoirement par la
+Search Console, qui demande le compte de Gloire. C'est la moitié qui reste, et
+elle ne peut pas être automatisée.
+
+### Ce qu'un modèle fait quand l'index lui manque
+
+Gemini, interrogé le 25 août, a été plus honnête que ChatGPT : il a dit que le
+texte n'était pas dans ses bases, au lieu d'accuser le site de ne pas s'ouvrir.
+Mais dans la même réponse il a **inventé** — l'ONT attribuée à « des passionnés
+de langues anciennes », rattachée à un projet tiers, l'app désignée au pluriel
+possessif, et la question « tu as accès à leur application ? » posée à l'auteur
+lui-même.
+
+**Un modèle qui n'a pas les données ne dit pas qu'il ne sait pas : il comble.**
+Et ce qu'il comble ici efface Gloire de son propre projet. C'est ce qui rend les
+deux soumissions urgentes plutôt que souhaitables : tant que l'index manque, la
+seule version qui circule est celle qu'on invente à sa place.
 
 ## 9. Ce qui reste à trancher
 

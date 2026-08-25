@@ -73,7 +73,21 @@ fn rendre_bloc(bloc: BlocDeTexte, en_avant: &[u32], p: Preferences) -> AnyView {
         // suivie. Les ancres restent posées sur chaque verset — un lien
         // partagé vers `#v6` doit tomber juste dans les deux dispositions.
         BlocDeTexte::Versets(versets) if p.continu => view! {
-            <p class="mb-8 font-corps text-lg leading-loose text-pretty">
+            // **Le corps du site, sans le grossir ni l'aérer.**
+            //
+            // Ce paragraphe portait `text-lg leading-loose` : une taille au
+            // dessus du corps et un interligne de 2, là où le site tient 1,68
+            // — mesuré au §5 pour que l'œil retrouve la ligne suivante à 21 px.
+            //
+            // La lecture suivie s'en trouvait **plus aérée que le mode
+            // d'étude**, c'est-à-dire l'inverse de ce qu'elle promet : le texte
+            // flottait au lieu de couler, et chaque verset semblait détaché de
+            // celui d'avant alors qu'ils sont dans le même paragraphe.
+            //
+            // Rien de spécifique ici, donc : le paragraphe hérite du corps, et
+            // c'est la disposition — un seul bloc, les numéros en exposant —
+            // qui fait la différence entre les deux modes.
+            <p class="mb-8 text-pretty">
                 {versets
                     .into_iter()
                     .map(|verset| {

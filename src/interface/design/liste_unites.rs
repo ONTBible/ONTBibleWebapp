@@ -97,14 +97,97 @@ fn libelle(unite: &UniteDto) -> impl IntoView {
             return view! { <span class="text-accent">{titre.clone()}</span> }.into_any();
         }
         if prefs.get().francais {
-            return view! { <span class="text-accent">"Chapitre " {n}</span> }.into_any();
+            return view! { <span class="text-accent">{MOT_RECU}" "{n}</span> }.into_any();
         }
         view! {
             <span>
-                <Terme lemme="parashah">"Parashah"</Terme>
+                <Terme lemme="parashah">{MOT_ONT}</Terme>
                 <span class="text-accent">" " {n}</span>
             </span>
         }
         .into_any()
     }
+}
+
+/// Le mot qui nomme une unité, dans chacun des deux registres.
+///
+/// ## Ce n'est pas une préférence, c'est une exactitude
+///
+/// On a d'abord pris ce réglage pour un confort de lecture — le lecteur
+/// choisirait le mot qu'il préfère —, et le site a failli passer en français
+/// seul à ce titre. L'auteur l'a corrigé, et son argument change la nature de
+/// la chose :
+///
+/// > quand des parashah ne couvrent pas les mêmes chapitres que dans les
+/// > traductions habituelles, là c'est parashah qui est utilisé
+///
+/// Une unité ONT se clôt quand une fonction cosmique est accomplie, pas quand
+/// un numéro de chapitre change (§2.3 du vault). *Bereshit* 7 en recouvre donc
+/// deux — le sous-titre de référence l'affiche : « 7-8 ». L'appeler
+/// « Chapitre 7 » n'est pas moins élégant : c'est **faux**.
+///
+/// Et ça compte davantage ici que dans l'app. Le site est la porte d'entrée de
+/// quelqu'un qui arrive avec sa Bible ouverte à côté, et qui va comparer.
+///
+/// ## Ce que le corpus sait et qu'aucune liseuse n'emploie
+///
+/// `reference` porte « 3 » quand l'unité coïncide avec un chapitre reçu, et
+/// « 7-8 » ou « 9:18-29 » quand elle n'y coïncide pas. L'information qui
+/// dirait *lesquelles* méritent le mot juste est donc déjà là, et ni le site
+/// ni les deux applications ne s'en servent — les trois se contentent d'un
+/// réglage global.
+///
+/// Ce n'est pas un défaut à corriger aujourd'hui : ce serait décider d'un
+/// troisième comportement quand l'auteur vient d'en arrêter un. Mais le jour où
+/// la question revient — « pourquoi Chapitre 7 quand ça couvre 7 et 8 ? » —, la
+/// réponse est dans les données.
+///
+/// Ils sont ici et nulle part ailleurs. Deux vues les emploient — le sommaire,
+/// qui rend `Parashah` en or et cliquable, et [`nom_d_unite`], qui n'en donne
+/// que le texte — et chacune les écrivait pour son compte. Deux copies d'un
+/// même mot finissent par diverger : c'est précisément ce qui venait de se
+/// produire d'un écran à l'autre, en plus grand.
+const MOT_RECU: &str = "Chapitre";
+const MOT_ONT: &str = "Parashah";
+
+/// Le nom d'une unité **en texte**, dans le registre choisi.
+///
+/// Le pendant de [`libelle`] pour les endroits qui ne peuvent pas porter de
+/// balise : un `<h1>`, une balise de navigation, un texte de lien.
+///
+/// ## Pourquoi il existe
+///
+/// Le calcul vivait dans le seul sommaire. La page de lecture, elle, affichait
+/// `chapitre.titre` — le nom ONT brut. Un lecteur touchait donc « Chapitre 2 »
+/// et arrivait sur une page intitulée « Bereshit 2 » : deux écrans, un seul
+/// calcul, l'autre oublié. C'est le même défaut que la session de l'app a
+/// trouvé chez elle entre son sommaire et son sélecteur de renvoi.
+///
+/// ## Il ne rend pas « Parashah » en or, et c'est délibéré
+///
+/// Dans le sommaire, `Parashah` est un lien vers sa fiche — le premier
+/// intraduisible que beaucoup rencontreront. Dans un titre de page, un lien
+/// n'a pas sa place : on ne quitte pas la page qu'on vient d'ouvrir par son
+/// propre titre. Le lecteur qui veut la fiche la trouve dans le sommaire d'où
+/// il vient, ou dans le lexique.
+///
+/// ## Il ne convient pas à la balise `<title>`
+///
+/// Celle-là doit rester le nom ONT : elle est rendue par le serveur, qui ne
+/// connaît pas les préférences, et elle sert le référencement et le partage —
+/// deux usages où un nom stable vaut mieux qu'un nom juste.
+pub fn nom_d_unite(titre: String, numero: u32) -> Signal<String> {
+    let prefs = preferences();
+    Signal::derive(move || {
+        // Rang zéro : une introduction. Elle garde son titre — elle n'a pas de
+        // rang, et « Chapitre 0 » ne voudrait rien dire.
+        if numero == 0 {
+            return titre.clone();
+        }
+        if prefs.get().francais {
+            format!("{MOT_RECU} {numero}")
+        } else {
+            format!("{MOT_ONT} {numero}")
+        }
+    })
 }

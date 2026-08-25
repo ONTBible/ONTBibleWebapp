@@ -144,6 +144,64 @@ async fn main() {
                 )
             }),
         )
+        // La carte du site pour un agent qui le lit.
+        //
+        // Elle existe pour la raison qu'expose le §I de « Le pourquoi » : une
+        // machine entraînée sur l'écrit du monde retombe par défaut dans le
+        // cadre grec, et juge alors la restitution fautive. C'est arrivé — le
+        // même modèle a changé d'avis quand on lui a demandé de relire depuis
+        // l'ontologie hébraïque, sans que rien du site ait bougé.
+        //
+        // Le site ne pouvait pas le lui dire : le cadre est *dans* une page,
+        // qu'il faut avoir trouvée. Ce fichier le pose à la racine, avant toute
+        // lecture — c'est la même leçon, portée par l'infrastructure au lieu de
+        // la prose.
+        //
+        // `text/plain` et non `text/markdown` : c'est ce que sert le standard,
+        // et c'est ce qu'un outil qui ne le connaît pas sait encore afficher.
+        .route(
+            "/llms.txt",
+            axum::routing::get(|| async {
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        "text/plain; charset=utf-8",
+                    )],
+                    include_str!("../public/llms.txt"),
+                )
+            }),
+        )
+        // La clé IndexNow — ce qui prouve à Bing que nous tenons ce domaine.
+        //
+        // IndexNow est le seul chemin qui **n'exige aucun compte** : on pose une
+        // clé à la racine, on POSTe la liste des adresses, et Bing, Yandex,
+        // Naver et Seznam se la partagent. C'est ce qui débloque la recherche de
+        // ChatGPT, qui lit l'index de Bing.
+        //
+        // Google, lui, **refuse le protocole** depuis 2021 et n'a pas changé
+        // d'avis. Son index — donc Gemini — passe obligatoirement par la Search
+        // Console, qui demande le compte de Gloire. Voir le §8 septies.
+        //
+        // **Ce n'est pas un secret**, et il ne faut pas la traiter comme tel :
+        // sa publication *est* sa fonction. Elle ne donne aucun droit sur le
+        // site ; elle atteste seulement que celui qui soumet des adresses est
+        // celui qui sert le domaine.
+        //
+        // Le corps est la clé **nue** — pas de saut de ligne final, pas
+        // d'espace. Bing compare l'octet, et un `\n` de trop rend 403 sans
+        // dire lequel des deux fichiers il n'a pas aimé.
+        .route(
+            "/7162566e429a0cd82fba80f161e32026.txt",
+            axum::routing::get(|| async {
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        "text/plain; charset=utf-8",
+                    )],
+                    include_str!("../public/7162566e429a0cd82fba80f161e32026.txt"),
+                )
+            }),
+        )
         .route(
             "/sitemap.xml",
             axum::routing::get(|| async move {

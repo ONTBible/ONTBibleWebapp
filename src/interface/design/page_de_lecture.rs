@@ -30,7 +30,18 @@ pub fn PageDeLecture(
     /// La ligne au-dessus du titre — « Torah », « Intraduisible ».
     #[prop(optional, into)]
     rappel: Option<String>,
-    #[prop(into)] titre: String,
+    /// Le titre de la page.
+    ///
+    /// **Un `Signal` et non une `String`**, et il l'a fallu : le nom d'une
+    /// unité dépend du registre de lecture — « Chapitre 2 » en français reçu,
+    /// « Parashah 2 » en glose ONT — que le lecteur bascule sans recharger.
+    /// Un prop de type texte fermait la porte à ce calcul, et la page de
+    /// lecture affichait le nom ONT pendant que le sommaire affichait l'autre.
+    ///
+    /// Les appels qui passent une `String` continuent de marcher : `into`
+    /// enveloppe la valeur dans un signal constant.
+    #[prop(into)]
+    titre: Signal<String>,
     /// Ce qui se lit sous le titre, avant le corps — un renvoi, une mention.
     #[prop(optional)]
     chapeau: Option<Children>,
@@ -82,7 +93,7 @@ pub fn PageDeLecture(
                     }
                 })}
 
-            <h1 class="mt-0 mb-4 text-balance">{titre}</h1>
+            <h1 class="mt-0 mb-4 text-balance">{move || titre.get()}</h1>
 
             {chapeau.map(|chapeau| view! { <div class="mb-14">{chapeau()}</div> })}
 

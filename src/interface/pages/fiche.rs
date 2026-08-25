@@ -3,7 +3,7 @@ use leptos_router::hooks::use_params_map;
 
 use crate::api::fiche;
 use crate::interface::design::verset::composer;
-use crate::interface::design::{Blocs, Occurrences, PageDeLecture};
+use crate::interface::design::{fournir_preferences, Blocs, Occurrences, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// `/fr/lexique/{lemme}` — la fiche d'un intraduisible.
@@ -25,6 +25,16 @@ pub fn Fiche() -> impl IntoView {
     let lemme = move || parametres.read().get("lemme").unwrap_or_default();
 
     let entree = Resource::new_blocking(lemme, |lemme| async move { fiche(lemme).await });
+
+    // **Les réglages sont installés ici aussi**, bien que cette page n'offre
+    // pas de panneau pour les changer.
+    //
+    // Ce qu'elle compose lit les réglages retenus — un lecteur qui a éteint les
+    // gloses les veut éteintes ici aussi. Sans ce contexte, tout ce qui lit les
+    // préférences reçoit un signal *constant* : la page s'affiche, le texte est
+    // juste, et le réglage n'a jamais d'effet. La panne ressemble alors
+    // exactement à un fonctionnement.
+    let _preferences = fournir_preferences();
 
     view! {
         <Suspense fallback=|| ()>

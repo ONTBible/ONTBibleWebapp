@@ -50,7 +50,34 @@ pub fn fournir_preferences() -> RwSignal<Preferences> {
 pub fn preferences() -> Signal<Preferences> {
     match use_context::<RwSignal<Preferences>>() {
         Some(signal) => signal.into(),
-        None => Signal::stored(Preferences::default()),
+        None => {
+            // **Le repli est muet, et c'est ce qui coûte.**
+            //
+            // Sans contexte, tout ce qui lit les réglages reçoit un signal
+            // *constant* : la page s'affiche, le texte est juste, et aucun
+            // réglage n'a jamais d'effet. Rien ne casse — c'est une panne qui
+            // ressemble exactement à un fonctionnement.
+            //
+            // Elle a vécu sur deux pages sur trois : la fiche du lexique et le
+            // sommaire d'un livre consommaient les réglages sans que personne
+            // ne les fournisse.
+            //
+            // Le repli reste — une page sans réglages doit s'afficher — mais il
+            // le dit maintenant. `debug_assert` en développement, où l'on peut
+            // corriger ; un avertissement dans la console du navigateur, où
+            // l'on peut le voir sans relire tout l'arbre.
+            debug_assert!(
+                false,
+                "les réglages de lecture sont lus sans avoir été fournis : \
+                 appeler `fournir_preferences()` dans la page qui compose ce \
+                 texte, sinon aucune bascule n'aura d'effet"
+            );
+            #[cfg(feature = "hydrate")]
+            web_sys::console::warn_1(
+                &"réglages de lecture lus sans contexte — les bascules n'auront aucun effet".into(),
+            );
+            Signal::stored(Preferences::default())
+        }
     }
 }
 
