@@ -215,16 +215,27 @@ impl CorpusEmbarque {
             .into_iter()
             .map(|e| Ensemble {
                 id: e.id,
+                // Le pont vers le français est **facultatif** dans le schéma, et
+                // il le faut : le corpus publié atteint des liseuses plus
+                // anciennes que lui, qui n'ont pas cette clé.
+                //
+                // Le site, lui, embarque le corpus à la compilation — il ne
+                // lira jamais un corpus d'hier. Mais il partage la structure du
+                // pipeline, donc il doit décider quoi faire de l'absence.
+                //
+                // Il retombe sur le titre ONT plutôt que sur rien : c'est la
+                // règle déjà suivie deux lignes plus bas pour la glose, et un
+                // sommaire qui affiche une ligne vide se lit comme une panne.
+                francais: e.french.unwrap_or_else(|| e.title.clone()),
                 titre: e.title,
-                francais: e.french,
                 glose: e.glose,
                 sections: e
                     .modes
                     .into_iter()
                     .map(|s| Section {
                         id: s.id,
+                        francais: s.french.unwrap_or_else(|| s.title.clone()),
                         titre: s.title,
-                        francais: s.french,
                         glose: s.glose,
                         conteneurs: s
                             .groups
