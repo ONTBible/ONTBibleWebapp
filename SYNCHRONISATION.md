@@ -1119,3 +1119,82 @@ permanente. C'est la contradiction exacte qui a bloqué `dev → staging` la
 veille — `dev` n'autorisant que le squash pendant que `staging` exigeait
 `strict`, la fusion devenait structurellement impossible, pas seulement
 difficile.
+
+### 26 août 2026 — le rattrapage d'Android sur iOS, et ce qu'il a appris
+
+Vingt-quatre commits pour ramener la liseuse Android au niveau de l'iOS. Ce
+qu'il faut en retenir tient en trois points, et aucun n'est propre à Android.
+
+**Un portage ne se vérifie pas fichier par fichier.** Le premier audit
+comparait des **noms de fichiers** entre deux arbres — et les deux n'étaient pas
+sur la même branche : l'écran d'ouverture n'existait pas sur celle qu'on
+interrogeait. Il n'aurait de toute façon rien vu de l'essentiel : l'accentuation
+peinte puis repeinte, l'hébreu absent du sous-titre, le filet du Ḥurban rendu en
+gris. **Les fichiers existaient des deux côtés ; seuls leurs rendus
+divergeaient.** Un audit utile compare ce qui s'affiche, pas ce qui s'appelle.
+
+**Une même donnée peut plaire à une plateforme et tuer l'autre.**
+`SearchHit.id` vaut `unité-verset-niveau` et n'est pas unique. SwiftUI tolère
+les identifiants doublés — il avertit, et réutilise parfois la mauvaise vue.
+Compose lève : chercher « alliance » fermait l'app. Même domaine, même donnée,
+même requête ; une plateforme plante là où l'autre murmure. **Un défaut
+silencieux d'un côté n'est pas un défaut absent.**
+
+**Ce que la plateforme donne gratuitement à l'une, l'autre doit l'écrire.** Le
+même réglage d'interligne rendait 1,735 sur iOS et 1,500 sur Android :
+`SwiftUI.lineSpacing` **ajoute** des points à l'interligne de la fonte, Compose
+`lineHeight` **fixe** la hauteur et l'efface. Les deux courbes se croisent. De
+même, une rotation ne reconstruit pas la vue racine d'iOS mais recrée l'activité
+Android — l'ouverture y rejouait cinq secondes et demie à chaque quart de tour.
+**Porter du code, c'est porter ce que le code ne dit pas.**
+
+**Ce que ce travail change pour les voisins.**
+
+Pour le **site** : `/{langue}/lire/{livre}/{unité}?v=…` n'est plus une route de
+page, c'est un **contrat que deux apps lisent**. Le changer sans prévenir casse
+les liens partagés sur les deux plateformes. Et l'App Link Android exige
+`/.well-known/assetlinks.json` servi sans redirection — posé côté site, avec
+l'empreinte de la clé de téléversement. Une seconde empreinte s'y **ajoutera**
+après le premier envoi à Play, celle avec laquelle Google resigne : la
+remplacer ferait cesser d'être reconnues toutes les installations de test.
+
+Pour le **vault** : les décisions terminologiques du pied d'unité portent des
+astérisques littérales — `*Elohim` — que les deux liseuses affichent, parce
+qu'elles emploient le même chemin de composition. C'est au pipeline de dire si
+ces marques doivent survivre jusqu'à l'écran.
+
+**Et une règle nouvelle, posée par Gloire ce jour :** les initiatives viennent
+d'iOS, Android applique. Quand le portage révèle un arbitrage plutôt qu'un
+rattrapage, il remonte à iOS — jusque dans le vocabulaire des libellés, où
+inventer une meilleure formulation reviendrait à créer un second dialecte pour
+la même idée.
+
+### 26 août 2026 — la glose des livres n'arrivait pas jusqu'à l'app
+
+Le corpus écrit une `glose` sur **chaque livre** — `Gevurot ha-Neviim` porte
+« Actes des Apôtres » comme pont français et « les gevurot de YHWH par ses
+neviim » comme glose. Le site les affiche tous les deux depuis toujours,
+`sommaire.rs` choisissant selon « Le français reçu ». L'app iOS, elle, affichait
+le français **quel que soit le réglage** : `BookOutline` ne déclarait pas le
+champ, donc la traduction du schéma le jetait sans que rien ne s'en aperçoive.
+L'auteur l'a vu en mettant les deux écrans côte à côte.
+
+**Ce que ça dit des trois dépôts.** Un champ que le pipeline écrit et qu'une
+liseuse ne déclare pas ne casse **rien** : le domaine compile, l'écran s'affiche,
+le lecteur voit simplement l'autre nom. C'est l'inverse exact d'un changement de
+schéma, qui casse iOS et Android tout de suite parce qu'ils sont engendrés — ici
+la perte est silencieuse des deux côtés à la fois.
+
+- **site** — rien à porter, *constaté* : `sommaire.rs:75-86` traite déjà les
+  livres comme les sections. C'est lui qui faisait foi ;
+- **Android** — `BookOutline` de `ontkit` porte la même omission, je l'avais
+  porté ainsi. Signalé à la session Android dans la même heure ;
+- **vault** — rien : la donnée était juste, c'est la lecture qui manquait.
+
+**Et le motif, une fois de plus.** La règle du choix — français si le reçu est
+allumé, glose sinon, rien quand la ligne se redoublerait — tenait en trois
+lignes et était **recopiée dans une vue**. Elle était donc appliquée dans la
+liste de la Bible et **absente** du sélecteur de référence, qui affichait le
+français en toutes circonstances. Une règle recopiée est une règle qu'un écran
+finit par ne pas appliquer. Elle vit maintenant dans le noyau — `Registre.second`
+côté iOS, à côté de `LibelleDUnite`, qui est arrivé là par le même chemin.
