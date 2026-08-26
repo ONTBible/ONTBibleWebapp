@@ -78,7 +78,12 @@ pub fn Passage() -> impl IntoView {
                         // désignés quand le lien en désigne : c'est ce que la
                         // personne a partagé, et c'est donc ce qu'une messagerie
                         // doit montrer. À défaut, le renvoi et le livre.
-                        let description = apercu(&chapitre, &en_avant, &p.livre_titre);
+                        let description = apercu(
+                            &chapitre,
+                            &en_avant,
+                            &p.livre_titre,
+                            &p.livre_francais,
+                        );
 
                         let renvoi = reference.clone();
                         let livre_titre = p.livre_titre.clone();
@@ -99,7 +104,7 @@ pub fn Passage() -> impl IntoView {
 
                         view! {
                             <Tete
-                                titre=chapitre.titre.clone()
+                                titre=titre_indexable(&chapitre, &p.livre_francais)
                                 description=description
                                 chemin=format!("/fr/lire/{}/{}", p.livre_id, chapitre.id)
                             />
@@ -211,7 +216,44 @@ fn Voisins(
 /// verset du jour, et pour la même raison : sortie de son appareil critique, où
 /// elle est consultable et attribuée, une glose devient une affirmation sans
 /// recours.
-fn apercu(chapitre: &crate::domaine::corpus::Chapitre, en_avant: &[u32], livre: &str) -> String {
+/// Le titre d'onglet et de résultat — le nom hébreu, puis le renvoi reçu.
+///
+/// ## Pourquoi le nom français y entre, alors que la page ne le porte pas
+///
+/// Le site nomme les livres par leur titre hébreu, et c'est une décision : le
+/// corpus s'appelle *Bereshit*, pas Genèse. Elle tient dans la page, où le
+/// lecteur est déjà arrivé.
+///
+/// Elle ne tient pas dans un moteur. **Personne ne cherche « Bereshit 1 » sans
+/// connaître déjà le projet** — et ce sont exactement ceux qui ne le
+/// connaissent pas qu'un moteur amène. Les cent soixante-trois pages du corpus
+/// étaient donc introuvables par la seule requête qui les désigne pour un
+/// lecteur français.
+///
+/// Le renvoi reçu est entre parenthèses, et dans cet ordre : le nom du corpus
+/// d'abord, celui qu'on connaît ensuite. C'est ce que fait le fil d'Ariane de
+/// la page, et c'est le sens du projet — on ne remplace pas le nom, on le
+/// traduit à côté.
+///
+/// **Une introduction ne prend pas de numéro.** Son rang vaut zéro, et
+/// « Genèse 0 » désignerait un chapitre qui n'existe pas — le genre d'entrée
+/// qu'un moteur affiche telle quelle pendant des mois.
+fn titre_indexable(chapitre: &crate::domaine::corpus::Chapitre, francais: &str) -> String {
+    if francais.is_empty() || chapitre.titre.contains(francais) {
+        return chapitre.titre.clone();
+    }
+    match chapitre.numero {
+        0 => format!("{} ({francais})", chapitre.titre),
+        n => format!("{} ({francais} {n})", chapitre.titre),
+    }
+}
+
+fn apercu(
+    chapitre: &crate::domaine::corpus::Chapitre,
+    en_avant: &[u32],
+    livre: &str,
+    francais: &str,
+) -> String {
     let choisis: Vec<String> = en_avant
         .iter()
         .filter_map(|numero| chapitre.verset(*numero))
@@ -223,10 +265,23 @@ fn apercu(chapitre: &crate::domaine::corpus::Chapitre, en_avant: &[u32], livre: 
     }
 
     // Sans sélection, le début du chapitre — c'est ce qu'on verrait en
-    // l'ouvrant.
+    // l'ouvrant — **précédé de ce que la page est**.
+    //
+    // Les deux cas ne s'adressent pas au même lecteur, et c'est pourquoi ils
+    // diffèrent. Avec sélection, la page arrive par un lien partagé : ce qui
+    // compte est le verset qu'on a voulu montrer, et un préfixe le repousserait
+    // hors du cadre d'une messagerie. Sans sélection, la page arrive par un
+    // moteur, devant quelqu'un qui ne sait pas encore ce qu'il regarde — le
+    // premier verset seul ne le lui dit pas.
+    //
+    // Le premier verset de *Bereshit* 1 mesure cinquante-six signes : la
+    // description tenait donc dans un tiers de ce qu'un moteur affiche, et le
+    // reste était perdu.
+    let ouverture = format!("{} — La Bible ONT.", titre_indexable(chapitre, francais));
+
     match chapitre.versets().next() {
-        Some(premier) => tronquer(&premier.corps(), 200),
-        None => format!("{livre} — un passage de La Bible ONT."),
+        Some(premier) => tronquer(&format!("{ouverture} {}", premier.corps()), 200),
+        None => format!("{ouverture} {livre} — un passage restitué depuis l'hébreu."),
     }
 }
 

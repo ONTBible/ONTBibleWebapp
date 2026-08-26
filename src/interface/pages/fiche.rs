@@ -41,14 +41,67 @@ pub fn Fiche() -> impl IntoView {
             {move || Suspend::new(async move {
                 match entree.await {
                     Ok(Some(f)) => {
+                        let combien = f.occurrences.len();
                         let e = f.entree;
-                        // La description d'aperçu est le rendu quand il existe :
-                        // c'est la décision de traduction, donc la chose la plus
-                        // dense qu'on puisse mettre en une ligne.
-                        let description = if e.rendu.is_empty() {
-                            format!("{} — un intraduisible de La Bible ONT.", e.titre)
+
+                        // La description porte le rendu, l'hébreu, et le nombre
+                        // d'occurrences — dans cet ordre.
+                        //
+                        // Le rendu d'abord parce que c'est la décision de
+                        // traduction, donc la chose la plus dense qu'on puisse
+                        // mettre en une ligne. L'hébreu ensuite parce qu'on
+                        // cherche aussi בָּרָא, et qu'une fiche qui ne le porte pas
+                        // dans sa description ne répond pas à cette recherche.
+                        //
+                        // Le compte enfin, et il n'est pas décoratif : il dit
+                        // que la page tient sa promesse. « bara — orchestrer »
+                        // seul fait cinquante-deux signes, un tiers de ce qu'un
+                        // moteur affiche — et sous soixante-dix signes il ne la
+                        // montre plus du tout, il lui préfère un extrait pris
+                        // dans la page, qui commence par une définition sans
+                        // son mot.
+                        let hebreu_cite = if e.hebreu.is_empty() {
+                            String::new()
                         } else {
-                            format!("{} — {}. Un intraduisible de La Bible ONT.", e.titre, e.rendu)
+                            format!(" ({})", e.hebreu)
+                        };
+                        // Un rendu qui répète le lemme n'est pas un rendu.
+                        //
+                        // C'est le cas des intraduisibles **purs** — *nefesh*
+                        // reste *nefesh*, *shem* reste *shem* —, et c'est le
+                        // cœur du projet : ces mots-là sont précisément ceux
+                        // qu'on a refusé de traduire. Les afficher comme
+                        // « Nefesh : Nefesh » donnait un titre qui a l'air
+                        // cassé, là où c'est la promesse même de la fiche.
+                        //
+                        // La comparaison est insensible à la casse : le vault
+                        // capitalise le titre d'une fiche, pas toujours son
+                        // rendu.
+                        let rendu_distinct = !e.rendu.is_empty()
+                            && !e.rendu.eq_ignore_ascii_case(&e.titre);
+                        let rendu_cite = if rendu_distinct {
+                            format!(" — {}", e.rendu)
+                        } else {
+                            String::new()
+                        };
+                        let occurrences_citees = match combien {
+                            0 => String::new(),
+                            1 => ", et l'unique verset où il paraît".to_string(),
+                            n => format!(", et les {n} versets où il paraît"),
+                        };
+                        let description = if rendu_distinct {
+                            format!(
+                                "{}{hebreu_cite}{rendu_cite}. Un intraduisible hébreu de La \
+                                 Bible ONT : ce qu'il porte{occurrences_citees}.",
+                                e.titre,
+                            )
+                        } else {
+                            format!(
+                                "{}{hebreu_cite} — l'intraduisible hébreu que La Bible ONT \
+                                 laisse debout : ce qu'il porte, pourquoi il ne se traduit \
+                                 pas{occurrences_citees}.",
+                                e.titre,
+                            )
                         };
                         let hebreu = e.hebreu.clone();
                         let rendu = e.rendu.clone();
@@ -56,8 +109,19 @@ pub fn Fiche() -> impl IntoView {
                         let titre = e.titre.clone();
 
                         view! {
+                            // Le titre porte le rendu **et** le mot « hébreu ».
+                            //
+                            // « bara » seul ne répond qu'à qui l'écrit déjà
+                            // correctement. On cherche « bara hébreu », « bara
+                            // signification », « bara traduction » — et la fiche
+                            // répond à ces trois questions sans qu'aucune ne
+                            // figurât dans son titre.
                             <Tete
-                                titre=e.titre.clone()
+                                titre=if rendu_distinct {
+                                    format!("{} (hébreu) : {}", e.titre, e.rendu)
+                                } else {
+                                    format!("{}, l'intraduisible hébreu", e.titre)
+                                }
                                 description=description
                                 chemin=format!("/fr/lexique/{}", e.lemme)
                             />

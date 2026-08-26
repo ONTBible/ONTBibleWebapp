@@ -148,6 +148,13 @@ pub struct VoisinDto {
 pub struct PassageDto {
     pub livre_id: String,
     pub livre_titre: String,
+    /// Le nom français du livre — « Genèse » pour *Bereshit*.
+    ///
+    /// Il voyage pour les **métadonnées**, pas pour la page : le corps du site
+    /// nomme les livres par leur titre hébreu, et c'est une décision. Mais
+    /// personne ne cherche « Bereshit 1 » sans connaître déjà le projet, et
+    /// c'est précisément ceux qui ne le connaissent pas qu'un moteur amène.
+    pub livre_francais: String,
     pub chapitre: crate::domaine::corpus::Chapitre,
     pub precedent: Option<VoisinDto>,
     pub suivant: Option<VoisinDto>,
@@ -191,6 +198,7 @@ pub async fn passage(livre: String, unite: String) -> Result<Option<PassageDto>,
     Ok(Some(PassageDto {
         livre_id: ouvrage.id.clone(),
         livre_titre: ouvrage.titre.clone(),
+        livre_francais: ouvrage.francais.clone(),
         chapitre: chapitre.clone(),
         precedent: voisin(rang.and_then(|r| r.checked_sub(1))),
         suivant: voisin(rang.map(|r| r + 1)),

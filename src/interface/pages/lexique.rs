@@ -20,7 +20,11 @@ pub fn Lexique() -> impl IntoView {
 
     view! {
         <Tete
-            titre="Lexique"
+            // Le titre indexable dit ce que la page contient ; le titre
+            // visible reste « Lexique », qui suffit à qui est arrivé.
+            // « Lexique » seul ne répond à aucune recherche : c'est un mot
+            // de sommaire, pas un mot de question.
+            titre="Lexique des intraduisibles hébreux"
             description="Les intraduisibles de La Bible ONT — les termes hébreux et araméens \
                          laissés debout, et pourquoi."
             chemin="/fr/lexique"

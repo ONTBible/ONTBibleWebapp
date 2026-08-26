@@ -47,13 +47,17 @@ use crate::interface::tete::Tete;
 pub fn Pourquoi() -> impl IntoView {
     view! {
         <Tete
-            titre="Le pourquoi"
-            description="L'ontologie hébraïque antique fonctionnelle — le cadre depuis lequel \
-                         ce corpus doit être lu. Une chose n'existe pas parce qu'elle a une \
-                         substance, mais parce qu'elle tient une fonction dans un ordre. Ce \
-                         n'est pas un cadre parmi d'autres : c'est celui du texte, et celui du \
-                         réel. Comment l'hellénisation et la Septante l'ont recouvert, et ce que \
-                         l'ONT restitue."
+            // « Le pourquoi » ne se cherche pas — c'est un intitulé interne.
+            // Le titre indexable nomme la chose : c'est la page où l'on arrive
+            // en cherchant l'ontologie hébraïque, et elle est seule à répondre.
+            titre="L'ontologie hébraïque antique"
+            // Cent cinquante-huit signes. L'ancienne en faisait trois cent
+            // soixante-sept — plus du double de ce qu'un moteur affiche, donc
+            // la Septante et l'hellénisation, qui sont l'argument, tombaient
+            // hors du cadre sans que rien ne le signale.
+            description="Une chose n'existe pas parce qu'elle a une substance, mais parce \
+                         qu'elle tient une fonction dans un ordre. Ce que l'hellénisation \
+                         a recouvert."
             chemin="/fr/le-pourquoi"
         />
 
