@@ -122,6 +122,19 @@ async fn main() {
                 )
             }),
         )
+        // L'autorisation donnée à l'app **Android** d'ouvrir les liens du
+        // domaine. Mêmes contraintes que celle d'Apple, en plus sévère : depuis
+        // Android 12, un lien non vérifié ne propose plus de sélecteur, il part
+        // droit au navigateur — et rien ne dit pourquoi.
+        .route(
+            "/.well-known/assetlinks.json",
+            axum::routing::get(|| async {
+                (
+                    [(axum::http::header::CONTENT_TYPE, "application/json")],
+                    ontbible::interface::association::assetlinks(),
+                )
+            }),
+        )
         // Le manifeste d'application web — ce qui rend le site installable sur
         // Android, avec son nom, son icône et sa couleur.
         //
