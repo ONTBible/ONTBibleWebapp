@@ -2441,9 +2441,20 @@ La chaîne entière est intacte. **On ne juge pas un enregistrement DNS sur ce
 qu'on croit avoir laissé faire** — c'est la règle du §4, et elle vaut aussi quand
 c'est un tiers qui écrit.
 
-**Reste à faire, dans la Search Console** : *Sitemaps* → `sitemap.xml` → Envoyer.
-C'est le geste qui donne les 162 adresses à Google, et il ne s'automatise pas —
+**Reste à faire, dans la Search Console** : *Sitemaps* → **`https://ontbible.com/sitemap.xml`** → Envoyer.
+C'est le geste qui donne les adresses à Google, et il ne s'automatise pas —
 l'API demande un jeton OAuth du compte.
+
+**L'adresse est absolue, et c'est une conséquence du type de propriété.** Sur un
+*préfixe d'URL*, le champ complète tout seul et `sitemap.xml` suffit ; sur une
+*propriété de domaine*, il n'y a pas de préfixe à compléter — la propriété
+couvre plusieurs hôtes — donc un chemin relatif ne désigne rien. Google répond
+« Adresse de sitemap incorrecte », ce qui décrit la saisie et non la cause, et
+envoie chercher un défaut dans le fichier.
+
+Le fichier, lui, était bon : `200`, `application/xml`, 163 adresses, XML valide.
+**Vérifier le sitemap avant de le corriger** — c'est la leçon du journal, et elle
+s'applique au message d'erreur d'un tiers autant qu'à un instrument à nous.
 
 ### Ce qu'un modèle fait quand l'index lui manque
 
