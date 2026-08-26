@@ -1860,3 +1860,36 @@
  *
  * Il reste étroit et **franc** plutôt que large et pâle : c'est un joint, pas
  * un halo. Le halo, c'est ce que fait le dégradé autour. */
+
+/* ── Les surlignages ──────────────────────────────────────────────────────────
+ *
+ * Les cinq teintes de l'app, à l'identique — `ONTColors.highlight(_:)` dans
+ * `ONTBibleApp/app/Packages/ONTDesignSystem/`. Elles ne dépendent pas du thème
+ * là-bas, donc pas ici non plus.
+ *
+ * Le commentaire qui les justifie vaut d'être gardé : « Cinq teintes tirées vers
+ * le pastel plutôt que le fluo d'écolier : un surlignage se pose sur un texte
+ * qu'on lit longtemps, il ne doit pas crier ni rendre le texte illisible. »
+ *
+ * L'opacité — `highlightOpacity`, 0,38 — est appliquée au **fond** et non à la
+ * couleur, pour que le texte garde la sienne. La teinte pleine sert aux pastilles
+ * de la barre, où c'est la couleur elle-même qu'on montre.
+ */
+:root {
+  --surlignage-or: #E8C973;
+  --surlignage-olive: #B8C787;
+  --surlignage-ciel: #9EC7DE;
+  --surlignage-rose: #EBADAD;
+  --surlignage-violet: #C7B3DE;
+  --surlignage-opacite: 0.38;
+}
+
+.surligne {
+  /* `ONTRadius.highlight` vaut 6 points — « juste assez pour adoucir l'angle ». */
+  border-radius: 6px;
+  background-color: color-mix(
+    in srgb,
+    var(--teinte) calc(var(--surlignage-opacite) * 100%),
+    transparent
+  );
+}
