@@ -363,3 +363,126 @@ fn Bascule(
         </label>
     }
 }
+
+/// Toute page qui compose un lecteur de préférences en fournit.
+///
+/// ## Pourquoi une garde de plus, alors qu'il y a déjà un `debug_assert!`
+///
+/// Le `debug_assert!` de [`preferences`] a trouvé la panne de `/fr/lire` — mais
+/// seulement parce qu'un humain a ouvert la page en développement. Il ne s'arme
+/// **pas en `--release`**, et la CI construit en release : elle appelait cette
+/// route, recevait `200`, et l'annonçait saine. La page l'était ; le réglage,
+/// non.
+///
+/// C'est le motif du journal, une fois de plus — *le format de sortie survit à
+/// l'absence de mesure*. Un `200` bien formé ne dit rien de ce qui, dans la
+/// page, ne répond plus.
+///
+/// ## Pourquoi le relevé est transitif, et pourquoi c'est le fond du problème
+///
+/// La correction du 25 août avait relevé qui appelait `preferences()`
+/// **directement** : `livre.rs`, `fiche.rs`, `passage.rs`. Elle a manqué
+/// `lire.rs`, qui ne cite ni `preferences` ni `nom_d_unite` — c'est `Sommaire`
+/// qu'il compose, et c'est `Sommaire` qui lit.
+///
+/// Un relevé par appel direct ne peut pas voir ça, et aucune relecture non
+/// plus : le lien tient sur deux fichiers qu'on n'ouvre pas en même temps.
+/// Le test ferme donc la **fermeture transitive** — un composant qui compose un
+/// lecteur est un lecteur — puis exige le fournisseur des pages concernées.
+///
+/// La borne du calcul est le nombre de composants : chaque tour en ajoute au
+/// moins un, sinon il s'arrête.
+#[cfg(all(test, feature = "ssr"))]
+mod contrat {
+    use std::collections::{HashMap, HashSet};
+    use std::path::Path;
+
+    /// Les composants d'un dossier, avec la source de chacun.
+    ///
+    /// Le découpage se fait sur `#[component]` : c'est la marque que Leptos
+    /// exige, donc elle ne peut pas manquer sur un composant réel — un relevé
+    /// fondé sur une convention de nommage, lui, raterait le jour où quelqu'un
+    /// écrit une fonction auxiliaire en majuscule.
+    fn composants(dossier: &Path) -> HashMap<String, String> {
+        let mut trouves = HashMap::new();
+        for entree in std::fs::read_dir(dossier).expect("un dossier de composants") {
+            let chemin = entree.expect("une entrée").path();
+            if chemin.extension().is_none_or(|e| e != "rs") {
+                continue;
+            }
+            let source = std::fs::read_to_string(&chemin).expect("un fichier");
+            for morceau in source.split("#[component]").skip(1) {
+                let Some(apres) = morceau.split("fn ").nth(1) else {
+                    continue;
+                };
+                let nom: String = apres
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                if !nom.is_empty() {
+                    trouves.insert(nom, morceau.to_string());
+                }
+            }
+        }
+        trouves
+    }
+
+    /// Les composants que `source` compose — `<Sommaire`, `<ListeDUnites`…
+    fn composes(source: &str, connus: &HashMap<String, String>) -> HashSet<String> {
+        connus
+            .keys()
+            .filter(|nom| source.contains(&format!("<{nom}")))
+            .cloned()
+            .collect()
+    }
+
+    #[test]
+    fn chaque_page_qui_lit_les_preferences_les_fournit() {
+        let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/interface");
+        let design = composants(&racine.join("design"));
+        let pages = composants(&racine.join("pages"));
+
+        // Les lecteurs directs, puis tous ceux qui en composent un.
+        let mut lecteurs: HashSet<String> = design
+            .iter()
+            .filter(|(_, source)| source.contains("preferences()"))
+            .map(|(nom, _)| nom.clone())
+            .collect();
+
+        assert!(
+            !lecteurs.is_empty(),
+            "aucun lecteur de préférences relevé — le relevé est cassé"
+        );
+
+        for _ in 0..design.len() {
+            let avant = lecteurs.len();
+            for (nom, source) in &design {
+                if !lecteurs.contains(nom) && !composes(source, &design).is_disjoint(&lecteurs) {
+                    lecteurs.insert(nom.clone());
+                }
+            }
+            if lecteurs.len() == avant {
+                break;
+            }
+        }
+
+        for (page, source) in &pages {
+            let lus: Vec<&String> = composes(source, &design)
+                .iter()
+                .filter(|nom| lecteurs.contains(*nom))
+                .map(|nom| design.get_key_value(nom).expect("un composant connu").0)
+                .collect();
+
+            if lus.is_empty() {
+                continue;
+            }
+            assert!(
+                source.contains("fournir_preferences()"),
+                "la page `{page}` compose {lus:?}, qui lit les réglages de lecture, \
+                 et n'appelle pas `fournir_preferences()`. Le réglage n'aura donc aucun \
+                 effet sur cette page — et en `--release` rien ne le dira, puisque le \
+                 `debug_assert!` ne s'arme pas et que la page rend `200`."
+            );
+        }
+    }
+}
