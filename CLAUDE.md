@@ -2441,9 +2441,14 @@ La chaîne entière est intacte. **On ne juge pas un enregistrement DNS sur ce
 qu'on croit avoir laissé faire** — c'est la règle du §4, et elle vaut aussi quand
 c'est un tiers qui écrit.
 
-**Reste à faire, dans la Search Console** : *Sitemaps* → **`https://ontbible.com/sitemap.xml`** → Envoyer.
-C'est le geste qui donne les adresses à Google, et il ne s'automatise pas —
-l'API demande un jeton OAuth du compte.
+**Fait le 26 août 2026** : *Sitemaps* → **`https://ontbible.com/sitemap.xml`** →
+Envoyer. Google rend « Opération effectuée », **163 pages découvertes**. Le geste
+ne s'automatise pas — l'API demande un jeton OAuth du compte.
+
+**Les deux index ont le corpus désormais** : Bing et ses partenaires par
+IndexNow, Google par le sitemap. Il n'y a plus rien à faire des deux côtés, et
+relancer l'un ou l'autre n'accélérerait rien : découvrir n'est pas indexer, et le
+délai qui suit appartient aux moteurs.
 
 **L'adresse est absolue, et c'est une conséquence du type de propriété.** Sur un
 *préfixe d'URL*, le champ complète tout seul et `sitemap.xml` suffit ; sur une
