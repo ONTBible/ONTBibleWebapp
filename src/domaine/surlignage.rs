@@ -347,3 +347,180 @@ mod tests {
         assert_eq!(locaux.len(), 3);
     }
 }
+
+/// Le contrat avec le backend, éprouvé sur sa **source** et non sur nos souvenirs.
+///
+/// ## Le défaut que ces tests attrapent n'existe dans aucun des deux dépôts
+///
+/// Il vit **entre** eux. Un `#[serde(rename_all = "camelCase")]` posé côté
+/// backend est une ligne qui a l'air d'une amélioration de style : elle ne casse
+/// aucune compilation là-bas, aucun de ses tests, et elle ne touche à rien ici.
+///
+/// Elle rend simplement une réponse que le site ne sait plus lire — et comme
+/// `mes_surlignages` traduit un échec en liste vide, le lecteur verrait « aucun
+/// surlignage » au lieu d'une erreur. **Un `Ok(Vec::new())` parfaitement bien
+/// formé sur une synchronisation qui n'a pas eu lieu.**
+///
+/// C'est le motif que les sessions se renvoient depuis deux jours, à son point
+/// extrême : le silence n'est pas l'absence d'événement, c'est l'absence de
+/// question posée sur l'événement.
+///
+/// ## Pourquoi lire la source plutôt que fabriquer un exemple
+///
+/// Un exemple écrit à la main éprouve ce qu'on **croit** que le backend produit.
+/// C'est exactement la supposition qu'on veut retirer. Le test lit donc
+/// `../ONTBibleApp/backend/src/domain/sync.rs` et compare champ par champ.
+///
+/// Il **se tait** si le dépôt voisin n'est pas là — clone partiel, machine de
+/// compilation. Un test d'accord ne peut pas exiger la présence de ce avec quoi
+/// il accorde ; il peut seulement refuser de mentir sur ce qu'il n'a pas vu.
+#[cfg(all(test, feature = "ssr"))]
+mod contrat {
+    use super::*;
+
+    /// La source de `Highlight` côté backend, si le dépôt voisin est là.
+    fn source_du_backend() -> Option<String> {
+        let chemin = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../ONTBibleApp/backend/src/domain/sync.rs"
+        );
+        std::fs::read_to_string(chemin).ok()
+    }
+
+    /// Le backend n'a posé aucun renommage — nos noms sont donc les siens.
+    ///
+    /// C'est **la** condition qui rend le reste vrai. Tant qu'elle tient, un
+    /// champ Rust `book_id` voyage en `book_id`. Le jour où elle tombe, tout ce
+    /// module devient faux d'un coup, et il vaut mieux l'apprendre ici qu'en
+    /// voyant un lecteur perdre ses marques.
+    #[test]
+    fn le_backend_ne_renomme_rien() {
+        let Some(source) = source_du_backend() else {
+            return;
+        };
+        assert!(
+            !source.contains("rename_all"),
+            "le backend a posé un `rename_all` : les noms JSON ont changé, et le \
+             site lira une réponse vide qu'il prendra pour « pas de compte »"
+        );
+        assert!(
+            !source.contains("#[serde(rename"),
+            "le backend a renommé un champ — même remarque"
+        );
+    }
+
+    /// Chaque champ que nous déclarons existe chez lui, au même nom.
+    ///
+    /// On cherche `pub <nom>:` dans sa structure : c'est la forme exacte d'une
+    /// déclaration Rust, donc un nom trouvé ainsi est un nom qui voyage.
+    #[test]
+    fn chaque_champ_existe_chez_le_backend() {
+        let Some(source) = source_du_backend() else {
+            return;
+        };
+        let structure = source
+            .split("pub struct Highlight")
+            .nth(1)
+            .and_then(|reste| reste.split("\n}").next())
+            .expect("la structure Highlight doit exister côté backend");
+
+        for champ in [
+            "id",
+            "book_id",
+            "chapter_id",
+            "verse",
+            "color",
+            "note",
+            "updated_at",
+            "deleted",
+        ] {
+            assert!(
+                structure.contains(&format!("pub {champ}:")),
+                "`{champ}` n'existe plus dans `Highlight` côté backend — le site \
+                 l'envoie pourtant, et le recevra sans le comprendre"
+            );
+        }
+    }
+
+    /// Les deux dissymétries de sérialisation sont toujours celles qu'on suit.
+    ///
+    /// `note` est **absent** quand il n'y en a pas — pas `null` — et `deleted`
+    /// tolère l'absence à la lecture. Ce sont deux attributs, et les deux ont un
+    /// effet visible : un `null` inattendu fait échouer une désérialisation
+    /// stricte, et un `deleted` obligatoire ferait rejeter les réponses d'une
+    /// version antérieure.
+    #[test]
+    fn les_deux_dissymetries_tiennent() {
+        let Some(source) = source_du_backend() else {
+            return;
+        };
+        assert!(
+            source.contains("skip_serializing_if = \"Option::is_none\""),
+            "`note` ne se tait plus quand elle est absente : le backend enverra \
+             `null`, que notre `Option` lit encore — mais l'inverse ne serait pas \
+             vrai, et c'est le sens de ce test"
+        );
+        assert!(
+            source.contains("#[serde(default)]"),
+            "`deleted` n'est plus tolérant à l'absence"
+        );
+    }
+
+    /// Un objet du site se relit par un type de la forme du backend.
+    ///
+    /// C'est l'aller-retour, la seule épreuve qui ne dépende d'aucune lecture de
+    /// source : on sérialise ce qu'on enverrait, et on le relit avec un type
+    /// **écrit à part**, dont les noms sont copiés du backend à la main. Si les
+    /// deux divergent, la relecture échoue ici plutôt qu'en production.
+    #[test]
+    fn ce_que_le_site_envoie_se_relit_comme_le_backend_le_lit() {
+        // Écrit à la main, d'après `backend/src/domain/sync.rs`. Volontairement
+        // **pas** un alias de `Surlignage` : un alias se contenterait de
+        // confirmer que le type est d'accord avec lui-même.
+        #[derive(serde::Deserialize)]
+        #[allow(dead_code)]
+        struct CommeLeBackend {
+            id: String,
+            book_id: String,
+            chapter_id: String,
+            verse: u32,
+            color: String,
+            #[serde(default)]
+            note: Option<String>,
+            updated_at: i64,
+            #[serde(default)]
+            deleted: bool,
+        }
+
+        let envoye = Surlignage {
+            id: "bereshit-1-3".into(),
+            book_id: "bereshit".into(),
+            chapter_id: "bereshit-1".into(),
+            verse: 3,
+            color: "gold".into(),
+            note: Some("la parole qui accomplit".into()),
+            updated_at: 1_756_000_000_000,
+            deleted: false,
+        };
+
+        let fil = serde_json::to_string(&envoye).expect("sérialisable");
+        let relu: CommeLeBackend =
+            serde_json::from_str(&fil).expect("le backend doit savoir relire ce qu'on envoie");
+
+        assert_eq!(relu.chapter_id, "bereshit-1");
+        assert_eq!(relu.verse, 3);
+        assert_eq!(relu.note.as_deref(), Some("la parole qui accomplit"));
+
+        // Et sans note : la clé doit être **absente**, pas nulle.
+        let sans = Surlignage {
+            note: None,
+            ..envoye
+        };
+        let fil = serde_json::to_string(&sans).expect("sérialisable");
+        assert!(
+            !fil.contains("note"),
+            "une note absente ne doit pas paraître dans le fil : {fil}"
+        );
+        let _: CommeLeBackend = serde_json::from_str(&fil).expect("relisible sans note");
+    }
+}
