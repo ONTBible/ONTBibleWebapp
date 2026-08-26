@@ -334,4 +334,26 @@ mod tests {
             "une adresse ne porte jamais d'espace"
         );
     }
+
+    /// Imprime ce que le site produit, pour l'éprouver hors du site.
+    ///
+    /// Sert à donner à une session voisine un lien **réellement produit** plutôt
+    /// qu'un lien écrit à la main — c'est la seule façon d'éprouver la chaîne
+    /// bout en bout, chacun n'ayant jusque-là vérifié que sa moitié.
+    #[test]
+    fn imprimer_un_lien_reel() {
+        for cas in [
+            vec![1u32, 2, 3, 7],
+            vec![6],
+            vec![4, 5],
+            vec![7, 2, 1, 3, 7],
+        ] {
+            println!(
+                "  {:?} → https://ontbible.com/fr/lire/bereshit/bereshit-1?v={}  ({})",
+                cas,
+                parametre(&cas),
+                libelle(&cas)
+            );
+        }
+    }
 }
