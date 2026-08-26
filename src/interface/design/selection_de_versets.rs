@@ -20,6 +20,45 @@ use leptos::prelude::*;
 /// faire ici plutôt qu'à chaque appel évite deux tris.
 pub type Selection = RwSignal<BTreeSet<u32>>;
 
+/// Les surlignages de l'unité, tels que le serveur les connaît.
+///
+/// Fournis par la page, comme la sélection. **Absents quand il n'y a pas de
+/// compte** — et la rangée de couleurs ne s'affiche alors pas du tout :
+/// proposer de surligner sans pouvoir le retenir serait une promesse qu'on ne
+/// tient pas.
+pub type Marques = RwSignal<Vec<crate::domaine::surlignage::Surlignage>>;
+
+/// Installe les surlignages pour la page.
+pub fn fournir_marques(depart: Vec<crate::domaine::surlignage::Surlignage>) -> Marques {
+    let marques = RwSignal::new(depart);
+    provide_context(marques);
+    marques
+}
+
+/// Les surlignages de la page, ou rien.
+pub fn marques() -> Option<Marques> {
+    use_context::<Marques>()
+}
+
+/// La couleur posée sur ce verset, s'il y en a une **visible**.
+///
+/// Une pierre tombale n'en rend pas : elle traverse la synchronisation pour
+/// propager une suppression, mais elle ne se dessine pas. C'est la distinction
+/// que l'app a payée cher — écarter trop tôt fait perdre des suppressions,
+/// écarter trop tard dessine des marques effacées ailleurs.
+pub fn couleur_du_verset(
+    marques: Option<Marques>,
+    unite: &str,
+    verset: u32,
+) -> Option<crate::domaine::surlignage::Couleur> {
+    marques?.with(|liste| {
+        liste
+            .iter()
+            .find(|m| m.chapter_id == unite && m.verse == verset && m.visible())
+            .and_then(|m| m.couleur())
+    })
+}
+
 /// Installe la sélection pour la page.
 ///
 /// À appeler **une fois**, dans la page qui porte un passage. Comme pour les
@@ -138,7 +177,17 @@ pub fn BarreDeSelection(
     chemin: String,
     /// Le texte de chaque verset, par numéro. Sert à ce qu'on copie.
     textes: std::collections::BTreeMap<u32, String>,
+    /// L'identifiant du livre — « bereshit ». Sert à poser une marque.
+    #[prop(into)]
+    livre_id: String,
+    /// L'identifiant de l'unité — « bereshit-1 ».
+    #[prop(into)]
+    unite_id: String,
 ) -> impl IntoView {
+    let livre_id = StoredValue::new(livre_id);
+    let unite_id = StoredValue::new(unite_id);
+    // Absentes sans compte : la rangée de couleurs ne s'affiche alors pas.
+    let marquage = marques();
     let livre = StoredValue::new(livre);
     let chemin = StoredValue::new(chemin);
     let tous: Vec<u32> = textes.keys().copied().collect();
@@ -146,6 +195,7 @@ pub fn BarreDeSelection(
     let textes = StoredValue::new(textes);
 
     let vide = move || selection.with(|s| s.is_empty());
+    let note_ouverte = RwSignal::new(false);
 
     let renvoi_courant = move || selection.with(|s| livre.with_value(|l| renvoi(l, chapitre, s)));
 
@@ -206,7 +256,57 @@ pub fn BarreDeSelection(
                     {renvoi_courant}
                 </p>
 
+                // Les cinq teintes, réparties sur la largeur — la rangée de
+                // `VerseActionBar`. Son commentaire donne le choix de forme :
+                // « Des carrés arrondis plutôt que des ronds : à cette taille un
+                // carré montre plus de couleur, et la distingue mieux d'une
+                // pastille de statut. »
+                //
+                // Elle n'existe que si un compte est ouvert. Sans lui, un
+                // surlignage ne serait retenu nulle part — et une couleur qu'on
+                // pose et qui disparaît au rechargement est pire qu'une couleur
+                // absente.
+                {marquage
+                    .map(|_| {
+                        view! {
+                            <div class="mb-3 flex items-stretch border-b border-filet pb-3">
+                                {crate::domaine::surlignage::Couleur::toutes()
+                                    .into_iter()
+                                    .map(|couleur| {
+                                        view! {
+                                            <Pastille
+                                                couleur
+                                                selection
+                                                livre=livre_id
+                                                unite=unite_id
+                                            />
+                                        }
+                                    })
+                                    .collect_view()}
+                                <Gomme selection livre=livre_id unite=unite_id />
+                            </div>
+                        }
+                    })}
+
                 <div class="flex items-stretch">
+                    // « Noter » n'apparaît que sur **un seul** verset, et l'app
+                    // dit pourquoi : « Une note se rattache à un verset : le
+                    // domaine ne sait pas en porter une sur un intervalle, et
+                    // faire semblant en écrivant le même texte partout
+                    // produirait cinq notes à corriger une à une. »
+                    {marquage
+                        .map(|_| {
+                            view! {
+                                <button
+                                    type="button"
+                                    class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                    class=("invisible", move || selection.with(|s| s.len() != 1))
+                                    on:click=move |_| note_ouverte.set(true)
+                                >
+                                    "Noter"
+                                </button>
+                            }
+                        })}
                     <ActionDeSelection
                         libelle="Copier"
                         texte=Callback::new(move |()| texte_partage())
@@ -227,6 +327,109 @@ pub fn BarreDeSelection(
                         libelle="Effacer"
                         au_clic=Callback::new(move |()| selection.update(|s| s.clear()))
                     />
+                </div>
+            </div>
+        </div>
+
+        <FeuilleDeNote
+            ouverte=note_ouverte
+            selection
+            livre=livre_id
+            unite=unite_id
+            renvoi=Callback::new(move |()| renvoi_courant())
+        />
+    }
+}
+
+/// Écrire une note sur un verset.
+///
+/// ## Une note implique une couleur
+///
+/// L'app le fait ainsi, et le site suit : si le verset n'est pas déjà surligné,
+/// enregistrer une note pose une marque **or** pour la porter. Sans elle, la
+/// note n'aurait aucun support visible — on l'écrirait, et rien à l'écran ne
+/// dirait qu'elle existe.
+///
+/// ## Elle reste montée, comme la barre
+///
+/// Même raison qu'ailleurs : un `<Show>` arrache l'élément, et rien ne transite
+/// sur ce qui n'existe plus. `inert` quand elle est fermée, faute de quoi son
+/// champ resterait dans l'ordre de tabulation.
+#[component]
+fn FeuilleDeNote(
+    ouverte: RwSignal<bool>,
+    selection: Selection,
+    livre: StoredValue<String>,
+    unite: StoredValue<String>,
+    renvoi: Callback<(), String>,
+) -> impl IntoView {
+    let texte = RwSignal::new(String::new());
+
+    let enregistrer = move |_| {
+        let versets: Vec<u32> = selection.with(|s| s.iter().copied().collect());
+        let contenu = texte.get();
+        if versets.len() != 1 {
+            return;
+        }
+        let (l, u) = (livre.get_value(), unite.get_value());
+        leptos::task::spawn_local(async move {
+            // La couleur or par défaut : c'est ce que fait `ReadingModel.setNote`
+            // côté app. Une note sans marque serait invisible.
+            let _ = crate::api::poser_surlignage(
+                l,
+                u,
+                versets,
+                Some("gold".to_string()),
+                Some(contenu),
+            )
+            .await;
+        });
+        texte.set(String::new());
+        ouverte.set(false);
+        selection.update(|s| s.clear());
+    };
+
+    view! {
+        <div
+            class="fixed inset-0 z-50 flex items-end justify-center bg-nuit/70 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm transition-opacity duration-200 motion-reduce:transition-none sm:items-center"
+            class=("pointer-events-none", move || !ouverte.get())
+            class=("opacity-0", move || !ouverte.get())
+            inert=move || (!ouverte.get()).then_some("")
+            on:click=move |_| ouverte.set(false)
+        >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Écrire une note"
+                class="w-full max-w-mesure rounded-carte border border-filet bg-surface-haute p-6 shadow-2xl"
+                // Sans ça, un clic dans la feuille la fermerait : l'événement
+                // remonterait jusqu'au voile qui l'entoure.
+                on:click=|evenement| evenement.stop_propagation()
+            >
+                <p class="chiffres-tableau mb-4 text-sm text-encre-douce">{move || renvoi.run(())}</p>
+
+                <textarea
+                    class="mb-5 min-h-32 w-full rounded-carte border border-filet bg-nuit px-4 py-3 text-encre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    placeholder="Ce que ce verset vous dit…"
+                    prop:value=move || texte.get()
+                    on:input=move |e| texte.set(event_target_value(&e))
+                ></textarea>
+
+                <div class="flex justify-end gap-3">
+                    <button
+                        type="button"
+                        class="rounded-full px-4 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:text-encre"
+                        on:click=move |_| ouverte.set(false)
+                    >
+                        "Annuler"
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-full border border-or/50 px-5 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:border-or hover:bg-aubergine/40"
+                        on:click=enregistrer
+                    >
+                        "Enregistrer"
+                    </button>
                 </div>
             </div>
         </div>
@@ -363,6 +566,104 @@ fn ActionDePartage(texte: Callback<(), String>, lien: Callback<(), String>) -> i
             on:click=au_clic
         >
             {move || etat.get()}
+        </button>
+    }
+}
+
+/// Une teinte à poser, et la cible tactile qui va avec.
+///
+/// Le carré fait **34 pixels**, comme l'app — mais la cible prend toute la
+/// colonne. Le commentaire de l'app explique pourquoi, et ça vaut pour un doigt
+/// sur un écran de téléphone autant que sur iOS : « La cible s'arrêtait au carré
+/// dessiné — 34 points, sous le minimum d'Apple. Elle prend maintenant toute la
+/// colonne, sans que le carré change de taille. »
+#[component]
+fn Pastille(
+    couleur: crate::domaine::surlignage::Couleur,
+    selection: Selection,
+    livre: StoredValue<String>,
+    unite: StoredValue<String>,
+) -> impl IntoView {
+    let poser = move |_| {
+        let versets: Vec<u32> = selection.with(|s| s.iter().copied().collect());
+        if versets.is_empty() {
+            return;
+        }
+        let (l, u) = (livre.get_value(), unite.get_value());
+        let cle = couleur.cle().to_string();
+        leptos::task::spawn_local(async move {
+            // Le résultat n'est pas attendu : la marque est déjà à l'écran, et
+            // un échec réseau ne doit pas défaire ce que le lecteur vient de
+            // faire. La prochaine synchronisation rétablira l'accord.
+            let _ = crate::api::poser_surlignage(l, u, versets, Some(cle), None).await;
+        });
+        selection.update(|s| s.clear());
+    };
+
+    view! {
+        <button
+            type="button"
+            class="flex flex-1 items-center justify-center rounded-xl py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            aria-label=format!("Surligner en {}", couleur.nom())
+            on:click=poser
+        >
+            <span
+                class="block size-[34px] rounded-[9px] border border-encre/10"
+                style=format!("background-color: {}", couleur.teinte())
+            ></span>
+        </button>
+    }
+}
+
+/// Retirer la marque — et c'est une **pierre tombale** qu'on envoie.
+///
+/// L'app l'a appris à ses dépens : « Supprimer physiquement un surlignage ne se
+/// synchronise pas : l'appareil qui efface n'a plus rien à envoyer, et celui qui
+/// reçoit ne voit qu'un objet manquant — indistinguable d'un objet qu'il n'a pas
+/// encore. Il le renvoie donc, et le surlignage ressuscite au prochain échange. »
+#[component]
+fn Gomme(
+    selection: Selection,
+    livre: StoredValue<String>,
+    unite: StoredValue<String>,
+) -> impl IntoView {
+    let effacer = move |_| {
+        let versets: Vec<u32> = selection.with(|s| s.iter().copied().collect());
+        if versets.is_empty() {
+            return;
+        }
+        let (l, u) = (livre.get_value(), unite.get_value());
+        leptos::task::spawn_local(async move {
+            let _ = crate::api::poser_surlignage(l, u, versets, None, None).await;
+        });
+        selection.update(|s| s.clear());
+    };
+
+    view! {
+        <button
+            type="button"
+            class="flex flex-1 items-center justify-center rounded-xl py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            aria-label="Retirer le surlignage"
+            on:click=effacer
+        >
+            // Un cercle **tracé** et non rempli, comme l'app : il ne propose pas
+            // une couleur, il en retire une.
+            <span class="flex size-[34px] items-center justify-center rounded-full border border-encre/20 text-encre-douce">
+                <svg
+                    viewBox="0 0 24 24"
+                    class="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    aria-hidden="true"
+                >
+                    <path d="M4 20h16" stroke-linecap="round" />
+                    <path
+                        d="M14.5 4.5 20 10a1.5 1.5 0 0 1 0 2.1l-6 6H8l-3.5-3.5a1.5 1.5 0 0 1 0-2.1l8-8a1.5 1.5 0 0 1 2 0Z"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </span>
         </button>
     }
 }

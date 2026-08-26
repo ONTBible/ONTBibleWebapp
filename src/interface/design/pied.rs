@@ -45,6 +45,12 @@ pub fn PiedDePage() -> impl IntoView {
                     aria-label="Mentions et code source"
                     class="flex flex-wrap justify-center gap-x-6 gap-y-2"
                 >
+                    // Le compte est dans le second rang, avec les mentions, et
+                    // pas dans le premier avec Lire et Lexique : il ne sert pas
+                    // à lire. C'est un réglage, pas une façon d'entrer dans le
+                    // corpus — le mettre en tête laisserait croire qu'il faut
+                    // s'inscrire pour lire.
+                    <a href="/fr/compte" class=LIEN>"Votre compte"</a>
                     <a href="/fr/assistance" class=LIEN>"Assistance"</a>
                     <a href="/fr/confidentialite" class=LIEN>"Confidentialité"</a>
                     <a href="/fr/conditions" class=LIEN>"Conditions"</a>

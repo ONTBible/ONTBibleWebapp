@@ -48,7 +48,10 @@ pub fn Compte() -> impl IntoView {
         />
 
         <PageDeLecture
-            rappel="Votre compte"
+            // Le rappel ne redit pas le titre : ils se suivent à l'écran, et
+            // « Votre compte / Votre compte » se lit comme un défaut de rendu.
+            // Il nomme ce à quoi le compte sert, ce que le titre ne dit pas.
+            rappel="Vos marques"
             titre="Votre compte"
             chapeau=Box::new(|| {
                 view! {

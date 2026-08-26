@@ -4,7 +4,9 @@ use crate::domaine::corpus::Bloc as BlocDeTexte;
 use crate::domaine::lecture::{preparer, Preferences};
 use crate::domaine::texte::Noeud;
 use crate::interface::design::verset::rendre_noeuds;
-use crate::interface::design::{basculer, preferences, selection, Selection, Verset};
+use crate::interface::design::{
+    basculer, marques, preferences, selection, Marques, Selection, Verset,
+};
 
 /// Le corps d'un chapitre ou d'une fiche — tous les blocs que le pipeline sait
 /// produire.
@@ -56,6 +58,10 @@ pub fn Blocs(
     // clic. Un verset qui aurait l'air cliquable sans l'être serait pire que
     // pas de sélection du tout.
     let choix = selection();
+    // Les marques du serveur, quand il y a un compte. L'unité vient d'elles :
+    // tous les surlignages d'une page portent le même `chapter_id`, donc le
+    // relever évite de le faire descendre en prop à travers quatre étages.
+    let marquage = marques();
 
     move || {
         let p = preferences.get();
@@ -63,7 +69,7 @@ pub fn Blocs(
             en_avant.with_value(|en_avant| {
                 blocs
                     .iter()
-                    .map(|bloc| rendre_bloc(bloc.clone(), en_avant, p, choix))
+                    .map(|bloc| rendre_bloc(bloc.clone(), en_avant, p, choix, marquage))
                     .collect_view()
             })
         })
@@ -160,6 +166,7 @@ fn rendre_bloc(
     en_avant: &[u32],
     p: Preferences,
     choix: Option<Selection>,
+    marquage: Option<Marques>,
 ) -> AnyView {
     match bloc {
         // ── Les versets à la suite ────────────────────────────────────────
@@ -228,6 +235,35 @@ fn rendre_bloc(
                 let une_selection_ailleurs = move || {
                     choix.is_some_and(|s| s.with(|s| !s.is_empty())) && !choisi()
                 };
+                // Le surlignage — une marque durable, donc un **fond**, là où la
+                // sélection n'a qu'un pointillé. L'app tient cette distinction
+                // et dit pourquoi : un fond ferait croire qu'on vient de
+                // surligner.
+                let teinte = move || {
+                    marquage.and_then(|m| {
+                        m.with(|liste| {
+                            liste
+                                .iter()
+                                .find(|s| s.verse == numero && s.visible())
+                                .and_then(|s| s.couleur())
+                                .map(|c| c.teinte())
+                        })
+                    })
+                };
+                let surligne = move || teinte().is_some();
+                // La note du lecteur, sous le verset qu'elle commente. Elle vit
+                // **dans** le fond surligné, comme dans l'app : c'est la même
+                // marque, écrite en deux fois.
+                let note = move || {
+                    marquage.and_then(|m| {
+                        m.with(|liste| {
+                            liste
+                                .iter()
+                                .find(|s| s.verse == numero && s.visible())
+                                .and_then(|s| s.note.clone())
+                        })
+                    })
+                };
                 let verset = crate::domaine::texte::Verset {
                     numero: verset.numero,
                     noeuds: preparer(&verset.noeuds, p),
@@ -277,6 +313,8 @@ fn rendre_bloc(
                         class=("decoration-accent/70", choisi)
                         class=("underline-offset-[0.3em]", choisi)
                         class=("decoration-2", choisi)
+                        class=("surligne", surligne)
+                        style=move || teinte().map(|t| format!("--teinte: {t}"))
                         class=("cursor-pointer", move || choix.is_some())
                         role=move || choix.is_some().then_some("button")
                         tabindex=move || choix.is_some().then_some("0")
@@ -285,6 +323,19 @@ fn rendre_bloc(
                         on:keydown=au_clavier
                     >
                         <Verset verset />
+                        {move || {
+                            note()
+                                .map(|texte| {
+                                    view! {
+                                        <p class="mt-1 flex gap-2 ps-1 text-sm text-encre-douce">
+                                            <span aria-hidden="true" class="text-accent">
+                                                "❞"
+                                            </span>
+                                            <span>{texte}</span>
+                                        </p>
+                                    }
+                                })
+                        }}
                     </div>
                 }
                 .into_any()
