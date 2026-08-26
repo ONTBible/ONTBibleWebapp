@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::api::sommaire;
-use crate::interface::design::{PageDeLecture, Sommaire};
+use crate::interface::design::{fournir_preferences, PageDeLecture, Sommaire};
 use crate::interface::tete::Tete;
 
 /// `/fr/lire` — le sommaire du corpus.
@@ -13,6 +13,22 @@ use crate::interface::tete::Tete;
 /// du pipeline.
 #[component]
 pub fn Lire() -> impl IntoView {
+    // Le sommaire nomme les unités selon le registre choisi — « Chapitre 3 »
+    // ou « Parashah 3 » —, donc il **lit** les préférences. Sans ce
+    // fournisseur, `preferences()` retombait sur un signal constant : le
+    // réglage n'avait aucun effet sur cette page, et rien ne le disait.
+    //
+    // La correction du 25 août avait couvert `livre.rs` et `fiche.rs` en
+    // relevant qui appelait `preferences()` **directement**. Celle-ci consomme
+    // par composant interposé : `Lire` ne cite ni `preferences` ni
+    // `nom_d_unite`, c'est `Sommaire` qui les appelle. Un relevé par appel
+    // direct ne pouvait pas la voir.
+    //
+    // C'est le `debug_assert!` posé le même jour qui l'a trouvée, en faisant
+    // paniquer la page en développement. En `--release` il ne s'arme pas : la
+    // page s'affichait, se lisait, et le réglage restait mort.
+    let _preferences = fournir_preferences();
+
     let plan = Resource::new_blocking(|| (), |_| async { sommaire().await });
 
     view! {
