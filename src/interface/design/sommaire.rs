@@ -213,7 +213,20 @@ fn entete(c: Conteneur) -> impl IntoView {
             <p class="m-0 mt-6 mb-1 text-xs uppercase tracking-capitales text-encre-douce first:mt-0">
                 {c.titre}
             </p>
-            <p class="m-0 mb-2 text-[0.82em] text-encre-douce/70">{c.francais}</p>
+            // Le registre vaut ici comme ailleurs.
+            //
+            // Cette ligne écrivait `{c.francais}` en dur, donc un lecteur qui
+            // avait choisi la glose la voyait partout — sections, livres — sauf
+            // sur *Trei Asar* et le *Ḥurban*. Un réglage qui s'applique presque
+            // partout est pire qu'un réglage absent : on le croit cassé, et l'on
+            // ne sait pas où.
+            //
+            // Relevé par la session Android, qui comparait les deux écrans pour
+            // un défaut voisin de son côté. Elle ne s'est pas prononcée — « c'est
+            // ton dépôt, je signale seulement » — et elle a bien fait : la glose
+            // d'un conteneur est facultative, donc l'écart ne se voyait que sur
+            // ceux qui en ont une.
+            {sous_titre(c.francais, c.glose, "mb-2")}
         </li>
     }
 }
@@ -243,5 +256,55 @@ fn sous_titre(francais: String, glose: Option<String>, marge: &'static str) -> i
                 </p>
             }
         })
+    }
+}
+
+/// Tout second nom passe par `sous_titre`, et donc par le registre.
+///
+/// ## Pourquoi un test, et pas une relecture
+///
+/// Le défaut qu'il garde était invisible : l'en-tête d'un conteneur écrivait
+/// `{c.francais}` en dur, si bien que le registre s'appliquait aux sections, aux
+/// livres, aux unités — **et pas là**. Un réglage qui vaut presque partout est
+/// pire qu'un réglage absent : on le croit cassé, et l'on ne sait pas où.
+///
+/// Il a fallu qu'une session voisine compare deux écrans pour un défaut voisin
+/// de son côté. Personne ne l'aurait vu en relisant ce fichier — la ligne est
+/// juste, elle affiche bien un nom français, et rien n'y manque *en apparence*.
+///
+/// Le test cherche donc la **forme** du défaut plutôt que le cas : un champ
+/// `francais` interpolé dans une vue sans passer par la fonction qui décide.
+#[cfg(all(test, feature = "ssr"))]
+mod tests {
+    /// Aucun `francais` n'est peint directement dans une vue de ce module.
+    #[test]
+    fn le_registre_ne_se_contourne_pas() {
+        // Le module de tests est écarté : il **cite** le défaut pour
+        // l'expliquer, et un test qui se détecte lui-même n'échoue que sur sa
+        // propre prose. C'est le piège de tout relevé qui lit sa propre source.
+        let entier = include_str!("sommaire.rs");
+        let source = entier
+            .split_once("#[cfg(all(test")
+            .map(|(avant, _)| avant)
+            .unwrap_or(entier);
+
+        // On relève les interpolations `{…francais}` d'une vue, en écartant la
+        // seule légitime : l'argument passé à `sous_titre`, qui *est* le point
+        // de décision.
+        let fautes: Vec<&str> = source
+            .lines()
+            .map(str::trim)
+            .filter(|ligne| !ligne.starts_with("//"))
+            .filter(|ligne| ligne.contains(".francais}"))
+            .filter(|ligne| !ligne.contains("sous_titre("))
+            .collect();
+
+        assert!(
+            fautes.is_empty(),
+            "un second nom est peint sans passer par `sous_titre`, donc sans le \
+             registre — le lecteur qui a choisi la glose verra le français à cet \
+             endroit et nulle part ailleurs :\n  {}",
+            fautes.join("\n  ")
+        );
     }
 }
