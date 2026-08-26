@@ -33,7 +33,9 @@ pub fn Lire() -> impl IntoView {
 
     view! {
         <Tete
-            titre="Lire"
+            // Même règle qu'au lexique : « Lire » nomme une action dans une
+            // navigation, il ne nomme pas un contenu pour un moteur.
+            titre="Lire le corpus hébreu et araméen"
             description="Le corpus de La Bible ONT — les soixante-dix livres du Kenesset et \
                          de la Berit Hadashah, et l'état de leur restitution."
             chemin="/fr/lire"

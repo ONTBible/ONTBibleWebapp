@@ -31,10 +31,19 @@ pub fn Accueil() -> impl IntoView {
 
     view! {
         <Tete
-            titre="La Bible ONT"
-            description="Une restitution française du corpus hébreu et araméen antique, \
-                         fondée sur l'ontologie hébraïque fonctionnelle. Le cosmos hébreu \
-                         n'est pas une usine : c'est un Temple."
+            // Le titre est une phrase, pas une étiquette — voir `Tete`.
+            // « La Bible ONT » seul ne portait aucun des mots par lesquels on
+            // cherche ce projet : ni « bible ontologique », ni « ontologie
+            // hébraïque ». Le nom y est deux fois, et ça ne se voit pas.
+            titre="La Bible ONT — la Bible depuis l'ontologie hébraïque"
+            // Cent cinquante-deux signes, et c'est une borne et non un goût :
+            // au-delà d'environ cent soixante, un moteur coupe au milieu d'un
+            // mot et la dernière phrase disparaît. L'ancienne en faisait cent
+            // soixante-treize, donc « c'est un Temple » — la phrase qui porte
+            // tout le site — tombait hors du cadre.
+            description="La restitution française du corpus hébreu et araméen antique, \
+                         lue depuis l'ontologie hébraïque. Le cosmos hébreu n'est pas \
+                         une usine : c'est un Temple."
             chemin="/fr"
         />
 

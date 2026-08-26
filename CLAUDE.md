@@ -2475,6 +2475,86 @@ Et ce qu'il comble ici efface Gloire de son propre projet. C'est ce qui rend les
 deux soumissions urgentes plutôt que souhaitables : tant que l'index manque, la
 seule version qui circule est celle qu'on invente à sa place.
 
+## 8 octies. Porter les mots qu'on tape — le 26 août 2026
+
+Le site était irréprochable techniquement — 54 ms au premier octet, JSON-LD,
+Open Graph, canonique, hreflang, texte en clair — et **ses titres ne
+contenaient aucun des mots par lesquels on le cherche**.
+
+### Le gisement était les noms français, et il valait cent soixante-trois pages
+
+Le site nomme les livres par leur titre hébreu, et c'est une décision : le
+corpus s'appelle *Bereshit*, pas Genèse. Elle tient **dans** la page, où le
+lecteur est déjà arrivé.
+
+Elle ne tient pas dans un moteur. **Personne ne cherche « Bereshit 1 » sans
+connaître déjà le projet** — et ce sont exactement ceux qui ne le connaissent
+pas qu'un moteur amène. Les cent soixante-trois pages du corpus étaient donc
+introuvables par la seule requête qui les désigne pour un lecteur français.
+
+`titre_indexable` compose « Bereshit 1 (Genèse 1) » — le nom du corpus d'abord,
+celui qu'on connaît ensuite, comme le fait le fil d'Ariane. **On ne remplace pas
+le nom, on le traduit à côté.** Une introduction ne prend pas de numéro : son
+rang vaut zéro, et « Genèse 0 » désignerait un chapitre qui n'existe pas.
+
+### Ce que chaque page a gagné
+
+| page | avant | après |
+|---|---|---|
+| accueil | `La Bible ONT` — 12 signes | `La Bible ONT — la Bible depuis l'ontologie hébraïque` |
+| « Le pourquoi » | `Le pourquoi` | `L'ontologie hébraïque antique` |
+| sommaire | `Lire` | `Lire le corpus hébreu et araméen` |
+| lexique | `Lexique` | `Lexique des intraduisibles hébreux` |
+| un livre | `Bereshit` | `Bereshit (Genèse)` |
+| un passage | `Bereshit 1` | `Bereshit 1 (Genèse 1)` |
+| une fiche | `bara` | `bara (hébreu) : orchestrer` |
+
+**Le titre visible ne bouge pas.** « Lire » et « Lexique » restent ce qu'ils
+sont à l'écran : ce sont des mots de sommaire, justes pour qui est arrivé. Seul
+le titre *indexable* change, et il nomme un contenu au lieu d'une action.
+
+### Un rendu qui répète le lemme n'est pas un rendu
+
+`Nefesh : Nefesh` — c'est ce que donnait la règle générale sur les
+intraduisibles **purs**, ceux dont le rendu est le mot lui-même. Un titre qui a
+l'air cassé, là où c'est la promesse même de la fiche : ces mots sont
+précisément ceux qu'on a refusé de traduire.
+
+Ils prennent donc `Nefesh, l'intraduisible hébreu`. La comparaison est
+insensible à la casse — le vault capitalise le titre d'une fiche, pas toujours
+son rendu.
+
+### Les bornes sont tenues par un test, pas par une consigne
+
+Un dépassement ne casse rien : la page s'affiche, se partage, s'indexe — elle
+est seulement **coupée** dans les résultats, et ce qui tombe est la fin,
+c'est-à-dire l'argument, puisqu'on écrit l'essentiel en dernier. « Le pourquoi »
+portait 367 signes de description : la Septante et l'hellénisation n'étaient
+jamais arrivées à l'écran de personne.
+
+`les_titres_et_descriptions_tiennent_dans_un_resultat` borne à **60 signes** de
+titre — *suffixe compris*, puisque c'est la chaîne entière qui s'affiche — et à
+**160** de description, avec un **plancher à 70** : en deçà, un moteur juge la
+description trop maigre et lui préfère un extrait pris dans la page.
+
+Le test saute les pages en `noindex` : ce qu'on ne montre à personne n'a pas à
+être calibré. Il lit les littéraux ; les descriptions composées ont leur garde
+à elles, `tronquer`, qui borne à 200.
+
+### Ce que le référencement ne donnera pas
+
+**« bible » seul est hors d'atteinte**, et il faut le dire une fois pour ne pas
+y revenir : la requête est tenue par des sites de vingt ans d'âge et de
+millions de liens entrants. Aucun travail technique ne renverse ça.
+
+Ce qui est atteignable est la **longue traîne** — « bible ontologique »,
+« ontologie hébraïque », « bara hébreu », « nefesh signification », « Genèse 1
+traduction » — des centaines de requêtes où le site est légitime, et qui
+cumulées valent plus qu'une place lointaine sur le mot le plus disputé.
+
+Et le facteur qui décide vraiment n'est pas dans ce dépôt : ce sont les **liens
+entrants**. Aucune ligne de Rust ne les fabrique.
+
 ## 9. Ce qui reste à trancher
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.

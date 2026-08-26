@@ -107,7 +107,18 @@ pub fn Tete(
     #[prop(into)]
     chemin: String,
 ) -> impl IntoView {
-    let complet = if titre == "La Bible ONT" {
+    // Le suffixe n'est ajouté qu'aux pages qui ne portent pas déjà le nom.
+    //
+    // L'accueil le porte, parce que son titre est une **phrase** et non une
+    // étiquette : « La Bible ONT » seul faisait douze caractères sur les
+    // soixante qu'un moteur affiche, et aucun des mots qu'on tape pour trouver
+    // ce projet. Un titre qui ne contient pas la requête ne dit pas au lecteur
+    // que le résultat est pour lui, même quand il l'est.
+    //
+    // Le test porte sur le **début** et non sur l'égalité : une page qui
+    // s'annonce déjà comme La Bible ONT n'a pas à le redire, quelle que soit
+    // la suite de sa phrase.
+    let complet = if titre.starts_with("La Bible ONT") {
         titre.clone()
     } else {
         format!("{titre} — La Bible ONT")
@@ -164,5 +175,145 @@ pub fn Tete(
         <Meta name="twitter:image" content=format!("{ORIGINE}{}", image("apercu.png")) />
         <Meta name="twitter:title" content=complet />
         <Meta name="twitter:description" content=description />
+    }
+}
+
+/// Un titre et une description tiennent dans ce qu'un moteur affiche.
+///
+/// ## Pourquoi c'est un test et non une consigne
+///
+/// Un dépassement ne casse rien. La page s'affiche, se partage, s'indexe — elle
+/// est seulement **coupée** dans les résultats, au milieu d'un mot, et ce qui
+/// tombe est toujours la fin : c'est-à-dire l'argument, puisqu'on écrit
+/// l'essentiel en dernier.
+///
+/// La page « Le pourquoi » portait trois cent soixante-sept signes de
+/// description. La Septante et l'hellénisation — ce que la page démontre — ne
+/// sont jamais arrivées à l'écran de personne. Rien ne le signalait, et
+/// personne ne relit une balise qu'aucun écran ne montre.
+///
+/// ## Les bornes, et d'où elles viennent
+///
+/// Google coupe autour de **six cents pixels**, pas à un nombre de signes — la
+/// mesure exacte dépend de la fonte et des lettres. Soixante signes de titre et
+/// cent soixante de description sont les seuils que la profession retient, et
+/// ils sont pris ici comme des **maxima** : on ne cherche pas à les atteindre.
+///
+/// Le titre est mesuré **suffixe compris**, puisque c'est la chaîne entière qui
+/// s'affiche. C'est ce qui a fait retirer « et pourquoi elle change tout » d'un
+/// titre qui, seul, paraissait court.
+///
+/// Le test ne voit que les littéraux. Les descriptions composées — celles d'un
+/// passage, d'un livre, d'une fiche — passent par `tronquer`, qui borne à deux
+/// cents signes ; c'est leur garde à elles, et elle vit dans leur code.
+#[cfg(all(test, feature = "ssr"))]
+mod tests {
+    /// Ce qu'un moteur affiche d'un titre, suffixe du site compris.
+    const TITRE_MAX: usize = 60;
+    /// Ce qu'un moteur affiche d'une description.
+    const DESCRIPTION_MAX: usize = 160;
+    /// En deçà, une description ne dit rien qu'un moteur puisse préférer au
+    /// texte de la page — il la remplace alors par un extrait pris au hasard.
+    const DESCRIPTION_MIN: usize = 70;
+
+    /// Relève la valeur d'un attribut littéral, continuations de ligne comprises.
+    ///
+    /// Un littéral Rust coupé par un `\` en fin de ligne reprend après
+    /// l'indentation : recoller les morceaux sans replier ces blancs donnerait
+    /// une longueur fausse — plus grande que la vraie, donc un test qui échoue
+    /// sur des pages correctes.
+    fn valeur(source: &str, attribut: &str) -> Option<String> {
+        let debut = source.find(&format!("{attribut}=\""))? + attribut.len() + 2;
+        let reste = &source[debut..];
+
+        let mut valeur = String::new();
+        let mut caracteres = reste.chars().peekable();
+        while let Some(c) = caracteres.next() {
+            match c {
+                '"' => return Some(valeur),
+                '\\' => {
+                    // Une continuation : on saute le retour et l'indentation.
+                    if caracteres.peek() == Some(&'\n') {
+                        caracteres.next();
+                        while caracteres.peek().is_some_and(|c| *c == ' ') {
+                            caracteres.next();
+                        }
+                    } else if let Some(echappe) = caracteres.next() {
+                        valeur.push(echappe);
+                    }
+                }
+                _ => valeur.push(c),
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn les_titres_et_descriptions_tiennent_dans_un_resultat() {
+        let pages = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/interface/pages");
+        let mut vus = 0;
+
+        for entree in std::fs::read_dir(&pages).expect("le dossier des pages") {
+            let chemin = entree.expect("une entrée").path();
+            if chemin.extension().is_none_or(|e| e != "rs") {
+                continue;
+            }
+            let source = std::fs::read_to_string(&chemin).expect("une page");
+            let nom = chemin.file_name().unwrap().to_string_lossy().to_string();
+
+            for morceau in source.split("<Tete").skip(1) {
+                let bloc = morceau.split("/>").next().unwrap_or(morceau);
+
+                // Une page qui se retire des index n'a rien à calibrer.
+                //
+                // Les pages d'absence — « Fiche introuvable », « Passage
+                // introuvable » — portent `noindex` : leur description ne
+                // paraîtra devant personne, et lui imposer soixante-dix signes
+                // reviendrait à étoffer une phrase que le test seul lira. Le
+                // `noindex` se pose juste après le `<Tete>`, d'où le regard sur
+                // ce qui suit plutôt que sur le bloc lui-même.
+                let suite: String = morceau.chars().take(400).collect();
+                if suite.contains("noindex") {
+                    continue;
+                }
+
+                if let Some(titre) = valeur(bloc, "titre") {
+                    vus += 1;
+                    // Le suffixe n'est pas ajouté quand le titre porte déjà le nom.
+                    let complet = if titre.starts_with("La Bible ONT") {
+                        titre.chars().count()
+                    } else {
+                        titre.chars().count() + " — La Bible ONT".chars().count()
+                    };
+                    assert!(
+                        complet <= TITRE_MAX,
+                        "{nom} : le titre « {titre} » fait {complet} signes une fois suffixé, \
+                         donc au-delà de {TITRE_MAX} — un moteur le coupera, et c'est la fin \
+                         qui tombe"
+                    );
+                }
+
+                if let Some(description) = valeur(bloc, "description") {
+                    let long = description.chars().count();
+                    assert!(
+                        long <= DESCRIPTION_MAX,
+                        "{nom} : la description fait {long} signes, au-delà de \
+                         {DESCRIPTION_MAX} — la fin sera coupée, et c'est là qu'on écrit \
+                         l'argument"
+                    );
+                    assert!(
+                        long >= DESCRIPTION_MIN,
+                        "{nom} : la description fait {long} signes, en deçà de \
+                         {DESCRIPTION_MIN} — un moteur la jugera trop maigre et lui \
+                         préférera un extrait pris dans la page"
+                    );
+                }
+            }
+        }
+
+        assert!(
+            vus >= 8,
+            "seulement {vus} titres relevés — le relevé est cassé"
+        );
     }
 }

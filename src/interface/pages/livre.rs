@@ -45,8 +45,19 @@ pub fn Livre() -> impl IntoView {
                         let unites = livre.unites.len();
                         let versets = livre.versets;
                         view! {
+                            // Le renvoi reçu entre au titre, comme sur un
+                            // passage : le sommaire d'un livre est la page
+                            // qu'on atteint en cherchant « Genèse », et
+                            // « Bereshit » seul ne répond à personne qui ne
+                            // connaît pas déjà le projet.
                             <Tete
-                                titre=livre.titre.clone()
+                                titre=if livre.francais.is_empty()
+                                    || livre.titre.contains(&livre.francais)
+                                {
+                                    livre.titre.clone()
+                                } else {
+                                    format!("{} ({})", livre.titre, livre.francais)
+                                }
                                 description=description
                                 chemin=format!("/fr/lire/{}", livre.id)
                             />
