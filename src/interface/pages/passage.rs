@@ -4,8 +4,8 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use crate::api::passage;
 use crate::domaine::selection;
 use crate::interface::design::{
-    fournir_preferences, fournir_selection, nom_d_unite, BarreDeSelection, Blocs, MentionBrouillon,
-    PageDeLecture, ReglagesDeLecture,
+    fournir_marques, fournir_preferences, fournir_selection, nom_d_unite, BarreDeSelection, Blocs,
+    MentionBrouillon, PageDeLecture, ReglagesDeLecture,
 };
 use crate::interface::tete::Tete;
 
@@ -67,6 +67,30 @@ pub fn Passage() -> impl IntoView {
     // elle qui ouvre la possibilité d'en désigner des versets. Une fiche du
     // lexique n'en a pas — on n'y partage pas un extrait de définition.
     let choix = fournir_selection();
+
+    // Les surlignages du lecteur, s'il a un compte.
+    //
+    // Chargés **à part** du passage et non avec lui : le chapitre est le même
+    // pour tout le monde et se met en cache au bord ; les marques sont propres
+    // à une personne et ne doivent jamais y entrer. Les mêler dans une seule
+    // ressource ferait servir les marques d'un lecteur à un autre.
+    //
+    // `Resource::new` et non `new_blocking` : la page ne doit pas attendre le
+    // backend pour s'afficher. Sans compte, ou si le service ne répond pas, le
+    // texte arrive quand même — c'est exactement l'état d'un lecteur sans
+    // compte, et c'est le comportement juste.
+    let marquage = fournir_marques(Vec::new());
+    {
+        let cle = cle;
+        Effect::new(move |_| {
+            let (_, unite) = cle();
+            leptos::task::spawn_local(async move {
+                if let Ok(liste) = crate::api::mes_surlignages(unite).await {
+                    marquage.set(liste);
+                }
+            });
+        });
+    }
 
     view! {
         <Suspense fallback=|| ()>
@@ -167,6 +191,8 @@ pub fn Passage() -> impl IntoView {
                                         chapitre_id,
                                     )
                                     textes=textes
+                                    livre_id=p.livre_id.clone()
+                                    unite_id=chapitre_id.clone()
                                 />
 
                                 <Blocs blocs=chapitre.blocs en_avant=en_avant />

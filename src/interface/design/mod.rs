@@ -84,7 +84,8 @@ pub use portrait::Portrait;
 pub use principe::Principe;
 pub use reglages_de_lecture::{fournir_preferences, preferences, ReglagesDeLecture};
 pub use selection_de_versets::{
-    basculer, fournir_selection, renvoi, selection, BarreDeSelection, Selection,
+    basculer, couleur_du_verset, fournir_marques, fournir_selection, marques, renvoi, selection,
+    BarreDeSelection, Marques, Selection,
 };
 pub use sommaire::Sommaire;
 pub use titre_de_section::TitreDeSection;
