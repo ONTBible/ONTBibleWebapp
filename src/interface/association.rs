@@ -56,6 +56,57 @@ pub fn corps() -> String {
     )
 }
 
+// ───────────────────────── l'autorisation Android ─────────────────────────────
+
+/// Le nom du paquet Android.
+///
+/// **Minuscules**, là où le bundle iOS porte `ONT` en capitales. Ce n'est pas
+/// une négligence : Android impose la convention du paquet Java, iOS non, et
+/// les deux identifiants sont gelés depuis la première publication de chaque
+/// plateforme. Relevé dans `android/app/build.gradle.kts` — `applicationId` —
+/// et non recopié d'un message.
+pub const PAQUET_ANDROID: &str = "com.labibleont.ont";
+
+/// Les empreintes de signature qu'Android acceptera.
+///
+/// ## Il y en aura une seconde, et il faudra l'**ajouter**
+///
+/// Celle-ci est la clé de **téléversement**. Avec Play App Signing, Google
+/// resigne l'application avec **sa** clé, et c'est celle-là que l'appareil voit
+/// en production — son empreinte n'existe qu'après le premier téléversement,
+/// dans la console.
+///
+/// Le tableau en accepte plusieurs, et c'est ce qui rend la suite sûre : le
+/// jour où l'empreinte de Google arrive, elle **s'ajoute**. La remplacer ferait
+/// cesser d'être reconnues toutes les installations de test, y compris celles
+/// des bêta-testeurs — et la panne serait celle du §8 ci-dessus, silencieuse.
+pub const EMPREINTES: &[&str] =
+    &["AB:BB:7D:95:62:DD:68:09:6D:A3:AB:0A:18:D8:16:E1:17:04:4F:13:A9:C0:0C:03:06:62:5F:F7:54:EB:AF:EE"];
+
+/// Le corps de `/.well-known/assetlinks.json`.
+///
+/// L'équivalent Android du fichier d'Apple, et il porte les **mêmes trois
+/// pièges** — `application/json`, aucune redirection, mise en cache par le
+/// système. Deux différences comptent :
+///
+/// * **Android est plus sévère sur la redirection.** Depuis Android 12, un lien
+///   web non vérifié ne propose même plus de sélecteur : il part droit au
+///   navigateur, sans que rien ne dise pourquoi.
+/// * **Il n'y a pas de champ de chemins.** `handle_all_urls` accorde le domaine
+///   entier, là où Apple laisse restreindre à `/fr/lire/*`. C'est le filtre
+///   d'intention de l'app qui borne, côté Android — donc la borne vit là-bas,
+///   et ce fichier ne peut pas la reproduire.
+pub fn assetlinks() -> String {
+    let empreintes = EMPREINTES
+        .iter()
+        .map(|e| format!(r#""{e}""#))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        r#"[{{"relation":["delegate_permission/common.handle_all_urls"],"target":{{"namespace":"android_app","package_name":"{PAQUET_ANDROID}","sha256_cert_fingerprints":[{empreintes}]}}}}]"#
+    )
+}
+
 #[cfg(all(test, feature = "ssr"))]
 mod tests {
     use super::*;
@@ -98,6 +149,89 @@ mod tests {
         assert!(
             source.contains(CHEMINS),
             "les chemins associés ont changé dans le backend sans changer ici"
+        );
+    }
+
+    /// Le corps Android est du JSON valide, et conforme à ce qu'Android attend.
+    ///
+    /// La racine est un **tableau**, et ça n'a rien d'accessoire : Android
+    /// accepte plusieurs déclarations pour un même domaine — plusieurs apps,
+    /// plusieurs paquets. Un objet seul, à la place, est rejeté sans message.
+    #[test]
+    fn l_autorisation_android_est_du_json_conforme() {
+        let valeur: serde_json::Value =
+            serde_json::from_str(&assetlinks()).expect("assetlinks.json doit être du JSON");
+
+        let premier = &valeur[0];
+        assert_eq!(
+            premier["relation"][0], "delegate_permission/common.handle_all_urls",
+            "sans cette relation exacte, Android ignore la déclaration"
+        );
+        assert_eq!(premier["target"]["namespace"], "android_app");
+        assert_eq!(premier["target"]["package_name"], PAQUET_ANDROID);
+
+        let empreintes = premier["target"]["sha256_cert_fingerprints"]
+            .as_array()
+            .expect("les empreintes doivent être un tableau");
+        assert_eq!(empreintes.len(), EMPREINTES.len());
+        assert!(
+            !empreintes.is_empty(),
+            "une déclaration sans empreinte n'accorde rien, et ne dit pas qu'elle n'accorde rien"
+        );
+    }
+
+    /// Chaque empreinte a la forme qu'Android exige.
+    ///
+    /// Trente-deux octets en hexadécimal majuscule, séparés par des
+    /// deux-points. Une empreinte en minuscules, ou copiée sans les
+    /// séparateurs, est **acceptée à la lecture et refusée à la
+    /// vérification** — le fichier reste du JSON valide, la déclaration reste
+    /// bien formée, et le lien n'ouvre simplement jamais l'app.
+    ///
+    /// C'est la faute la plus probable ici : une empreinte se colle depuis un
+    /// terminal, et `keytool` la rend dans un format, la console Play dans un
+    /// autre.
+    #[test]
+    fn les_empreintes_ont_la_forme_attendue() {
+        for empreinte in EMPREINTES {
+            let octets: Vec<&str> = empreinte.split(':').collect();
+            assert_eq!(
+                octets.len(),
+                32,
+                "une empreinte SHA-256 fait 32 octets, celle-ci en a {} : {empreinte}",
+                octets.len()
+            );
+            for octet in octets {
+                assert!(
+                    octet.len() == 2
+                        && octet
+                            .chars()
+                            .all(|c| c.is_ascii_digit() || c.is_ascii_uppercase()),
+                    "« {octet} » n'est pas un octet hexadécimal majuscule dans {empreinte}"
+                );
+            }
+        }
+    }
+
+    /// Le paquet reste d'accord avec le dépôt Android.
+    ///
+    /// Même raison que pour le backend : deux identifiants qui divergent font
+    /// une panne muette. Le test lit le dépôt voisin et se tait s'il n'est pas
+    /// là — un test d'accord ne peut pas exiger la présence de ce avec quoi il
+    /// accorde.
+    #[test]
+    fn le_paquet_s_accorde_avec_le_depot_android() {
+        let gradle = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../ONTBibleApp/android/app/build.gradle.kts"
+        );
+        let Ok(source) = std::fs::read_to_string(gradle) else {
+            return;
+        };
+        assert!(
+            source.contains(&format!("applicationId = \"{PAQUET_ANDROID}\"")),
+            "`applicationId` a changé dans le dépôt Android sans changer ici — \
+             les liens cesseront d'ouvrir l'app, et rien ne le dira"
         );
     }
 }

@@ -208,7 +208,8 @@ jobs:
 
           for chemin in /fr /fr/lire /fr/lexique /sitemap.xml /llms.txt \
                         /7162566e429a0cd82fba80f161e32026.txt \
-                        /.well-known/apple-app-site-association; do
+                        /.well-known/apple-app-site-association \
+                        /.well-known/assetlinks.json; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000$chemin")
             printf '%-46s %s\n' "$chemin" "$code"
             [ "$code" = "200" ] || { cat /tmp/ontbible.log; exit 1; }
