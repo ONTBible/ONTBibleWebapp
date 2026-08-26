@@ -75,6 +75,86 @@ pub fn versets(parametre: &str) -> Vec<u32> {
     numeros
 }
 
+/// Le paramètre `v` qui désigne exactement ces versets.
+///
+/// C'est l'inverse de [`versets`], et les deux doivent le rester : ce qu'on
+/// écrit ici est relu là-bas — par ce site, par l'app iOS et par l'app Android,
+/// qui ont chacune leur analyseur. La forme est donc un **contrat entre trois
+/// dépôts**, et non un détail d'affichage.
+///
+/// ## Les suites se replient
+///
+/// `1,2,3,7` s'écrit `1-3,7`. Ce n'est pas de la cosmétique : une sélection
+/// d'un chapitre entier ferait sinon une adresse de plusieurs centaines de
+/// signes, que les messageries tronquent — et un lien tronqué ne désigne plus
+/// le bon passage, il désigne un passage **plausible**. C'est le pire des deux :
+/// il s'ouvre, il montre du texte, et ce n'est pas celui qu'on a partagé.
+///
+/// Une paire reste en énumération — `4,5` et non `4-5` : même longueur, et un
+/// intervalle de deux se lit moins bien qu'une paire.
+///
+/// ## L'ordre et les doublons
+///
+/// La sortie est **triée et dédoublonnée**, quel que soit l'ordre d'entrée. Une
+/// sélection se fait dans l'ordre où l'on touche les versets, pas dans celui du
+/// chapitre : sans ce tri, deux personnes qui désignent les mêmes versets
+/// produiraient deux adresses différentes, donc deux entrées de cache et deux
+/// aperçus.
+///
+/// Une sélection vide rend une chaîne vide, à l'appelant de ne pas poser de `?v=`.
+pub fn parametre(numeros: &[u32]) -> String {
+    let mut tries: Vec<u32> = numeros.to_vec();
+    tries.sort_unstable();
+    tries.dedup();
+
+    let mut morceaux: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < tries.len() {
+        let debut = tries[i];
+        let mut fin = debut;
+        while i + 1 < tries.len() && tries[i + 1] == fin + 1 {
+            i += 1;
+            fin = tries[i];
+        }
+        // Trois de suite au moins : en deçà, l'intervalle ne raccourcit rien.
+        morceaux.push(if fin >= debut + 2 {
+            format!("{debut}-{fin}")
+        } else if fin == debut + 1 {
+            format!("{debut},{fin}")
+        } else {
+            debut.to_string()
+        });
+        i += 1;
+    }
+    morceaux.join(",")
+}
+
+/// Le même ensemble, écrit **pour être lu** — « 1, 4-6 ».
+///
+/// ## Pourquoi ce n'est pas [`parametre`]
+///
+/// Une virgule française prend une espace après elle ; une adresse n'en veut
+/// pas. `?v=1, 4-6` obligerait à encoder l'espace en `%20`, ce qui donne un lien
+/// que les messageries coupent au mauvais endroit et qu'un lecteur ne reconnaît
+/// plus comme le sien.
+///
+/// Les deux grammaires vivent donc côte à côte, et **ce fichier est le seul
+/// endroit où leur différence est décidée**. Écrire le libellé ailleurs, à
+/// partir de `parametre`, ferait apparaître « 1,4-6 » sous un texte français —
+/// ou pire, deux écritures différentes du même ensemble selon la page.
+///
+/// C'est aussi la grammaire qu'affiche l'app iOS — `VerseRange.label` rend
+/// « 1, 4-6 » pour le même ensemble. Le lecteur qui partage depuis son
+/// téléphone et retrouve le lien sur le site doit lire la même chose des deux
+/// côtés ; sinon il croit avoir partagé autre chose.
+///
+/// Le **groupement est identique** à celui de l'adresse, puisqu'il en vient :
+/// une paire reste énumérée, une suite de trois se replie. Deux repliements
+/// distincts feraient dire au libellé autre chose qu'au lien qu'il accompagne.
+pub fn libelle(numeros: &[u32]) -> String {
+    parametre(numeros).replace(',', ", ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,5 +208,124 @@ mod tests {
         let choisis = versets("1-999999999");
         assert_eq!(choisis.len(), 1_001);
         assert_eq!(choisis[0], 1);
+    }
+
+    /// Ce que `parametre` écrit, `versets` le relit à l'identique.
+    ///
+    /// C'est **la** propriété qui compte, et elle vaut plus que n'importe quel
+    /// cas particulier : les deux fonctions sont l'une l'inverse de l'autre, et
+    /// le jour où l'une évolue sans l'autre, ce test le dit avant que trois
+    /// dépôts ne se retrouvent en désaccord sur ce qu'une adresse désigne.
+    ///
+    /// Les cas couvrent ce qu'une sélection réelle produit : un verset seul,
+    /// une suite, une paire, des îlots séparés, un chapitre entier, et un ordre
+    /// de saisie quelconque avec doublons.
+    #[test]
+    fn ce_qui_est_ecrit_se_relit_a_l_identique() {
+        let cas: Vec<Vec<u32>> = vec![
+            vec![6],
+            vec![1, 2, 3],
+            vec![4, 5],
+            vec![1, 4, 5, 6],
+            vec![1, 3, 5, 7, 9],
+            (1..=31).collect(),
+            vec![7, 2, 2, 9, 3, 7],
+        ];
+        for entree in cas {
+            let ecrit = parametre(&entree);
+            let relu = versets(&ecrit);
+            let mut attendu = entree.clone();
+            attendu.sort_unstable();
+            attendu.dedup();
+            assert_eq!(
+                relu, attendu,
+                "« {ecrit} » ne se relit pas comme {attendu:?} mais comme {relu:?}"
+            );
+        }
+    }
+
+    /// Une suite longue se replie, une paire non.
+    ///
+    /// Le repliement n'est pas cosmétique : une sélection de chapitre entier
+    /// ferait sinon une adresse de plusieurs centaines de signes, que les
+    /// messageries tronquent. Et un lien tronqué ne désigne plus le bon
+    /// passage — il en désigne un **plausible**, ce qui est pire, parce qu'il
+    /// s'ouvre et montre du texte.
+    #[test]
+    fn les_suites_se_replient_sans_mentir() {
+        assert_eq!(parametre(&[1, 2, 3]), "1-3");
+        assert_eq!(
+            parametre(&[4, 5]),
+            "4,5",
+            "une paire ne gagne rien à s'écrire 4-5"
+        );
+        assert_eq!(parametre(&[1, 4, 5, 6]), "1,4-6");
+        assert_eq!(parametre(&[6]), "6");
+        assert_eq!(parametre(&[]), "");
+
+        let entier: Vec<u32> = (1..=31).collect();
+        assert_eq!(parametre(&entier), "1-31");
+        assert!(
+            parametre(&entier).len() < 8,
+            "un chapitre entier doit tenir en quelques signes, pas en centaines"
+        );
+    }
+
+    /// L'ordre de saisie ne change pas l'adresse produite.
+    ///
+    /// On sélectionne dans l'ordre où l'on touche les versets, pas dans celui du
+    /// chapitre. Sans tri, deux personnes qui désignent le même passage
+    /// produiraient deux adresses différentes — donc deux entrées de cache, deux
+    /// aperçus, et deux liens qu'on croirait distincts.
+    #[test]
+    fn l_ordre_de_saisie_ne_change_rien() {
+        assert_eq!(parametre(&[3, 1, 2]), parametre(&[1, 2, 3]));
+        assert_eq!(parametre(&[6, 4, 5, 1]), "1,4-6");
+        assert_eq!(parametre(&[2, 2, 2]), "2");
+    }
+
+    /// Le libellé et l'adresse disent le même ensemble, dans deux grammaires.
+    ///
+    /// La propriété qui les lie : ôter les espaces du libellé rend exactement
+    /// l'adresse. C'est ce qui garantit qu'ils ne peuvent pas grouper
+    /// différemment — un lecteur qui lit « 1, 4-6 » sous un lien `?v=1,4-6`
+    /// voit deux écritures du même ensemble, pas deux ensembles.
+    #[test]
+    fn le_libelle_et_l_adresse_disent_le_meme_ensemble() {
+        let cas: Vec<Vec<u32>> = vec![
+            vec![6],
+            vec![4, 5],
+            vec![1, 2, 3],
+            vec![1, 4, 5, 6],
+            vec![1, 3, 5, 7],
+            (1..=31).collect(),
+        ];
+        for entree in cas {
+            let adresse = parametre(&entree);
+            let lisible = libelle(&entree);
+            assert_eq!(
+                lisible.replace(' ', ""),
+                adresse,
+                "« {lisible} » et « {adresse} » ne groupent pas pareil"
+            );
+            assert_eq!(versets(&adresse), versets(&lisible.replace(' ', "")));
+        }
+    }
+
+    /// La virgule française prend son espace, l'adresse non.
+    ///
+    /// `?v=1, 4-6` obligerait à encoder l'espace en `%20` : un lien que les
+    /// messageries coupent au mauvais endroit et qu'un lecteur ne reconnaît plus
+    /// comme le sien.
+    #[test]
+    fn la_virgule_prend_son_espace_dans_le_libelle_seulement() {
+        assert_eq!(libelle(&[1, 4, 5, 6]), "1, 4-6");
+        assert_eq!(parametre(&[1, 4, 5, 6]), "1,4-6");
+        assert_eq!(libelle(&[4, 5]), "4, 5");
+        assert_eq!(libelle(&[6]), "6", "un verset seul n'a pas de virgule");
+        assert!(
+            !parametre(&[1, 4, 5, 6]).contains(' '),
+            "une adresse ne porte jamais d'espace"
+        );
     }
 }

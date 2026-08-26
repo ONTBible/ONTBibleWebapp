@@ -27,6 +27,16 @@ wasm-bindgen = { version = "0.2.106", optional = true }
 # celles qu'on demande entrent dans le binaire wasm.
 web-sys = { version = "0.3", features = [
     "Storage",
+    # Le presse-papier, pour copier un passage sélectionné. Trois drapeaux pour
+    # un seul geste — `navigator.clipboard.writeText` traverse trois interfaces,
+    # et chacune est derrière le sien. En oublier une ne donne pas un avertissement
+    # mais un `no method named` à la compilation wasm, que la compilation serveur
+    # ne montre pas : le même code passe d'un côté et pas de l'autre.
+    "Navigator",
+    "Clipboard",
+    # `closest` — savoir si le clic visait un lien du lexique plutôt que le
+    # verset qui le porte.
+    "Element",
     # `getBoundingClientRect` — la hauteur de la scène du seuil.
     "DomRect",
     # L'horloge du navigateur. Une animation comptée en images serait deux

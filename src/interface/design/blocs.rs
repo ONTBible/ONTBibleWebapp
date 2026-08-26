@@ -4,7 +4,7 @@ use crate::domaine::corpus::Bloc as BlocDeTexte;
 use crate::domaine::lecture::{preparer, Preferences};
 use crate::domaine::texte::Noeud;
 use crate::interface::design::verset::rendre_noeuds;
-use crate::interface::design::{preferences, Verset};
+use crate::interface::design::{basculer, preferences, selection, Selection, Verset};
 
 /// Le corps d'un chapitre ou d'une fiche — tous les blocs que le pipeline sait
 /// produire.
@@ -51,6 +51,11 @@ pub fn Blocs(
     let blocs = StoredValue::new(blocs);
     let en_avant = StoredValue::new(en_avant);
     let preferences = preferences();
+    // Absente hors de la liseuse — sur l'accueil, dans une fiche. Le texte s'y
+    // rend alors exactement comme avant : pas de curseur, pas de rôle, pas de
+    // clic. Un verset qui aurait l'air cliquable sans l'être serait pire que
+    // pas de sélection du tout.
+    let choix = selection();
 
     move || {
         let p = preferences.get();
@@ -58,14 +63,104 @@ pub fn Blocs(
             en_avant.with_value(|en_avant| {
                 blocs
                     .iter()
-                    .map(|bloc| rendre_bloc(bloc.clone(), en_avant, p))
+                    .map(|bloc| rendre_bloc(bloc.clone(), en_avant, p, choix))
                     .collect_view()
             })
         })
     }
 }
 
-fn rendre_bloc(bloc: BlocDeTexte, en_avant: &[u32], p: Preferences) -> AnyView {
+/// Les attributs qui rendent un verset sélectionnable.
+///
+/// ## Pourquoi un `<span>` ou un `<div>` et non un `<button>`
+///
+/// Un bouton ne peut pas contenir de contenu de flux — or un verset porte des
+/// liens vers les fiches du lexique, et un lien **dans** un bouton est du HTML
+/// invalide que les lecteurs d'écran annoncent de travers.
+///
+/// D'où `role="button"` et `tabindex="0"`, qui donnent le comportement sans la
+/// balise. Le prix est qu'il faut alors gérer **Entrée et Espace** à la main :
+/// un vrai bouton les traite, un `role` ne les traite pas. Les oublier ferait
+/// une sélection accessible à la souris et à rien d'autre.
+///
+/// ## Le clic ne doit pas voler celui d'un lien
+///
+/// Un verset contient des mots d'or qui mènent au lexique. Sans précaution, le
+/// clic sur *bara* sélectionnerait le verset **et** suivrait le lien. On ignore
+/// donc les clics dont la cible est un `<a>` — c'est le lien qui gagne, parce
+/// que c'est le geste le plus précis des deux.
+#[cfg(feature = "hydrate")]
+fn cible_est_un_lien(evenement: &leptos::ev::MouseEvent) -> bool {
+    use wasm_bindgen::JsCast;
+    evenement
+        .target()
+        .and_then(|c| c.dyn_into::<web_sys::Element>().ok())
+        .is_some_and(|e| e.closest("a").ok().flatten().is_some())
+}
+
+/// Les trois choses qu'un verset sélectionnable doit savoir faire.
+///
+/// Rendues ensemble parce qu'elles partagent le même état et qu'on les pose au
+/// même endroit — les séparer ferait trois fermetures capturant chacune le
+/// signal, et trois occasions d'en oublier une.
+///
+/// Sans sélection dans le contexte, les trois sont inertes : `choisi` rend
+/// toujours `false`, et les gestes ne font rien. Le texte se rend alors comme
+/// avant, ce qui est le comportement juste sur l'accueil et dans une fiche.
+#[allow(clippy::type_complexity)]
+fn gestes(
+    choix: Option<Selection>,
+    numero: u32,
+) -> (
+    impl Fn() -> bool + Copy + Send + Sync + 'static,
+    impl Fn(leptos::ev::MouseEvent) + Clone + 'static,
+    impl Fn(leptos::ev::KeyboardEvent) + Clone + 'static,
+) {
+    let choisi = move || {
+        choix
+            .map(|s| s.with(|s| s.contains(&numero)))
+            .unwrap_or(false)
+    };
+
+    let au_clic = move |_evenement: leptos::ev::MouseEvent| {
+        let Some(s) = choix else { return };
+        // Un verset porte des mots d'or qui mènent au lexique. Sans ce garde,
+        // cliquer sur *bara* sélectionnerait le verset **et** suivrait le
+        // lien : le lecteur partirait sur la fiche en laissant derrière lui une
+        // sélection qu'il n'a pas voulue.
+        #[cfg(feature = "hydrate")]
+        if cible_est_un_lien(&_evenement) {
+            return;
+        }
+        basculer(s, numero);
+    };
+
+    let au_clavier = move |evenement: leptos::ev::KeyboardEvent| {
+        let Some(s) = choix else { return };
+        // `role="button"` donne l'apparence d'un bouton à un lecteur d'écran,
+        // pas son comportement : un vrai `<button>` traite Entrée et Espace, un
+        // rôle ne traite rien. Les omettre ferait une sélection accessible à la
+        // souris et à rien d'autre — exactement le genre de manque qu'aucun
+        // test de rendu ne voit.
+        let touche = evenement.key();
+        if touche == "Enter" || touche == " " {
+            // Espace sur un élément focalisé fait défiler la page. Ici, le
+            // geste est la sélection, donc le défilement serait un effet de
+            // bord — et il déplacerait le verset qu'on vient de désigner.
+            evenement.prevent_default();
+            basculer(s, numero);
+        }
+    };
+
+    (choisi, au_clic, au_clavier)
+}
+
+fn rendre_bloc(
+    bloc: BlocDeTexte,
+    en_avant: &[u32],
+    p: Preferences,
+    choix: Option<Selection>,
+) -> AnyView {
     match bloc {
         // ── Les versets à la suite ────────────────────────────────────────
         //
@@ -125,6 +220,8 @@ fn rendre_bloc(bloc: BlocDeTexte, en_avant: &[u32], p: Preferences) -> AnyView {
             .map(|verset| {
                 let designe = en_avant.contains(&verset.numero);
                 let ancre = format!("v{}", verset.numero);
+                let numero = verset.numero;
+                let (choisi, au_clic, au_clavier) = gestes(choix, numero);
                 let verset = crate::domaine::texte::Verset {
                     numero: verset.numero,
                     noeuds: preparer(&verset.noeuds, p),
@@ -140,11 +237,30 @@ fn rendre_bloc(bloc: BlocDeTexte, en_avant: &[u32], p: Preferences) -> AnyView {
                     <div
                         id=ancre
                         class="-mx-4 rounded-sm pe-4 scroll-mt-24 transition-colors"
-                        class=("ps-4", !designe)
-                        class=("border-s-2", designe)
-                        class=("border-accent", designe)
-                        class=("bg-surface/60", designe)
-                        class=("ps-5", designe)
+                        class=("ps-4", move || !designe && !choisi())
+                        class=("ps-5", move || designe || choisi())
+                        // Un seul `border-s-2` : deux fois le même utilitaire
+                        // sur un élément est refusé par Leptos, et il a raison —
+                        // à spécificité égale c'est l'ordre de la feuille qui
+                        // trancherait, pas l'intention. C'est le piège de `Bloc`
+                        // rejoué, attrapé cette fois par le compilateur.
+                        class=("border-s-2", move || designe || choisi())
+                        class=("border-accent", move || designe && !choisi())
+                        class=("bg-surface/60", move || designe && !choisi())
+                        // La sélection se distingue de la désignation par
+                        // l'adresse : celle-ci est un fond discret, celle-là un
+                        // fond d'aubergine et un filet d'or. Les deux peuvent
+                        // coexister — on ouvre un lien partagé, puis on
+                        // sélectionne autre chose —, donc elles ne peuvent pas
+                        // partager le même signe.
+                        class=("bg-aubergine/45", choisi)
+                        class=("border-or/60", choisi)
+                        class=("cursor-pointer", move || choix.is_some())
+                        role=move || choix.is_some().then_some("button")
+                        tabindex=move || choix.is_some().then_some("0")
+                        aria-pressed=move || choix.is_some().then(|| choisi().to_string())
+                        on:click=au_clic
+                        on:keydown=au_clavier
                     >
                         <Verset verset />
                     </div>

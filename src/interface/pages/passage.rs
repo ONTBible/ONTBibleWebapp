@@ -4,7 +4,8 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use crate::api::passage;
 use crate::domaine::selection;
 use crate::interface::design::{
-    fournir_preferences, nom_d_unite, Blocs, MentionBrouillon, PageDeLecture, ReglagesDeLecture,
+    fournir_preferences, fournir_selection, nom_d_unite, BarreDeSelection, Blocs, MentionBrouillon,
+    PageDeLecture, ReglagesDeLecture,
 };
 use crate::interface::tete::Tete;
 
@@ -61,6 +62,12 @@ pub fn Passage() -> impl IntoView {
     // fiche est un commentaire, elle n'a pas d'appareil critique à retirer.
     let preferences = fournir_preferences();
 
+    // La sélection est installée **par la page**, comme les réglages, et pour
+    // la même raison : c'est elle qui décide qu'on lit du corpus, donc c'est
+    // elle qui ouvre la possibilité d'en désigner des versets. Une fiche du
+    // lexique n'en a pas — on n'y partage pas un extrait de définition.
+    let choix = fournir_selection();
+
     view! {
         <Suspense fallback=|| ()>
             {move || Suspend::new(async move {
@@ -84,6 +91,24 @@ pub fn Passage() -> impl IntoView {
                             &p.livre_titre,
                             &p.livre_francais,
                         );
+
+                        // Ce que la barre de sélection a besoin de savoir.
+                        //
+                        // `textes` est bâti **avant** tout retrait de niveau :
+                        // c'est le verset entier qu'on copie, gloses et hébreu
+                        // compris. Un lecteur qui a éteint la translittération
+                        // l'a éteinte *pour lire*, pas pour amputer ce qu'il
+                        // partage — et celui qui reçoit n'a pas ses réglages.
+                        let textes: std::collections::BTreeMap<u32, String> = chapitre
+                            .versets()
+                            .map(|v| (v.numero, v.corps()))
+                            .collect();
+                        // Le renvoi porte le titre du livre seul — « Bereshit »
+                        // et non « Bereshit 1 », que `chapitre.titre` contient
+                        // déjà. Les recoller donnerait « Bereshit 1 1:4 ».
+                        let livre_pour_renvoi = p.livre_titre.clone();
+                        let rang = chapitre.numero;
+                        let chapitre_id = chapitre.id.clone();
 
                         let renvoi = reference.clone();
                         let livre_titre = p.livre_titre.clone();
@@ -132,6 +157,17 @@ pub fn Passage() -> impl IntoView {
                                 chapeau=chapeau
                             >
                                 <ReglagesDeLecture preferences />
+                                <BarreDeSelection
+                                    selection=choix
+                                    livre=livre_pour_renvoi
+                                    chapitre=rang
+                                    chemin=format!(
+                                        "/fr/lire/{}/{}",
+                                        p.livre_id,
+                                        chapitre_id,
+                                    )
+                                    textes=textes
+                                />
 
                                 <Blocs blocs=chapitre.blocs en_avant=en_avant />
 

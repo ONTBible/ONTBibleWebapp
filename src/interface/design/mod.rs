@@ -51,6 +51,7 @@ mod porte;
 mod portrait;
 mod principe;
 mod reglages_de_lecture;
+pub mod selection_de_versets;
 mod sommaire;
 mod titre_de_section;
 pub mod verset;
@@ -82,6 +83,9 @@ pub use porte::{traverser, Porte};
 pub use portrait::Portrait;
 pub use principe::Principe;
 pub use reglages_de_lecture::{fournir_preferences, preferences, ReglagesDeLecture};
+pub use selection_de_versets::{
+    basculer, fournir_selection, renvoi, selection, BarreDeSelection, Selection,
+};
 pub use sommaire::Sommaire;
 pub use titre_de_section::TitreDeSection;
 pub use verset::Verset;
