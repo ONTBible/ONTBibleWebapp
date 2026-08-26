@@ -90,8 +90,15 @@ pub fn versets(parametre: &str) -> Vec<u32> {
 /// le bon passage, il désigne un passage **plausible**. C'est le pire des deux :
 /// il s'ouvre, il montre du texte, et ce n'est pas celui qu'on a partagé.
 ///
-/// Une paire reste en énumération — `4,5` et non `4-5` : même longueur, et un
-/// intervalle de deux se lit moins bien qu'une paire.
+/// **Une paire s'écrit `4-5`**, comme le reste — et c'est l'app qui décide, pas
+/// nous. `VerseRange.label` fait `start == end ? "\(start)" : "\(start)-\(end)"`,
+/// donc deux versets consécutifs forment un intervalle au même titre que dix.
+///
+/// On avait d'abord écrit `4,5`, au motif que « un intervalle de deux se lit
+/// moins bien qu'une paire ». C'était une invention, et elle aurait produit deux
+/// adresses différentes pour la même sélection selon qu'on partage depuis le
+/// site ou depuis le téléphone. Le format est un contrat : la règle vient de
+/// celui qui l'a écrite en premier.
 ///
 /// ## L'ordre et les doublons
 ///
@@ -116,13 +123,12 @@ pub fn parametre(numeros: &[u32]) -> String {
             i += 1;
             fin = tries[i];
         }
-        // Trois de suite au moins : en deçà, l'intervalle ne raccourcit rien.
-        morceaux.push(if fin >= debut + 2 {
-            format!("{debut}-{fin}")
-        } else if fin == debut + 1 {
-            format!("{debut},{fin}")
-        } else {
+        // `borne` de l'app, à l'identique : deux bornes égales donnent un
+        // nombre, sinon un intervalle. Aucun cas particulier pour la paire.
+        morceaux.push(if fin == debut {
             debut.to_string()
+        } else {
+            format!("{debut}-{fin}")
         });
         i += 1;
     }
@@ -256,8 +262,8 @@ mod tests {
         assert_eq!(parametre(&[1, 2, 3]), "1-3");
         assert_eq!(
             parametre(&[4, 5]),
-            "4,5",
-            "une paire ne gagne rien à s'écrire 4-5"
+            "4-5",
+            "une paire s'écrit comme le reste — c'est `borne` de l'app"
         );
         assert_eq!(parametre(&[1, 4, 5, 6]), "1,4-6");
         assert_eq!(parametre(&[6]), "6");
@@ -321,7 +327,7 @@ mod tests {
     fn la_virgule_prend_son_espace_dans_le_libelle_seulement() {
         assert_eq!(libelle(&[1, 4, 5, 6]), "1, 4-6");
         assert_eq!(parametre(&[1, 4, 5, 6]), "1,4-6");
-        assert_eq!(libelle(&[4, 5]), "4, 5");
+        assert_eq!(libelle(&[4, 5]), "4-5", "une paire n'a pas de virgule");
         assert_eq!(libelle(&[6]), "6", "un verset seul n'a pas de virgule");
         assert!(
             !parametre(&[1, 4, 5, 6]).contains(' '),

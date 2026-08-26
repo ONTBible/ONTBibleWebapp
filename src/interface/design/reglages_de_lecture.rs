@@ -135,6 +135,12 @@ fn ecrire(preferences: Preferences) {
 /// montrés.
 #[component]
 pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
+    // Vraie dès qu'un verset est désigné à l'écran. Absente hors de la
+    // liseuse — le bouton reste alors visible en toutes circonstances, ce qui
+    // est le comportement juste là où l'on ne sélectionne rien.
+    let choix = crate::interface::design::selection();
+    let selection_active = move || choix.is_some_and(|s| s.with(|s| !s.is_empty()));
+
     // Faux au rendu du serveur, vrai dès que le navigateur a repris la main.
     // Les deux côtés partent donc du même balisage, et le bouton se pose après
     // — sans désaccord d'hydratation.
@@ -185,7 +191,27 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // `active:scale-95` : le bouton s'enfonce sous le doigt. C'est
                 // le seul retour tactile qu'un navigateur laisse donner, et son
                 // absence fait douter que le clic ait été pris.
-                class="halo se-poser fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-[transform,border-color,box-shadow] duration-200 ease-out hover:border-or/60 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+                class="halo se-poser fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-[transform,border-color,box-shadow,opacity] duration-200 ease-out hover:border-or/60 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+                // Il s'efface pendant une sélection, et les deux raisons
+                // comptent.
+                //
+                // La première est mécanique : la barre de sélection occupe
+                // toute la largeur en bas, ce bouton est à `1.5rem` du bas à
+                // droite — **ils se chevauchent**. Vu au simulateur, pas déduit
+                // du code : les deux valeurs sont dans deux fichiers qu'on
+                // n'ouvre pas ensemble.
+                //
+                // La seconde est de propos : on ne règle pas sa typographie
+                // pendant qu'on choisit des versets à partager. Laisser les
+                // deux à l'écran ferait deux actions principales, donc aucune.
+                //
+                // `inert` en plus de l'opacité : un bouton transparent reste
+                // cliquable et tabulable — c'est la même règle que pour la
+                // feuille, et l'oublier mettrait un piège invisible sous la
+                // barre.
+                class=("opacity-0", selection_active)
+                class=("pointer-events-none", selection_active)
+                inert=move || selection_active().then_some("")
                 style="bottom: calc(1.5rem + env(safe-area-inset-bottom))"
             >
                 <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>

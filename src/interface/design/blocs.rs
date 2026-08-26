@@ -222,6 +222,12 @@ fn rendre_bloc(
                 let ancre = format!("v{}", verset.numero);
                 let numero = verset.numero;
                 let (choisi, au_clic, au_clavier) = gestes(choix, numero);
+                // Vraie quand une sélection existe **et que ce verset n'en est
+                // pas**. C'est elle qui estompe : le verset choisi garde sa
+                // pleine opacité, ses voisins reculent.
+                let une_selection_ailleurs = move || {
+                    choix.is_some_and(|s| s.with(|s| !s.is_empty())) && !choisi()
+                };
                 let verset = crate::domaine::texte::Verset {
                     numero: verset.numero,
                     noeuds: preparer(&verset.noeuds, p),
@@ -237,24 +243,40 @@ fn rendre_bloc(
                     <div
                         id=ancre
                         class="-mx-4 rounded-sm pe-4 scroll-mt-24 transition-colors"
-                        class=("ps-4", move || !designe && !choisi())
-                        class=("ps-5", move || designe || choisi())
-                        // Un seul `border-s-2` : deux fois le même utilitaire
-                        // sur un élément est refusé par Leptos, et il a raison —
-                        // à spécificité égale c'est l'ordre de la feuille qui
-                        // trancherait, pas l'intention. C'est le piège de `Bloc`
-                        // rejoué, attrapé cette fois par le compilateur.
-                        class=("border-s-2", move || designe || choisi())
-                        class=("border-accent", move || designe && !choisi())
-                        class=("bg-surface/60", move || designe && !choisi())
-                        // La sélection se distingue de la désignation par
-                        // l'adresse : celle-ci est un fond discret, celle-là un
-                        // fond d'aubergine et un filet d'or. Les deux peuvent
-                        // coexister — on ouvre un lien partagé, puis on
-                        // sélectionne autre chose —, donc elles ne peuvent pas
-                        // partager le même signe.
-                        class=("bg-aubergine/45", choisi)
-                        class=("border-or/60", choisi)
+                        class=("ps-4", move || !designe)
+                        class=("ps-5", designe)
+                        class=("border-s-2", designe)
+                        class=("border-accent", designe)
+                        class=("bg-surface/60", designe)
+                        // ── La sélection, telle que l'app la dessine ──────────
+                        //
+                        // Recopiée de `ChapterView.swift`, et son commentaire
+                        // donne la raison : « on ne marque pas le verset
+                        // désigné, on efface le reste ». C'est le procédé de
+                        // Bible Strong, et il tient en deux gestes.
+                        //
+                        // **Un** : tout ce qui n'est pas choisi tombe à
+                        // `ONTColors.dimmedOpacity`, soit 0,32. Le verset
+                        // désigné ne gagne rien ; ce sont ses voisins qui
+                        // reculent.
+                        //
+                        // **Deux** : un soulignement **pointillé**, jamais un
+                        // fond. L'app le dit et c'est décisif : un fond est la
+                        // marque durable d'un surlignage que le lecteur a posé,
+                        // la sélection n'est qu'un état passager de son doigt.
+                        // Les confondre ferait croire qu'on vient de surligner.
+                        //
+                        // Le pointillé passe par la décoration de texte et non
+                        // par une bordure : il épouse alors les retours à la
+                        // ligne, donc le dernier mot d'un verset n'entraîne pas
+                        // un trait sur toute la largeur — c'est mot pour mot ce
+                        // que dit le moteur de rendu de l'app.
+                        class=("opacity-[0.32]", move || une_selection_ailleurs())
+                        class=("underline", choisi)
+                        class=("decoration-dotted", choisi)
+                        class=("decoration-accent/70", choisi)
+                        class=("underline-offset-[0.3em]", choisi)
+                        class=("decoration-2", choisi)
                         class=("cursor-pointer", move || choix.is_some())
                         role=move || choix.is_some().then_some("button")
                         tabindex=move || choix.is_some().then_some("0")

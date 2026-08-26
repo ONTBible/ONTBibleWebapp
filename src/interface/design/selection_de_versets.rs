@@ -89,24 +89,41 @@ pub fn renvoi(livre: &str, chapitre: u32, numeros: &BTreeSet<u32>) -> String {
 
 /// La barre qui monte quand des versets sont désignés.
 ///
+/// ## Elle recopie `VerseActionBar` de l'app, elle ne la réinvente pas
+///
+/// Même dessin — une carte arrondie **détachée des quatre bords**, dont le
+/// commentaire Swift donne la raison : « le texte continue de courir derrière
+/// elle, et la carte se lit comme un objet qu'on peut écarter, pas comme un
+/// morceau de l'écran ».
+///
+/// Mêmes actions, dans le même ordre : **Copier**, **Partager**, **Tout**.
+/// L'app en a deux de plus — *Noter* et les couleurs de surlignage — qui
+/// demandent un compte et une synchronisation ; elles viendront avec lui. Et
+/// *Image*, qui rend un carré de 1080 px, demande un rendu que le navigateur ne
+/// fait pas gratuitement.
+///
+/// ## Ce que le web change, et rien d'autre
+///
+/// **Le glissement vers le bas n'existe pas** : c'est un geste tactile, et la
+/// webapp se lit aussi à la souris. Le bouton *Effacer* fait le même travail
+/// pour les deux, ce que la poignée de l'app ne pourrait pas faire sur un
+/// ordinateur.
+///
+/// **Le partage passe par `navigator.share` quand il existe**, et retombe sur
+/// une copie sinon — un ordinateur de bureau n'a pas de feuille de partage
+/// système. C'est le seul endroit où la webapp ne peut pas faire ce que fait
+/// l'app, et elle le remplace au lieu de le taire.
+///
 /// ## Elle reste montée, comme la feuille de réglages
 ///
 /// Un `<Show>` l'arracherait du document, et rien ne peut transiter sur ce qui
-/// n'existe plus : la fermeture serait sèche là où l'ouverture est douce, ce
-/// qui se remarque davantage qu'une barre jamais animée. Elle est donc toujours
-/// là, et **inerte** quand la sélection est vide.
+/// n'existe plus : la fermeture serait sèche là où l'ouverture est douce. Elle
+/// est donc toujours là, et **inerte** quand la sélection est vide.
 ///
 /// `inert` est rendu **absent** et non « faux » : c'est un attribut booléen,
 /// donc `inert="false"` rendrait la barre inerte tout autant. Sans lui, ses
 /// boutons resteraient dans l'ordre de tabulation et dans l'arbre
 /// d'accessibilité — invisibles et pourtant atteignables.
-///
-/// ## Ce qu'elle ne fait pas
-///
-/// Elle ne se rend **que côté navigateur**. Sans JavaScript, des boutons qui ne
-/// copient rien seraient un mensonge — pire qu'une absence, parce qu'on les
-/// essaie. Le serveur rend le texte entier, ce qui est le rendu honnête pour qui
-/// n'a pas de JavaScript et ce qu'un moteur doit indexer.
 #[component]
 pub fn BarreDeSelection(
     /// La sélection courante, celle que la page a fournie.
@@ -124,123 +141,228 @@ pub fn BarreDeSelection(
 ) -> impl IntoView {
     let livre = StoredValue::new(livre);
     let chemin = StoredValue::new(chemin);
+    let tous: Vec<u32> = textes.keys().copied().collect();
+    let tous = StoredValue::new(tous);
     let textes = StoredValue::new(textes);
 
     let vide = move || selection.with(|s| s.is_empty());
-    let combien = move || selection.with(|s| s.len());
 
     let renvoi_courant = move || selection.with(|s| livre.with_value(|l| renvoi(l, chapitre, s)));
 
-    // L'adresse partagée. Elle porte le domaine en entier — un lien relatif ne
-    // se colle pas dans une messagerie, et c'est le domaine qui déclenche
+    // L'adresse partagée, avec le domaine en entier : un lien relatif ne se
+    // colle pas dans une messagerie, et c'est le domaine qui déclenche
     // l'ouverture de l'app sur les deux plateformes.
     let adresse = move || {
         let numeros: Vec<u32> = selection.with(|s| s.iter().copied().collect());
         let parametre = crate::domaine::selection::parametre(&numeros);
         chemin.with_value(|c| {
+            let base = format!("{}{c}", crate::interface::tete::ORIGINE);
             if parametre.is_empty() {
-                format!("{}{c}", crate::interface::tete::ORIGINE)
+                base
             } else {
-                format!("{}{c}?v={parametre}", crate::interface::tete::ORIGINE)
+                format!("{base}?v={parametre}")
             }
         })
     };
 
-    // Ce qu'on copie : le texte, puis le renvoi, puis le lien.
+    // Le texte partagé, **au format de l'app** — `shareText` dans
+    // `ChapterView.swift` : les versets joints par une espace, sans leurs
+    // numéros, puis le renvoi.
     //
-    // Dans cet ordre parce que c'est celui d'une citation — on lit le verset
-    // avant de savoir d'où il vient. Le lien en dernier, parce qu'une messagerie
-    // qui en fait un aperçu le prend là où il est.
-    let a_copier = move || {
+    // Sans numéros parce qu'une citation n'en porte pas : « 1. Quand Elohim »
+    // se colle dans un message comme une capture d'écran de logiciel. Et le
+    // lien n'y est **pas** — l'app le passe comme un second objet de partage,
+    // pour que la messagerie en tire un aperçu au lieu de l'afficher en clair.
+    let texte_partage = move || {
         let numeros: Vec<u32> = selection.with(|s| s.iter().copied().collect());
         let corps = textes.with_value(|t| {
             numeros
                 .iter()
-                .filter_map(|n| t.get(n).map(|texte| format!("{n}. {texte}")))
+                .filter_map(|n| t.get(n).map(String::as_str))
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join(" ")
         });
-        format!("{corps}\n\n— {}\n{}", renvoi_courant(), adresse())
+        format!("{corps}\n\n— {}, La Bible ONT", renvoi_courant())
     };
 
     view! {
         <div
-            class="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition-all duration-300 motion-reduce:transition-none"
-            class=("translate-y-6", vide)
+            class="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] transition-all duration-150 ease-out motion-reduce:transition-none"
+            class=("translate-y-4", vide)
             class=("opacity-0", vide)
             class=("pointer-events-auto", move || !vide())
             inert=move || vide().then_some("")
             aria-label="Versets sélectionnés"
         >
-            <div class="flex w-full max-w-mesure flex-col gap-3 rounded-2xl border border-filet bg-surface-haute/95 p-4 shadow-2xl backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
-                <p class="chiffres-tableau text-sm text-encre-douce">
+            // 26 points de rayon, une ombre portée, un filet — les valeurs de
+            // `VerseActionBar`. La carte ne touche aucun bord : c'est ce qui la
+            // fait lire comme un objet posé sur la page.
+            <div class="w-full max-w-mesure rounded-[1.625rem] border border-filet bg-surface-haute px-[1.125rem] pb-3.5 pt-2.5 shadow-2xl">
+                // Le renvoi tient la place du titre de navigation, que l'app
+                // remplit pendant une sélection — « comme dans Bible Strong ».
+                // Sur un site il n'y a pas de barre de navigation à emprunter,
+                // donc il vit ici, au-dessus des actions.
+                <p class="chiffres-tableau mb-3 text-center text-sm text-encre-douce">
                     {renvoi_courant}
-                    <span class="ms-2 text-encre-douce/70">
-                        "(" {combien} ")"
-                    </span>
                 </p>
 
-                <div class="flex flex-wrap items-center gap-2">
-                    <ActionDeSelection libelle="Copier" texte=Callback::new(move |()| a_copier()) />
-                    <ActionDeSelection libelle="Lien" texte=Callback::new(move |()| adresse()) />
-                    <button
-                        type="button"
-                        class="rounded-full px-3 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:text-encre"
-                        on:click=move |_| selection.update(|s| s.clear())
-                    >
-                        "Effacer"
-                    </button>
+                <div class="flex items-stretch">
+                    <ActionDeSelection
+                        libelle="Copier"
+                        texte=Callback::new(move |()| texte_partage())
+                        efface_apres=true
+                        selection
+                    />
+                    <ActionDePartage
+                        texte=Callback::new(move |()| texte_partage())
+                        lien=Callback::new(move |()| adresse())
+                    />
+                    <ActionSimple
+                        libelle="Tout"
+                        au_clic=Callback::new(move |()| {
+                            tous.with_value(|t| selection.set(t.iter().copied().collect()));
+                        })
+                    />
+                    <ActionSimple
+                        libelle="Effacer"
+                        au_clic=Callback::new(move |()| selection.update(|s| s.clear()))
+                    />
                 </div>
             </div>
         </div>
     }
 }
 
-/// Un bouton qui met du texte dans le presse-papier, et le dit.
+/// Une tuile d'action — `ActionTile` de l'app.
 ///
-/// ## Pourquoi il annonce son succès
+/// Elles se partagent la largeur à parts égales (`flex-1`), comme le
+/// `.frame(maxWidth: .infinity)` de chacune côté Swift. C'est ce qui fait que la
+/// barre ne se réorganise pas quand une action apparaît ou disparaît.
+#[component]
+fn ActionSimple(libelle: &'static str, au_clic: Callback<(), ()>) -> impl IntoView {
+    view! {
+        <button
+            type="button"
+            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:bg-aubergine/40 hover:text-encre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            on:click=move |_| au_clic.run(())
+        >
+            {libelle}
+        </button>
+    }
+}
+
+/// Copier, avec l'accusé de réception que l'app n'a pas besoin de donner.
 ///
-/// Copier est un geste **sans retour visible** : rien ne bouge à l'écran, et
-/// l'on ne sait pas si ça a marché avant de coller ailleurs. Le libellé bascule
-/// donc en « Copié » pendant deux secondes — c'est le seul accusé de réception
-/// possible, et son absence est ce qui fait cliquer trois fois.
+/// Sur iOS, `UIPasteboard` est instantané et le geste est tactile : on sent
+/// qu'il a eu lieu. Dans un navigateur, rien ne bouge — et un geste sans retour
+/// se répète. Le libellé bascule donc en « Copié » deux secondes.
 ///
-/// `aria-live="polite"` le dit aussi à un lecteur d'écran, qui ne voit pas le
-/// changement de mot.
+/// L'app **vide la sélection** après avoir copié (`selection.removeAll()`), et
+/// on fait pareil : c'est ce qui dit que le geste est consommé.
+// `selection` et `efface_apres` ne servent qu'au navigateur : côté serveur, le
+// clic n'existe pas. Le `cfg_attr` vaut mieux qu'un préfixe `_`, qui les
+// rendrait muettes des deux côtés et ferait perdre le nom au lecteur.
+#[cfg_attr(not(feature = "hydrate"), allow(unused_variables))]
 #[component]
 fn ActionDeSelection(
-    /// Ce que le bouton dit au repos.
     libelle: &'static str,
-    /// Ce qu'il met dans le presse-papier, calculé au moment du clic.
     texte: Callback<(), String>,
+    efface_apres: bool,
+    selection: Selection,
 ) -> impl IntoView {
     let copie = RwSignal::new(false);
 
     let au_clic = move |_| {
         let _contenu = texte.run(());
         #[cfg(feature = "hydrate")]
-        {
-            // `writeText` rend une promesse qu'on ne suit pas : son échec ne
-            // peut venir que d'un refus de permission, et il n'y a rien à
-            // proposer au lecteur dans ce cas — le texte est déjà à l'écran,
-            // il peut le sélectionner à la main.
-            if let Some(fenetre) = web_sys::window() {
-                let _ = fenetre.navigator().clipboard().write_text(&_contenu);
-            }
+        if let Some(fenetre) = web_sys::window() {
+            let _ = fenetre.navigator().clipboard().write_text(&_contenu);
         }
         copie.set(true);
         #[cfg(feature = "hydrate")]
-        set_timeout(move || copie.set(false), std::time::Duration::from_secs(2));
+        {
+            let selection = selection;
+            set_timeout(
+                move || {
+                    copie.set(false);
+                    if efface_apres {
+                        selection.update(|s| s.clear());
+                    }
+                },
+                std::time::Duration::from_millis(900),
+            );
+        }
     };
 
     view! {
         <button
             type="button"
-            class="rounded-full border border-or/50 px-4 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:border-or hover:bg-aubergine/40"
+            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-live="polite"
             on:click=au_clic
         >
             {move || if copie.get() { "Copié" } else { libelle }}
+        </button>
+    }
+}
+
+/// Partager — la feuille du système quand elle existe, une copie sinon.
+///
+/// `navigator.share` n'existe que sur mobile et dans quelques navigateurs de
+/// bureau. **Le repli n'est pas une dégradation cachée** : le libellé dit
+/// « Copié » quand c'est ce qui s'est passé, pour qu'on n'aille pas chercher une
+/// feuille de partage qui ne viendra pas.
+///
+/// Le texte et le lien voyagent **séparés**, comme dans l'app : la messagerie
+/// prend le texte, et ce qui sait lire une URL en tire un aperçu. Les coller
+/// ensemble donnerait une adresse en clair au milieu d'une citation.
+#[component]
+fn ActionDePartage(texte: Callback<(), String>, lien: Callback<(), String>) -> impl IntoView {
+    let etat = RwSignal::new("Partager");
+
+    let au_clic = move |_| {
+        let _t = texte.run(());
+        let _l = lien.run(());
+        #[cfg(feature = "hydrate")]
+        {
+            use wasm_bindgen::{JsCast, JsValue};
+            let Some(fenetre) = web_sys::window() else {
+                return;
+            };
+            let navigateur = fenetre.navigator();
+            let donnees = js_sys::Object::new();
+            let _ = js_sys::Reflect::set(&donnees, &"text".into(), &JsValue::from_str(&_t));
+            let _ = js_sys::Reflect::set(&donnees, &"url".into(), &JsValue::from_str(&_l));
+
+            // `share` n'est pas déclaré par web-sys sur toutes les cibles : on
+            // le cherche sur l'objet plutôt que de le supposer. Absent, on
+            // copie — et on le dit.
+            let partage = js_sys::Reflect::get(&navigateur, &"share".into()).ok();
+            let disponible = partage.as_ref().is_some_and(|p| p.is_function());
+
+            if disponible {
+                if let Some(f) = partage.and_then(|p| p.dyn_into::<js_sys::Function>().ok()) {
+                    let _ = f.call1(&navigateur, &donnees);
+                }
+            } else {
+                let _ = navigateur.clipboard().write_text(&format!("{_t}\n{_l}"));
+                etat.set("Copié");
+                set_timeout(
+                    move || etat.set("Partager"),
+                    std::time::Duration::from_millis(1200),
+                );
+            }
+        }
+    };
+
+    view! {
+        <button
+            type="button"
+            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            aria-live="polite"
+            on:click=au_clic
+        >
+            {move || etat.get()}
         </button>
     }
 }
