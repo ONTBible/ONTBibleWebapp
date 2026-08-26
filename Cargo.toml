@@ -21,12 +21,27 @@ leptos_axum = { version = "0.8", optional = true }
 lambda_http = { version = "0.13", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 wasm-bindgen = { version = "0.2.106", optional = true }
+# `navigator.share` n'est pas déclaré par `web-sys` sur toutes les cibles : on
+# le cherche sur l'objet plutôt que de le supposer présent, et ça demande la
+# réflexion de `js-sys`. Une méthode absente à la compilation est une erreur ;
+# absente à l'exécution, c'est un repli — et c'est ce qu'on veut ici.
+js-sys = { version = "0.3", optional = true }
 # Le stockage local pour les réglages de lecture, et de quoi mesurer le temps
 # et la page pour la traversée du seuil. Leptos réexporte `web_sys`, mais
 # chaque interface du navigateur est derrière son propre drapeau, et seules
 # celles qu'on demande entrent dans le binaire wasm.
 web-sys = { version = "0.3", features = [
     "Storage",
+    # Le presse-papier, pour copier un passage sélectionné. Trois drapeaux pour
+    # un seul geste — `navigator.clipboard.writeText` traverse trois interfaces,
+    # et chacune est derrière le sien. En oublier une ne donne pas un avertissement
+    # mais un `no method named` à la compilation wasm, que la compilation serveur
+    # ne montre pas : le même code passe d'un côté et pas de l'autre.
+    "Navigator",
+    "Clipboard",
+    # `closest` — savoir si le clic visait un lien du lexique plutôt que le
+    # verset qui le porte.
+    "Element",
     # `getBoundingClientRect` — la hauteur de la scène du seuil.
     "DomRect",
     # L'horloge du navigateur. Une animation comptée en images serait deux
@@ -76,6 +91,7 @@ hydrate = [
   "leptos/hydrate",
   "dep:console_error_panic_hook",
   "dep:wasm-bindgen",
+  "dep:js-sys",
   # Les réglages de lecture sont retenus en JSON dans le stockage local.
   "dep:serde_json",
   "dep:web-sys",

@@ -1470,6 +1470,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "console_error_panic_hook",
+ "js-sys",
  "lambda_http",
  "leptos",
  "leptos_axum",
