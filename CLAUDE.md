@@ -204,6 +204,7 @@ une application de bureau.
 | Type | Nom | Valeur |
 |---|---|---|
 | TXT | `@` | `purelymail_ownership_proof=…` |
+| TXT | `@` | `google-site-verification=Sn23QSTw…` — **la Search Console**, voir §8 septies |
 | MX | `@` | `mailserver.purelymail.com` — priorité 50 |
 | TXT | `@` | `v=spf1 include:_spf.purelymail.com ~all` |
 | CNAME | `purelymail1._domainkey` | `key1.dkimroot.purelymail.com` |
@@ -2399,10 +2400,50 @@ adresses à chaque mise en ligne est du bruit, et c'est ce qui fait qu'on cesse
 d'être écouté. C'est pourquoi le script n'est **pas** branché sur
 `deployer.yml` : le geste doit rester une décision.
 
-**Google reste hors de portée.** Il a refusé le protocole en 2021 et n'a pas
+**Google reste hors de portée du protocole.** Il l'a refusé en 2021 et n'a pas
 changé d'avis en 2026. Son index — donc **Gemini** — passe obligatoirement par la
-Search Console, qui demande le compte de Gloire. C'est la moitié qui reste, et
-elle ne peut pas être automatisée.
+Search Console.
+
+#### La propriété Google est validée, et par le DNS — le 25 août 2026
+
+**C'est une propriété de domaine, pas un préfixe d'URL** : elle couvre
+`ontbible.com` *et tous ses sous-domaines*, `api.ontbible.com` compris, sans
+rien redemander le jour où l'un d'eux compte.
+
+**Google a écrit l'enregistrement lui-même.** Il reconnaît Cloudflare comme
+fournisseur et propose une validation déléguée : on autorise son accès au DNS, il
+pose son TXT et valide dans la foulée. Il n'y a **aucun jeton à recopier** dans ce
+flux — ce qui déroute, puisque tous les guides en montrent un.
+
+Une première tentative a échoué avant ça, faute d'avoir compris le flux :
+« Impossible de trouver le jeton de validation dans les enregistrements TXT ».
+Le message est juste et trompeur à la fois — il décrit l'état du DNS, pas l'erreur
+commise, qui était d'avoir lancé la validation sans laisser Google faire son
+travail.
+
+**Le TXT ne doit jamais être supprimé.** Il n'a l'air de rien — une ligne opaque
+de plus à la racine, sans rapport visible avec le site ni avec le courrier — et
+c'est exactement pourquoi il est inscrit au tableau du §4 : le retirer fait tomber
+la propriété, donc l'accès aux rapports d'indexation, sans qu'aucune page ne
+bouge.
+
+**Le risque était le courrier, et il est écarté.** La racine porte maintenant
+**trois** TXT. Un enregistrement ajouté est sans danger ; un SPF *modifié* aurait
+coupé `contact@ontbible.com` en silence — c'est le piège du §4, et il valait la
+vérification. Relevé après coup, depuis l'extérieur :
+
+    dig +short TXT ontbible.com        3 lignes, un seul v=spf1
+    dig +short MX ontbible.com         mailserver.purelymail.com, priorité 50
+    dig +short TXT purelymail1._domainkey.ontbible.com   v=DKIM1; k=rsa; p=…
+    dig +short TXT _dmarc.ontbible.com v=DMARC1; p=reject
+
+La chaîne entière est intacte. **On ne juge pas un enregistrement DNS sur ce
+qu'on croit avoir laissé faire** — c'est la règle du §4, et elle vaut aussi quand
+c'est un tiers qui écrit.
+
+**Reste à faire, dans la Search Console** : *Sitemaps* → `sitemap.xml` → Envoyer.
+C'est le geste qui donne les 162 adresses à Google, et il ne s'automatise pas —
+l'API demande un jeton OAuth du compte.
 
 ### Ce qu'un modèle fait quand l'index lui manque
 
