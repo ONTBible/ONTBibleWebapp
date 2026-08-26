@@ -83,11 +83,27 @@ pub fn Passage() -> impl IntoView {
     {
         let cle = cle;
         Effect::new(move |_| {
-            let (_, unite) = cle();
+            let (livre, unite) = cle();
+            let pour_marques = unite.clone();
             leptos::task::spawn_local(async move {
-                if let Ok(liste) = crate::api::mes_surlignages(unite).await {
+                if let Ok(liste) = crate::api::mes_surlignages(pour_marques).await {
                     marquage.set(liste);
                 }
+            });
+
+            // Retenir où l'on est, **une fois par unité ouverte**.
+            //
+            // L'app suit la visibilité de chaque ligne et enregistre en continu.
+            // Ici chaque écriture est une requête réseau : la faire au
+            // défilement produirait des dizaines d'appels par chapitre, dont un
+            // seul compterait. On vise donc le chapitre et non le verset — plus
+            // grossier, et assumé : un signet qui vise juste vaut mieux qu'un
+            // signet précis qui coûte cinquante requêtes.
+            //
+            // Le titre est celui du corpus, pas celui que le registre affiche :
+            // c'est l'app qui le relira, et elle a le sien.
+            leptos::task::spawn_local(async move {
+                let _ = crate::api::retenir_la_position(livre, unite.clone(), unite, 1).await;
             });
         });
     }

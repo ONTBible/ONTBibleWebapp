@@ -114,13 +114,43 @@ pub fn Compte() -> impl IntoView {
     }
 }
 
-/// L'état ouvert : on peut partir.
+/// L'état ouvert : on peut reprendre sa lecture, ou partir.
 #[component]
 fn Ouvert() -> impl IntoView {
+    // Où l'on en était. C'est le seul endroit du site qui montre la position :
+    // elle n'a de sens qu'ici, où l'on ne lit pas encore.
+    let position = Resource::new_blocking(|| (), |_| async { crate::api::ma_position().await });
+
     view! {
         <p class="mb-6">
             "Votre compte est ouvert. Vos surlignages suivent entre ce site et l'application."
         </p>
+
+        <Suspense fallback=|| ()>
+            {move || Suspend::new(async move {
+                position
+                    .await
+                    .ok()
+                    .flatten()
+                    .map(|p| {
+                        view! {
+                            <p class="mb-6">
+                                "Vous lisiez "
+                                <Lien href=format!(
+                                    "/fr/lire/{}/{}",
+                                    p.book_id,
+                                    p.chapter_id,
+                                )>{p.chapter_title.clone()}</Lien>
+                                // Le verset n'est pas nommé : le site retient
+                                // l'unité, pas la ligne — voir
+                                // `api::retenir_la_position`. Annoncer un verset
+                                // qu'on ne vise pas serait une précision fausse.
+                                ". Reprendre là où vous en étiez ?"
+                            </p>
+                        }
+                    })
+            })}
+        </Suspense>
         // Une ancre ordinaire et non un bouton du routeur : la déconnexion est
         // une route du serveur, qui écrit un en-tête. Le routeur la traiterait
         // comme une page à charger, et le cookie ne serait jamais effacé.

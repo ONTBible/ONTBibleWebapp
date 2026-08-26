@@ -281,12 +281,23 @@ impl Synchronisation for SyncDuBackend {
             .map_err(|erreur| ErreurDeCompte::ContratRompu(erreur.to_string()))
     }
 
-    async fn pousser(&self, jeton: &str, surlignages: &[Surlignage]) -> Result<(), ErreurDeCompte> {
-        // `position` est omise, pas mise à `null` : le backend la déclare
-        // `Option` avec `#[serde(default)]`, donc une clé absente vaut « rien à
-        // changer ». Le site ne suit pas encore la position de lecture ; le jour
-        // où il le fera, c'est ici qu'elle entrera.
-        let corps = serde_json::json!({ "highlights": surlignages });
+    async fn pousser(
+        &self,
+        jeton: &str,
+        surlignages: &[Surlignage],
+        position: Option<&crate::domaine::surlignage::Position>,
+    ) -> Result<(), ErreurDeCompte> {
+        // La position est **omise**, jamais mise à `null`.
+        //
+        // Le backend la déclare `Option` avec `#[serde(default)]` : une clé
+        // absente vaut « rien à changer ». Un `null` explicite passerait aussi —
+        // `Option` le lit — mais la clé absente est ce que fait l'app, et deux
+        // clients qui envoient deux formes pour la même intention finissent par
+        // découvrir que l'une des deux ne marchait pas.
+        let mut corps = serde_json::json!({ "highlights": surlignages });
+        if let Some(p) = position {
+            corps["position"] = serde_json::to_value(p).unwrap_or(serde_json::Value::Null);
+        }
 
         let reponse = self
             .client

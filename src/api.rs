@@ -401,7 +401,81 @@ pub async fn poser_surlignage(
         })
         .collect();
 
-    Ok(sync.pousser(&session.access_token, &marques).await.is_ok())
+    // Aucune position ici : poser une couleur n'est pas lire. Elles voyagent
+    // par la même route parce que le backend n'en offre qu'une, pas parce
+    // qu'elles vont ensemble — mêler les deux ferait avancer le signet du
+    // lecteur chaque fois qu'il surligne un verset qu'il vient de retrouver.
+    Ok(sync
+        .pousser(&session.access_token, &marques, None)
+        .await
+        .is_ok())
+}
+
+/// Où le lecteur en était, la dernière fois.
+///
+/// Vide sans compte, et **pas une erreur** — même règle que pour les
+/// surlignages : lire sans compte est le cas normal du site.
+#[server(prefix = "/api", endpoint = "ma-position")]
+pub async fn ma_position() -> Result<Option<crate::domaine::surlignage::Position>, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(None);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+
+    Ok(sync
+        .tirer(&session.access_token, None)
+        .await
+        .ok()
+        .and_then(|m| m.position))
+}
+
+/// Retient où le lecteur en est.
+///
+/// ## Pourquoi ce n'est pas fait à chaque verset visible
+///
+/// L'app suit la visibilité des lignes et enregistre en continu ; le site
+/// appelle cette fonction serveur, donc chaque appel est une requête réseau.
+/// Le faire au défilement produirait des dizaines d'écritures par chapitre,
+/// dont une seule compterait — la dernière.
+///
+/// Elle est donc appelée **à l'ouverture d'une unité**, et une fois. C'est plus
+/// grossier que l'app, et c'est assumé : « Reprendre » ramène au début du
+/// dernier chapitre ouvert plutôt qu'au verset exact. Un signet qui vise le
+/// chapitre juste vaut mieux qu'un signet précis qui coûte cinquante requêtes.
+#[server(prefix = "/api", endpoint = "retenir-la-position")]
+pub async fn retenir_la_position(
+    livre: String,
+    unite: String,
+    titre: String,
+    verset: u32,
+) -> Result<bool, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(false);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+
+    let maintenant = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
+
+    let position = crate::domaine::surlignage::Position {
+        book_id: livre,
+        chapter_id: unite,
+        chapter_title: titre,
+        verse: verset,
+        updated_at: maintenant,
+    };
+
+    // Aucun surlignage : on ne pousse que la position. Le backend accepte une
+    // liste vide — son `highlights` porte `#[serde(default)]` — et une liste
+    // vide ne supprime rien, elle n'apparie simplement avec rien.
+    Ok(sync
+        .pousser(&session.access_token, &[], Some(&position))
+        .await
+        .is_ok())
 }
 
 /// La session du cookie, si elle vaut encore.

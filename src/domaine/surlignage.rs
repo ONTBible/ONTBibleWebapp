@@ -466,6 +466,43 @@ mod contrat {
         );
     }
 
+    /// Chaque champ de `Position` existe chez lui, et **aucun n'est facultatif**.
+    ///
+    /// C'est la différence avec `Highlight`, où `note` peut manquer. Ici tout
+    /// est obligatoire côté backend : en omettre un ferait échouer sa
+    /// désérialisation, et le `PUT` rendrait une erreur que le site lirait comme
+    /// une panne de réseau — donc réessaierait, indéfiniment, sans jamais
+    /// comprendre.
+    #[test]
+    fn la_position_n_a_aucun_champ_facultatif() {
+        let Some(source) = source_du_backend() else {
+            return;
+        };
+        let structure = source
+            .split("pub struct Position")
+            .nth(1)
+            .and_then(|reste| reste.split("\n}").next())
+            .expect("la structure Position doit exister côté backend");
+
+        for champ in [
+            "book_id",
+            "chapter_id",
+            "chapter_title",
+            "verse",
+            "updated_at",
+        ] {
+            assert!(
+                structure.contains(&format!("pub {champ}:")),
+                "`{champ}` n'existe plus dans `Position` côté backend"
+            );
+        }
+        assert!(
+            !structure.contains("Option<"),
+            "un champ de `Position` est devenu facultatif : le site en envoie \
+             cinq, et il faut savoir lequel peut désormais manquer"
+        );
+    }
+
     /// Un objet du site se relit par un type de la forme du backend.
     ///
     /// C'est l'aller-retour, la seule épreuve qui ne dépende d'aucune lecture de
@@ -522,5 +559,43 @@ mod contrat {
             "une note absente ne doit pas paraître dans le fil : {fil}"
         );
         let _: CommeLeBackend = serde_json::from_str(&fil).expect("relisible sans note");
+    }
+}
+
+/// Où le lecteur en était.
+///
+/// ## Une seule position, et c'est ce qui la rend utile
+///
+/// Le backend n'en garde qu'une par personne — pas une par livre. « Reprendre »
+/// ramène donc au dernier endroit lu, quel qu'il soit, ce qui est le geste qu'on
+/// attend d'un signet unique.
+///
+/// Tous les champs sont obligatoires côté backend, `Option` compris : aucun
+/// n'est facultatif, contrairement à `note` sur un surlignage. En omettre un
+/// ferait échouer la désérialisation là-bas, silencieusement du point de vue du
+/// site — le `PUT` rendrait une erreur qu'on lirait comme une panne de réseau.
+///
+/// `chapter_title` voyage alors qu'il pourrait se retrouver depuis
+/// `chapter_id` : c'est le backend qui le veut, pour que l'app puisse afficher
+/// « Bereshit 1 » sans avoir chargé le livre. Le site le lui donne tel qu'il
+/// l'affiche lui-même.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Position {
+    pub book_id: String,
+    pub chapter_id: String,
+    pub chapter_title: String,
+    pub verse: u32,
+    pub updated_at: i64,
+}
+
+impl Position {
+    /// Vrai quand celle qui arrive est plus récente que celle qu'on a.
+    ///
+    /// Même règle que pour un surlignage — dernier écrit gagné, **strictement**.
+    /// À égalité, on garde ce qu'on a : le backend fait de même, et deux
+    /// horloges qui concordent à la milliseconde près sont plus probablement le
+    /// même écrit rejoué qu'un vrai conflit.
+    pub fn plus_recente_que(&self, autre: &Position) -> bool {
+        self.updated_at > autre.updated_at
     }
 }
