@@ -1,4 +1,6 @@
 use leptos::prelude::*;
+
+use crate::interface::design::verset::composer;
 use leptos_meta::{Link, Meta, Title};
 
 use crate::interface::design::image;
@@ -123,6 +125,25 @@ pub fn Tete(
     } else {
         format!("{titre} — La Bible ONT")
     };
+
+    // Le titre et la description sont du **français**, donc ils prennent la
+    // composition du site.
+    //
+    // Le §8 bis pose la règle pour le corpus, et le §8 octies l'a apprise à ses
+    // dépens : le titre d'une fiche est devenu « bara (hébreu) : orchestrer »,
+    // avec une espace ordinaire devant le deux-points. `verifier-composition.py`
+    // l'a refusé, et il avait raison — une espace ordinaire est un point de
+    // coupure, donc un navigateur peut renvoyer le deux-points à la ligne
+    // suivante dans un onglet étroit, et un moteur peut le faire dans un
+    // résultat.
+    //
+    // La règle est posée **ici** plutôt que dans chaque page, pour la même
+    // raison qu'elle l'est dans `Verset` plutôt que dans chaque appelant :
+    // une règle typographique qu'il faut penser à appliquer est une règle qui
+    // manquera quelque part. `composer` est la seule qui existe, et c'est ce
+    // qui la garde vraie.
+    let complet = composer(&complet);
+    let description = composer(&description);
     let canonique = format!("{ORIGINE}{chemin}");
 
     // La bannière d'app, quand l'identifiant est connu.
