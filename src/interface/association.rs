@@ -26,6 +26,26 @@
 //! C'est cette invisibilité qui justifie le test plus bas. Un fichier qu'on ne
 //! consulte jamais et dont la casse est différée doit être tenu par une
 //! machine.
+//!
+//! ## `HEAD` rend un corps vide, et ce n'est pas un défaut d'ici
+//!
+//! Relevé par la session Android en éprouvant l'accord des liens :
+//!
+//! ```text
+//! GET  /.well-known/assetlinks.json  →  200, application/json, 261 octets
+//! HEAD /.well-known/assetlinks.json  →  200, application/json, content-length: 0
+//! ```
+//!
+//! **Rien ne casse** : iOS et Android font tous deux un `GET`, et l'association
+//! d'Apple répond de la même façon depuis le premier jour sans que personne ne
+//! s'en soit aperçu. C'est le comportement d'axum sur **toutes** ses routes, pas
+//! une particularité de celles-ci — le corriger ici en ferait deux exceptions
+//! sans rien gagner.
+//!
+//! Ce qu'il faut savoir, en revanche : **un outil qui sonderait en `HEAD`
+//! conclurait à un fichier vide.** C'est le motif qu'on se renvoie depuis deux
+//! jours — une réponse parfaitement bien formée à une question qu'on n'avait pas
+//! posée. Pour vérifier ce fichier, faire un `GET`.
 
 /// L'identifiant d'équipe et le bundle, tels qu'Apple les attend.
 ///

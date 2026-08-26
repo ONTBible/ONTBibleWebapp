@@ -158,6 +158,7 @@ pub trait Synchronisation: Send + Sync {
         &self,
         jeton: &str,
         surlignages: &[crate::domaine::surlignage::Surlignage],
+        position: Option<&crate::domaine::surlignage::Position>,
     ) -> Result<(), ErreurDeCompte>;
 }
 
@@ -167,6 +168,13 @@ pub trait Synchronisation: Send + Sync {
 pub struct Moisson {
     #[serde(default)]
     pub highlights: Vec<crate::domaine::surlignage::Surlignage>,
+    /// La position de lecture, s'il y en a une.
+    ///
+    /// **`depuis` ne la filtre pas** : le backend la rend à chaque appel, quel
+    /// que soit le paramètre. Une position qu'on croirait inchangée parce qu'on
+    /// n'a rien demandé est en fait toujours la plus récente.
+    #[serde(default)]
+    pub position: Option<crate::domaine::surlignage::Position>,
     /// L'horodatage du serveur — à renvoyer tel quel au prochain `depuis`.
     ///
     /// On renvoie **celui du serveur** et non notre propre horloge : deux
