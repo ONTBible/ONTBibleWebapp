@@ -2555,6 +2555,124 @@ cumulées valent plus qu'une place lointaine sur le mot le plus disputé.
 Et le facteur qui décide vraiment n'est pas dans ce dépôt : ce sont les **liens
 entrants**. Aucune ligne de Rust ne les fabrique.
 
+## 8 nonies. Le compte, et ce qu'il porte — le 26 août 2026
+
+**Le backend de l'app portait déjà tout** : OAuth chez trois fournisseurs,
+sessions, rafraîchissement, surlignages, position de lecture. Le site n'avait
+qu'à s'y brancher — et c'est ce qui donne **un compte unique aux deux
+plateformes** : le lecteur qui a surligné sur son iPhone retrouve ses marques
+ici parce que c'est le même serveur qui a délivré les deux sessions.
+
+### Le jeton n'entre jamais dans une page
+
+C'est la Lambda du site qui échange le code et appelle le backend ; la session
+repart dans un cookie **`HttpOnly`**, qu'aucun script de la page ne peut lire.
+
+Le backend autorise pourtant `allow_origins = ["*"]`, donc le navigateur
+*pourrait* l'appeler directement. **On s'en garde** : un jeton posé dans
+`localStorage` est lisible par n'importe quel script chargé ensuite — une
+dépendance compromise, une extension, une injection. Le prix est un aller-retour
+de plus vers notre propre serveur, et il est faible.
+
+Les trois routes qui *agissent* — `aller`, `retour`, `partir` — sont posées
+**avant** le routeur de Leptos, comme l'association d'app : elles écrivent des
+en-têtes, ce qu'une page ne fait pas. Une fonction serveur ne peut pas poser de
+`Set-Cookie` sur une réponse qu'elle ne compose pas.
+
+### PKCE, et ses trois détails de forme
+
+Le code d'autorisation traverse le **navigateur du lecteur** : barre d'adresse,
+historique, journaux d'un proxy. Sans PKCE, qui l'intercepte l'échange.
+
+Trois détails, et chacun casse l'échange en désignant le mauvais coupable :
+
+- **`S256`, pas `plain`** — on envoie l'empreinte à l'aller, le secret au
+  retour ;
+- **base64url, pas base64** — `+` devient une espace dans une adresse, `/` y
+  ouvre un segment ;
+- **sans remplissage** — un `=` laissé en place fait refuser l'échange par un
+  message qui parle de *code invalide*.
+
+Le vecteur de la RFC 7636 les tient tous les trois. C'est le seul cas dont on
+connaisse la réponse d'avance, donc le seul qui vaille.
+
+### Où en est chaque fournisseur
+
+| | |
+|---|---|
+| **Google** | **en place** — son client est déjà en « Application Web » chez le backend ; il suffit d'y déclarer `https://ontbible.com/fr/compte/retour` |
+| **Apple** | demande un **Services ID** à créer, distinct de l'App ID |
+| **GitHub** | n'accepte **qu'une** adresse de retour par application, et celle-ci est prise par l'app — il en faut une seconde |
+
+Le README du backend l'avait prévu, mot pour mot : « [le Services ID] ne
+redeviendra nécessaire que le jour où une version web signera des comptes ».
+
+**Un fournisseur non déclaré n'affiche pas son bouton.** Mieux vaut une voie de
+moins qu'une voie qui mène à une erreur du fournisseur, où le lecteur ne peut
+rien faire. Et un test tient l'accord entre ce que la page propose et ce que la
+route sait faire : les deux listes vivent dans deux modules — l'une doit voyager
+jusqu'au navigateur, l'autre porte les identifiants et reste au serveur.
+
+**Un identifiant client n'est pas un secret** : il voyage en clair dans l'adresse
+d'autorisation. C'est le *secret* client, qui ne quitte pas la Lambda du backend,
+qui protège l'échange.
+
+### Les surlignages — le contrat, et son piège
+
+**L'appariement se fait par `(chapter_id, verse)`, pas par `id`.** Le backend
+apparie sur sa `sort_key`, et deux conséquences n'apparaissent dans aucune
+signature :
+
+- deux couleurs ne coexistent pas sur un même verset ;
+- un `id` neuf sur un verset déjà marqué **écrase** au lieu d'ajouter.
+
+Un test le dit, faute de quoi le site croirait avoir deux marques là où le
+serveur n'en garde qu'une — et l'écart ne se verrait qu'après un aller-retour.
+
+**Les pierres tombales traversent et ne se dessinent pas**, et les deux moitiés
+comptent. Les écarter à la lecture du réseau ferait perdre des suppressions —
+l'app l'a payé : « une suppression faite sur un autre appareil n'arrivait jamais
+jusqu'à la fusion ». Les garder à l'affichage dessinerait des marques effacées
+ailleurs.
+
+**Dernier écrit gagné, strictement.** À égalité d'horodatage le serveur garde sa
+version, et le backend explique pourquoi : « deux appareils dont les horloges
+concordent à la milliseconde près sont plus probablement le même écrit rejoué
+qu'un vrai conflit ».
+
+### Le dessin distingue trois états
+
+| état | signe | pourquoi |
+|---|---|---|
+| **surligné** | un fond coloré, opacité 0,38 | une marque **durable**, que le lecteur a posée |
+| **sélectionné** | un pointillé d'or | un état **passager** de son doigt |
+| **ni l'un ni l'autre, pendant une sélection** | opacité 0,32 | « on ne marque pas le verset désigné, on efface le reste » |
+
+Les confondre a un coût nommé par l'app : un fond sur une sélection **ferait
+croire qu'on vient de surligner**.
+
+### Ce que le compte ne change pas
+
+La lecture. Le corpus, le lexique et le verset du jour sont là sans lui, et le
+resteront. **Ce n'est pas une politesse, c'est une conséquence** : le backend
+note que « les surlignages et les notes d'un lecteur de Bible, rattachés à une
+identité, révèlent des convictions religieuses — article 9 du RGPD ». Un site qui
+exigerait un compte pour lire ferait de cette lecture une donnée.
+
+Et l'on ne garde que la **référence** d'un verset, jamais son texte : le corpus
+est déjà là. La granularité est le verset et non un décalage de caractères —
+« une révision du texte déplacerait les caractères et rendrait le surlignage
+faux, alors qu'un numéro de verset reste juste ».
+
+### Ce qui reste
+
+- **déclarer l'adresse de retour** chez Google, puis créer le Services ID Apple
+  et la seconde application GitHub ;
+- la **position de lecture** — le backend la porte, le site ne la suit pas
+  encore. C'est dans `SyncDuBackend::pousser` qu'elle entrera, où la clé est
+  aujourd'hui omise plutôt que mise à `null` ;
+- l'action **Image** de l'app, qui rend un carré de 1080 px.
+
 ## 9. Ce qui reste à trancher
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.

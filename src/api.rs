@@ -294,3 +294,163 @@ fn glossaire() -> Result<std::sync::Arc<dyn crate::application::ports::Lexique>,
     use_context::<std::sync::Arc<dyn crate::application::ports::Lexique>>()
         .ok_or_else(|| ServerFnError::new("lexique absent du contexte"))
 }
+
+// ───────────────────────────── le compte ──────────────────────────────────────
+
+/// Ce que le navigateur sait du compte — c'est-à-dire presque rien.
+///
+/// **Ni jeton, ni identité, ni adresse.** Le navigateur n'a besoin que de savoir
+/// s'il faut proposer de se connecter ou de se déconnecter ; tout le reste vit
+/// dans le cookie `HttpOnly`, que rien dans la page ne peut lire. Faire voyager
+/// l'adresse électronique du lecteur pour l'afficher serait une donnée de plus à
+/// protéger pour un gain d'affichage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct EtatDuCompte {
+    pub connecte: bool,
+}
+
+/// Le compte est-il ouvert ?
+///
+/// Lu dans le cookie, côté serveur. Une session périmée compte comme fermée :
+/// le jeton d'accès ne vaut qu'une heure, et proposer « se déconnecter » à
+/// quelqu'un dont la session est morte l'enverrait vers une erreur.
+#[server(prefix = "/api", endpoint = "mon-compte")]
+pub async fn mon_compte() -> Result<EtatDuCompte, ServerFnError> {
+    Ok(EtatDuCompte {
+        connecte: session_valide().await.is_some(),
+    })
+}
+
+/// Les surlignages du lecteur pour une unité.
+///
+/// Vide quand il n'y a pas de compte — et **pas une erreur** : lire sans compte
+/// est le cas normal du site, pas une panne. Une erreur ferait afficher un
+/// message d'échec à quelqu'un qui n'a rien demandé.
+#[server(prefix = "/api", endpoint = "mes-surlignages")]
+pub async fn mes_surlignages(
+    unite: String,
+) -> Result<Vec<crate::domaine::surlignage::Surlignage>, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(Vec::new());
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+
+    match sync.tirer(&session.access_token, None).await {
+        Ok(moisson) => Ok(moisson
+            .highlights
+            .into_iter()
+            // On filtre sur l'unité **et** sur la visibilité : le backend rend
+            // tout le corpus et les pierres tombales avec. Les garder ici
+            // dessinerait des surlignages que le lecteur a effacés ailleurs.
+            .filter(|s| s.chapter_id == unite && s.visible())
+            .collect()),
+        // Une synchronisation qui échoue ne doit pas empêcher de lire : la page
+        // s'affiche sans les marques, ce qui est exactement l'état de quelqu'un
+        // qui n'a pas de compte.
+        Err(_) => Ok(Vec::new()),
+    }
+}
+
+/// Pose, change ou retire un surlignage.
+///
+/// `couleur` absente veut dire **retirer** — et c'est une pierre tombale qu'on
+/// envoie, pas une absence. Le commentaire de l'app dit pourquoi :
+///
+/// > « Supprimer physiquement un surlignage ne se synchronise pas : l'appareil
+/// > qui efface n'a plus rien à envoyer, et celui qui reçoit ne voit qu'un objet
+/// > manquant — indistinguable d'un objet qu'il n'a pas encore. Il le renvoie
+/// > donc, et le surlignage ressuscite au prochain échange. »
+#[server(prefix = "/api", endpoint = "poser-surlignage")]
+pub async fn poser_surlignage(
+    livre: String,
+    unite: String,
+    versets: Vec<u32>,
+    couleur: Option<String>,
+    note: Option<String>,
+) -> Result<bool, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(false);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+
+    let maintenant = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
+
+    let marques: Vec<crate::domaine::surlignage::Surlignage> = versets
+        .into_iter()
+        .map(|verset| crate::domaine::surlignage::Surlignage {
+            // L'identifiant est composé et non tiré au hasard : le backend
+            // apparie par `(chapter_id, verse)`, donc un identifiant neuf à
+            // chaque envoi ne créerait pas de doublon — mais il rendrait deux
+            // envois du même geste indiscernables dans les journaux.
+            id: format!("{unite}-{verset}"),
+            book_id: livre.clone(),
+            chapter_id: unite.clone(),
+            verse: verset,
+            // Une pierre tombale garde une couleur, et l'app note qu'elle n'a
+            // plus d'importance : « si elle est inconnue, on retombe sur une
+            // valeur quelconque plutôt que de perdre la suppression ».
+            color: couleur.clone().unwrap_or_else(|| "gold".to_string()),
+            note: note.clone().filter(|n| !n.trim().is_empty()),
+            updated_at: maintenant,
+            deleted: couleur.is_none(),
+        })
+        .collect();
+
+    Ok(sync.pousser(&session.access_token, &marques).await.is_ok())
+}
+
+/// La session du cookie, si elle vaut encore.
+///
+/// Trois causes d'absence, indistinguables ici et c'est voulu : pas de cookie,
+/// cookie illisible, session périmée. Dans les trois cas le site se comporte
+/// comme s'il n'y avait pas de compte — le seul comportement qui ne ment pas.
+#[cfg(feature = "ssr")]
+async fn session_valide() -> Option<crate::domaine::compte::Session> {
+    use crate::interface::compte::{lire_cookie, COOKIE_SESSION};
+
+    // `extract` plutôt que le contexte : Leptos n'y met pas la requête, et
+    // l'extracteur d'axum est le chemin prévu depuis une fonction serveur.
+    let entetes: axum::http::HeaderMap = leptos_axum::extract().await.ok()?;
+    let brut = lire_cookie(&entetes, COOKIE_SESSION)?;
+    let decode = percent_decode(&brut);
+    let session: crate::domaine::compte::Session = serde_json::from_str(&decode).ok()?;
+
+    let maintenant = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_millis() as i64;
+
+    // Périmée : on ne renouvelle pas ici. Le renouvellement écrit un cookie, et
+    // une fonction serveur ne compose pas la réponse — elle rendrait un jeton
+    // neuf que rien ne garderait. C'est la route `/fr/compte/retour` qui pose
+    // les cookies, et elle seule.
+    (!session.perimee(maintenant)).then_some(session)
+}
+
+/// Décodage d'un composant d'adresse — l'inverse de `interface::compte::encoder`.
+#[cfg(feature = "ssr")]
+fn percent_decode(valeur: &str) -> String {
+    let octets = valeur.as_bytes();
+    let mut sortie = Vec::with_capacity(octets.len());
+    let mut i = 0;
+    while i < octets.len() {
+        if octets[i] == b'%' && i + 2 < octets.len() {
+            if let Ok(octet) = u8::from_str_radix(
+                std::str::from_utf8(&octets[i + 1..i + 3]).unwrap_or("zz"),
+                16,
+            ) {
+                sortie.push(octet);
+                i += 3;
+                continue;
+            }
+        }
+        sortie.push(octets[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&sortie).into_owned()
+}

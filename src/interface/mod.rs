@@ -9,6 +9,9 @@
 
 pub mod app;
 pub mod association;
+#[cfg(feature = "ssr")]
+pub mod compte;
+pub mod compte_public;
 pub mod design;
 pub mod echantillon;
 pub mod pages;

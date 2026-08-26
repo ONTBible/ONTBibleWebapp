@@ -44,6 +44,27 @@ async fn main() {
             .expect("glossary.json illisible — le lexique est embarqué à la compilation"),
     );
 
+    // Le compte, joint chez le backend de l'app.
+    //
+    // La racine se lit dans l'environnement plutôt qu'en dur : c'est
+    // aujourd'hui l'adresse `execute-api`, ce sera `api.ontbible.com` le jour où
+    // elle servira — et un identifiant `execute-api` change si l'API est
+    // recréée. À défaut, celle qui répond aujourd'hui, pour qu'un lancement
+    // local sans variable ne soit pas muet.
+    let comptes: Arc<dyn ontbible::application::ports::Comptes> =
+        Arc::new(ontbible::infrastructure::comptes::ComptesDuBackend::new(
+            std::env::var("ONT_API").unwrap_or_else(|_| {
+                "https://j451hq8d3k.execute-api.eu-west-3.amazonaws.com".to_string()
+            }),
+        ));
+
+    let synchronisation: Arc<dyn ontbible::application::ports::Synchronisation> =
+        Arc::new(ontbible::infrastructure::comptes::SyncDuBackend::new(
+            std::env::var("ONT_API").unwrap_or_else(|_| {
+                "https://j451hq8d3k.execute-api.eu-west-3.amazonaws.com".to_string()
+            }),
+        ));
+
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
@@ -53,6 +74,8 @@ async fn main() {
     // sert au rendu des pages et aux fonctions serveur — `leptos_routes_with_context`
     // enregistre les deux, donc il n'existe qu'un seul point d'injection.
     let dependances = {
+        let comptes_pour_pages = comptes.clone();
+        let sync_pour_pages = synchronisation.clone();
         let vivier = vivier.clone();
         let horloge = horloge.clone();
         let corpus = corpus.clone();
@@ -62,6 +85,8 @@ async fn main() {
             provide_context(horloge.clone());
             provide_context(corpus.clone());
             provide_context(lexique.clone());
+            provide_context(comptes_pour_pages.clone());
+            provide_context(sync_pour_pages.clone());
         }
     };
 
@@ -183,6 +208,31 @@ async fn main() {
                     include_str!("../public/llms.txt"),
                 )
             }),
+        )
+        // Le compte du lecteur — trois routes qui ne rendent aucune page.
+        //
+        // Elles posent des cookies et redirigent, donc elles vivent ici et non
+        // dans le routeur de Leptos : une fonction serveur ne peut pas écrire
+        // d'en-tête `Set-Cookie` sur une réponse qu'elle ne compose pas.
+        //
+        // Le `State` leur est donné à part, puis effacé par `with_state` : le
+        // reste du routeur attend `LeptosOptions`, et mélanger les deux ferait
+        // un état composite dont chaque route n'utiliserait qu'une moitié.
+        .merge(
+            axum::Router::new()
+                .route(
+                    "/fr/compte/aller/{fournisseur}",
+                    axum::routing::get(ontbible::interface::compte::aller),
+                )
+                .route(
+                    "/fr/compte/retour",
+                    axum::routing::get(ontbible::interface::compte::retour),
+                )
+                .route(
+                    "/fr/compte/partir",
+                    axum::routing::get(ontbible::interface::compte::partir),
+                )
+                .with_state(comptes.clone()),
         )
         // La clé IndexNow — ce qui prouve à Bing que nous tenons ce domaine.
         //

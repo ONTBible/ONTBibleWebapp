@@ -14,6 +14,7 @@ mod assistance;
 pub mod application;
 #[allow(dead_code)]
 mod auteur;
+pub mod compte;
 mod conditions;
 pub mod confidentialite;
 mod fiche;
@@ -27,6 +28,7 @@ mod pourquoi;
 pub use accueil::Accueil;
 pub use application::Application;
 pub use assistance::Assistance;
+pub use compte::Compte;
 pub use conditions::Conditions;
 pub use confidentialite::Confidentialite;
 pub use fiche::Fiche;
