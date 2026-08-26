@@ -58,6 +58,25 @@ web-sys = { version = "0.3", features = [
 # embarquer dans le paquet WASM l'alourdirait sans que rien ne s'en serve —
 # la table des fuseaux horaires pèse à elle seule plus que tout le reste.
 serde_json = { version = "1", optional = true }
+
+# ── Le compte du lecteur ──────────────────────────────────────────────────────
+#
+# Toutes en `optional` et sous `ssr` : le navigateur ne parle jamais au backend
+# de l'app. C'est la Lambda du site qui échange le code contre une session, et
+# c'est ce qui permet au jeton de ne jamais entrer dans une page — un jeton dans
+# `localStorage` est lisible par n'importe quel script chargé par la suite.
+async-trait = { version = "0.1", optional = true }
+# Mêmes réglages que le backend, et ce n'est pas de l'imitation : `rustls-tls`
+# sans les défauts évite `openssl`, qui demanderait une bibliothèque système que
+# l'image Lambda n'a pas — l'échec serait une erreur d'édition de liens, pas un
+# message clair.
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false, optional = true }
+# PKCE : un vérificateur tiré au hasard, son empreinte SHA-256, en base64url
+# sans remplissage. Les trois vont ensemble — c'est la spécification qui le dit,
+# et un remplissage `=` laissé en place fait refuser l'échange.
+sha2 = { version = "0.10", optional = true }
+base64 = { version = "0.22", optional = true }
+rand = { version = "0.8", optional = true }
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "std",
@@ -105,6 +124,11 @@ ssr = [
     "dep:serde_json",
     "dep:chrono",
     "dep:chrono-tz",
+    "dep:async-trait",
+    "dep:reqwest",
+    "dep:sha2",
+    "dep:base64",
+    "dep:rand",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",

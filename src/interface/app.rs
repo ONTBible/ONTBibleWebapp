@@ -7,8 +7,8 @@ use leptos_router::{
 
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
-    Accueil, Application, Assistance, Conditions, Confidentialite, Fiche, Lexique, Lire, Livre,
-    Negations, Passage, Pourquoi,
+    Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
+    Livre, Negations, Passage, Pourquoi,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -144,6 +144,11 @@ pub fn App() -> impl IntoView {
                     // microsecondes, puisqu'il est en mémoire.
                     <Route path=StaticSegment("fr") view=Accueil ssr=SsrMode::Async />
                     <Route path=(StaticSegment("fr"), StaticSegment("le-pourquoi")) view=Pourquoi />
+                    // Le compte. Les trois routes qui *agissent* — aller,
+                    // retour, partir — sont posées avant ce routeur, dans
+                    // `main.rs` : elles écrivent des cookies, ce qu'une page ne
+                    // peut pas faire. Celle-ci ne fait que montrer l'état.
+                    <Route path=(StaticSegment("fr"), StaticSegment("compte")) view=Compte />
                     <Route path=(StaticSegment("fr"), StaticSegment("l-app")) view=Application />
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("ce-que-l-ont-n-est-pas"))
