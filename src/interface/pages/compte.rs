@@ -161,10 +161,21 @@ fn Ouvert() -> impl IntoView {
                     })
             })}
         </Suspense>
-        // Une ancre ordinaire et non un bouton du routeur : la déconnexion est
-        // une route du serveur, qui écrit un en-tête. Le routeur la traiterait
-        // comme une page à charger, et le cookie ne serait jamais effacé.
+        // `rel="external"` — et **c'est lui qui fait tout le travail**.
+        //
+        // Une ancre ordinaire ne suffisait pas : le routeur de Leptos intercepte
+        // *tous* les clics sur les liens internes, cherche le chemin dans ses
+        // pages, ne le trouve pas — ces routes-ci sont posées avant lui, dans
+        // `main.rs` — et rend sa page d'erreur.
+        //
+        // Le symptôme était exactement celui que Gloire a décrit : « ça ne
+        // s'affiche que quand je recharge ». Au rechargement, le navigateur fait
+        // une vraie requête, le serveur répond, tout marche. Au clic, jamais.
+        //
+        // `location/mod.rs:346` chez `leptos_router` : le routeur rend la main
+        // si l'ancre porte `download` ou un `rel` contenant `external`.
         <a
+            rel="external"
             href="/fr/compte/partir"
             class="inline-block rounded-full border border-or/50 px-6 py-3 text-sm uppercase tracking-capitales text-accent no-underline transition-colors hover:border-or hover:bg-aubergine/40"
         >
@@ -194,6 +205,9 @@ fn Ferme() -> impl IntoView {
                     let f = *f;
                     view! {
                         <a
+                            // Même raison qu'à la déconnexion : ces routes sont
+                            // servies avant le routeur, qui rendrait son 404.
+                            rel="external"
                             href=format!("/fr/compte/aller/{}", f.cle())
                             class="inline-block rounded-full border border-or/50 px-6 py-3 text-center text-sm uppercase tracking-capitales text-accent no-underline transition-colors hover:border-or hover:bg-aubergine/40"
                         >
