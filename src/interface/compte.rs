@@ -95,6 +95,18 @@ fn portees(f: Fournisseur) -> &'static str {
 /// `None` signifie « pas encore déclaré chez le fournisseur ». La page de
 /// compte n'affiche alors pas le bouton : mieux vaut une voie de moins qu'une
 /// voie qui mène à une erreur du fournisseur, où le lecteur ne peut rien faire.
+/// Le Services ID du **site**, créé le 27 août 2026.
+///
+/// Distinct de l'App ID `com.labibleont.ONT`, qu'Apple réserve au flux natif :
+/// « The client_id used when calling the token endpoint should match the native
+/// app's app id. The services ID should not be used here. » L'inverse est vrai
+/// aussi — un navigateur veut le Services ID, et l'App ID y échouerait.
+///
+/// Il est écrit ici bien qu'inutilisé pour l'instant : le perdre coûterait de le
+/// retrouver dans un portail, et **un Services ID ne se renomme pas** une fois
+/// créé.
+pub const SERVICES_ID_APPLE: &str = "com.labibleont.ont.webapp";
+
 fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
     match f {
         // Le client « Application Web » du backend, relevé dans
@@ -103,8 +115,22 @@ fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
         Fournisseur::Google => {
             Some("154337904456-de9o2u3res51203irei6o0ggk1lvlkq5.apps.googleusercontent.com")
         }
-        // Demande un **Services ID** à créer dans le portail Apple, distinct de
-        // l'App ID. Tant qu'il n'existe pas, le bouton ne s'affiche pas.
+        // Le Services ID existe depuis le 27 août 2026 —
+        // `com.labibleont.ont.webapp`, créé dans le portail Apple, avec
+        // `ontbible.com` en domaine et notre adresse de retour.
+        //
+        // **Il n'est pourtant pas rendu ici, et le bouton reste éteint.**
+        //
+        // La raison est côté backend : son échange Apple utilise un `client_id`
+        // unique — l'App ID `com.labibleont.ONT`, qu'exige le flux natif —, et
+        // il ne sait pas encore choisir entre les deux identités. Lui envoyer un
+        // code obtenu avec le Services ID donnerait un `invalid_grant`, l'erreur
+        // exacte que son README décrit, dans l'autre sens.
+        //
+        // L'allumer avant qu'il ne sache serait le défaut du badge App Store
+        // rejoué : une voie qui mène à une erreur où le lecteur ne peut rien
+        // faire. Le jour où le backend distingue les deux flux, cette ligne
+        // devient `Some(SERVICES_ID_APPLE)` et rien d'autre ne bouge.
         Fournisseur::Apple => None,
         // GitHub n'accepte **qu'une seule** adresse de retour par application :
         // celle-ci est prise par l'app, il en faut une seconde pour le site.

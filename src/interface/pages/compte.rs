@@ -3,7 +3,7 @@ use leptos_router::hooks::use_query_map;
 
 use crate::api::mon_compte;
 use crate::domaine::compte::Fournisseur;
-use crate::interface::design::{Bloc, Lien, PageDeLecture};
+use crate::interface::design::{Bloc, Entete, Lien};
 use crate::interface::tete::Tete;
 
 /// `/fr/compte` — ouvrir un compte, ou le fermer.
@@ -47,23 +47,33 @@ pub fn Compte() -> impl IntoView {
             chemin="/fr/compte"
         />
 
-        <PageDeLecture
-            // Le rappel ne redit pas le titre : ils se suivent à l'écran, et
-            // « Votre compte / Votre compte » se lit comme un défaut de rendu.
-            // Il nomme ce à quoi le compte sert, ce que le titre ne dit pas.
-            rappel="Vos marques"
-            titre="Votre compte"
-            chapeau=Box::new(|| {
-                view! {
-                    <p class="text-encre-douce">
-                        "Il sert à une seule chose : retrouver vos surlignages et vos notes "
-                        "d'un appareil à l'autre."
-                    </p>
-                }
-                    .into_any()
-            })
-        >
-            <Bloc>
+        // ── Un seul bloc, et c'est la correction ──────────────────────────
+        //
+        // La page en portait **deux**, chacun sur `PageDeLecture` : or un `Bloc`
+        // fait au moins la hauteur de l'écran, contenu centré. C'est juste pour
+        // une page éditoriale, où chaque section *est* un écran — l'accueil,
+        // « Le pourquoi ». Ici il y avait six paragraphes répartis sur deux
+        // écrans entiers, donc deux trous d'un demi-écran chacun.
+        //
+        // La règle qui en sort : `Bloc` sert à ce qui se lit **section par
+        // section**. Une page fonctionnelle — un compte, un formulaire — suit
+        // `PageLegale`, qui n'en prend qu'un seul.
+        <Entete />
+        <Bloc>
+            <a
+                href="/fr"
+                class="text-sm uppercase tracking-capitales text-encre-douce no-underline hover:text-encre"
+            >
+                "← Retour"
+            </a>
+
+            <h1 class="mt-6">"Votre compte"</h1>
+            <p class="mb-10 text-encre-douce">
+                "Il sert à une seule chose : retrouver vos surlignages et vos notes "
+                "d'un appareil à l'autre."
+            </p>
+
+            <div>
                 {move || {
                     erreur()
                         .map(|message| {
@@ -90,10 +100,10 @@ pub fn Compte() -> impl IntoView {
                         }
                     })}
                 </Suspense>
-            </Bloc>
+            </div>
 
-            <Bloc>
-                <h2>"Ce que nous gardons"</h2>
+            <div class="mt-16 border-t border-filet pt-10">
+                <h2 class="text-2xl">"Ce que nous gardons"</h2>
                 <p>
                     "La " <b>"référence"</b> " du verset — son livre, son unité, son numéro — "
                     "la couleur que vous avez choisie, et la note que vous y avez écrite. "
@@ -109,8 +119,8 @@ pub fn Compte() -> impl IntoView {
                     <Lien href="/fr/confidentialite">"la page de confidentialité"</Lien>
                     " — l'effacement est immédiat et il est complet."
                 </p>
-            </Bloc>
-        </PageDeLecture>
+            </div>
+        </Bloc>
     }
 }
 
