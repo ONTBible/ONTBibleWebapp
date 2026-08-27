@@ -2601,11 +2601,36 @@ connaisse la réponse d'avance, donc le seul qui vaille.
 | | |
 |---|---|
 | **Google** | **en place** — son client est déjà en « Application Web » chez le backend ; il suffit d'y déclarer `https://ontbible.com/fr/compte/retour` |
-| **Apple** | demande un **Services ID** à créer, distinct de l'App ID |
+| **Apple** | Services ID **créé** — `com.labibleont.ont.webapp` —, mais le backend ne sait pas encore s'en servir |
 | **GitHub** | n'accepte **qu'une** adresse de retour par application, et celle-ci est prise par l'app — il en faut une seconde |
 
 Le README du backend l'avait prévu, mot pour mot : « [le Services ID] ne
 redeviendra nécessaire que le jour où une version web signera des comptes ».
+
+#### Apple et GitHub demandent un travail côté backend, Google non
+
+**C'est le point qu'on ne voit pas en déclarant les identités**, et il tient à
+une ligne de `providers.rs` :
+
+```rust
+("client_id", credentials.client_id.as_str())
+```
+
+**Un seul `client_id` par fournisseur.** Pour Apple c'est l'App ID
+`com.labibleont.ONT`, qu'exige le flux natif — et un navigateur veut le Services
+ID. Le backend doit donc apprendre à distinguer les deux flux avant qu'Apple ne
+puisse servir ici ; sans ça, l'échange rend `invalid_grant`.
+
+**GitHub a le même problème**, en pire : son portail n'accepte qu'une adresse de
+retour par application, donc il faut une seconde application — donc un second
+`client_id` **et un second secret**.
+
+**Google n'a pas ce problème du tout**, et c'est pour ça qu'il est le premier :
+son client est déjà de type « Application Web », et le même sert à l'app et au
+site. Il ne lui manque qu'une adresse de retour de plus, ce qui se déclare en
+une ligne sans toucher à un dépôt.
+
+C'est la raison de l'ordre — pas un goût.
 
 **Un fournisseur non déclaré n'affiche pas son bouton.** Mieux vaut une voie de
 moins qu'une voie qui mène à une erreur du fournisseur, où le lecteur ne peut
