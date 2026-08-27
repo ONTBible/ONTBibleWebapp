@@ -184,3 +184,74 @@ mod tests {
         assert!(session(1_000, -3600).perimee(1_000));
     }
 }
+
+/// L'accord avec le backend sur le champ `origine`.
+///
+/// Il décide quelle identité le backend présente au fournisseur — App ID pour le
+/// flux natif, Services ID pour le web. Une valeur qui ne serait plus reconnue
+/// ferait présenter la mauvaise, et Apple rendrait `invalid_grant` : une erreur
+/// qui parle du **code**, donc qui désigne le mauvais coupable.
+#[cfg(all(test, feature = "ssr"))]
+mod contrat {
+    /// Le backend connaît toujours `origine`, et « web » y reste une valeur.
+    ///
+    /// Se tait si le dépôt voisin n'est pas là — un test d'accord ne peut pas
+    /// exiger la présence de ce avec quoi il accorde.
+    #[test]
+    fn le_backend_connait_toujours_l_origine() {
+        let chemin = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../ONTBibleApp/backend/src/interface/mod.rs"
+        );
+        let Ok(source) = std::fs::read_to_string(chemin) else {
+            return;
+        };
+        // Tant que le champ n'est pas fusionné chez lui, il ignore ce qu'on
+        // envoie — aucun `deny_unknown_fields` sur `SignInBody`. Le test ne
+        // rougit donc pas avant l'heure, il attend.
+        if !source.contains("origine") {
+            return;
+        }
+        assert!(
+            source.contains("\"web\"") || source.contains("Web"),
+            "le backend connaît `origine` mais « web » n'y paraît plus : le site \
+             enverrait une valeur qu'il ne reconnaît pas, et présenterait la \
+             mauvaise identité au fournisseur"
+        );
+    }
+
+    /// Aucun `deny_unknown_fields` sur le corps de connexion.
+    ///
+    /// C'est ce qui permet au site d'envoyer `origine` **avant** que le backend
+    /// ne le connaisse — serde l'ignore. Le jour où quelqu'un l'ajoute par
+    /// hygiène, tout envoi du site échouerait d'un coup, et le message parlerait
+    /// d'un champ inconnu sans dire lequel des deux dépôts a bougé.
+    #[test]
+    fn le_corps_de_connexion_tolere_un_champ_de_plus() {
+        let chemin = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../ONTBibleApp/backend/src/interface/mod.rs"
+        );
+        let Ok(source) = std::fs::read_to_string(chemin) else {
+            return;
+        };
+        let corps = source
+            .split("struct SignInBody")
+            .nth(1)
+            .and_then(|reste| reste.split('}').next())
+            .unwrap_or("");
+        assert!(
+            !source
+                .split("struct SignInBody")
+                .next()
+                .unwrap_or("")
+                .lines()
+                .rev()
+                .take(3)
+                .any(|l| l.contains("deny_unknown_fields")),
+            "un `deny_unknown_fields` est apparu sur `SignInBody` : le site \
+             envoie `origine`, et tous ses envois échoueraient"
+        );
+        assert!(!corps.is_empty(), "SignInBody doit exister côté backend");
+    }
+}
