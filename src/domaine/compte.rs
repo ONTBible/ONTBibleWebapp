@@ -213,10 +213,10 @@ mod contrat {
             return;
         }
         assert!(
-            source.contains("\"web\"") || source.contains("Web"),
-            "le backend connaît `origine` mais « web » n'y paraît plus : le site \
-             enverrait une valeur qu'il ne reconnaît pas, et présenterait la \
-             mauvaise identité au fournisseur"
+            source.contains("\"webapp\"") || source.contains("Webapp"),
+            "le backend connaît `origine` mais « webapp » n'y paraît plus : le \
+             site enverrait une valeur qu'il ne reconnaît pas, et présenterait \
+             la mauvaise identité au fournisseur"
         );
     }
 

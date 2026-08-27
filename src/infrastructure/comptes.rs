@@ -126,7 +126,7 @@ impl Comptes for ComptesDuBackend {
         // en `null` n'est pas la même chose qu'une clé absente. Son
         // `#[serde(default)]` couvre la clé manquante, pas la clé nulle — c'est
         // le piège déjà rencontré sur `reference` et `verse` au §8 bis.
-        // `origine: "web"` — le champ que le backend a ajouté le 27 août 2026
+        // `origine: "webapp"` — le champ que le backend a ajouté le 27 août 2026
         // pour choisir entre deux identités chez un même fournisseur.
         //
         // ## Pourquoi il existe, et pourquoi il vaut « web » ici sans condition
@@ -136,19 +136,24 @@ impl Comptes for ComptesDuBackend {
         // GitHub, lui, n'accepte qu'une adresse de retour par application : le
         // site a donc la sienne, avec son propre couple identifiant/secret.
         //
-        // Le site est le web par nature. On envoie donc toujours `"web"`, y
+        // Le site est la webapp. On envoie donc toujours `"webapp"`, y
         // compris pour Google — que le backend ignore, son client « Application
         // Web » servant aux deux. Conditionner l'envoi au fournisseur ferait une
         // règle de plus à tenir d'accord avec la sienne, pour rien.
         //
         // **L'absence vaut `"app"` côté backend**, et c'est ce qui rend le champ
         // sûr : les versions installées de l'app ne l'envoient pas et ne le
-        // pourront jamais rétroactivement. Un défaut à « web » les casserait
+        // pourront jamais rétroactivement. Un défaut à « webapp » les casserait
         // toutes.
+        //
+        // La valeur est **`webapp`** et non `web`, choisie par Gloire : c'est le
+        // nom du dépôt — `ONTBibleWebapp` — et celui du Services ID Apple,
+        // `com.labibleont.ont.webapp`. Un troisième mot pour la même chose
+        // aurait fait chercher lequel des trois fait foi.
         let mut corps = serde_json::json!({
             "code": code,
             "redirect_uri": redirect_uri,
-            "origine": "web",
+            "origine": "webapp",
         });
         if let Some(v) = verificateur {
             corps["code_verifier"] = serde_json::Value::String(v.to_string());
