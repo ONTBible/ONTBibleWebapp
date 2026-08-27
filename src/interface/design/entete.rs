@@ -45,6 +45,48 @@ use crate::interface::design::image;
 pub fn Entete() -> impl IntoView {
     view! {
         <header class="relative z-20 flex flex-col items-center gap-5 px-6 pt-8 text-center sm:gap-6 sm:pt-10">
+            // ── L'accès au compte ─────────────────────────────────────────────
+            //
+            // **Posé à part de la navigation, et pas dedans.** Deux raisons, et
+            // la seconde est la plus forte.
+            //
+            // La première est mécanique : la navigation porte déjà cinq entrées
+            // et tient sur deux lignes au téléphone. Une sixième la ferait
+            // déborder, et le seuil n'est pas le nombre d'entrées mais la
+            // hauteur qu'elles prennent.
+            //
+            // La seconde est de propos : **le compte n'est pas une façon de
+            // lire.** Les cinq entrées sont le corpus et le discours sur le
+            // corpus ; le compte est un réglage. Le mettre dans la même rangée
+            // laisserait croire qu'il faut s'inscrire pour lire, ce que ce site
+            // ne demandera jamais.
+            //
+            // Il était auparavant **au pied de page, en petit** — au dernier
+            // rang de la seconde rangée, entre l'assistance et les conditions.
+            // Gloire l'a dit en le voyant : « c'est tout en bas, c'est pas ergo,
+            // et c'est petit, tu peux clairement ne pas savoir qu'il y en a un ».
+            // Un compte qu'on ne trouve pas est un compte qui n'existe pas.
+            <A
+                href="/fr/compte"
+                attr:class="absolute end-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:end-6 sm:top-8 sm:text-xs"
+                attr:aria-label="Votre compte"
+            >
+                // Une silhouette, pas un mot seul : à cette taille, l'icône se
+                // reconnaît avant que le mot ne se lise. Le mot reste à côté sur
+                // grand écran, où la place ne manque pas.
+                <svg
+                    viewBox="0 0 24 24"
+                    class="size-4 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                >
+                    <circle cx="12" cy="8" r="3.5" />
+                    <path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke-linecap="round" />
+                </svg>
+                <span class="hidden sm:inline">"Compte"</span>
+            </A>
             <A
                 href="/fr"
                 attr:class="block text-accent"
