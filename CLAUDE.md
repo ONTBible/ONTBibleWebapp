@@ -2602,7 +2602,7 @@ connaisse la réponse d'avance, donc le seul qui vaille.
 |---|---|
 | **Google** | **en place** — son client est déjà en « Application Web » chez le backend ; il suffit d'y déclarer `https://ontbible.com/fr/compte/retour` |
 | **Apple** | Services ID **créé** — `com.labibleont.ont.webapp` —, mais le backend ne sait pas encore s'en servir |
-| **GitHub** | n'accepte **qu'une** adresse de retour par application, et celle-ci est prise par l'app — il en faut une seconde |
+| **GitHub** | **en place** — l'application existante accepte plusieurs adresses de retour |
 
 Le README du backend l'avait prévu, mot pour mot : « [le Services ID] ne
 redeviendra nécessaire que le jour où une version web signera des comptes ».
@@ -2621,9 +2621,26 @@ une ligne de `providers.rs` :
 ID. Le backend doit donc apprendre à distinguer les deux flux avant qu'Apple ne
 puisse servir ici ; sans ça, l'échange rend `invalid_grant`.
 
-**GitHub a le même problème**, en pire : son portail n'accepte qu'une adresse de
-retour par application, donc il faut une seconde application — donc un second
-`client_id` **et un second secret**.
+**GitHub n'a pas ce problème — et c'est une erreur qu'il faut raconter.**
+
+On avait écrit ici que son portail n'accepte qu'une adresse de retour par
+application, donc qu'il en fallait une seconde. **C'est faux** : le champ
+s'appelle « Authorization callback URLs », au pluriel, avec un bouton « Add
+more ».
+
+Le site emploie donc l'application existante — même identifiant
+`Ov23liKe17kibtPWeUE1`, même secret côté backend, une adresse de retour de plus.
+
+Ce qui vaut d'être retenu n'est pas l'erreur mais sa **propagation** : elle a été
+transmise à la session du backend, qui l'a bâtie de bonne foi dans son code, une
+variable Terraform, un export de script, sa documentation et son README — et
+jusqu'à une phrase exacte mais inutile, « aucune API ne crée une OAuth App ».
+Rien n'était à créer.
+
+La contrainte était peut-être vraie autrefois ; le portail a changé, et rien ne
+le signalait. **Une contrainte de plateforme qu'on se transmet entre sessions
+doit être datée ou revérifiée** — vérifier tenait à un clic sur une page que deux
+sessions décrivaient sans la regarder.
 
 **Google n'a pas ce problème du tout**, et c'est pour ça qu'il est le premier :
 son client est déjà de type « Application Web », et le même sert à l'app et au

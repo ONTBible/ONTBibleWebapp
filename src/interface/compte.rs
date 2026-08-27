@@ -132,9 +132,12 @@ fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
         // faire. Le jour où le backend distingue les deux flux, cette ligne
         // devient `Some(SERVICES_ID_APPLE)` et rien d'autre ne bouge.
         Fournisseur::Apple => None,
-        // GitHub n'accepte **qu'une seule** adresse de retour par application :
-        // celle-ci est prise par l'app, il en faut une seconde pour le site.
-        Fournisseur::Github => None,
+        // L'application `La Bible ONT` existante, à laquelle
+        // `https://ontbible.com/fr/compte/retour` a été ajoutée : GitHub accepte
+        // plusieurs adresses de retour, contrairement à ce qu'on avait cru.
+        // L'identifiant n'est pas un secret ; le secret reste au backend, et
+        // c'est le même que pour l'app.
+        Fournisseur::Github => Some("Ov23liKe17kibtPWeUE1"),
     }
 }
 
