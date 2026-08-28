@@ -46,6 +46,29 @@
 //! conclurait à un fichier vide.** C'est le motif qu'on se renvoie depuis deux
 //! jours — une réponse parfaitement bien formée à une question qu'on n'avait pas
 //! posée. Pour vérifier ce fichier, faire un `GET`.
+//!
+//! ## La vérification ne part pas de l'appareil, et c'est un quatrième piège
+//!
+//! **Google va chercher ce fichier depuis ses propres serveurs**, pas depuis le
+//! téléphone. Ce fichier peut donc être parfait, l'appareil l'atteindre en
+//! douze millisecondes, et la vérification échouer quand même.
+//!
+//! Relevé le 28 août 2026 sur un Galaxy S20+, dans le journal du système :
+//!
+//! ```text
+//! AppLinksIntentOperation: Verifying requested domains
+//! AppLinksAsyncVerifierV2: Error performing check: jgre: UNAVAILABLE
+//! ```
+//!
+//! La session Android avait tout contrôlé avant de conclure — `autoVerify` posé,
+//! empreinte installée conforme à celle qu'on publie, domaine joignable, et une
+//! autre application `verified` sur le **même** appareil, donc le mécanisme
+//! fonctionnant chez lui. C'était le service de Google qui ne répondait pas.
+//!
+//! **Aucun relevé fait depuis le téléphone ne peut montrer ça.** Quand un lien
+//! n'ouvre pas l'app, il faut donc chercher dans cet ordre : le fichier servi en
+//! `GET`, l'empreinte installée, puis l'état du service de Google — et non
+//! l'inverse, où l'on réécrit un fichier qui n'a jamais été en cause.
 
 /// L'identifiant d'équipe et le bundle, tels qu'Apple les attend.
 ///
@@ -100,8 +123,18 @@ pub const PAQUET_ANDROID: &str = "com.labibleont.ont";
 /// jour où l'empreinte de Google arrive, elle **s'ajoute**. La remplacer ferait
 /// cesser d'être reconnues toutes les installations de test, y compris celles
 /// des bêta-testeurs — et la panne serait celle du §8 ci-dessus, silencieuse.
-pub const EMPREINTES: &[&str] =
-    &["AB:BB:7D:95:62:DD:68:09:6D:A3:AB:0A:18:D8:16:E1:17:04:4F:13:A9:C0:0C:03:06:62:5F:F7:54:EB:AF:EE"];
+pub const EMPREINTES: &[&str] = &[
+    // La clé de **téléversement** — celle des versions construites sur une
+    // machine de développement et installées par `adb`.
+    "AB:BB:7D:95:62:DD:68:09:6D:A3:AB:0A:18:D8:16:E1:17:04:4F:13:A9:C0:0C:03:06:62:5F:F7:54:EB:AF:EE",
+    // La clé de **signature de Play** — celle des installations venues du
+    // Store, ajoutée le 28 août 2026 après le premier téléversement.
+    //
+    // Les deux coexistent parce que ce sont **deux chemins de distribution
+    // simultanés**, pas deux états d'une même chose : tant qu'on installera des
+    // versions locales pour les éprouver, les deux empreintes seront en usage.
+    "8C:5C:AB:E4:6E:A5:E7:8E:A8:C1:76:DD:82:3E:00:83:5F:77:CA:93:1B:AC:A9:1B:2B:AB:9F:BE:91:34:6A:1D",
+];
 
 /// Le corps de `/.well-known/assetlinks.json`.
 ///
@@ -231,6 +264,36 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// Les deux chemins de distribution restent accordés.
+    ///
+    /// Une empreinte **retirée** ne casse rien de visible : le fichier reste du
+    /// JSON valide, la déclaration reste bien formée, et l'app continue d'ouvrir
+    /// les liens — sur la moitié du parc qui porte l'autre clé. L'autre moitié
+    /// cesse simplement, sans qu'aucune erreur ne le dise.
+    ///
+    /// C'est le piège que le commentaire de `EMPREINTES` annonce, et la seule
+    /// façon de le tenir est de compter.
+    #[test]
+    fn les_deux_chemins_de_distribution_restent_declares() {
+        assert_eq!(
+            EMPREINTES.len(),
+            2,
+            "il faut **deux** empreintes : la clé de téléversement pour les \
+             versions construites à la main, celle de Play pour les \
+             installations venues du Store. En retirer une coupe silencieusement \
+             les liens sur toute une moitié du parc."
+        );
+        assert!(
+            EMPREINTES
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                == 2,
+            "les deux empreintes sont identiques — l'une des deux a été recopiée \
+             sur l'autre au lieu d'être ajoutée"
+        );
     }
 
     /// Le paquet reste d'accord avec le dépôt Android.
