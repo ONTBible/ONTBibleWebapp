@@ -69,6 +69,49 @@
 //! n'ouvre pas l'app, il faut donc chercher dans cet ordre : le fichier servi en
 //! `GET`, l'empreinte installée, puis l'état du service de Google — et non
 //! l'inverse, où l'on réécrit un fichier qui n'a jamais été en cause.
+//!
+//! ## Comment interroger Google, et pourquoi une seule fois ne suffit pas
+//!
+//! Son service expose ce qu'il voit, et c'est la seule façon de savoir ce qu'il
+//! lira au moment de vérifier :
+//!
+//! ```bash
+//! curl -s "https://digitalassetlinks.googleapis.com/v1/statements:list\
+//! ?source.web.site=https://ontbible.com\
+//! &relation=delegate_permission/common.handle_all_urls"
+//! ```
+//!
+//! **`maxAge` est le champ qui compte**, et il est rarement remarqué : c'est la
+//! durée de vie **restante** de la réponse en cache. Il décroît à chaque appel,
+//! donc il dit à tout moment combien de temps il reste avant relecture. Une
+//! valeur qui **remonte** signifie que Google est allé rechercher le fichier —
+//! c'est le signal qu'on attend après un déploiement, et il évite de sonder à
+//! l'aveugle.
+//!
+//! **Et il faut plusieurs appels.** Le 28 août 2026, cinq appels d'affilée à
+//! trois secondes d'intervalle ont rendu :
+//!
+//! ```text
+//! 1 empreinte,  maxAge 2071 s     ← un nœud portant l'ancien fichier
+//! 2 empreintes, maxAge 3463 s
+//! 2 empreintes, maxAge 3460 s
+//! 2 empreintes, maxAge 3457 s
+//! 1 empreinte,  maxAge 2059 s     ← le même ancien, de nouveau
+//! ```
+//!
+//! **Deux réponses contradictoires au même instant.** Ce ne sont pas deux états
+//! successifs — les appels 1 et 5 encadrent les trois autres. Plusieurs nœuds
+//! répondent, et ils ne s'accordent pas pendant la propagation.
+//!
+//! La conséquence pratique est qu'une vérification peut **réussir sur un
+//! appareil et échouer sur un autre**, au même moment, sans qu'aucun défaut
+//! n'existe nulle part. Le symptôme est indiscernable d'une régression.
+//!
+//! **Une seule mesure ne peut pas voir ça** : un appel rend une réponse
+//! plausible, complète et sans erreur. C'est le contre-pied de la règle qu'on
+//! s'applique partout ailleurs — ici, mesurer une fois suffit à se tromper. On
+//! considère la propagation finie quand **cinq appels d'affilée** rendent tous
+//! le même contenu.
 
 /// L'identifiant d'équipe et le bundle, tels qu'Apple les attend.
 ///
