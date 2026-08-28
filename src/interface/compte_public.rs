@@ -32,9 +32,25 @@ pub fn disponible(fournisseur: Fournisseur) -> bool {
         // ne redeviendra nécessaire que le jour où une version web signera des
         // comptes ».
         Fournisseur::Apple => false,
-        // GitHub n'accepte **qu'une seule** adresse de retour par application, et
-        // celle-ci est prise par l'app. Il en faut une seconde pour le site.
-        Fournisseur::Github => false,
+        // GitHub accepte **plusieurs** adresses de retour par application — le
+        // champ s'appelle « Authorization callback URLs », au pluriel, et porte
+        // un bouton « Add more ».
+        //
+        // **J'avais dit le contraire, et je l'avais transmis à la session du
+        // backend, qui l'a bâti dans son code, sa configuration Terraform et sa
+        // documentation avant qu'on ne le vérifie.** La contrainte était
+        // peut-être vraie autrefois ; le portail a changé, et rien ne le
+        // signalait. Vérifier tenait à un clic sur une page qu'on décrivait tous
+        // les deux sans la regarder.
+        //
+        // La règle qui en sort, et elle vaut pour toutes les sessions : **une
+        // contrainte de plateforme qu'on se transmet doit être datée ou
+        // revérifiée.** Les nôtres circulent vite, et c'est ce qui les rend
+        // dangereuses quand elles périment.
+        //
+        // Le site emploie donc l'application existante — même identifiant, même
+        // secret côté backend, une adresse de retour de plus.
+        Fournisseur::Github => true,
     }
 }
 
