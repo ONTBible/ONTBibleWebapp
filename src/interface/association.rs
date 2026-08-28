@@ -133,7 +133,29 @@ pub const EMPREINTES: &[&str] = &[
     // Les deux coexistent parce que ce sont **deux chemins de distribution
     // simultanés**, pas deux états d'une même chose : tant qu'on installera des
     // versions locales pour les éprouver, les deux empreintes seront en usage.
-    "8C:5C:AB:E4:6E:A5:E7:8E:A8:C1:76:DD:82:3E:00:83:5F:77:CA:93:1B:AC:A9:1B:2B:AB:9F:BE:91:34:6A:1D",
+    //
+    // ## Celle-ci est lue sur l'app, pas dans une console
+    //
+    // Une première valeur a failli entrer ici, recopiée depuis la Play Console.
+    // Elle était **fausse** — et la console n'avait pas menti : sa page présente
+    // maintenant **deux** certificats côte à côte, la clé classique et une clé
+    // post-quantique que Google vient d'introduire, avec deux boutons
+    // « Empreinte SHA-256 » l'un à côté de l'autre. C'est l'autre qui a été
+    // copié.
+    //
+    // Elle commençait par `8C:` comme celle-ci et divergeait au **deuxième**
+    // octet : de quoi ne pas relire.
+    //
+    // Celle qui suit vient de l'objet et non d'une page, mesurée deux fois par
+    // des chemins indépendants — `adb dumpsys package` sur un appareil où l'app
+    // est installée depuis le Store, et `apksigner --print-certs` sur l'APK tiré
+    // de cet appareil, dont le condensat a été recalculé.
+    //
+    // **La règle qui en sort** : quand une valeur décrit un objet qu'on peut
+    // interroger, on interroge l'objet. Une console fait autorité sans être une
+    // mesure — et rien, dans une page qui affiche deux empreintes, ne dit
+    // laquelle Android ira lire.
+    "8C:C6:7A:37:A8:CA:8C:DA:61:CB:76:F6:E0:9D:50:8D:CC:72:AF:13:D3:3B:C8:BC:9A:93:48:0B:CB:A5:C7:DA",
 ];
 
 /// Le corps de `/.well-known/assetlinks.json`.
@@ -234,6 +256,16 @@ mod tests {
     }
 
     /// Chaque empreinte a la forme qu'Android exige.
+    ///
+    /// **La forme ne dit rien de la justesse**, et il faut le savoir en lisant ce
+    /// test : la valeur fausse du 28 août portait exactement la même — 32 octets
+    /// hexadécimaux majuscules, séparés par des deux-points. Elle serait passée
+    /// ici sans un mot.
+    ///
+    /// Ce test attrape une empreinte **mal recopiée** ; il ne peut rien contre
+    /// une empreinte **bien recopiée depuis la mauvaise source**. Celle-là se
+    /// prévient en amont, en lisant l'objet plutôt qu'une console — voir
+    /// `EMPREINTES`.
     ///
     /// Trente-deux octets en hexadécimal majuscule, séparés par des
     /// deux-points. Une empreinte en minuscules, ou copiée sans les
