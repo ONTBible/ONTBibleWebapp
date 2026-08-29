@@ -64,6 +64,22 @@
      jusqu'à 6,5:1 sur le fond. C'est la valeur du thème sombre de l'app. */
   --color-accentuation: #d87994;
 
+  /* Le Shem — le nom propre hébreu qui porte une fiche.
+     Une **terre**, délibérément hors de la rampe à 343° : il lui faut se
+     distinguer de l'or de l'intraduisible et du bordeaux de l'accentuation,
+     et une quatrième nuance de la même teinte ne s'en distinguerait pas.
+
+     La valeur vient de l'app — #A3704D sur fond sombre — remontée en clarté à
+     teinte (24,4°) et saturation constantes, par la méthode de l'accentuation
+     juste au-dessus. Elle donnait 4,60:1 sur cette nuit et 4,27:1 sur une
+     `surface`, où un verset désigné se pose : sous le plancher de la rampe,
+     qui est 6,5:1, et sous AA dans le second cas. Celle-ci tient 6,5:1 sur le
+     fond et 6,0:1 sur la surface.
+
+     Le fond sombre de l'app n'est pas cette nuit d'aubergine : une valeur
+     mesurée juste là-bas peut être fausse ici, et c'est le cas. */
+  --color-shem: #ba8c6c;
+
   /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri
      comme il le fallait sur le parchemin. Le jeton garde son nom de **rôle**,
      comme `ONTColors.accent` dans l'app — ce qui permettra de le décliner un
