@@ -118,11 +118,15 @@ mod tests {
     /// pas mesuré en silence — il fait échouer le relevé, et c'est ce qu'on
     /// veut d'une garde.
     fn jeton(feuille: &str, nom: &str) -> (f64, f64, f64) {
-        let motif = format!("--color-{nom}:");
+        couleur(feuille, &format!("--color-{nom}"))
+    }
+
+    fn couleur(feuille: &str, nom: &str) -> (f64, f64, f64) {
+        let motif = format!("{nom}:");
         let ligne = feuille
             .lines()
             .find(|l| l.trim_start().starts_with(&motif))
-            .unwrap_or_else(|| panic!("le jeton --color-{nom} n'existe pas dans style/main.css"));
+            .unwrap_or_else(|| panic!("le jeton {nom} n'existe pas dans style/main.css"));
         let valeur = ligne
             .split_once(':')
             .expect("un jeton porte un deux-points")
@@ -134,7 +138,7 @@ mod tests {
             .expect("une ligne non vide rend au moins un fragment")
             .trim();
         let hexa = valeur.strip_prefix('#').unwrap_or_else(|| {
-            panic!("--color-{nom} vaut « {valeur} » — la garde ne lit qu'un littéral hexadécimal")
+            panic!("{nom} vaut « {valeur} » — la garde ne lit qu'un littéral hexadécimal")
         });
         assert_eq!(
             hexa.len(),
@@ -205,6 +209,100 @@ mod tests {
             fautes.is_empty(),
             "des couleurs de texte passent sous le plancher :\n{}",
             fautes.join("\n")
+        );
+    }
+
+    /// Compose une couleur sur un fond, à une opacité donnée.
+    fn poser(dessus: (f64, f64, f64), dessous: (f64, f64, f64), alpha: f64) -> (f64, f64, f64) {
+        let m = |d: f64, s: f64| (d * alpha + s * (1.0 - alpha)).round();
+        (
+            m(dessus.0, dessous.0),
+            m(dessus.1, dessous.1),
+            m(dessus.2, dessous.2),
+        )
+    }
+
+    /// ## Le surlignage enfonce toutes les couleurs, et c'est une dette
+    ///
+    /// Un verset surligné reçoit une des cinq couleurs à `--surlignage-opacite`,
+    /// soit 0,38. Le fond devient alors clair, et **aucune** couleur de texte du
+    /// site n'y tient : le corps tombe à 4,01:1, l'or à 3,67, et les trois
+    /// marquages du corpus autour de 2,3.
+    ///
+    /// Ça date des surlignages et non de la couche des Shemot, qui n'a fait que
+    /// l'éclairer. La correction n'est pas un jeton à retoucher — ce sont les
+    /// six couleurs à la fois, donc soit l'opacité, soit un marquage qui
+    /// s'ajusterait au fond réel sous lui. C'est un chantier, pas un correctif.
+    ///
+    /// **Ce test ne l'exige donc pas résolu ; il l'empêche d'empirer.** Les
+    /// valeurs ci-dessous sont des dettes relevées, pas des cibles. Une garde
+    /// qui poserait le plancher de la rampe échouerait dès aujourd'hui, et une
+    /// garde rouge en permanence cesse d'être lue en une semaine.
+    ///
+    /// Il serre dans les deux sens : une valeur qui **s'améliore** le fait
+    /// échouer aussi, pour que la dette inscrite descende avec le défaut. Sans
+    /// ça un cliquet se desserre tout seul — on corrige à moitié, la table garde
+    /// l'ancien chiffre, et la moitié gagnée peut être reperdue en silence.
+    ///
+    /// Le fond retenu est le **pire des deux** : la nuit, et la `surface` d'un
+    /// verset désigné, qu'un lien partagé peut cumuler avec un surlignage.
+    #[test]
+    fn le_surlignage_n_enfonce_pas_les_couleurs_plus_qu_aujourd_hui() {
+        const FEUILLE: &str = include_str!("../../../style/main.css");
+        /// Ce qu'on tolère d'écart avant de demander la mise à jour de la table.
+        const JEU: f64 = 0.05;
+
+        let dettes = [
+            ("encre", 4.01),
+            ("encre-vive", 5.38),
+            ("encre-douce", 2.29),
+            ("accentuation", 2.30),
+            ("accent", 3.67),
+            ("shem", 2.29),
+        ];
+
+        let opacite: f64 = FEUILLE
+            .lines()
+            .find_map(|l| l.trim_start().strip_prefix("--surlignage-opacite:"))
+            .expect("--surlignage-opacite doit exister")
+            .split(';')
+            .next()
+            .expect("une ligne non vide rend au moins un fragment")
+            .trim()
+            .parse()
+            .expect("l'opacité doit être un nombre");
+
+        let fonds = [jeton(FEUILLE, "nuit"), jeton(FEUILLE, "surface")];
+        let surlignages = ["or", "olive", "ciel", "rose", "violet"]
+            .map(|n| couleur(FEUILLE, &format!("--surlignage-{n}")));
+
+        let mut ecarts = Vec::new();
+        for (nom, dette) in dettes {
+            let teinte = jeton(FEUILLE, nom);
+            let pire = surlignages
+                .iter()
+                .flat_map(|s| {
+                    fonds
+                        .iter()
+                        .map(|f| contraste(teinte, poser(*s, *f, opacite)))
+                })
+                .fold(f64::INFINITY, f64::min);
+
+            if pire < dette - JEU {
+                ecarts.push(format!(
+                    "  {nom} : {pire:.2}:1, alors que la dette inscrite est {dette:.2} — ça a empiré"
+                ));
+            } else if pire > dette + JEU {
+                ecarts.push(format!(
+                    "  {nom} : {pire:.2}:1, mieux que la dette inscrite ({dette:.2}) — \
+                     descends-la à {pire:.2} pour que le cliquet tienne le gain"
+                ));
+            }
+        }
+        assert!(
+            ecarts.is_empty(),
+            "le contraste sous un surlignage a bougé :\n{}",
+            ecarts.join("\n")
         );
     }
 }
