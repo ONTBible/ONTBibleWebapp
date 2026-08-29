@@ -169,7 +169,7 @@ pub fn Passage() -> impl IntoView {
 
                         view! {
                             <Tete
-                                titre=titre_indexable(&chapitre, &p.livre_francais)
+                                titre=titre_indexable(&chapitre, &p.livre_francais, &en_avant)
                                 description=description
                                 chemin=format!("/fr/lire/{}/{}", p.livre_id, chapitre.id)
                             />
@@ -316,13 +316,71 @@ fn Voisins(
 /// **Une introduction ne prend pas de numéro.** Son rang vaut zéro, et
 /// « Genèse 0 » désignerait un chapitre qui n'existe pas — le genre d'entrée
 /// qu'un moteur affiche telle quelle pendant des mois.
-fn titre_indexable(chapitre: &crate::domaine::corpus::Chapitre, francais: &str) -> String {
+fn titre_indexable(
+    chapitre: &crate::domaine::corpus::Chapitre,
+    francais: &str,
+    en_avant: &[u32],
+) -> String {
+    // Le renvoi des versets désignés, quand le lien en désigne.
+    //
+    // ## Ce que l'aperçu d'une messagerie montrait, et qui mentait
+    //
+    // Relevé par la session Android sur un partage réel : Gloire envoie
+    // *Bereshit* 19:1 depuis l'app, et iMessage annonce « Bereshit 19 ». Le
+    // destinataire voit une carte qui promet un chapitre entier, touche, et
+    // arrive sur un verset. La promesse et l'arrivée ne coïncidaient pas.
+    //
+    // La description, elle, suivait déjà le paramètre — c'est le titre seul qui
+    // l'ignorait. Le défaut était donc **invisible sur la page** : l'onglet dit
+    // « Bereshit 19 », ce qui est juste pour qui lit le chapitre. Il ne se voyait
+    // que dans un aperçu, c'est-à-dire chez quelqu'un d'autre.
+    //
+    // Et il pèse au-delà d'une bulle : messageries et moteurs mettent ces titres
+    // en cache. Sans renvoi, toutes les citations d'un même chapitre portaient
+    // **le même titre**.
+    //
+    // Le renvoi passe par `selection::libelle`, celui du corpus — « 1, 4-6 » avec
+    // son espace française. C'est ce que l'app affiche, et ce que le renvoi du
+    // chapeau affiche déjà : trois écritures d'un même ensemble feraient douter
+    // laquelle fait foi.
+    let renvoi = if en_avant.is_empty() {
+        String::new()
+    } else {
+        format!(":{}", crate::domaine::selection::libelle(en_avant))
+    };
+
+    let seul = format!("{}{renvoi}", chapitre.titre);
     if francais.is_empty() || chapitre.titre.contains(francais) {
-        return chapitre.titre.clone();
+        return seul;
     }
-    match chapitre.numero {
-        0 => format!("{} ({francais})", chapitre.titre),
-        n => format!("{} ({francais} {n})", chapitre.titre),
+
+    // Le renvoi paraît **deux fois** — « Bereshit 19:1 (Genèse 19:1) ». Un
+    // lecteur qui cherche « Genèse 19:1 » doit trouver la chaîne entière ;
+    // « Bereshit 19:1 (Genèse 19) » désignerait deux passages dans le même titre.
+    let avec_pont = match chapitre.numero {
+        0 => format!("{} ({francais}){renvoi}", chapitre.titre),
+        n => format!("{seul} ({francais} {n}{renvoi})"),
+    };
+
+    // ## Le pont tombe quand il ne tient plus
+    //
+    // Mesuré : « Toledot Adam ve-Chavah 5:1, 3, 5, 7, 9, 11 (Vie d'Adam et Ève
+    // 5:1, 3, 5, 7, 9, 11) » fait **97 signes**, contre les soixante qu'un moteur
+    // affiche — suffixe compris. Ce qui tombe est la fin, donc le nom du site,
+    // puis le pont, puis le renvoi français.
+    //
+    // Plutôt que de laisser couper au hasard, on choisit ce qu'on garde : le nom
+    // du corpus et son renvoi. **C'est ce qui identifie le passage** ; le pont
+    // français aide à le trouver, il ne le désigne pas.
+    //
+    // Le seuil compte le suffixe « — La Bible ONT » que `Tete` ajoutera, faute de
+    // quoi on borne une chaîne qui n'est pas celle qui s'affiche.
+    const AFFICHABLE: usize = 60;
+    let suffixe = " — La Bible ONT".chars().count();
+    if avec_pont.chars().count() + suffixe <= AFFICHABLE {
+        avec_pont
+    } else {
+        seul
     }
 }
 
@@ -355,7 +413,10 @@ fn apercu(
     // Le premier verset de *Bereshit* 1 mesure cinquante-six signes : la
     // description tenait donc dans un tiers de ce qu'un moteur affiche, et le
     // reste était perdu.
-    let ouverture = format!("{} — La Bible ONT.", titre_indexable(chapitre, francais));
+    let ouverture = format!(
+        "{} — La Bible ONT.",
+        titre_indexable(chapitre, francais, en_avant)
+    );
 
     match chapitre.versets().next() {
         Some(premier) => tronquer(&format!("{ouverture} {}", premier.corps()), 200),
