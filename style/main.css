@@ -69,15 +69,24 @@
      distinguer de l'or de l'intraduisible et du bordeaux de l'accentuation,
      et une quatrième nuance de la même teinte ne s'en distinguerait pas.
 
-     La valeur vient de l'app — #A3704D sur fond sombre — remontée en clarté à
-     teinte (24,4°) et saturation constantes, par la méthode de l'accentuation
-     juste au-dessus. Elle donnait 4,60:1 sur cette nuit et 4,27:1 sur une
-     `surface`, où un verset désigné se pose : sous le plancher de la rampe,
-     qui est 6,5:1, et sous AA dans le second cas. Celle-ci tient 6,5:1 sur le
-     fond et 6,0:1 sur la surface.
+     C'est la couleur de l'app — même teinte, même saturation — avec la seule
+     clarté relevée, par la méthode de l'accentuation juste au-dessus :
 
-     Le fond sombre de l'app n'est pas cette nuit d'aubergine : une valeur
-     mesurée juste là-bas peut être fausse ici, et c'est le cas. */
+       #AA7550   24,7°  36,0 %  49,0 %   la valeur du thème sombre de l'app
+       #BA8C6C   24,6°  36,1 %  57,6 %   la même, remontée pour cette nuit
+
+     L'app la mesure sur son fond à elle, #171416, où elle tient 4,68:1. Ici,
+     4,95:1 sur la nuit et 4,60:1 sur une `surface` — sous le plancher de la
+     rampe, qui est 6,5:1. Celle-ci donne 6,5:1 et 6,0:1.
+
+     Le second fond est celui qui tranche : `surface` est le fond d'un verset
+     **désigné par un lien partagé**. La couleur de l'app échouerait donc sur
+     la page que cette couche sert précisément à partager.
+
+     Ce qui est commun entre les dépôts est la teinte et le nom de la couche,
+     pas la valeur — comme `mystique`, dont ce dépôt est la référence et l'app
+     la transposition. Ici c'est l'inverse : la teinte vient de l'app, et la
+     clarté se remesure sur le fond d'arrivée. */
   --color-shem: #ba8c6c;
 
   /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri

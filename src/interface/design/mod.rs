@@ -152,11 +152,17 @@ mod tests {
     /// « remontée en clarté à teinte constante » jusque-là. Ce n'est pas AA,
     /// qui s'arrête à 4,5 : c'est le plancher que ce site s'est donné.
     ///
-    /// **Rien ne le tenait.** La couche des Shemot est arrivée avec `#A3704D`,
-    /// une valeur mesurée sur le fond sombre de l'app — juste là-bas, et fausse
-    /// ici : 4,60:1 sur cette nuit d'aubergine, et 4,27:1 sur une `surface`,
-    /// donc sous AA même. Une couleur se relève au calcul, pas à l'œil, et une
-    /// valeur qui traverse un dépôt doit être remesurée sur le fond d'arrivée.
+    /// **Rien ne le tenait.** La couche des Shemot est arrivée avec la couleur
+    /// du thème sombre de l'app, `#AA7550` : 4,68:1 sur *son* fond, où elle est
+    /// juste, mais 4,95:1 sur cette nuit d'aubergine et 4,60:1 sur une
+    /// `surface`. Une valeur qui traverse un dépôt se remesure sur le fond
+    /// d'arrivée — un fond sombre n'est pas un autre fond sombre.
+    ///
+    /// Et elle est arrivée **deux fois**, la première étant `#A3704D`, une
+    /// version périmée que l'app avait déjà écartée. Les deux échouaient ici,
+    /// donc la mesure a tranché sans qu'on ait eu besoin de savoir laquelle
+    /// était la bonne. C'est ce qu'on demande à une garde : rendre le même
+    /// verdict que la valeur transmise soit à jour ou non.
     ///
     /// Les deux fonds comptent, et il faut les deux : la page se lit sur
     /// `nuit`, mais un verset **désigné** par un lien partagé prend `surface`.
