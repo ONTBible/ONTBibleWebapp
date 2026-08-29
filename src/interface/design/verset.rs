@@ -260,3 +260,92 @@ mod tests {
         assert_eq!(composer(texte), texte);
     }
 }
+
+/// Aucun lien du corpus ne mène nulle part.
+///
+/// ## Le défaut qu'il attrape n'existe pas encore, et c'est le moment de le
+/// poser
+///
+/// Le pipeline écrit ses renvois en adresse **absolue** — « Bereshit 9:5 » vers
+/// l'unité qui le contient — et le rendu s'appuie là-dessus : ce qui ne commence
+/// pas par le domaine est traité comme un lien **extérieur**, donc ouvert dans
+/// un onglet neuf avec `noopener`.
+///
+/// Une couche de noms propres arrive, décidée le 29 août 2026 : les **Shemot**
+/// deviendront touchables, avec une fiche chacun. Le pipeline les rend
+/// aujourd'hui en `link` avec un `href` **relatif** — `"Qayin"`, `"Chavah"` —
+/// en attendant un type propre.
+///
+/// Si cela arrivait dans `dist/` sans que le rendu ait bougé, chacun de ces noms
+/// deviendrait **un lien souligné qui ouvre un onglet neuf vers une page qui
+/// n'existe pas**. Mesuré sur le pilote : 131 occurrences dans *Bereshit* 4.
+///
+/// Et rien ne le signalerait. La construction du corpus reste verte — le
+/// tokeniseur ne se plaint pas d'un lien qui ne mène nulle part, il n'a pas à
+/// le savoir. C'est un contrôle exact sur une question qu'on n'avait pas posée.
+///
+/// ## Ce test **doit** rougir quand la couche arrive
+///
+/// C'est son objet. Tant que le rendu ne sait pas distinguer un **Shem** d'un
+/// renvoi, un corpus qui en porte est un corpus que le site rendrait mal — et il
+/// vaut mieux l'apprendre ici qu'en voyant 131 liens morts en ligne.
+#[cfg(all(test, feature = "ssr"))]
+mod liens {
+    use crate::application::ports::Corpus;
+    use crate::domaine::texte::Noeud;
+    use crate::infrastructure::corpus::CorpusEmbarque;
+
+    /// Tout `href` du corpus est absolu.
+    #[test]
+    fn aucun_lien_du_corpus_n_est_relatif() {
+        let corpus = CorpusEmbarque::charger().expect("le corpus s'ouvre");
+
+        let mut relatifs: Vec<String> = Vec::new();
+        for ensemble in corpus.sommaire() {
+            for section in &ensemble.sections {
+                for entree in &section.livres {
+                    let Some(livre) = corpus.livre(&entree.id) else {
+                        continue;
+                    };
+                    for unite in livre.intro.iter().chain(livre.chapitres.iter()) {
+                        for verset in unite.versets() {
+                            releve(&verset.noeuds, &mut relatifs);
+                        }
+                    }
+                }
+            }
+        }
+
+        relatifs.sort();
+        relatifs.dedup();
+        assert!(
+            relatifs.is_empty(),
+            "{} lien(s) du corpus portent un `href` relatif : {:?}\n\
+             Le rendu les traite comme extérieurs — onglet neuf, `noopener` — et \
+             ils mènent à une page qui n'existe pas.\n\
+             Si c'est la couche des Shemot qui arrive, c'est le rendu qu'il faut \
+             faire avant, pas ce test qu'il faut assouplir.",
+            relatifs.len(),
+            relatifs.iter().take(6).collect::<Vec<_>>()
+        );
+    }
+
+    fn releve(noeuds: &[Noeud], relatifs: &mut Vec<String>) {
+        for n in noeuds {
+            match n {
+                Noeud::Lien { href, enfants } => {
+                    if !href.starts_with("http") {
+                        relatifs.push(href.clone());
+                    }
+                    releve(enfants, relatifs);
+                }
+                // `Intraduisible` porte un mot et un lemme, pas d'enfants :
+                // il ne peut donc pas contenir de lien.
+                Noeud::Accentuation(enfants) | Noeud::Glose(enfants) | Noeud::Emphase(enfants) => {
+                    releve(enfants, relatifs)
+                }
+                _ => {}
+            }
+        }
+    }
+}
