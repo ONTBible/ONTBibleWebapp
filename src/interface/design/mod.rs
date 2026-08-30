@@ -172,6 +172,26 @@ mod tests {
     /// `nuit`, mais un verset **désigné** par un lien partagé prend `surface`.
     /// Une couleur qui ne tiendrait que sur le premier serait juste partout
     /// sauf sur la page qu'on partage.
+    ///
+    /// ## D'où vient 6,4, et pourquoi ce n'est pas 4,5
+    ///
+    /// AA demande 4,5 pour du texte courant. Le site en exige 6,4 depuis des
+    /// semaines, et **la raison n'était écrite nulle part** — or un plancher
+    /// sans raison est un plancher qu'on abaisse le jour où il gêne.
+    ///
+    /// Elle a un nom : le **kératocône** de l'auteur. La cornée déformée
+    /// diffuse la lumière ; les bords se dédoublent, les contours proches se
+    /// confondent. La marge au-dessus d'AA n'est pas du zèle, c'est ce qu'il
+    /// faut pour que *lui* lise sa propre traduction.
+    ///
+    /// Ce qui en découle dépasse le chiffre, et vaut pour toute la feuille :
+    /// **distinguer deux niveaux de texte par la pente est le pire choix
+    /// possible.** Un italique se lit à l'inclinaison des jambages, exactement
+    /// ce qu'un halo efface. Ce qui tient est la couleur, la taille, l'air
+    /// autour — et c'est mesurable, donc c'est ici que ça se garde.
+    ///
+    /// Trouvé le 30 août 2026 par la session iOS en portant la liseuse sur
+    /// Mac. La règle valait pour les trois dépôts et n'était écrite dans aucun.
     #[test]
     fn aucune_couleur_de_texte_ne_descend_sous_le_plancher_de_la_rampe() {
         const FEUILLE: &str = include_str!("../../../style/main.css");
