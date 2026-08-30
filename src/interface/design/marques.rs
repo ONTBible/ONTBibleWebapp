@@ -115,4 +115,57 @@ mod tests {
             );
         }
     }
+
+    /// Une fiche qui existe **dit** quelque chose.
+    ///
+    /// ## Ce que le test d'à côté ne demandait pas
+    ///
+    /// `chaque_lemme_cite_par_une_page_a_sa_fiche` vérifie qu'un mot d'or **mène**
+    /// quelque part. Il ne vérifie pas que ce quelque part porte un texte.
+    ///
+    /// Le trou n'est pas théorique. La session du vault a trouvé le 29 août 2026
+    /// **cinq intraduisibles** — `neshamah`, `emunah`, `tsadiq`, `tsedaqah`,
+    /// `mabbul` — déclarés, balisés dans tout le corpus, rendus en or et
+    /// touchables ici, et **sans aucune définition**. Les trois compteurs du
+    /// pipeline restaient au vert : il demande si un terme a une fiche, jamais
+    /// si cette fiche a un contenu.
+    ///
+    /// Trois gardes — les deux du site et celle du pipeline — et aucune ne posait
+    /// la bonne question. Ce qui les réunit : **on vérifie l'existence du lien,
+    /// jamais la substance de la cible.** C'est plus facile à écrire, et c'est ce
+    /// qui reste faux.
+    ///
+    /// Celle-ci double le contrôle du pipeline par un autre chemin. Deux gardes
+    /// indépendantes valent mieux qu'une bonne : elles ne se trompent pas
+    /// ensemble.
+    #[test]
+    fn chaque_fiche_du_lexique_porte_une_definition() {
+        let lexique = LexiqueEmbarque::charger().expect("le lexique s'ouvre");
+
+        // **Un relevé vide passe aussi**, et c'est le piège qu'on se renvoie
+        // depuis une semaine : sans ce contrôle, un lexique qui ne se chargerait
+        // pas rendrait zéro fiche vide, donc un test vert sur une mesure qui n'a
+        // pas eu lieu.
+        assert!(
+            lexique.entrees().len() > 50,
+            "seulement {} fiches lues — le relevé est cassé, pas le lexique",
+            lexique.entrees().len()
+        );
+
+        let vides: Vec<&str> = lexique
+            .entrees()
+            .iter()
+            .filter(|e| e.definition.is_empty())
+            .map(|e| e.lemme.as_str())
+            .collect();
+
+        assert!(
+            vides.is_empty(),
+            "{} fiche(s) du lexique n'ont aucune définition : {vides:?}\n\
+             Le mot est rendu en or, il est touchable, il mène à une page — et \
+             cette page ne dit rien. C'est pire qu'un lemme absent, qui rougirait \
+             dans le test d'à côté.",
+            vides.len()
+        );
+    }
 }
