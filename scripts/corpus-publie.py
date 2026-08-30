@@ -147,6 +147,20 @@ def main() -> None:
     # On repart de zéro : un fichier laissé d'une version antérieure serait
     # poussé sur S3 et n'en repartirait jamais, puisque son nom ne figure plus
     # dans aucun manifeste.
+    # ── Avant d'écrire quoi que ce soit ─────────────────────────────────────
+    #
+    # La date se lit et se vérifie **en premier**, alors qu'elle ne sert qu'au
+    # manifeste, écrit en dernier. Placée à son point d'usage, la garde refusait
+    # après avoir copié huit fichiers : le dossier restait à moitié publié, sans
+    # manifeste, et un `aws s3 sync` lancé à la main dessus aurait posé un corpus
+    # sans son point d'entrée.
+    #
+    # `deployer.sh` porte `set -euo pipefail` et n'y serait pas allé — mais une
+    # garde ne doit pas dépendre du soin de celui qui l'appelle. Échouer avant
+    # d'agir ne laisse rien à rattraper.
+    genere = json.loads((SOURCE / "manifest.json").read_text()).get("generatedAt", "")
+    verifier_la_date(genere)
+
     if SORTIE.exists():
         shutil.rmtree(SORTIE)
     SORTIE.mkdir(parents=True)
@@ -160,11 +174,9 @@ def main() -> None:
         for chemin in sorted((SOURCE / "books").glob("*.json"))
     }
 
-    # La date vient du pipeline, pas de l'horloge de cette machine : c'est elle
-    # qui date le corpus, et deux publications du même corpus doivent produire
-    # le même manifeste.
-    genere = json.loads((SOURCE / "manifest.json").read_text()).get("generatedAt", "")
-    verifier_la_date(genere)
+    # `genere` vient du pipeline et non de l'horloge de cette machine : c'est lui
+    # qui date le corpus, et deux publications du même corpus doivent produire le
+    # même manifeste. Lu et vérifié en tête de cette fonction.
 
     manifeste = {
         "schema": 2,
