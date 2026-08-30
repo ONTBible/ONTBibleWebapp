@@ -105,10 +105,22 @@ impl ComptesDuBackend {
         if !statut.is_success() {
             return Err(ErreurDeCompte::Indisponible);
         }
-        reponse
+        // ── L'instant de réception se pose ici, et nulle part ailleurs ────
+        //
+        // Le backend donne `expires_in`, une **durée**, qui ne veut rien dire
+        // sans l'instant d'où on la compte. Le client doit donc le noter — et
+        // ce point est le seul par lequel *toutes* les réponses passent,
+        // ouverture comme renouvellement. Le poser dans l'appelant demanderait
+        // de ne pas l'oublier deux fois.
+        let mut session = reponse
             .json::<Session>()
             .await
-            .map_err(|erreur| ErreurDeCompte::ContratRompu(erreur.to_string()))
+            .map_err(|erreur| ErreurDeCompte::ContratRompu(erreur.to_string()))?;
+        session.recu_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0);
+        Ok(session)
     }
 }
 
