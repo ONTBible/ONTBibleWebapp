@@ -46,6 +46,15 @@ pub enum Noeud {
     Texte(String),
     /// Un intraduisible. `lemme` désigne sa fiche de lexique.
     Intraduisible { mot: String, lemme: String },
+    /// Un **Shem** — un nom propre hébreu qui porte une fiche.
+    ///
+    /// Distinct de [`Noeud::Accentuation`], qui marque un nom propre sans rien
+    /// promettre. Le Shem promet une fiche et la tient, comme l'intraduisible :
+    /// ce sont les deux marques du corpus sur lesquelles on peut cliquer.
+    ///
+    /// Il porte un `mot` et non des enfants, pour la même raison que
+    /// l'intraduisible : c'est un nom, pas un conteneur.
+    Shem { mot: String, lemme: String },
     /// Une accentuation — marquée, mais sans fiche.
     ///
     /// Il porte des enfants et non une chaîne, parce que le pipeline en met :

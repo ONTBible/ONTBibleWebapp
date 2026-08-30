@@ -439,7 +439,7 @@ pub fn corps(noeuds: &[Noeud]) -> String {
         for noeud in noeuds {
             match noeud {
                 Noeud::Texte(t) => sortie.push_str(t),
-                Noeud::Intraduisible { mot, .. } => sortie.push_str(mot),
+                Noeud::Intraduisible { mot, .. } | Noeud::Shem { mot, .. } => sortie.push_str(mot),
                 Noeud::Accentuation(enfants)
                 | Noeud::Emphase(enfants)
                 | Noeud::Lien { enfants, .. } => aplatir(enfants, sortie),

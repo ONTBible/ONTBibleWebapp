@@ -132,6 +132,20 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         }
         .into_any(),
 
+        // Un Shem se rend comme un intraduisible — même graisse, même
+        // soulignement au survol — et change de couleur seulement. Les deux
+        // promettent une fiche ; leur forme doit dire la même promesse, faute
+        // de quoi le lecteur apprendrait deux gestes pour un seul.
+        Noeud::Shem { mot, lemme } => view! {
+            <a
+                href=format!("/fr/lexique/{lemme}")
+                class="font-semibold text-shem decoration-shem/40"
+            >
+                {mot.clone()}
+            </a>
+        }
+        .into_any(),
+
         Noeud::Accentuation(enfants) => view! {
             <b class="font-semibold text-accentuation">{rendre(enfants)}</b>
         }

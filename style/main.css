@@ -64,6 +64,39 @@
      jusqu'à 6,5:1 sur le fond. C'est la valeur du thème sombre de l'app. */
   --color-accentuation: #d87994;
 
+  /* Le Shem — le nom propre hébreu qui porte une fiche.
+     Une **terre**, délibérément hors de la rampe à 343° : il lui faut se
+     distinguer de l'or de l'intraduisible et du bordeaux de l'accentuation,
+     et une quatrième nuance de la même teinte ne s'en distinguerait pas.
+
+     C'est la couleur de l'app — même teinte, même saturation — avec la seule
+     clarté relevée, par la méthode de l'accentuation juste au-dessus :
+
+       #AA7550   24,7°  36,0 %  49,0 %   la valeur du thème sombre de l'app
+       #BA8C6C   24,6°  36,1 %  57,6 %   la même, remontée pour cette nuit
+
+     L'app la mesure sur son fond à elle, #171416, où elle tient 4,68:1. Ici,
+     4,95:1 sur la nuit et 4,60:1 sur une `surface` — sous le plancher de la
+     rampe, qui est 6,5:1. Celle-ci donne 6,5:1 et 6,0:1.
+
+     Le second fond est celui qui tranche : `surface` est le fond d'un verset
+     **désigné par un lien partagé**. La couleur de l'app échouerait donc sur
+     la page que cette couche sert précisément à partager.
+
+     Ce qui est commun entre les dépôts est la teinte et le nom de la couche,
+     pas la valeur — comme `mystique`, dont ce dépôt est la référence et l'app
+     la transposition. Ici c'est l'inverse : la teinte vient de l'app, la clarté
+     se remesure sur le fond d'arrivée.
+
+     L'app a adopté celle-ci après avoir mesuré de son côté — non pour AA, que
+     #AA7550 tenait chez elle, mais parce qu'il aurait été le marquage le plus
+     faible de ses thèmes sombres. Les deux dépôts ont donc convergé sans se
+     recopier, chacun depuis son propre fond. Ça ne contredit pas la règle :
+     elle dit que la valeur se remesure, pas qu'elle doit différer — et nos
+     fonds sombres se ressemblent, là où nos fonds clairs ne se ressemblent
+     pas. */
+  --color-shem: #ba8c6c;
+
   /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri
      comme il le fallait sur le parchemin. Le jeton garde son nom de **rôle**,
      comme `ONTColors.accent` dans l'app — ce qui permettra de le décliner un
