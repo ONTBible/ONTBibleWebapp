@@ -51,6 +51,8 @@ on:
 permissions:
   id-token: write
   contents: read
+  # Pour ouvrir l'incident quand le déploiement tombe — voir la dernière étape.
+  issues: write
 
 # Deux déploiements simultanés poseraient leurs fichiers dans le désordre. Le
 # second attend ; il n'annule pas le premier, qui a peut-être déjà écrit.
@@ -488,4 +490,74 @@ jobs:
             code=$(curl -sS -o /dev/null -w '%{http_code}' "https://ontbible.com$chemin")
             printf '%-46s %s\n' "$chemin" "$code"
             [ "$code" = "200" ] || exit 1
+          done
+
+      # ── Qu'un déploiement qui tombe se voie ──────────────────────────────
+      #
+      # Le 30 août 2026, `main` n'a pas compilé pendant six heures : cinq
+      # exécutions en échec, et personne ne l'a su. C'est une session voisine
+      # qui l'a trouvé en regardant autre chose.
+      #
+      # Ce n'est pas un déploiement de plus qui rate — c'est **le seul chemin
+      # par lequel un texte atteint un lecteur**. L'app va chercher ses mises à
+      # jour de corpus sur `ontbible.com` : tant que ceci échoue, le vault a
+      # beau être juste et le pipeline avoir tourné, rien n'arrive à personne.
+      # La première parashah du Chazon Avraham a attendu là.
+      #
+      # GitHub envoie bien un courriel à qui a poussé. Il n'a pas suffi : il se
+      # perd parmi les autres, et surtout **il ne s'adresse qu'à une personne**,
+      # alors que ces poussées viennent de plusieurs sessions et du vault par
+      # `repository_dispatch`. Un incident dans le dépôt est visible par tous et
+      # ne demande aucun compte tiers — c'est la voie sans compte, comme
+      # IndexNow l'a été pour l'indexation.
+      #
+      # Un seul incident par panne, et non un par exécution : on commente le
+      # ticket ouvert s'il existe. Cinq tickets identiques se lisent comme du
+      # bruit, et l'on cesse de les ouvrir.
+      - name: Ouvrir l'incident
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          corps=$(printf '%s\n' \
+            "Le déploiement d'\`ontbible.com\` a échoué." \
+            "" \
+            "- exécution : $LIEN" \
+            "- commit : \`${{ github.sha }}\`" \
+            "" \
+            "**Le site n'est pas seul concerné.** L'app va chercher ses mises à jour" \
+            "de corpus sur \`ontbible.com/corpus/manifeste.json\` : tant que ceci" \
+            "échoue, aucun texte n'atteint les lecteurs, y compris ceux qui ont" \
+            "déjà l'app installée." \
+            "" \
+            "Ce ticket se ferme tout seul au premier déploiement qui repasse.")
+
+          ouvert=$(gh issue list --label deploiement --state open \
+            --json number --jq '.[0].number' 2>/dev/null || true)
+
+          if [ -n "$ouvert" ]; then
+            gh issue comment "$ouvert" --body "$corps"
+            echo "  incident #$ouvert commenté"
+          else
+            gh label create deploiement --color B60205 \
+              --description "Le déploiement de production est tombé" 2>/dev/null || true
+            gh issue create --label deploiement \
+              --title "Le déploiement d'ontbible.com est tombé" --body "$corps"
+          fi
+
+      # Et qu'il se referme seul. Un incident qu'il faut fermer à la main reste
+      # ouvert après la panne, et l'on finit par ne plus croire ceux qui sont
+      # ouverts — ce qui rend le suivant invisible, c'est-à-dire le défaut qu'on
+      # vient de corriger.
+      - name: Refermer l'incident
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          for n in $(gh issue list --label deploiement --state open \
+                       --json number --jq '.[].number' 2>/dev/null || true); do
+            gh issue close "$n" --comment "Le déploiement est repassé — $LIEN"
+            echo "  incident #$n refermé"
           done
