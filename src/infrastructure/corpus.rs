@@ -93,6 +93,13 @@ fn noeud(source: pipeline::Inline) -> Noeud {
             mot: v,
             lemme: lemma,
         },
+        // Un Shem porte la même forme qu'un `Term` — un mot et le lemme de sa
+        // fiche — et s'en distingue par ce qu'il promet : un nom propre, non un
+        // intraduisible. Le rendu les sépare par la couleur, pas par la forme.
+        pipeline::Inline::Shem { v, lemma } => Noeud::Shem {
+            mot: v,
+            lemme: lemma,
+        },
         pipeline::Inline::Accentuation { children } => Noeud::Accentuation(noeuds(children)),
         pipeline::Inline::Gloss { children } => Noeud::Glose(noeuds(children)),
         pipeline::Inline::Em { children } => Noeud::Emphase(noeuds(children)),
