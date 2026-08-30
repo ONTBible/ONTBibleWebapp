@@ -36,6 +36,7 @@ empreinte, et l'app ne prend que ce qui a bougé.
 import hashlib
 import json
 import pathlib
+import re
 import shutil
 import sys
 
@@ -76,6 +77,67 @@ def publier(nom: str, chemin: pathlib.Path, dossier: str = "") -> dict:
     return {"chemin": relatif, "empreinte": marque, "octets": len(octets)}
 
 
+# Un horodatage ISO 8601 en UTC, à la seconde : « 2026-08-30T00:14:00Z ».
+#
+# La forme est **exacte** et non approchée, parce que l'app compare ces dates
+# comme des chaînes. Un décalage écrit `+02:00` au lieu du `Z` se trierait avant
+# un `T00:` du même jour ; une date sans secondes se trierait avant elle-même
+# allongée. Deux estampilles bien formées mais de formes différentes s'ordonnent
+# alors à l'envers, et l'app garderait le plus vieux des deux corpus en croyant
+# garder le plus neuf.
+DATE_ATTENDUE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+
+
+def verifier_la_date(genere: str) -> None:
+    """Refuse de publier un corpus que l'app ne saura pas dater.
+
+    ## Ce que cette date empêche
+
+    L'app lit son corpus **du disque quand il y est, du bundle sinon**, le disque
+    l'emportant toujours — et le disque est rempli depuis ce qu'on publie ici.
+
+    Tant que le publié est plus récent que l'embarqué, tout va bien. L'inverse
+    arrive chaque fois qu'un build part avant un déploiement du site,
+    c'est-à-dire à chaque livraison TestFlight : le corpus publié, plus vieux,
+    **écrase** le corpus embarqué, plus neuf. Mesuré sur simulateur le 30 août
+    2026 — bundle à 1913 occurrences de `shem`, disque à 217, et l'app recréait
+    le disque au lancement en retéléchargeant l'ancien.
+
+    `genere` est le champ qui permet à l'app de dire « ce que tu me proposes est
+    plus vieux que ce que je porte, je garde le mien ». Il traverse toute la
+    chaîne depuis le début, et il était **vide** depuis le début.
+
+    ## Pourquoi refuser plutôt que publier quand même
+
+    Ce script reportait déjà la date du pipeline, correctement et pour la bonne
+    raison. Ce qu'il ne faisait pas, c'est **constater qu'elle manquait** : il
+    lisait un champ absent, prenait la chaîne vide par défaut, et publiait un
+    manifeste bien formé que rien ne pouvait dater. Une valeur par défaut qui
+    remplace une mesure absente produit une sortie qu'on croit vérifiée.
+
+    C'est la règle de `soumettre-aux-index.py` : ne pas répondre à une question
+    qu'on ne peut pas trancher vaut mieux que rendre une réponse bien formée.
+
+    Le refus bloque le déploiement du site tant que le pipeline n'écrit pas la
+    date — et c'est voulu, puisque déployer dans cet état reconduit le défaut.
+    """
+    if not genere:
+        raise SystemExit(
+            "  dist/manifest.json ne porte pas de generatedAt.\n"
+            "  Le corpus publié serait indatable, et l'app l'emploierait pour\n"
+            "  écraser un corpus embarqué plus récent — silencieusement.\n"
+            "  C'est `generated_at` dans le pipeline qu'il faut remplir, puis\n"
+            "  régénérer dist/ ; le report est déjà fait ici."
+        )
+    if not DATE_ATTENDUE.match(genere):
+        raise SystemExit(
+            f"  generatedAt vaut « {genere} », que l'app ne saura pas comparer.\n"
+            "  Elle trie ces dates comme des chaînes : il faut de l'ISO 8601 en\n"
+            "  UTC à la seconde, « 2026-08-30T00:14:00Z ». Un décalage horaire\n"
+            "  ou des secondes omises inversent l'ordre sans rien casser."
+        )
+
+
 def main() -> None:
     if not SOURCE.exists():
         raise SystemExit(
@@ -102,6 +164,7 @@ def main() -> None:
     # qui date le corpus, et deux publications du même corpus doivent produire
     # le même manifeste.
     genere = json.loads((SOURCE / "manifest.json").read_text()).get("generatedAt", "")
+    verifier_la_date(genere)
 
     manifeste = {
         "schema": 2,
