@@ -232,8 +232,45 @@ jobs:
           # l'embarqué et la comparaison ne veut plus rien dire.
           ONT_GENERE="$(TZ=UTC git -C "$ONT_VAULT" log -1 \
             --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd)"
+
+          # ── Le recoupement, et il n'est pas décoratif ──────────────────────
+          #
+          # Le commentaire ci-dessus dit d'employer `format-local` avec `TZ=UTC`.
+          # Un commentaire ne tient rien : le jour où quelqu'un le remplace par
+          # `--date=format:` en le trouvant obscur, la valeur ment de deux heures
+          # et **garde une forme irréprochable**. Vingt signes, secondes
+          # présentes, `Z` final — ni la garde de `corpus-publie.py` ni celle de
+          # l'app ne peuvent le voir, puisqu'elles lisent la forme.
+          #
+          # On recalcule donc la même date par un **second chemin qui ne dépend
+          # d'aucun fuseau** — `%ct`, l'horodatage epoch — et l'on refuse si les
+          # deux ne concordent pas. Le défaut devient impossible au lieu d'être
+          # évité par une phrase.
+          #
+          # C'est le geste qui avait trouvé le défaut chez le pipeline, changé en
+          # garde permanente plutôt qu'en diagnostic ponctuel. `scripts/corpus.sh`
+          # du dépôt de l'app le fait déjà, à l'identique : ce workflow ne passe
+          # pas par lui — il ne peut pas, ce script engendre aussi le schéma
+          # Swift et lance `xcodegen` — donc la règle vit à deux endroits, et
+          # celui-ci était le seul des deux à ne pas la vérifier.
+          EPOCH="$(git -C "$ONT_VAULT" log -1 --format=%ct)"
+          # BSD et GNU ne prennent pas le même drapeau ; on essaie les deux.
+          TEMOIN="$(date -u -r "$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+                 || date -u -d "@$EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)"
+          if [ -z "$TEMOIN" ]; then
+            echo "✗ impossible de recouper l'estampille — ni date -r ni date -d" >&2
+            exit 1
+          fi
+          if [ "$ONT_GENERE" != "$TEMOIN" ]; then
+            echo "✗ l'estampille ne concorde pas avec l'horodatage du commit :" >&2
+            echo "    calculée : $ONT_GENERE" >&2
+            echo "    attendue : $TEMOIN" >&2
+            echo "  La date porte un « Z » sans être en UTC. Vérifier TZ et format-local." >&2
+            exit 1
+          fi
+
           export ONT_GENERE
-          echo "  estampille du corpus : $ONT_GENERE"
+          echo "  estampille du corpus : $ONT_GENERE (recoupée sur %ct)"
 
           # `--bin` explicite : la caisse en porte deux depuis que le schéma
           # engendre les liaisons Swift, et cargo refuse de choisir.
