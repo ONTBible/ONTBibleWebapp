@@ -48,9 +48,37 @@ pub fn disponible(fournisseur: Fournisseur) -> bool {
         // revérifiée.** Les nôtres circulent vite, et c'est ce qui les rend
         // dangereuses quand elles périment.
         //
-        // Le site emploie donc l'application existante — même identifiant, même
-        // secret côté backend, une adresse de retour de plus.
-        Fournisseur::Github => true,
+        // Le site emploierait donc l'application existante — même identifiant,
+        // une adresse de retour de plus.
+        //
+        // **Éteint le 30 août 2026 : le bouton était en production et ne pouvait
+        // pas marcher.** Le backend distingue bien les deux origines, mais pour
+        // GitHub il attend deux *applications* — `github` et `github_web` — et
+        // la seconde n'est pas configurée sur la Lambda. Sondé, même requête,
+        // seule l'origine changeant :
+        //
+        //     origine app      401  « connexion refusée »
+        //     origine webapp   503  « fournisseur non configuré »
+        //
+        // Un lecteur partait chez GitHub, autorisait, revenait, et tombait sur
+        // une erreur où il ne pouvait rien faire.
+        //
+        // ## Et c'est le troisième défaut de suite sur cette même ligne
+        //
+        // On avait cru que GitHub n'acceptait qu'une adresse de retour ; c'était
+        // faux. On en a conclu que l'application existante suffisait ; c'était
+        // vrai côté GitHub et faux côté backend, qui avait déjà été bâti sur la
+        // première croyance et attend deux jeux d'identifiants.
+        //
+        // **Corriger une croyance ne défait pas ce qu'elle a fait construire.**
+        // La rectification s'est arrêtée à la plateforme et n'est pas allée
+        // jusqu'au code qu'elle avait produit — deux dépôts plus loin, invisible
+        // d'ici.
+        //
+        // Ce qui l'aurait attrapé n'est pas un raisonnement mais une sonde : un
+        // `curl` sur `/auth/github` en origine `webapp` répondait déjà 503 le
+        // jour où le bouton a été allumé.
+        Fournisseur::Github => false,
     }
 }
 
