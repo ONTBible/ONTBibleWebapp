@@ -135,9 +135,27 @@ fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
         // L'application `La Bible ONT` existante, à laquelle
         // `https://ontbible.com/fr/compte/retour` a été ajoutée : GitHub accepte
         // plusieurs adresses de retour, contrairement à ce qu'on avait cru.
-        // L'identifiant n'est pas un secret ; le secret reste au backend, et
-        // c'est le même que pour l'app.
-        Fournisseur::Github => Some("Ov23liKe17kibtPWeUE1"),
+        // L'identifiant n'est pas un secret ; le secret reste au backend.
+        //
+        // **Éteint le 30 août 2026, et il était allumé en production.**
+        //
+        // Le backend distingue bien les deux origines — mais pour GitHub il
+        // attend deux **applications** distinctes, `github` et `github_web`, et
+        // la seconde n'est pas configurée sur la Lambda déployée. Mesuré, même
+        // requête et même code bidon, seule l'origine changeant :
+        //
+        //     origine app      401  « connexion refusée »        configuré
+        //     origine webapp   503  « fournisseur non configuré »
+        //
+        // Un lecteur qui cliquait partait donc chez GitHub, autorisait, revenait
+        // — et tombait sur une erreur où il ne pouvait rien faire. C'est le
+        // défaut du badge App Store, en production cette fois.
+        //
+        // Il se rallume en une ligne le jour où le backend porte
+        // `GITHUB_WEB_CLIENT_ID` et son secret. Ne pas le rallumer sans avoir
+        // **resondé** : le code du backend sait déjà le faire, c'est sa
+        // configuration qui décide, et aucune des deux ne se voit d'ici.
+        Fournisseur::Github => None,
     }
 }
 
