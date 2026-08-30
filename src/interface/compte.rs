@@ -238,15 +238,40 @@ pub async fn aller(Path(cle): Path<String>) -> Response {
 
     // Le fournisseur est mis dans le cookie d'aller plutôt que dans l'adresse
     // de retour : celle-ci doit rester **identique à l'octet** entre l'aller et
-    // l'échange, donc on ne peut rien y ajouter. Et un paramètre `state` que
-    // l'on relirait sans le comparer ne protégerait de rien.
-    let aller = format!("{}|{}", fournisseur.cle(), pkce.verificateur);
+    // l'échange, donc on ne peut rien y ajouter.
+    //
+    // ## L'état, et pourquoi il a fini par être nécessaire
+    //
+    // On avait écrit ici qu'« un paramètre `state` que l'on relirait sans le
+    // comparer ne protégerait de rien ». C'est vrai, et ce n'était pas une
+    // raison de ne pas en poser un : la réponse était de le **comparer**.
+    //
+    // Tant que seuls Google et GitHub étaient allumés, l'omission ne coûtait
+    // rien — PKCE lie le code à la session. Un code obtenu par un tiers a été
+    // émis contre *son* défi ; l'échange envoie *notre* vérificateur, et le
+    // fournisseur refuse.
+    //
+    // **Apple n'a pas de PKCE** — son flux natif s'en passe et le backend
+    // n'en attend pas. Rien ne liait donc son code à qui l'avait demandé. La
+    // présence du cookie n'y suffit pas : elle dit qu'un départ a eu lieu, pas
+    // que *ce* code en vient. Un lecteur au milieu d'une connexion Apple, à qui
+    // l'on fait ouvrir un retour portant le code d'un autre, se retrouvait dans
+    // le compte de cet autre — avec ses surlignages, que le backend range à
+    // juste titre sous l'article 9 du RGPD.
+    //
+    // L'état est donc tiré comme un vérificateur — quatre-vingt-seize octets du
+    // système —, gardé dans le cookie, envoyé au fournisseur, et **comparé** au
+    // retour. Il vaut pour les trois : là où PKCE protège déjà, il ne coûte
+    // qu'un champ.
+    let etat = Pkce::neuf().verificateur;
+    let aller = format!("{}|{}|{}", fournisseur.cle(), pkce.verificateur, etat);
 
     let mut adresse = format!(
-        "{}?client_id={}&redirect_uri={}&response_type=code",
+        "{}?client_id={}&redirect_uri={}&response_type=code&state={}",
         autorisation(fournisseur),
         encoder(client),
         encoder(&retour),
+        encoder(&etat),
     );
     let p = portees(fournisseur);
     if !p.is_empty() {
@@ -289,12 +314,31 @@ pub async fn retour(
     let Some(aller) = lire_cookie(&entetes, COOKIE_ALLER) else {
         return redirige("/fr/compte?erreur=expire", None);
     };
-    let Some((cle, verificateur)) = aller.split_once('|') else {
+    let mut morceaux = aller.splitn(3, '|');
+    let (Some(cle), Some(verificateur), Some(etat_attendu)) =
+        (morceaux.next(), morceaux.next(), morceaux.next())
+    else {
+        // Un cookie à deux morceaux vient d'un départ d'avant l'état. Il expire
+        // en dix minutes ; on refuse plutôt que de retomber sur l'ancien
+        // comportement, qui est précisément celui qu'on corrige.
         return redirige(
             "/fr/compte?erreur=expire",
             Some(cookie_efface(COOKIE_ALLER)),
         );
     };
+
+    // **L'état renvoyé doit être celui qu'on a émis.** C'est ce qui lie ce code
+    // à ce départ, et c'est la seule liaison qu'ait le flux Apple.
+    //
+    // La comparaison n'est pas à temps constant : le secret fait cent
+    // vingt-huit signes tirés du système, il est comparé une fois par requête,
+    // et il change à chaque départ. Il n'y a rien à extraire par le temps.
+    if params.get("state").map(String::as_str) != Some(etat_attendu) {
+        return redirige(
+            "/fr/compte?erreur=expire",
+            Some(cookie_efface(COOKIE_ALLER)),
+        );
+    }
     let Some(fournisseur) = Fournisseur::depuis_cle(cle) else {
         return redirige(
             "/fr/compte?erreur=fournisseur",
