@@ -296,12 +296,40 @@ pub async fn retour(
     Query(params): Query<std::collections::HashMap<String, String>>,
     entetes: axum::http::HeaderMap,
 ) -> Response {
+    /// Dit au journal pourquoi un retour n'a pas abouti.
+    ///
+    /// ## Pourquoi ça n'existait pas, et pourquoi il le fallait
+    ///
+    /// La route rendait un code grossier dans l'adresse — `interne`,
+    /// `reponse`, `fournisseur` mènent au **même** message — et n'écrivait rien.
+    /// Le 31 août 2026, une connexion Apple a échoué chez l'auteur ; les
+    /// journaux de la Lambda ne portaient que les `START`/`END` d'AWS, et il n'y
+    /// avait aucun moyen de savoir laquelle des trois branches avait tiré.
+    ///
+    /// Une panne qui ne laisse pas de trace se rediagnostique à chaque fois, et
+    /// elle se rediagnostique **chez le lecteur**, en lui demandant de
+    /// recommencer pour voir.
+    ///
+    /// On note les **clés** reçues, jamais leurs valeurs : le `code` d'un
+    /// fournisseur s'échange contre une session, et un journal n'est pas
+    /// l'endroit où le laisser traîner.
+    fn noter(quoi: &str, params: &std::collections::HashMap<String, String>) {
+        let mut cles: Vec<&str> = params.keys().map(String::as_str).collect();
+        cles.sort_unstable();
+        eprintln!("compte/retour a échoué — {quoi} · paramètres reçus : {cles:?}");
+    }
+
     // Un refus n'est pas une panne : le lecteur a pu changer d'avis sur l'écran
     // du fournisseur. On revient sans rien dire de plus.
     if params.contains_key("error") {
         return redirige("/fr/compte?erreur=refus", Some(cookie_efface(COOKIE_ALLER)));
     }
     let Some(code) = params.get("code") else {
+        // Sans `code`, la réponse n'est pas celle qu'on attend. Le cas qui le
+        // produit en pratique est un fournisseur qui **POSTe** au lieu de
+        // rediriger : la route ne lit que la requête d'adresse, donc elle ne
+        // voit rien.
+        noter("aucun code dans l'adresse", &params);
         return redirige(
             "/fr/compte?erreur=reponse",
             Some(cookie_efface(COOKIE_ALLER)),
@@ -312,12 +340,14 @@ pub async fn retour(
     // conduit : on refuse. C'est ce qui empêche qu'un lien fabriqué ouvre une
     // session chez quelqu'un qui l'a simplement cliqué.
     let Some(aller) = lire_cookie(&entetes, COOKIE_ALLER) else {
+        noter("cookie d'aller absent", &params);
         return redirige("/fr/compte?erreur=expire", None);
     };
     let mut morceaux = aller.splitn(3, '|');
     let (Some(cle), Some(verificateur), Some(etat_attendu)) =
         (morceaux.next(), morceaux.next(), morceaux.next())
     else {
+        noter("cookie d'aller mal formé", &params);
         // Un cookie à deux morceaux vient d'un départ d'avant l'état. Il expire
         // en dix minutes ; on refuse plutôt que de retomber sur l'ancien
         // comportement, qui est précisément celui qu'on corrige.
@@ -334,12 +364,14 @@ pub async fn retour(
     // vingt-huit signes tirés du système, il est comparé une fois par requête,
     // et il change à chaque départ. Il n'y a rien à extraire par le temps.
     if params.get("state").map(String::as_str) != Some(etat_attendu) {
+        noter("l'état ne concorde pas", &params);
         return redirige(
             "/fr/compte?erreur=expire",
             Some(cookie_efface(COOKIE_ALLER)),
         );
     }
     let Some(fournisseur) = Fournisseur::depuis_cle(cle) else {
+        noter("fournisseur inconnu dans le cookie", &params);
         return redirige(
             "/fr/compte?erreur=fournisseur",
             Some(cookie_efface(COOKIE_ALLER)),
@@ -353,6 +385,7 @@ pub async fn retour(
     {
         Ok(session) => {
             let Ok(serialisee) = serde_json::to_string(&session) else {
+                noter("session illisible à la sérialisation", &params);
                 return redirige(
                     "/fr/compte?erreur=interne",
                     Some(cookie_efface(COOKIE_ALLER)),
@@ -374,6 +407,11 @@ pub async fn retour(
                 .into_response()
         }
         Err(erreur) => {
+            // La cause exacte vient du backend et ne se devine pas d'ici.
+            noter(
+                &format!("le backend a refusé l'échange : {erreur:?}"),
+                &params,
+            );
             let quoi = match erreur {
                 crate::application::ports::ErreurDeCompte::Refuse => "refus",
                 crate::application::ports::ErreurDeCompte::Indisponible => "indisponible",
