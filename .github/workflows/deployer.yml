@@ -206,6 +206,33 @@ jobs:
         env:
           ONT_VAULT: ${{ github.workspace }}/ONTBibleTranslation
         run: |
+          # ── L'estampille du corpus ────────────────────────────────────────
+          #
+          # `config::genere()` du pipeline lit **`ONT_GENERE`** et rend une
+          # chaîne vide si elle manque. C'est ce workflow qui régénère le
+          # corpus — il ne passe pas par les scripts du dépôt de l'app — donc
+          # personne ne la posait, et `generatedAt` sortait vide alors même que
+          # le pipeline savait la remplir.
+          #
+          # C'est ce qui a bloqué la publication du 30 août : la garde de
+          # `corpus-publie.py` refusait un corpus indatable, à juste titre, et
+          # l'on cherchait la cause dans le pipeline alors qu'elle était ici.
+          #
+          # `--date=format-local:` **et** `TZ=UTC`, jamais `--date=format:` :
+          # ce dernier rend l'heure locale du commit et lui colle un `Z`. La
+          # forme reste irréprochable et la valeur ment de l'écart au méridien
+          # — deux heures pour une machine à Paris. Aucune garde de la chaîne
+          # ne lit la forme assez finement pour le voir.
+          #
+          # La date est celle du **dernier commit du vault**, pas de l'instant
+          # présent : deux déploiements du même vault doivent produire la même
+          # estampille, sinon le publié paraît toujours plus récent que
+          # l'embarqué et la comparaison ne veut plus rien dire.
+          ONT_GENERE="$(TZ=UTC git -C "$ONT_VAULT" log -1 \
+            --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd)"
+          export ONT_GENERE
+          echo "  estampille du corpus : $ONT_GENERE"
+
           # `--bin` explicite : la caisse en porte deux depuis que le schéma
           # engendre les liaisons Swift, et cargo refuse de choisir.
           cargo run --manifest-path pipeline/Cargo.toml --bin ont-pipeline --release --quiet
@@ -339,7 +366,36 @@ jobs:
       - name: Le corpus pour l'app
         working-directory: ONTBibleWebapp
         run: |
-          ./scripts/corpus-publie.py
+          # ── Un refus de publier le corpus n'arrête pas le site ─────────────
+          #
+          # `corpus-publie.py` rend **2** quand il refuse délibérément — une
+          # date de corpus absente ou mensongère — et 1 quand il tombe. La
+          # distinction n'existait pas, et son absence a coûté la première
+          # parashah du Chazon Avraham : la garde a bloqué le déploiement
+          # entier alors qu'elle ne devait bloquer que la publication.
+          #
+          # Or les deux n'ont rien à voir. `/corpus/` est ce que **l'app** va
+          # chercher ; les pages du site portent leur corpus dans le binaire,
+          # embarqué à la compilation. Le texte peut donc être lisible sur
+          # ontbible.com alors même qu'on refuse de le publier pour l'app.
+          #
+          # Refuser la publication laisse l'app sur le manifeste précédent,
+          # c'est-à-dire dans l'état où elle était une minute plus tôt. Bloquer
+          # le site, lui, retire le texte à tout le monde — y compris à ceux
+          # qui le liraient dans un navigateur. **On ne répare pas un silence
+          # en en créant un plus grand.**
+          #
+          # `|| code=$?` parce que le shell tourne avec `-e` : sans ça le pas
+          # de côté n'a pas lieu, le job s'arrête, et ce commentaire décrit un
+          # comportement qui n'existe pas.
+          code=0
+          ./scripts/corpus-publie.py || code=$?
+          if [ "$code" = "2" ]; then
+            echo "::warning title=Corpus non publié::Le corpus n'a pas été publié pour l'app — voir le refus ci-dessus. Le site est déployé quand même ; l'app reste sur le manifeste précédent."
+            echo "CORPUS_PUBLIE=non" >> "$GITHUB_ENV"
+          elif [ "$code" != "0" ]; then
+            exit "$code"
+          fi
 
           # Le plan **encore en ligne**, avant qu'on l'écrase.
           #
@@ -358,6 +414,15 @@ jobs:
             curl -sf "https://ontbible.com/corpus/$ancien" -o /tmp/plan-precedent.json || true
           fi
 
+          # Rien à pousser si l'on vient de refuser : `target/corpus` est vide,
+          # et un `--delete` sur un dossier vide effacerait le corpus en ligne.
+          # C'est le seul endroit où le pas de côté pourrait faire pire que
+          # l'arrêt qu'il remplace.
+          if [ "${CORPUS_PUBLIE:-oui}" = "non" ]; then
+            echo "  corpus non publié — rien à pousser, l'app garde le précédent"
+            exit 0
+          fi
+
           aws s3 sync target/corpus "s3://$SEAU/corpus" --delete --exclude "manifeste.json" \
             --cache-control "public, max-age=31536000, immutable" --no-progress
           aws s3 cp target/corpus/manifeste.json "s3://$SEAU/corpus/manifeste.json" \
@@ -373,7 +438,13 @@ jobs:
       # à leur prochaine ouverture — faire échouer le déploiement pour une
       # notification manquée laisserait le site à moitié déployé pour un
       # agrément perdu.
+      # Sautée quand le corpus n'a pas été publié : elle fait un `ls` sur
+      # `target/corpus/`, qui est vide dans ce cas, et le `-e` du shell ferait
+      # tomber le job — c'est-à-dire exactement l'arrêt que l'étape précédente
+      # vient d'éviter, une étape plus loin. Un pas de côté ne vaut que s'il
+      # couvre tout ce qui dépendait de ce qu'on a sauté.
       - name: L'annonce de la parution
+        if: env.CORPUS_PUBLIE != 'non'
         working-directory: ONTBibleWebapp
         continue-on-error: true
         env:
