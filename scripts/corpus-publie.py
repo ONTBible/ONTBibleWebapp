@@ -36,6 +36,7 @@ empreinte, et l'app ne prend que ce qui a bougé.
 import hashlib
 import json
 import pathlib
+import datetime
 import re
 import shutil
 import sys
@@ -135,6 +136,43 @@ def verifier_la_date(genere: str) -> None:
             "  Elle trie ces dates comme des chaînes : il faut de l'ISO 8601 en\n"
             "  UTC à la seconde, « 2026-08-30T00:14:00Z ». Un décalage horaire\n"
             "  ou des secondes omises inversent l'ordre sans rien casser."
+        )
+
+    # ── La forme peut être juste et la valeur fausse ─────────────────────────
+    #
+    # `git log --date=format:%Y-%m-%dT%H:%M:%SZ` rend l'heure **locale** du
+    # commit et lui colle un `Z`. Vingt signes, secondes présentes, `Z` final :
+    # la forme est irréprochable, et la valeur ment de l'écart au méridien —
+    # deux heures pour une machine à Paris en août. L'expression régulière
+    # ci-dessus ne peut rien y voir, ni celle de l'app.
+    #
+    # La valeur se trahit ailleurs : une date écrite en heure locale à l'est de
+    # Greenwich tombe **dans le futur** une fois lue comme de l'UTC. Un corpus
+    # daté d'après l'instant où on le publie n'a aucun sens.
+    #
+    # Ce contrôle est **partiel, et il faut le dire** : il n'attrape rien à
+    # l'ouest de Greenwich, où la même faute produit une date trop ancienne,
+    # indiscernable d'un corpus simplement bâti la veille. Il attrape le cas
+    # qui se présente — la machine de l'auteur et les coureurs GitHub — et pas
+    # la faute en général. La garde qui la couvre entièrement est côté pipeline,
+    # où l'on sait de quelle horloge la date vient.
+    #
+    # La marge absorbe l'écart d'horloge entre la machine qui bâtit le corpus et
+    # celle qui le publie. Elle est très inférieure à une heure, donc au plus
+    # petit décalage horaire qui existe.
+    MARGE = datetime.timedelta(minutes=5)
+    date = datetime.datetime.strptime(genere, "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=datetime.timezone.utc
+    )
+    maintenant = datetime.datetime.now(datetime.timezone.utc)
+    if date > maintenant + MARGE:
+        avance = (date - maintenant).total_seconds() / 3600
+        raise SystemExit(
+            f"  generatedAt vaut « {genere} », soit {avance:.1f} h dans le futur.\n"
+            "  La forme est juste, donc la valeur ne l'est pas : c'est ce que\n"
+            "  produit une heure locale à laquelle on a collé un « Z ».\n"
+            "  Côté pipeline, `--date=format:` rend l'heure locale du commit ;\n"
+            "  c'est `--date=format-local:` avec TZ=UTC qu'il faut."
         )
 
 
