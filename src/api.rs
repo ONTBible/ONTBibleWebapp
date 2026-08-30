@@ -478,6 +478,172 @@ pub async fn retenir_la_position(
         .is_ok())
 }
 
+/// Un verset surligné, avec de quoi le lire sans ouvrir le chapitre.
+///
+/// ## Pourquoi le texte voyage ici, alors qu'on ne le stocke jamais
+///
+/// Le backend ne garde que la **référence** — livre, unité, numéro —, et c'est
+/// une décision qui tient : les surlignages d'un lecteur de Bible rattachés à
+/// une identité relèvent de l'article 9 du RGPD, donc on en stocke le moins
+/// possible.
+///
+/// Le texte, lui, est **recomposé à l'affichage** depuis le corpus embarqué. Il
+/// n'a jamais été stocké, il ne traverse aucune base : il est simplement
+/// rapproché de la référence au moment où l'on dresse la liste. C'est aussi ce
+/// qui la garde juste quand une traduction est révisée — la référence ne bouge
+/// pas, le texte suit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersetSurligne {
+    pub livre_id: String,
+    /// Le titre du livre, tel qu'on l'affiche — « Bereshit ».
+    pub livre_titre: String,
+    /// Son nom français — « Genèse ». L'app le pose sous le titre dans l'en-tête
+    /// de chaque livre ; sans lui, un lecteur qui connaît « Genèse » et pas
+    /// « Bereshit » ne reconnaît pas la section où il a marqué.
+    pub livre_francais: String,
+    pub unite_id: String,
+    /// Le titre de l'unité — « Bereshit 1 ».
+    pub unite_titre: String,
+    pub verset: u32,
+    /// Le texte du verset, recomposé depuis le corpus.
+    pub texte: String,
+    /// La couleur, telle qu'elle voyage — `gold`, `olive`…
+    pub couleur: String,
+    pub note: Option<String>,
+    /// Millisecondes depuis l'époque, pour trier du plus récent au plus ancien.
+    pub quand: i64,
+    /// La date, déjà écrite — « 12 août 2026 ».
+    ///
+    /// Composée **côté serveur** parce que `chrono` n'entre que sous `ssr` : le
+    /// faire dans le navigateur demanderait de l'embarquer dans le wasm pour
+    /// écrire cinq mots. Et le rendu du serveur porte alors la date, donc elle
+    /// est là avant l'hydratation comme pour le reste de la page.
+    pub quand_affiche: String,
+}
+
+/// Écrit une date française à partir d'un instant en millisecondes.
+///
+/// Le mois est en toutes lettres et non abrégé : l'app abrège parce qu'une
+/// ligne de liste sur téléphone est étroite, le site a la place. Les deux
+/// disent la même date.
+#[cfg(feature = "ssr")]
+fn date_francaise(ms: i64) -> String {
+    use chrono::Datelike;
+    const MOIS: [&str; 12] = [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ];
+    let Some(quand) = chrono::DateTime::from_timestamp_millis(ms) else {
+        return String::new();
+    };
+    let jour = quand.day();
+    // « 1er », et seulement le premier : c'est l'usage français, et « 1 août »
+    // se lit comme une coquille.
+    let ordinal = if jour == 1 {
+        "1ᵉʳ".to_string()
+    } else {
+        jour.to_string()
+    };
+    format!(
+        "{ordinal} {} {}",
+        MOIS[(quand.month0() as usize).min(11)],
+        quand.year()
+    )
+}
+
+/// Tous les versets que le lecteur a marqués.
+///
+/// ## L'ordre est celui du corpus, pas celui des marques
+///
+/// On lit une Bible dans son ordre, et l'on cherche « ce que j'ai marqué dans
+/// *Bereshit* » plutôt que « ce que j'ai marqué mardi ». Trier par date
+/// disperserait un même chapitre à travers la liste.
+///
+/// Vide sans compte, et **pas une erreur** : lire sans compte est le cas normal
+/// du site. Vide aussi quand la synchronisation échoue — la page dit alors
+/// qu'il n'y a rien, ce qui est faux mais inoffensif, là où un message d'échec
+/// inquiéterait pour un incident passager.
+#[server(prefix = "/api", endpoint = "mes-versets")]
+pub async fn mes_versets() -> Result<Vec<VersetSurligne>, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(Vec::new());
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+    let corpus = corpus()?;
+
+    let Ok(moisson) = sync.tirer(&session.access_token, None).await else {
+        return Ok(Vec::new());
+    };
+
+    let mut trouves: Vec<VersetSurligne> = Vec::new();
+    for marque in moisson.highlights {
+        // Les pierres tombales et les couleurs inconnues n'entrent pas : la
+        // première est une suppression venue d'un autre appareil, la seconde
+        // vient d'une version plus récente de l'app.
+        if !marque.visible() {
+            continue;
+        }
+        let Some(livre) = corpus.livre(&marque.book_id) else {
+            continue;
+        };
+        let Some(unite) = livre.chapitre(&marque.chapter_id) else {
+            continue;
+        };
+        // Un verset qui n'existe plus — unité renumérotée, passage réécrit — est
+        // **omis** plutôt que rendu vide. La marque survit côté serveur ; c'est
+        // seulement la ligne qui n'a rien à montrer.
+        let Some(verset) = unite.verset(marque.verse) else {
+            continue;
+        };
+
+        trouves.push(VersetSurligne {
+            livre_francais: livre.francais.clone(),
+            quand_affiche: date_francaise(marque.updated_at),
+            livre_id: marque.book_id.clone(),
+            livre_titre: livre.titre.clone(),
+            unite_id: marque.chapter_id.clone(),
+            unite_titre: unite.titre.clone(),
+            verset: marque.verse,
+            texte: verset.corps(),
+            couleur: marque.color.clone(),
+            note: marque.note.clone(),
+            quand: marque.updated_at,
+        });
+    }
+
+    // L'ordre du corpus : par livre tel qu'il est rangé, puis par unité, puis
+    // par verset. On s'appuie sur le sommaire plutôt que sur l'alphabet — un
+    // corpus n'est pas rangé par nom.
+    let rang_du_livre = |id: &str| {
+        corpus
+            .sommaire()
+            .iter()
+            .flat_map(|e| e.sections.iter())
+            .flat_map(|s| s.livres.iter())
+            .position(|l| l.id == id)
+            .unwrap_or(usize::MAX)
+    };
+    trouves.sort_by(|a, b| {
+        rang_du_livre(&a.livre_id)
+            .cmp(&rang_du_livre(&b.livre_id))
+            .then(a.unite_id.cmp(&b.unite_id))
+            .then(a.verset.cmp(&b.verset))
+    });
+
+    Ok(trouves)
+}
+
 /// La session du cookie, si elle vaut encore.
 ///
 /// Trois causes d'absence, indistinguables ici et c'est voulu : pas de cookie,
