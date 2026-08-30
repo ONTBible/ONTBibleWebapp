@@ -154,8 +154,20 @@ def verifier_la_date(genere: str) -> None:
     # l'ouest de Greenwich, où la même faute produit une date trop ancienne,
     # indiscernable d'un corpus simplement bâti la veille. Il attrape le cas
     # qui se présente — la machine de l'auteur et les coureurs GitHub — et pas
-    # la faute en général. La garde qui la couvre entièrement est côté pipeline,
-    # où l'on sait de quelle horloge la date vient.
+    # la faute en général.
+    #
+    # **Et il n'y a rien en amont qui la couvre.** Le seul endroit qui le
+    # pourrait est le pipeline, parce que lui sait de quelle horloge la date
+    # vient ; il tient la forme, pas la valeur. Ce qui rend la valeur juste
+    # aujourd'hui est un `TZ=UTC` et un `--date=format-local:` dans une ligne
+    # de shell — que rien n'éprouve. Le jour où quelqu'un les retire, ou revient
+    # à `--date=format:` en trouvant l'autre obscur, le faux `Z` revient et
+    # cette ligne-ci est la seule de toute la chaîne à le dire, à l'est de
+    # Greenwich seulement.
+    #
+    # C'est donc un filet, pas une garantie. Ne pas le lire comme une garantie
+    # parce qu'on suppose l'amont couvert : il ne l'est pas, et cette phrase
+    # remplace une version antérieure qui l'affirmait à tort.
     #
     # La marge absorbe l'écart d'horloge entre la machine qui bâtit le corpus et
     # celle qui le publie. Elle est très inférieure à une heure, donc au plus
