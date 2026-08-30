@@ -2706,10 +2706,47 @@ est déjà là. La granularité est le verset et non un décalage de caractères
 « une révision du texte déplacerait les caractères et rendrait le surlignage
 faux, alors qu'un numéro de verset reste juste ».
 
+### Avant d'allumer un fournisseur, le sonder
+
+`./scripts/sonder-les-fournisseurs.py` compare ce que le site déclare à ce que
+le backend **sert vraiment**, sur l'origine `webapp`.
+
+Il existe parce que le bouton GitHub a été allumé en production le 30 août 2026
+alors que le backend rendait `503 fournisseur non configuré` : le lecteur
+partait chez GitHub, autorisait, revenait, et tombait sur une erreur où il ne
+pouvait rien faire.
+
+**Aucune garde du site ne pouvait le voir.** `disponible` décide ce que la page
+affiche, `identifiant_client` ce que la route sait faire, et un test tient les
+deux d'accord — mais les deux vivent ici, et c'est la configuration du backend
+qui décide. D'où la règle : *une garde du site ne peut pas voir la configuration
+d'un service qu'il appelle ; seule une sonde contre le déployé mesure ce qui
+tourne, tout le reste mesure ce qu'on a écrit.*
+
+Et la règle pratique : **la sonde fait partie de l'allumage, pas de la
+vérification d'après.**
+
+Elle porte un **témoin positif** — Google, dont on connaît la réponse — et
+refuse de conclure s'il tombe. Sans lui, deux `503` se lisent « le chemin webapp
+est cassé » ; avec lui, « le chemin fonctionne, ce sont ces deux-là qui
+manquent ». C'est la parade au défaut voisin du même jour : un `grep` sur la page
+servie n'avait rien trouvé — exactement ce qu'on voulait lire — alors qu'il ne
+pouvait rien trouver, butant sur les marqueurs d'hydratation de Leptos. **Une
+mesure qui confirme ce qu'on espère doit être éprouvée par un cas dont on connaît
+la réponse.**
+
+Dernier piège : l'origine ne passe **pas** par l'en-tête `Origin`, c'est un champ
+du corps JSON. Une sonde qui l'omet retombe sur `app` et mesure six fois le
+mauvais chemin — une session s'y est fait prendre le jour même et concluait que
+tout allait bien.
+
 ### Ce qui reste
 
-- **déclarer l'adresse de retour** chez Google, puis créer le Services ID Apple
-  et la seconde application GitHub ;
+- **poser `APPLE_SERVICES_ID`** dans `backend/terraform/oauth.env` (hors dépôt),
+  puis `./scripts/deployer-backend.sh` — le câblage Terraform existe déjà, seule
+  la valeur manque, et son absence traverse le déploiement en silence ;
+- **ajouter l'adresse de retour du site** aux « Authorization callback URLs » de
+  l'application GitHub existante ;
 - la **position de lecture** — le backend la porte, le site ne la suit pas
   encore. C'est dans `SyncDuBackend::pousser` qu'elle entrera, où la clé est
   aujourd'hui omise plutôt que mise à `null` ;
