@@ -96,8 +96,30 @@ pub struct Session {
     pub refresh_token: String,
     /// Durée de vie du jeton d'accès, en secondes. Une heure côté backend.
     pub expires_in: i64,
-    /// L'instant de création, en millisecondes depuis l'époque.
-    pub created: i64,
+    /// **Vrai si le compte vient d'être créé** — pas un horodatage.
+    ///
+    /// Le site le lisait en `i64`, « l'instant de création en millisecondes ».
+    /// C'était faux depuis le début, et le backend le dit noir sur blanc :
+    /// « Vrai si le compte vient d'être créé — le client peut alors proposer de
+    /// téléverser les annotations déjà prises hors ligne. »
+    ///
+    /// Le coût n'a pas été une valeur bizarre : `serde` refusait tout le corps,
+    /// et **toute connexion échouait** sur `ContratRompu` — c'est-à-dire, à
+    /// l'écran, « quelque chose s'est mal passé de notre côté ». La connexion
+    /// avait réussi chez le fournisseur *et* chez le backend ; seule la lecture
+    /// de la réponse tombait.
+    pub created: bool,
+    /// L'instant où **ce site** a reçu la session, en millisecondes.
+    ///
+    /// Le backend ne l'envoie pas — il donne `expires_in`, une durée, qui ne
+    /// veut rien dire sans l'instant d'où on la compte. C'est donc au client de
+    /// le noter, et `ComptesDuBackend::lire` le fait au seul endroit où toutes
+    /// les réponses passent.
+    ///
+    /// `#[serde(default)]` pour deux raisons : le corps du backend ne le porte
+    /// pas, et il doit pouvoir être relu du cookie où le site l'a écrit.
+    #[serde(default)]
+    pub recu_ms: i64,
 }
 
 impl Session {
@@ -114,12 +136,12 @@ impl Session {
     /// courte que la durée de vie du jeton.
     pub fn perimee(&self, maintenant_ms: i64) -> bool {
         const MARGE_MS: i64 = 60_000;
-        maintenant_ms + MARGE_MS >= self.created + self.expires_in * 1_000
+        maintenant_ms + MARGE_MS >= self.fin_ms()
     }
 
     /// L'instant, en millisecondes, où le jeton cesse d'être utilisable.
     pub fn fin_ms(&self) -> i64 {
-        self.created + self.expires_in * 1_000
+        self.recu_ms + self.expires_in * 1_000
     }
 }
 
@@ -127,12 +149,13 @@ impl Session {
 mod tests {
     use super::*;
 
-    fn session(created: i64, expires_in: i64) -> Session {
+    fn session(recu_ms: i64, expires_in: i64) -> Session {
         Session {
             access_token: "a".into(),
             refresh_token: "r".into(),
             expires_in,
-            created,
+            created: false,
+            recu_ms,
         }
     }
 
@@ -197,6 +220,63 @@ mod contrat {
     ///
     /// Se tait si le dépôt voisin n'est pas là — un test d'accord ne peut pas
     /// exiger la présence de ce avec quoi il accorde.
+    /// ## `Session` vit dans `application/mod.rs`, pas dans `interface/`
+    ///
+    /// L'épreuve d'à côté lit `interface/mod.rs` — le bon fichier pour
+    /// l'**entrée** de la route. Mais ce que le backend *rend* est décrit dans
+    /// `application/mod.rs`, et aucune garde ne le regardait.
+    ///
+    /// Le prix a été exact : `created` y est un **booléen** — « vrai si le
+    /// compte vient d'être créé » — et le site le lisait en `i64`, « l'instant
+    /// de création en millisecondes ». `serde` refusait alors tout le corps, et
+    /// **toute connexion échouait** après avoir réussi chez le fournisseur et
+    /// chez le backend.
+    ///
+    /// Une garde qui lit la bonne source dans le mauvais fichier passe au vert
+    /// exactement comme une garde qui lit la bonne : c'est ce qui la rend pire
+    /// qu'une garde absente.
+    #[test]
+    fn la_session_du_backend_a_les_types_qu_on_lui_prete() {
+        let chemin = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../ONTBibleApp/backend/src/application/mod.rs"
+        );
+        let Ok(source) = std::fs::read_to_string(chemin) else {
+            return;
+        };
+        let Some(bloc) = source
+            .split("pub struct Session {")
+            .nth(1)
+            .and_then(|reste| reste.split('}').next())
+        else {
+            panic!("`pub struct Session` introuvable dans application/mod.rs");
+        };
+        // On relève la source plutôt que de la redire : c'est tout l'objet.
+        for (champ, attendu) in [
+            ("access_token", "String"),
+            ("refresh_token", "String"),
+            ("expires_in", "i64"),
+            ("created", "bool"),
+        ] {
+            let ligne = bloc
+                .lines()
+                .find(|l| l.trim_start().starts_with(&format!("pub {champ}:")))
+                .unwrap_or_else(|| panic!("le backend ne porte plus de champ `{champ}`"));
+            assert!(
+                ligne.contains(attendu),
+                "le backend écrit `{}` là où le site attend `{attendu}` — \
+                 une désérialisation qui échoue fait échouer *toute* connexion",
+                ligne.trim()
+            );
+        }
+        // `recu_ms` est au site seul : le backend ne l'envoie pas, et il ne
+        // doit pas apparaître chez lui sous peine de vouloir dire autre chose.
+        assert!(
+            !bloc.contains("recu_ms"),
+            "le backend a pris un champ `recu_ms` — il faut alors décider lequel fait foi"
+        );
+    }
+
     #[test]
     fn le_backend_connait_toujours_l_origine() {
         let chemin = concat!(
