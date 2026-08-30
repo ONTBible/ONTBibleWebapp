@@ -71,7 +71,32 @@ fn autorisation(f: Fournisseur) -> &'static str {
 fn portees(f: Fournisseur) -> &'static str {
     match f {
         Fournisseur::Google => "openid email",
-        Fournisseur::Apple => "email",
+        // **Apple ne reçoit aucune portée, et ce n'est pas un choix de goût.**
+        //
+        // Demander `email` — ou `name` — l'oblige à répondre en `form_post` :
+        //
+        //     invalid_request
+        //     response_mode must be form_post when name or email scope
+        //     is requested.
+        //
+        // Mesuré sur `appleid.apple.com`, les trois formes : sans portée il
+        // rend sa page de connexion, avec `email` il refuse, avec
+        // `email` + `form_post` il l'accepte de nouveau.
+        //
+        // Et `form_post` est un piège pour ce montage. Apple **POSTe** alors
+        // vers l'adresse de retour, depuis son propre domaine : c'est une
+        // requête inter-site, et notre cookie d'état est en `SameSite=Lax`, qui
+        // voyage sur une navigation mais **pas sur un POST venu d'ailleurs**.
+        // L'état et le vérifieur PKCE n'arriveraient jamais. On ne le
+        // réparerait qu'en passant le cookie à `SameSite=None` — c'est-à-dire
+        // en retirant à tout le site la protection contre la falsification de
+        // requête, pour une adresse dont le backend n'a pas besoin.
+        //
+        // Car il n'en a pas besoin : `identity.email` y est facultatif — « if
+        // let Some(email) » —, et c'est le `sub` de l'`id_token` qui rattache
+        // les surlignages. Le commentaire ci-dessus le disait déjà : une portée
+        // qu'on ne demande pas est une donnée qu'on n'aura jamais à protéger.
+        Fournisseur::Apple => "",
         // GitHub n'a pas d'`openid` : sa portée vide rend déjà le profil public
         // et l'identifiant, ce qui suffit.
         Fournisseur::Github => "",
@@ -362,6 +387,32 @@ mod tests {
     /// Les deux listes vivent dans deux modules — l'une doit voyager jusqu'au
     /// navigateur, l'autre porte des identifiants et reste au serveur. Deux
     /// listes finissent toujours par diverger ; celle-ci ne peut plus.
+    /// ## Apple ne demande aucune portée, et le compilateur ne peut pas le tenir
+    ///
+    /// Ajouter `email` — le geste naturel de qui veut « bien faire » — fait
+    /// refuser Apple :
+    ///
+    ///     response_mode must be form_post when name or email scope is requested
+    ///
+    /// Et le repli évident, `response_mode=form_post`, casse le montage plus
+    /// discrètement : Apple POSTe alors depuis son domaine vers le nôtre, et le
+    /// cookie d'état est en `SameSite=Lax`, qui ne voyage pas sur un POST
+    /// inter-site. L'état et le vérifieur PKCE n'arriveraient jamais — une
+    /// connexion qui échoue *après* qu'Apple a dit oui, donc là où l'on cherche
+    /// la faute chez soi.
+    ///
+    /// Le backend n'en a pas besoin : `identity.email` y est facultatif, et
+    /// c'est le `sub` de l'`id_token` qui rattache les surlignages.
+    #[test]
+    fn apple_ne_demande_aucune_portee() {
+        assert_eq!(
+            portees(Fournisseur::Apple),
+            "",
+            "une portée `name` ou `email` oblige Apple au `form_post`, que notre \
+             cookie `SameSite=Lax` ne peut pas suivre"
+        );
+    }
+
     #[test]
     fn la_page_et_la_route_s_accordent_sur_les_fournisseurs() {
         for f in Fournisseur::tous() {
