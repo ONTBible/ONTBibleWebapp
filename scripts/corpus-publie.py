@@ -89,6 +89,17 @@ def publier(nom: str, chemin: pathlib.Path, dossier: str = "") -> dict:
 DATE_ATTENDUE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 
+# Le code que rend un **refus délibéré**, par opposition à une panne. L'appelant
+# peut alors distinguer « je n'ai rien publié, et je sais pourquoi » de « je suis
+# tombé ». Les deux valent 1 sans ça, et il faut choisir entre tout bloquer et
+# ne rien voir.
+REFUS = 2
+
+
+class Refus(Exception):
+    """Un refus délibéré de publier — pas une panne."""
+
+
 def verifier_la_date(genere: str) -> None:
     """Refuse de publier un corpus que l'app ne saura pas dater.
 
@@ -123,7 +134,7 @@ def verifier_la_date(genere: str) -> None:
     date — et c'est voulu, puisque déployer dans cet état reconduit le défaut.
     """
     if not genere:
-        raise SystemExit(
+        raise Refus(
             "  dist/manifest.json ne porte pas de generatedAt.\n"
             "  Le corpus publié serait indatable, et l'app l'emploierait pour\n"
             "  écraser un corpus embarqué plus récent — silencieusement.\n"
@@ -131,7 +142,7 @@ def verifier_la_date(genere: str) -> None:
             "  régénérer dist/ ; le report est déjà fait ici."
         )
     if not DATE_ATTENDUE.match(genere):
-        raise SystemExit(
+        raise Refus(
             f"  generatedAt vaut « {genere} », que l'app ne saura pas comparer.\n"
             "  Elle trie ces dates comme des chaînes : il faut de l'ISO 8601 en\n"
             "  UTC à la seconde, « 2026-08-30T00:14:00Z ». Un décalage horaire\n"
@@ -179,7 +190,7 @@ def verifier_la_date(genere: str) -> None:
     maintenant = datetime.datetime.now(datetime.timezone.utc)
     if date > maintenant + MARGE:
         avance = (date - maintenant).total_seconds() / 3600
-        raise SystemExit(
+        raise Refus(
             f"  generatedAt vaut « {genere} », soit {avance:.1f} h dans le futur.\n"
             "  La forme est juste, donc la valeur ne l'est pas : c'est ce que\n"
             "  produit une heure locale à laquelle on a collé un « Z ».\n"
@@ -247,4 +258,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Refus as refus:
+        print(refus, file=sys.stderr)
+        sys.exit(REFUS)
