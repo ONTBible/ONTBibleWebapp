@@ -115,23 +115,27 @@ fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
         Fournisseur::Google => {
             Some("154337904456-de9o2u3res51203irei6o0ggk1lvlkq5.apps.googleusercontent.com")
         }
-        // Le Services ID existe depuis le 27 août 2026 —
-        // `com.labibleont.ont.webapp`, créé dans le portail Apple, avec
-        // `ontbible.com` en domaine et notre adresse de retour.
+        // Le Services ID, créé dans le portail Apple le 27 août 2026 —
+        // `com.labibleont.ont.webapp`, avec `ontbible.com` en domaine et notre
+        // adresse de retour.
         //
-        // **Il n'est pourtant pas rendu ici, et le bouton reste éteint.**
+        // **Allumé le 30 août 2026, après sonde.** Le backend distingue les deux
+        // flux depuis longtemps — il choisit le Services ID pour l'origine
+        // `webapp`, signe le secret client avec cette identité, et n'envoie
+        // `redirect_uri` que dans ce cas. Ce qui manquait n'était pas son code
+        // mais la **valeur** dans sa configuration déployée, absente de
+        // `oauth.env`, et dont le script de déploiement tolérait l'absence par
+        // un `${APPLE_SERVICES_ID:-}` : elle traversait tout en silence et
+        // arrivait vide sur la Lambda.
         //
-        // La raison est côté backend : son échange Apple utilise un `client_id`
-        // unique — l'App ID `com.labibleont.ONT`, qu'exige le flux natif —, et
-        // il ne sait pas encore choisir entre les deux identités. Lui envoyer un
-        // code obtenu avec le Services ID donnerait un `invalid_grant`, l'erreur
-        // exacte que son README décrit, dans l'autre sens.
+        // Ce n'est pas allumé sur la parole de qui l'a posée, mais sur
+        // `./scripts/sonder-les-fournisseurs.py`, qui a rendu :
         //
-        // L'allumer avant qu'il ne sache serait le défaut du badge App Store
-        // rejoué : une voie qui mène à une erreur où le lecteur ne peut rien
-        // faire. Le jour où le backend distingue les deux flux, cette ligne
-        // devient `Some(SERVICES_ID_APPLE)` et rien d'autre ne bouge.
-        Fournisseur::Apple => None,
+        //     apple 401 servi · le site le dit éteint → il peut être rallumé
+        //
+        // Le `401` dit que la requête est allée jusqu'à Apple, qui a refusé un
+        // code bidon. Le `503` d'avant disait qu'elle n'était jamais partie.
+        Fournisseur::Apple => Some(SERVICES_ID_APPLE),
         // L'application `La Bible ONT` existante, à laquelle
         // `https://ontbible.com/fr/compte/retour` a été ajoutée : GitHub accepte
         // plusieurs adresses de retour, contrairement à ce qu'on avait cru.
