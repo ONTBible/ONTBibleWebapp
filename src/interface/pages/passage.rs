@@ -83,30 +83,51 @@ pub fn Passage() -> impl IntoView {
     {
         let cle = cle;
         Effect::new(move |_| {
-            let (livre, unite) = cle();
+            let (_livre, unite) = cle();
             let pour_marques = unite.clone();
             leptos::task::spawn_local(async move {
                 if let Ok(liste) = crate::api::mes_surlignages(pour_marques).await {
                     marquage.set(liste);
                 }
             });
-
-            // Retenir où l'on est, **une fois par unité ouverte**.
-            //
-            // L'app suit la visibilité de chaque ligne et enregistre en continu.
-            // Ici chaque écriture est une requête réseau : la faire au
-            // défilement produirait des dizaines d'appels par chapitre, dont un
-            // seul compterait. On vise donc le chapitre et non le verset — plus
-            // grossier, et assumé : un signet qui vise juste vaut mieux qu'un
-            // signet précis qui coûte cinquante requêtes.
-            //
-            // Le titre est celui du corpus, pas celui que le registre affiche :
-            // c'est l'app qui le relira, et elle a le sien.
-            leptos::task::spawn_local(async move {
-                let _ = crate::api::retenir_la_position(livre, unite.clone(), unite, 1).await;
-            });
         });
     }
+
+    // ── Retenir où l'on est, **une fois par unité ouverte** ──────────────────
+    //
+    // L'app suit la visibilité de chaque ligne et enregistre en continu. Ici
+    // chaque écriture est une requête réseau : la faire au défilement
+    // produirait des dizaines d'appels par chapitre, dont un seul compterait.
+    // On vise donc le chapitre et non le verset — plus grossier, et assumé :
+    // un signet qui vise juste vaut mieux qu'un signet précis qui coûte
+    // cinquante requêtes.
+    //
+    // ## Pourquoi cet effet attend le chapitre au lieu de partir avec l'adresse
+    //
+    // Il partait avec elle, et passait l'**identifiant** d'unité là où le
+    // backend attend un titre :
+    //
+    //     retenir_la_position(livre, unite.clone(), unite, 1)
+    //                                                ↑ « bereshit-1 »
+    //
+    // `chapter_title` traverse la synchronisation et s'affiche : la page de
+    // compte annonçait « Vous lisiez bereshit-1 », et l'app aurait mis le même
+    // slug dans sa carte de reprise. Un identifiant n'est pas un titre, même
+    // quand il lui ressemble — et il ne lui ressemble qu'en français.
+    //
+    // Le titre n'est connu qu'une fois le chapitre chargé. L'effet dépend donc
+    // de la ressource, et ne part qu'avec elle.
+    Effect::new(move |_| {
+        let Some(Ok(Some(p))) = contenu.get() else {
+            return;
+        };
+        let livre = p.livre_id.clone();
+        let unite = p.chapitre.id.clone();
+        let titre = p.chapitre.titre.clone();
+        leptos::task::spawn_local(async move {
+            let _ = crate::api::retenir_la_position(livre, unite, titre, 1).await;
+        });
+    });
 
     view! {
         <Suspense fallback=|| ()>
