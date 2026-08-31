@@ -694,3 +694,63 @@ fn percent_decode(valeur: &str) -> String {
     }
     String::from_utf8_lossy(&sortie).into_owned()
 }
+
+/// Une trouvaille, telle que la page l'affiche.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrouvailleDto {
+    pub livre_id: String,
+    pub livre_titre: String,
+    pub unite_id: String,
+    pub unite_titre: String,
+    /// `0` hors d'un verset — un titre de section, une introduction.
+    pub verset: u32,
+    pub extrait: String,
+    /// Vrai quand la trouvaille est dans une glose et non dans le corps.
+    pub dans_une_glose: bool,
+}
+
+/// Cherche dans le corpus.
+///
+/// ## Pourquoi côté serveur
+///
+/// L'index fait 698 Ko. L'app l'embarque parce qu'elle doit chercher hors
+/// ligne ; le site n'a pas cette contrainte, et l'envoyer au navigateur
+/// tripleraient le poids du premier chargement pour une fonctionnalité que la
+/// plupart des visites n'emploient pas.
+///
+/// ## Le titre du livre et de l'unité viennent du corpus
+///
+/// L'index ne porte que des identifiants — `bereshit`, `bereshit-1`. Les
+/// afficher tels quels donnerait une liste de slugs. On les rapproche du
+/// sommaire, et une trouvaille dont le livre a disparu est **omise** plutôt que
+/// rendue sans nom.
+#[server(prefix = "/api", endpoint = "rechercher")]
+pub async fn rechercher(
+    requete: String,
+    portee: String,
+) -> Result<Vec<TrouvailleDto>, ServerFnError> {
+    use crate::domaine::recherche::{Niveau, Portee};
+
+    let corpus = corpus()?;
+    let ou = Portee::depuis_cle(&portee);
+
+    let mut sortie = Vec::new();
+    for t in crate::infrastructure::recherche::chercher(&requete, ou) {
+        let Some(livre) = corpus.livre(&t.livre_id) else {
+            continue;
+        };
+        let Some(unite) = livre.chapitre(&t.unite_id) else {
+            continue;
+        };
+        sortie.push(TrouvailleDto {
+            livre_titre: livre.titre.clone(),
+            unite_titre: unite.titre.clone(),
+            livre_id: t.livre_id,
+            unite_id: t.unite_id,
+            verset: t.verset,
+            extrait: t.extrait,
+            dans_une_glose: t.niveau == Niveau::Glose,
+        });
+    }
+    Ok(sortie)
+}

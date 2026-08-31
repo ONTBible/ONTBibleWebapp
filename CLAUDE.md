@@ -1482,6 +1482,7 @@ hreflang, Open Graph, JSON-LD), **et la liseuse complète** (voir §8 bis).
 /fr/lire                           le sommaire des 70 livres
 /fr/lire/{livre}                   ses unités, avec le renvoi classique
 /fr/lire/{livre}/{unité}?v=1-3     un passage — la route des liens partagés
+/fr/rechercher?q=ruach&ou=partout   la recherche — texte, gloses, hébreu
 /fr/lexique                        les 105 intraduisibles
 /fr/lexique/{lemme}                la fiche — définition **et** occurrences
 /.well-known/apple-app-site-association   application/json, aucune redirection

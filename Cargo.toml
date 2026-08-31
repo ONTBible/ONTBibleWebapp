@@ -103,7 +103,14 @@ chrono-tz = { version = "0.10", default-features = false, optional = true }
 # `package` parce que la caisse s'appelle `ont-pipeline` et sa bibliothèque
 # `ont` : la clé d'une dépendance est le nom du **paquet**, pas celui de la
 # cible.
-ont = { package = "ont-pipeline", path = "../ONTBibleApp/pipeline", default-features = false, optional = true }
+# `parsers` pour `ont::search` — `fold` et `strip_hebrew`, la normalisation que
+# l'app applique à l'index et à la requête. La réécrire ici ferait deux
+# normalisations à tenir d'accord, et un accent qui plie d'un côté et pas de
+# l'autre rendrait deux jeux de résultats pour la même recherche.
+#
+# `ont` n'entre que sous `ssr` : `regex` et `unicode-normalization` ne partent
+# donc jamais dans le wasm. `codegen` reste dehors, il n'a rien à faire ici.
+ont = { package = "ont-pipeline", path = "../ONTBibleApp/pipeline", default-features = false, features = ["parsers"], optional = true }
 
 [features]
 hydrate = [
