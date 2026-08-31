@@ -1,0 +1,87 @@
+# Publie une **Release** quand la version du site change.
+#
+# ## Pourquoi une release et non un tag
+#
+# Le profil GitHub de Gloire se remplit depuis `build_readme.py`, qui appelle
+# `repo.get_releases()` — jamais `get_tags()`. Relevé dans la source, ligne 98.
+# **Un tag git seul n'apparaîtrait donc nulle part** : `git push --tags` ne
+# suffit pas, il faut `gh release create`.
+#
+# Vérifié avant d'écrire ce fichier : ce dépôt portait zéro tag et zéro release,
+# et le témoin — `gloiiire/cocker`, dont les releases s'affichent bien — en
+# portait trente. L'instrument mesurait donc ce qu'on croyait.
+#
+# ## Pourquoi à chaque **version** et non à chaque poussée
+#
+# La consigne disait « quand elle pousse sur main, qu'elle mette un tag ». Prise
+# à la lettre, elle produirait une release par fusion — et le script n'en garde
+# que trois par dépôt avant de trier tout le monde par date. Le site, qui reçoit
+# plusieurs fusions par nuit, occuperait ses trois places en permanence et
+# chasserait les autres dépôts.
+#
+# On publie donc quand `Cargo.toml` change de version : une marque par lot de
+# travail, ce qui est aussi ce qu'une version veut dire. Si Gloire préfère la
+# lettre, il suffit de retirer la garde `déjà publiée` et de dériver la version
+# du nombre de commits.
+#
+# ## Elle ne peut rien publier deux fois
+#
+# Le tag existe ou il n'existe pas. Une fusion qui ne change pas la version ne
+# fait rien et le dit — un workflow qui échoue sur « tag déjà présent » finirait
+# par être ignoré, et c'est ainsi qu'on cesse de lire ses échecs.
+
+name: Publier une version
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  # Créer un tag et une release.
+  contents: write
+
+concurrency:
+  group: publier-une-version
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # L'historique entier : `gh release --generate-notes` compose ses
+          # notes depuis les commits depuis la release précédente, et un clone
+          # superficiel les lui cache.
+          fetch-depth: 0
+
+      - name: La version
+        id: version
+        run: |
+          # La version du paquet, et non celle d'une dépendance : `Cargo.toml`
+          # en porte plusieurs, et un `grep` sur `^version` en prendrait une au
+          # hasard selon l'ordre des sections.
+          v=$(sed -n '/^\[package\]/,/^\[/p' Cargo.toml \
+                | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
+          if [ -z "$v" ]; then
+            echo "::error::aucune version dans la section [package] de Cargo.toml"
+            exit 1
+          fi
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          echo "  version : v$v"
+
+      - name: Publier si elle est neuve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::$TAG est déjà publiée — rien à faire."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes \
+            --latest
+          echo "  publiée : $TAG"
