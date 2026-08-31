@@ -84,4 +84,29 @@ jobs:
             --title "$TAG" \
             --generate-notes \
             --latest
-          echo "  publiée : $TAG"
+
+          # ── On recompte, on ne se fie pas au retour ──────────────────────
+          #
+          # La session du profil a créé cinq releases chez ONTBibleApp : cinq
+          # `gh release create` ont rendu `422`, sa boucle a imprimé cinq `✓`
+          # parce que `set -e` ne coupe pas dans une fonction, et le compte
+          # réel était **zéro**. Ce n'est pas un meilleur script qui l'a
+          # rattrapé, c'est d'avoir recompté après.
+          #
+          # Ici l'appel n'est pas dans une fonction et le shell porte `-e`,
+          # donc un échec ferait tomber l'étape. Mais c'est le raisonnement
+          # qui le dit, pas la mesure — et un raisonnement juste sur un shell
+          # qu'on n'a pas relu est ce qui a coûté la nuit entière ailleurs.
+          #
+          # C'est la règle que `deployer.yml` s'applique déjà : « un
+          # déploiement n'est pas fini quand la commande rend la main, il est
+          # fini quand une page répond ».
+          if ! gh release view "$TAG" --json isDraft,isPrerelease \
+               --jq 'select(.isDraft == false and .isPrerelease == false)' \
+               | grep -q .; then
+            echo "::error::$TAG n'est pas publiée, ou l'est en brouillon."
+            echo "  Le profil ignore les brouillons et les préversions :"
+            echo "  une release invisible vaut une release absente."
+            exit 1
+          fi
+          echo "  publiée et vérifiée : $TAG"
