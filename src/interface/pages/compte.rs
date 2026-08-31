@@ -163,6 +163,7 @@ fn Ouvert() -> impl IntoView {
         </Suspense>
         // `rel="external"` — et **c'est lui qui fait tout le travail**.
         //
+        <MonProfil />
         <MesVersets />
 
         // Une ancre ordinaire ne suffisait pas : le routeur de Leptos intercepte
@@ -484,5 +485,198 @@ fn FiltreCouleur(
             <span>{nom}</span>
             <span class="chiffres-tableau text-encre-douce/70">{combien}</span>
         </button>
+    }
+}
+
+/// Le profil du lecteur — ce qu'il choisit de dire de lui.
+///
+/// ## Il se lit d'abord, il s'écrit ensuite
+///
+/// Le premier état est un **affichage**, pas un formulaire. Un compte neuf n'a
+/// rien à montrer et le dit en une phrase ; un compte qui a un profil le montre
+/// tel qu'il est. On n'ouvre les champs que sur un geste — sinon la page de
+/// compte s'ouvre sur un travail à faire, alors qu'elle sert d'abord à
+/// retrouver ce qu'on a.
+///
+/// ## Le portrait vient de l'app, et le site n'y touche pas
+///
+/// Le téléverser demanderait un stockage que le projet n'a pas. On affiche
+/// celui qui existe, on relit sa valeur avant d'écrire le reste pour ne pas
+/// l'effacer, et à défaut on montre les initiales — ce que fait l'app quand un
+/// lecteur n'a pas posé d'image.
+#[component]
+fn MonProfil() -> impl IntoView {
+    let profil = Resource::new_blocking(|| (), |_| async { crate::api::mon_profil().await });
+    let (edite, poser_edite) = signal(false);
+    let enregistrer = ServerAction::<crate::api::EnregistrerMonProfil>::new();
+
+    // Après un enregistrement, on relit : le backend garde le plus récent des
+    // deux profils, donc ce qu'on vient d'envoyer n'est pas forcément ce qui
+    // fait foi. Afficher notre propre envoi mentirait dans ce cas.
+    Effect::new(move |_| {
+        if enregistrer.version().get() > 0 {
+            profil.refetch();
+            poser_edite.set(false);
+        }
+    });
+
+    view! {
+        <div class="mt-14 border-t border-filet pt-10">
+            <h2 class="text-2xl">"Vous"</h2>
+
+            <Suspense fallback=|| {
+                view! { <p class="text-encre-douce">"…"</p> }
+            }>
+                {move || Suspend::new(async move {
+                    let p = profil.await.ok().flatten().unwrap_or_default();
+                    let vide = p.est_vide();
+                    let initiales = p.initiales();
+                    let nom = p.nom_de_barre();
+                    let arobase = p.arobase();
+                    let bio = p.bio.clone();
+                    let portrait = p.portrait.clone();
+                    let (u, pr, n, b) = (
+                        p.nom_dusage.clone(),
+                        p.prenom.clone(),
+                        p.nom.clone(),
+                        p.bio.clone(),
+                    );
+
+                    view! {
+                        <Show
+                            when=move || !edite.get()
+                            fallback=move || {
+                                let (u, pr, n, b) = (
+                                    u.clone(),
+                                    pr.clone(),
+                                    n.clone(),
+                                    b.clone(),
+                                );
+                                view! {
+                                    <ActionForm action=enregistrer>
+                                        <Champ nom="nom_dusage" libelle="Nom d'usage" valeur=u />
+                                        <Champ nom="prenom" libelle="Prénom" valeur=pr />
+                                        <Champ nom="nom" libelle="Nom" valeur=n />
+                                        <label class="mt-4 block">
+                                            <span class="mb-2 block text-sm uppercase tracking-capitales text-encre-douce">
+                                                "Bio"
+                                            </span>
+                                            <textarea
+                                                name="bio"
+                                                rows="3"
+                                                class="w-full rounded-sm border border-filet bg-surface/40 px-4 py-3 text-base text-encre focus:border-accent focus:outline-none"
+                                            >
+                                                {b}
+                                            </textarea>
+                                        </label>
+                                        <div class="mt-4 flex gap-3">
+                                            <button
+                                                type="submit"
+                                                class="rounded-full border border-accent px-5 py-1 text-sm uppercase tracking-capitales text-accent"
+                                            >
+                                                "Enregistrer"
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="rounded-full border border-filet px-5 py-1 text-sm uppercase tracking-capitales text-encre-douce"
+                                                on:click=move |_| poser_edite.set(false)
+                                            >
+                                                "Annuler"
+                                            </button>
+                                        </div>
+                                    </ActionForm>
+                                }
+                            }
+                        >
+                            {
+                                let (initiales, nom, arobase, bio, portrait) = (
+                                    initiales.clone(),
+                                    nom.clone(),
+                                    arobase.clone(),
+                                    bio.clone(),
+                                    portrait.clone(),
+                                );
+                                view! {
+                                    <div class="flex items-start gap-4">
+                                        // Le portrait, ou les initiales. Jamais un
+                                        // trou : un profil sans image est un cas
+                                        // normal, pas une donnée manquante.
+                                        {match portrait {
+                                            Some(src) => {
+                                                view! {
+                                                    <img
+                                                        src=src
+                                                        alt=""
+                                                        class="size-14 shrink-0 rounded-full object-cover"
+                                                    />
+                                                }
+                                                    .into_any()
+                                            }
+                                            None => {
+                                                view! {
+                                                    <span
+                                                        aria-hidden="true"
+                                                        class="flex size-14 shrink-0 items-center justify-center rounded-full border border-filet text-lg text-encre-douce"
+                                                    >
+                                                        {initiales}
+                                                    </span>
+                                                }
+                                                    .into_any()
+                                            }
+                                        }}
+                                        <div class="min-w-0">
+                                            <p class="mb-0 text-lg text-encre-vive">{nom}</p>
+                                            {arobase
+                                                .map(|a| {
+                                                    view! {
+                                                        <p class="mb-0 text-sm text-encre-douce">{a}</p>
+                                                    }
+                                                })}
+                                            {(!bio.is_empty())
+                                                .then(|| view! { <p class="mt-3 mb-0">{bio}</p> })}
+                                            {vide
+                                                .then(|| {
+                                                    view! {
+                                                        <p class="mt-1 mb-0 text-encre-douce">
+                                                            "Vous n'avez rien écrit de vous. Ce que vous mettrez ici \
+                                                             vous suivra dans l'application."
+                                                        </p>
+                                                    }
+                                                })}
+                                            <button
+                                                type="button"
+                                                class="mt-4 rounded-full border border-filet px-4 py-1 text-sm uppercase tracking-capitales text-encre-douce"
+                                                on:click=move |_| poser_edite.set(true)
+                                            >
+                                                {if vide { "Se présenter" } else { "Modifier" }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </Show>
+                    }
+                })}
+            </Suspense>
+        </div>
+    }
+}
+
+/// Un champ de texte du formulaire de profil.
+#[component]
+fn Champ(nom: &'static str, libelle: &'static str, valeur: String) -> impl IntoView {
+    view! {
+        <label class="mt-4 block">
+            <span class="mb-2 block text-sm uppercase tracking-capitales text-encre-douce">
+                {libelle}
+            </span>
+            <input
+                type="text"
+                name=nom
+                value=valeur
+                autocomplete="off"
+                class="w-full rounded-sm border border-filet bg-surface/40 px-4 py-3 text-base text-encre focus:border-accent focus:outline-none"
+            />
+        </label>
     }
 }
