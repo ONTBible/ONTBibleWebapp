@@ -124,9 +124,21 @@ pub fn Passage() -> impl IntoView {
         let livre = p.livre_id.clone();
         let unite = p.chapitre.id.clone();
         let titre = p.chapitre.titre.clone();
-        leptos::task::spawn_local(async move {
-            let _ = crate::api::retenir_la_position(livre, unite, titre, 1).await;
-        });
+
+        // Une première écriture à l'ouverture : elle vaut le signet de qui
+        // ouvre et referme sans rien lire, et elle est le seul écrit d'un
+        // navigateur qui n'exécute pas notre wasm.
+        {
+            let (livre, unite, titre) = (livre.clone(), unite.clone(), titre.clone());
+            leptos::task::spawn_local(async move {
+                let _ = crate::api::retenir_la_position(livre, unite, titre, 1).await;
+            });
+        }
+
+        #[cfg(feature = "hydrate")]
+        suivre_la_lecture(livre, unite, titre);
+        #[cfg(not(feature = "hydrate"))]
+        let _ = (livre, unite, titre);
     });
 
     view! {
@@ -507,4 +519,121 @@ mod tests {
         let coupe = tronquer(texte, 12);
         assert!(texte.starts_with(coupe.trim_end_matches('…')));
     }
+}
+
+/// Suit le verset qu'on lit, et l'écrit en partant.
+///
+/// ## Ce qu'il répare
+///
+/// Le site écrivait la position **une fois par unité ouverte, au verset 1**. Qui
+/// lit un chapitre de quarante-six versets et revient le lendemain retombait
+/// donc au début, quel qu'ait été son arrêt. C'est le défaut exact que l'app a
+/// corrigé de son côté — « qui lit en faisant défiler, sans jamais rien
+/// désigner, ne déplaçait jamais sa reprise ; c'était l'usage principal, pas un
+/// cas limite ».
+///
+/// ## Une écriture par séance, et non par défilement
+///
+/// L'app suit la visibilité de chaque ligne et enregistre en continu : chez elle
+/// c'est un écrit local. Ici chaque écriture est une **requête réseau**. On
+/// retient donc le verset dans une variable au fil du défilement — ce qui ne
+/// coûte rien — et l'on n'écrit qu'en **quittant** : onglet changé, application
+/// mise en fond, ou navigation vers une autre page.
+///
+/// `visibilitychange` est le bon moment et non `beforeunload` : sur mobile, une
+/// page mise en fond n'émet souvent jamais le second, et c'est précisément là
+/// qu'on ferme une lecture.
+///
+/// ## Le verset retenu est celui qu'on lit, pas celui qui affleure
+///
+/// On prend le **dernier** verset dont le haut est passé au-dessus du tiers
+/// supérieur de la fenêtre. Prendre le premier visible ramènerait au verset
+/// qu'on vient de finir de faire disparaître ; prendre celui du milieu de
+/// l'écran donnerait, sur un verset long, un numéro qu'on n'a pas encore lu.
+#[cfg(feature = "hydrate")]
+fn suivre_la_lecture(livre: String, unite: String, titre: String) {
+    use wasm_bindgen::prelude::Closure;
+    use wasm_bindgen::JsCast;
+
+    let vu = std::rc::Rc::new(std::cell::Cell::new(0u32));
+
+    // ── Au défilement : on regarde, on ne réseaute pas ───────────────────────
+    let au_defilement = {
+        let vu = vu.clone();
+        Closure::<dyn FnMut()>::new(move || {
+            let Some(fenetre) = leptos::prelude::window().document() else {
+                return;
+            };
+            let Ok(noeuds) = fenetre.query_selector_all("[data-verset]") else {
+                return;
+            };
+            let seuil = leptos::prelude::window()
+                .inner_height()
+                .ok()
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0)
+                / 3.0;
+
+            let mut dernier = 0u32;
+            for i in 0..noeuds.length() {
+                let Some(noeud) = noeuds.item(i) else {
+                    continue;
+                };
+                let Ok(element) = noeud.dyn_into::<web_sys::Element>() else {
+                    continue;
+                };
+                if element.get_bounding_client_rect().top() > seuil {
+                    break;
+                }
+                if let Some(n) = element
+                    .get_attribute("data-verset")
+                    .and_then(|v| v.parse::<u32>().ok())
+                {
+                    dernier = n;
+                }
+            }
+            if dernier > 0 {
+                vu.set(dernier);
+            }
+        })
+    };
+
+    // ── En partant : on écrit, une fois ──────────────────────────────────────
+    let en_partant = {
+        let vu = vu.clone();
+        Closure::<dyn FnMut()>::new(move || {
+            let cache = leptos::prelude::window()
+                .document()
+                .map(|d| d.visibility_state() == web_sys::VisibilityState::Hidden)
+                .unwrap_or(false);
+            if !cache {
+                return;
+            }
+            let verset = vu.get();
+            if verset == 0 {
+                return;
+            }
+            let (livre, unite, titre) = (livre.clone(), unite.clone(), titre.clone());
+            leptos::task::spawn_local(async move {
+                let _ = crate::api::retenir_la_position(livre, unite, titre, verset).await;
+            });
+        })
+    };
+
+    let fenetre = leptos::prelude::window();
+    let _ =
+        fenetre.add_event_listener_with_callback("scroll", au_defilement.as_ref().unchecked_ref());
+    if let Some(document) = fenetre.document() {
+        let _ = document.add_event_listener_with_callback(
+            "visibilitychange",
+            en_partant.as_ref().unchecked_ref(),
+        );
+    }
+
+    // Les fermetures doivent survivre à cette fonction : le navigateur les
+    // rappellera longtemps après. `forget` les confie au moteur — c'est une
+    // fuite bornée, une paire par unité ouverte, et l'alternative serait de
+    // tenir un registre pour un gain nul.
+    au_defilement.forget();
+    en_partant.forget();
 }

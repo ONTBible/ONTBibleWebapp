@@ -53,6 +53,15 @@ web-sys = { version = "0.3", features = [
     # chaque image, et les deux se disputaient la page.
     "ScrollToOptions",
     "ScrollBehavior",
+    # Suivre où l'on en est de sa lecture. `querySelectorAll` rend une
+    # `NodeList` — deux drapeaux pour un seul appel, et sans le second on
+    # obtient un `no method named item`, que la compilation serveur ne montre
+    # pas.
+    "Document",
+    "NodeList",
+    # `visibilitychange` : l'instant où l'on quitte la page sans la fermer —
+    # onglet changé, application mise en fond. C'est là qu'on écrit.
+    "VisibilityState",
 ], optional = true }
 # Lire un fichier et lire l'heure sont deux besoins du serveur seul. Les
 # embarquer dans le paquet WASM l'alourdirait sans que rien ne s'en serve —
