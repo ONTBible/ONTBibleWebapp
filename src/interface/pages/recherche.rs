@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 
 use crate::domaine::recherche::{Portee, MINIMUM};
-use crate::interface::design::{Bloc, Lien};
+use crate::interface::design::{Lien, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// La page de recherche.
@@ -43,17 +43,36 @@ pub fn Recherche() -> impl IntoView {
                          ou en hébreu. Les résultats mènent au verset."
             chemin="/fr/rechercher"
         />
-        <Bloc>
-            <h1 class="mb-8">"Rechercher"</h1>
+        // ## L'en-tête n'est pas un ornement
+        //
+        // La page a d'abord été posée dans un `Bloc` nu. Elle n'avait donc ni
+        // marque, ni navigation, ni retour : on arrivait par la loupe et l'on
+        // n'avait **aucun moyen de revenir**, sauf le bouton du navigateur.
+        //
+        // Le §5 le dit et je l'ai lu de travers : `Hero` contient l'en-tête, et
+        // « les pages sans ouverture — les légales, l'erreur — posent leur
+        // en-tête elles-mêmes ». Une page sans ouverture qui n'emploie pas
+        // `PageDeLecture` n'en a aucun.
+        <PageDeLecture
+            rappel="Dans le corpus"
+            titre=Signal::derive(|| "Rechercher".to_string())
+            chapeau=Box::new(|| {
+                view! {
+                    <p class="text-encre-douce text-pretty">
+                        "Un mot, en français ou en hébreu. La recherche lit le texte, \
+                         ses gloses, et l'hébreu dénudé de ses voyelles."
+                    </p>
+                }
+                    .into_any()
+            })
+        >
 
             // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
             // même : le navigateur compose l'adresse, le serveur rend la page.
             // C'est le même chemin que celui d'un lien partagé.
             <form method="get" action="/fr/rechercher" role="search" class="mb-10">
                 <label class="block">
-                    <span class="mb-2 block text-sm uppercase tracking-capitales text-encre-douce">
-                        "Un mot, en français ou en hébreu"
-                    </span>
+                    <span class="sr-only">"Le mot à chercher"</span>
                     <input
                         type="search"
                         name="q"
@@ -134,7 +153,7 @@ pub fn Recherche() -> impl IntoView {
                         .into_any()
                 })}
             </Suspense>
-        </Bloc>
+        </PageDeLecture>
     }
 }
 
