@@ -66,6 +66,42 @@ pub fn Entete() -> impl IntoView {
             // Gloire l'a dit en le voyant : « c'est tout en bas, c'est pas ergo,
             // et c'est petit, tu peux clairement ne pas savoir qu'il y en a un ».
             // Un compte qu'on ne trouve pas est un compte qui n'existe pas.
+            // ## La recherche est une pastille, pas une entrée de navigation
+            //
+            // Elle y a d'abord été mise, en sixième. Au simulateur, la barre est
+            // passée de **deux lignes à trois** sur un iPhone : le titre
+            // descendait d'autant, et le premier écran cessait d'être une seule
+            // chose. C'est exactement ce que le §5 annonce — « le seuil n'est
+            // pas le nombre d'entrées mais la hauteur qu'elles prennent, à
+            // vérifier au simulateur, jamais à l'œil sur un grand écran ».
+            //
+            // Et le bon endroit est ici, pas là-bas : chercher est un **geste
+            // sur le texte**, comme ouvrir son compte, non une page qu'on lit.
+            // Les deux se tiennent donc au même rang — mais **aux deux bouts**,
+            // pas côte à côte. Posées ensemble à droite, elles recouvraient le
+            // wordmark sur un iPhone : il est centré, elles sont absolues, et à
+            // 390 px il n'y a pas de place pour trois choses du même côté. Aux
+            // deux bouts, le wordmark a le milieu et rien ne se chevauche —
+            // c'est la disposition d'une barre de navigation d'app, où le geste
+            // de gauche et celui de droite encadrent le titre.
+            <A
+                href="/fr/rechercher"
+                attr:class="absolute start-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:start-6 sm:top-8 sm:text-xs"
+                attr:aria-label="Rechercher dans le corpus"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    class="size-4 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                >
+                    <circle cx="11" cy="11" r="6.5" />
+                    <path d="M16 16l4 4" stroke-linecap="round" />
+                </svg>
+                <span class="hidden sm:inline">"Chercher"</span>
+            </A>
             <A
                 href="/fr/compte"
                 attr:class="absolute end-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:end-6 sm:top-8 sm:text-xs"
@@ -112,12 +148,6 @@ pub fn Entete() -> impl IntoView {
                 // ou par le renvoi du verset du jour. Ce n'était pas un chemin.
                 <A href="/fr/lire" attr:class=LIEN>"Lire"</A>
                 <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
-                // « Rechercher » suit le corpus et le lexique, avant le discours
-                // sur le corpus : c'est un geste sur le texte, pas une page à
-                // lire. Sixième entrée — le §5 avertit que le seuil n'est pas
-                // leur nombre mais la hauteur qu'elles prennent, à vérifier au
-                // simulateur et jamais à l'œil sur un grand écran.
-                <A href="/fr/rechercher" attr:class=LIEN>"Rechercher"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>
                 <A href="/fr/l-app" attr:class=LIEN>"L'app"</A>
