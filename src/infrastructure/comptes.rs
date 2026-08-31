@@ -323,6 +323,7 @@ impl Synchronisation for SyncDuBackend {
         jeton: &str,
         surlignages: &[Surlignage],
         position: Option<&crate::domaine::surlignage::Position>,
+        profil: Option<&crate::domaine::profil::Profil>,
     ) -> Result<(), ErreurDeCompte> {
         // La position est **omise**, jamais mise à `null`.
         //
@@ -334,6 +335,10 @@ impl Synchronisation for SyncDuBackend {
         let mut corps = serde_json::json!({ "highlights": surlignages });
         if let Some(p) = position {
             corps["position"] = serde_json::to_value(p).unwrap_or(serde_json::Value::Null);
+        }
+        // Le profil suit la même règle que la position : omis, jamais `null`.
+        if let Some(p) = profil {
+            corps["profil"] = serde_json::to_value(p).unwrap_or(serde_json::Value::Null);
         }
 
         let reponse = self

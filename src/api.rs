@@ -406,7 +406,7 @@ pub async fn poser_surlignage(
     // qu'elles vont ensemble — mêler les deux ferait avancer le signet du
     // lecteur chaque fois qu'il surligne un verset qu'il vient de retrouver.
     Ok(sync
-        .pousser(&session.access_token, &marques, None)
+        .pousser(&session.access_token, &marques, None, None)
         .await
         .is_ok())
 }
@@ -473,7 +473,7 @@ pub async fn retenir_la_position(
     // liste vide — son `highlights` porte `#[serde(default)]` — et une liste
     // vide ne supprime rien, elle n'apparie simplement avec rien.
     Ok(sync
-        .pousser(&session.access_token, &[], Some(&position))
+        .pousser(&session.access_token, &[], Some(&position), None)
         .await
         .is_ok())
 }
@@ -753,4 +753,75 @@ pub async fn rechercher(
         });
     }
     Ok(sortie)
+}
+
+/// Le profil du lecteur, ou rien.
+///
+/// Vide sans compte, et **pas une erreur** : lire sans compte est le cas normal
+/// du site.
+#[server(prefix = "/api", endpoint = "mon-profil")]
+pub async fn mon_profil() -> Result<Option<crate::domaine::profil::Profil>, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(None);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+    Ok(sync
+        .tirer(&session.access_token, None)
+        .await
+        .ok()
+        .and_then(|m| m.profil))
+}
+
+/// Écrit le profil.
+///
+/// ## L'horodatage est posé ici, et il le faut
+///
+/// Le backend garde le plus récent des deux. Un profil envoyé sans horodatage
+/// vaudrait zéro et **perdrait toujours** contre celui du téléphone : le
+/// lecteur écrirait sa bio sur le site et la verrait revenir inchangée, sans
+/// qu'aucune erreur ne le dise.
+///
+/// ## Les blancs sont rognés
+///
+/// Un nom d'usage « gloire » et « gloire » ne sont pas le même aux yeux d'une
+/// comparaison, et l'un des deux vient d'un espace qu'on n'a pas vu en tapant.
+#[server(prefix = "/api", endpoint = "enregistrer-mon-profil")]
+pub async fn enregistrer_mon_profil(
+    nom_dusage: String,
+    prenom: String,
+    nom: String,
+    bio: String,
+) -> Result<bool, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(false);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+
+    // Le portrait n'est pas touché : il vient de l'app, qui sait le poser. On
+    // relit celui qui existe pour ne pas l'effacer en écrivant le reste.
+    let portrait = sync
+        .tirer(&session.access_token, None)
+        .await
+        .ok()
+        .and_then(|m| m.profil)
+        .and_then(|p| p.portrait);
+
+    let profil = crate::domaine::profil::Profil {
+        nom_dusage: nom_dusage.trim().to_string(),
+        prenom: prenom.trim().to_string(),
+        nom: nom.trim().to_string(),
+        bio: bio.trim().to_string(),
+        portrait,
+        updated_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0),
+    };
+
+    Ok(sync
+        .pousser(&session.access_token, &[], None, Some(&profil))
+        .await
+        .is_ok())
 }

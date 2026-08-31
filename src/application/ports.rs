@@ -159,6 +159,7 @@ pub trait Synchronisation: Send + Sync {
         jeton: &str,
         surlignages: &[crate::domaine::surlignage::Surlignage],
         position: Option<&crate::domaine::surlignage::Position>,
+        profil: Option<&crate::domaine::profil::Profil>,
     ) -> Result<(), ErreurDeCompte>;
 }
 
@@ -175,6 +176,13 @@ pub struct Moisson {
     /// n'a rien demandé est en fait toujours la plus récente.
     #[serde(default)]
     pub position: Option<crate::domaine::surlignage::Position>,
+    /// Le profil du lecteur, s'il en a écrit un.
+    ///
+    /// Rendu à chaque tirage comme la position, et pour la même raison : il ne
+    /// porte pas d'horodatage que `depuis` saurait filtrer, donc le backend ne
+    /// peut pas savoir s'il a changé depuis la dernière fois.
+    #[serde(default)]
+    pub profil: Option<crate::domaine::profil::Profil>,
     /// L'horodatage du serveur — à renvoyer tel quel au prochain `depuis`.
     ///
     /// On renvoie **celui du serveur** et non notre propre horloge : deux
