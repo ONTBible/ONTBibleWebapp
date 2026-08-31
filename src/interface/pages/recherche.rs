@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 
 use crate::domaine::recherche::{Portee, MINIMUM};
-use crate::interface::design::{Lien, PageDeLecture};
+use crate::interface::design::{Bloc, Hero, Lien};
 use crate::interface::tete::Tete;
 
 /// La page de recherche.
@@ -43,76 +43,84 @@ pub fn Recherche() -> impl IntoView {
                          ou en hébreu. Les résultats mènent au verset."
             chemin="/fr/rechercher"
         />
-        // ## L'en-tête n'est pas un ornement
+        // ## Une ouverture, et non un en-tête en bande
         //
-        // La page a d'abord été posée dans un `Bloc` nu. Elle n'avait donc ni
-        // marque, ni navigation, ni retour : on arrivait par la loupe et l'on
-        // n'avait **aucun moyen de revenir**, sauf le bouton du navigateur.
+        // Deux essais avant celui-ci. Un `Bloc` nu d'abord : la page n'avait ni
+        // marque, ni navigation, ni retour — on arrivait par la loupe et l'on
+        // était enfermé. Puis `PageDeLecture`, qui rend bien l'en-tête, mais
+        // **au-dessus** : on voyait alors deux objets, un bandeau puis un
+        // écran, et c'est exactement ce que le §5 dit d'éviter.
         //
-        // Le §5 le dit et je l'ai lu de travers : `Hero` contient l'en-tête, et
-        // « les pages sans ouverture — les légales, l'erreur — posent leur
-        // en-tête elles-mêmes ». Une page sans ouverture qui n'emploie pas
-        // `PageDeLecture` n'en a aucun.
-        <PageDeLecture
-            rappel="Dans le corpus"
-            titre=Signal::derive(|| "Rechercher".to_string())
-            chapeau=Box::new(|| {
-                view! {
-                    <p class="text-encre-douce text-pretty">
-                        "Un mot, en français ou en hébreu. La recherche lit le texte, \
-                         ses gloses, et l'hébreu dénudé de ses voyelles."
-                    </p>
-                }
-                    .into_any()
-            })
-        >
+        // `Hero` contient l'en-tête. La marque et la navigation flottent dans
+        // l'ouverture au lieu de la surmonter, et le premier écran est une
+        // seule chose. `sobre` parce qu'on cherche, on ne proclame pas : la
+        // variante ne change que la lumière, jamais la hauteur — toutes les
+        // ouvertures remplissent l'écran.
+        <Hero sobre=true>
+            <p class="text-sm uppercase tracking-capitales text-accent">"Dans le corpus"</p>
+            <h1 class="text-balance">"Rechercher"</h1>
+            <p class="max-w-xl text-encre-douce text-balance">
+                "Un mot, en français ou en hébreu. La recherche lit le texte, "
+                "ses gloses, et l'hébreu dénudé de ses voyelles."
+            </p>
+                // ## Le formulaire est **dans** l'ouverture
+                //
+                // Il était sous elle, et l'ouverture remplit l'écran : on
+                // arrivait sur une page de recherche sans champ de recherche, et
+                // il fallait défiler pour trouver l'outil qu'on venait chercher.
+                // Sur l'accueil, « Entrer » est dans le Hero pour la même
+                // raison — l'ouverture porte l'action de la page, pas seulement
+                // son titre.
+                //
+                // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
+                // même : le navigateur compose l'adresse, le serveur rend la
+                // page. C'est le même chemin que celui d'un lien partagé.
+                <form method="get" action="/fr/rechercher" role="search" class="mt-4 w-full max-w-xl">
+                    <label class="block">
+                        <span class="sr-only">"Le mot à chercher"</span>
+                        <input
+                            type="search"
+                            name="q"
+                            value=q
+                            autocomplete="off"
+                            placeholder="ruach, tohu, ברא…"
+                            class="w-full rounded-sm border border-filet bg-surface/40 px-4 py-3 text-base text-encre placeholder:text-encre-douce/60 focus:border-accent focus:outline-none"
+                        />
+                    </label>
 
-            // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
-            // même : le navigateur compose l'adresse, le serveur rend la page.
-            // C'est le même chemin que celui d'un lien partagé.
-            <form method="get" action="/fr/rechercher" role="search" class="mb-10">
-                <label class="block">
-                    <span class="sr-only">"Le mot à chercher"</span>
-                    <input
-                        type="search"
-                        name="q"
-                        value=q
-                        autocomplete="off"
-                        placeholder="ruach, tohu, ברא…"
-                        class="w-full rounded-sm border border-filet bg-surface/40 px-4 py-3 text-base text-encre placeholder:text-encre-douce/60 focus:border-accent focus:outline-none"
-                    />
-                </label>
-
-                <div class="mt-4 flex flex-wrap items-center gap-4">
-                    <div class="flex flex-wrap gap-2">
-                        {Portee::toutes()
-                            .into_iter()
-                            .map(|p| {
-                                view! {
-                                    <label class="cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="ou"
-                                            value=p.cle()
-                                            checked=move || ou() == p
-                                            class="peer sr-only"
-                                        />
-                                        <span class="block rounded-full border border-filet px-3 py-1 text-sm text-encre-douce peer-checked:border-accent peer-checked:text-encre-vive">
-                                            {p.libelle()}
-                                        </span>
-                                    </label>
-                                }
-                            })
-                            .collect_view()}
+                    <div class="mt-4 flex flex-wrap items-center gap-4">
+                        <div class="flex flex-wrap gap-2">
+                            {Portee::toutes()
+                                .into_iter()
+                                .map(|p| {
+                                    view! {
+                                        <label class="cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="ou"
+                                                value=p.cle()
+                                                checked=move || ou() == p
+                                                class="peer sr-only"
+                                            />
+                                            <span class="block rounded-full border border-filet px-3 py-1 text-sm text-encre-douce peer-checked:border-accent peer-checked:text-encre-vive">
+                                                {p.libelle()}
+                                            </span>
+                                        </label>
+                                    }
+                                })
+                                .collect_view()}
+                        </div>
+                        <button
+                            type="submit"
+                            class="rounded-full border border-accent px-5 py-1 text-sm uppercase tracking-capitales text-accent"
+                        >
+                            "Chercher"
+                        </button>
                     </div>
-                    <button
-                        type="submit"
-                        class="rounded-full border border-accent px-5 py-1 text-sm uppercase tracking-capitales text-accent"
-                    >
-                        "Chercher"
-                    </button>
-                </div>
-            </form>
+                </form>
+        </Hero>
+
+        <Bloc>
 
             <Suspense fallback=|| {
                 view! { <p class="text-encre-douce">"…"</p> }
@@ -153,7 +161,7 @@ pub fn Recherche() -> impl IntoView {
                         .into_any()
                 })}
             </Suspense>
-        </PageDeLecture>
+        </Bloc>
     }
 }
 
