@@ -163,6 +163,8 @@ fn Ouvert() -> impl IntoView {
         </Suspense>
         // `rel="external"` — et **c'est lui qui fait tout le travail**.
         //
+        <MesVersets />
+
         // Une ancre ordinaire ne suffisait pas : le routeur de Leptos intercepte
         // *tous* les clics sur les liens internes, cherche le chemin dans ses
         // pages, ne le trouve pas — ces routes-ci sont posées avant lui, dans
@@ -226,5 +228,261 @@ fn Ferme() -> impl IntoView {
                     </p>
                 }
             })}
+    }
+}
+
+/// Tous les versets que le lecteur a marqués, rangés par livre.
+///
+/// ## Elle n'existe que pour un compte ouvert
+///
+/// Sans lui, il n'y a rien à montrer — et une liste vide accompagnée d'un
+/// « connectez-vous pour voir » serait un cadre vide qui promet quelque chose.
+/// Le composant n'est donc rendu que par `Ouvert`.
+///
+/// ## L'ordre du corpus, et le texte recomposé
+///
+/// La liste suit l'ordre des livres, pas celui des marques : on cherche « ce
+/// que j'ai marqué dans *Bereshit* », pas « ce que j'ai marqué mardi ». Et le
+/// texte de chaque verset est **recomposé depuis le corpus** — il n'est stocké
+/// nulle part, ce qui le garde juste quand une traduction est révisée.
+#[component]
+fn MesVersets() -> impl IntoView {
+    let versets = Resource::new_blocking(|| (), |_| async { crate::api::mes_versets().await });
+    // `None` = toutes. Le filtre vit ici et non dans l'adresse : c'est un
+    // regard qu'on porte sur sa propre liste, pas un endroit qu'on partage.
+    let (filtre, poser_filtre) = signal(None::<String>);
+
+    view! {
+        <div class="mt-14 border-t border-filet pt-10">
+            <h2 class="text-2xl">"Vos versets"</h2>
+
+            <Suspense fallback=|| {
+                view! { <p class="text-encre-douce">"…"</p> }
+            }>
+                {move || Suspend::new(async move {
+                    let toute = versets.await.unwrap_or_default();
+
+                    // Les couleurs employées, avec leur compte, dans l'ordre de
+                    // la palette et non d'apparition : un filtre dont les
+                    // pastilles changent de place d'une visite à l'autre se
+                    // relit à chaque fois.
+                    let couleurs: Vec<(&'static str, &'static str, &'static str, usize)> =
+                        crate::domaine::surlignage::Couleur::toutes()
+                            .into_iter()
+                            .filter_map(|c| {
+                                let n = toute.iter().filter(|v| v.couleur == c.cle()).count();
+                                (n > 0).then_some((c.cle(), c.nom(), c.teinte(), n))
+                            })
+                            .collect();
+
+                    let total_tous: usize = couleurs.iter().map(|(_, _, _, n)| n).sum();
+                    let choisie = filtre.get();
+                    let liste: Vec<_> = match &choisie {
+                        Some(cle) => toute.into_iter().filter(|v| v.couleur == *cle).collect(),
+                        None => toute,
+                    };
+                    if liste.is_empty() && choisie.is_none() {
+                        return view! {
+                            <p class="text-encre-douce">
+                                "Vous n'avez encore rien surligné. Ouvrez un chapitre, "
+                                "touchez un verset, et choisissez une couleur."
+                            </p>
+                        }
+                            .into_any();
+                    }
+
+                    // Groupé par livre, dans l'ordre où la fonction serveur les
+                    // rend — elle a déjà trié selon le sommaire du corpus, donc
+                    // il n'y a qu'à couper aux changements de livre.
+                    let mut groupes: Vec<(
+                        String,
+                        String,
+                        String,
+                        Vec<crate::api::VersetSurligne>,
+                    )> = Vec::new();
+                    for v in liste {
+                        match groupes.last_mut() {
+                            Some((id, _, _, versets)) if *id == v.livre_id => versets.push(v),
+                            _ => groupes.push((
+                                v.livre_id.clone(),
+                                v.livre_titre.clone(),
+                                v.livre_francais.clone(),
+                                vec![v],
+                            )),
+                        }
+                    }
+
+                    let combien: usize = groupes.iter().map(|(_, _, _, v)| v.len()).sum();
+
+                    view! {
+                        // Le filtre ne paraît qu'à partir de deux couleurs : à
+                        // une seule il ne trierait rien, et proposerait un geste
+                        // sans effet. C'est la condition de l'app, à l'identique.
+                        {(couleurs.len() > 1)
+                            .then(|| {
+                                view! {
+                                    <div class="mb-8 flex flex-wrap gap-2" role="group" aria-label="Filtrer par couleur">
+                                        <FiltreCouleur
+                                            cle=None
+                                            nom="Toutes".to_string()
+                                            teinte=None
+                                            combien=total_tous
+                                            choisie=choisie.clone()
+                                            poser=poser_filtre
+                                        />
+                                        {couleurs
+                                            .iter()
+                                            .map(|(cle, nom, teinte, n)| {
+                                                view! {
+                                                    <FiltreCouleur
+                                                        cle=Some(cle.to_string())
+                                                        nom=nom.to_string()
+                                                        teinte=Some(teinte.to_string())
+                                                        combien=*n
+                                                        choisie=choisie.clone()
+                                                        poser=poser_filtre
+                                                    />
+                                                }
+                                            })
+                                            .collect_view()}
+                                    </div>
+                                }
+                            })}
+
+                        <p class="chiffres-tableau mb-8 text-sm text-encre-douce">
+                            {combien} " verset" {(combien > 1).then_some("s")} " marqué"
+                            {(combien > 1).then_some("s")}
+                        </p>
+
+                        {groupes
+                            .into_iter()
+                            .map(|(_, titre, francais, versets)| {
+                                // Le nom français **sous** le titre du corpus, et
+                                // jamais à sa place : c'est la règle du §8 octies —
+                                // « on ne remplace pas le nom, on le traduit à
+                                // côté » —, et c'est ce que fait l'en-tête de
+                                // l'app. Omis quand il redirait le titre.
+                                let second = (!francais.is_empty() && francais != titre)
+                                    .then_some(francais);
+                                view! {
+                                    <section class="mb-10">
+                                        <h3 class="mb-4">
+                                            <span class="block text-sm uppercase tracking-capitales text-accent">
+                                                {titre}
+                                            </span>
+                                            {second
+                                                .map(|f| {
+                                                    view! {
+                                                        <span class="block text-sm text-encre-douce">
+                                                            {f}
+                                                        </span>
+                                                    }
+                                                })}
+                                        </h3>
+                                        <ul class="m-0 list-none p-0">
+                                            {versets
+                                                .into_iter()
+                                                .map(|v| view! { <UnVerset v /> })
+                                                .collect_view()}
+                                        </ul>
+                                    </section>
+                                }
+                            })
+                            .collect_view()}
+                    }
+                        .into_any()
+                })}
+            </Suspense>
+        </div>
+    }
+}
+
+/// Un verset marqué, avec sa teinte et sa note.
+///
+/// La couleur se pose sur un **filet de gauche** et non sur le fond, comme dans
+/// la liseuse : ici les entrées se suivent en liste, et cinq fonds colorés à la
+/// file feraient une bande dessinée. Le filet dit la même chose en pesant moins.
+#[component]
+fn UnVerset(v: crate::api::VersetSurligne) -> impl IntoView {
+    let teinte = crate::domaine::surlignage::Couleur::depuis_cle(&v.couleur)
+        .map(|c| c.teinte())
+        .unwrap_or("#E8C973");
+    let chemin = format!("/fr/lire/{}/{}?v={}", v.livre_id, v.unite_id, v.verset);
+
+    view! {
+        <li class="mb-6 border-s-2 ps-4" style=format!("border-color: {teinte}")>
+            // Le renvoi à gauche, la date à droite — la disposition de
+            // `LigneDeSurlignage` dans l'app. La date dit quand on a marqué, ce
+            // qui est la seule chose que la référence ne dit pas.
+            <div class="flex items-baseline justify-between gap-4">
+                <Lien href=chemin>
+                    <span class="chiffres-tableau text-sm text-encre-douce">
+                        {v.unite_titre} ":" {v.verset}
+                    </span>
+                </Lien>
+                <span class="chiffres-tableau shrink-0 text-sm text-encre-douce/70">
+                    {v.quand_affiche}
+                </span>
+            </div>
+            // Le texte passe par `composer` : il vient du corpus, donc il porte
+            // les espaces ordinaires devant les ponctuations doubles que le
+            // français veut insécables. C'est la règle du §8 bis, et elle vaut
+            // pour toute chaîne du corpus posée dans une page.
+            <p class="mt-1 mb-0">
+                {crate::interface::design::verset::composer(&v.texte)}
+            </p>
+            {v
+                .note
+                .map(|note| {
+                    view! {
+                        <p class="mt-2 mb-0 flex gap-2 text-sm text-encre-douce">
+                            <span aria-hidden="true" class="text-accent">"❞"</span>
+                            <span>{note}</span>
+                        </p>
+                    }
+                })}
+        </li>
+    }
+}
+
+/// Une pastille du filtre de couleur.
+///
+/// Elle porte son **compte**, comme dans l'app : sans lui, on choisit une
+/// couleur pour découvrir qu'elle ne garde rien, et l'on recommence.
+#[component]
+fn FiltreCouleur(
+    cle: Option<String>,
+    nom: String,
+    teinte: Option<String>,
+    combien: usize,
+    choisie: Option<String>,
+    poser: WriteSignal<Option<String>>,
+) -> impl IntoView {
+    let active = choisie == cle;
+    let a_poser = cle.clone();
+    view! {
+        <button
+            type="button"
+            aria-pressed=active.to_string()
+            class="flex items-center gap-2 rounded-full border px-3 py-1 text-sm transition-colors motion-reduce:transition-none"
+            class=("border-accent", active)
+            class=("text-encre-vive", active)
+            class=("border-filet", !active)
+            class=("text-encre-douce", !active)
+            on:click=move |_| poser.set(a_poser.clone())
+        >
+            {teinte
+                .map(|t| {
+                    view! {
+                        <span
+                            aria-hidden="true"
+                            class="size-2.5 shrink-0 rounded-full"
+                            style=format!("background-color: {t}")
+                        />
+                    }
+                })}
+            <span>{nom}</span>
+            <span class="chiffres-tableau text-encre-douce/70">{combien}</span>
+        </button>
     }
 }
