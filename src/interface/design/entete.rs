@@ -112,6 +112,12 @@ pub fn Entete() -> impl IntoView {
                 // ou par le renvoi du verset du jour. Ce n'était pas un chemin.
                 <A href="/fr/lire" attr:class=LIEN>"Lire"</A>
                 <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
+                // « Rechercher » suit le corpus et le lexique, avant le discours
+                // sur le corpus : c'est un geste sur le texte, pas une page à
+                // lire. Sixième entrée — le §5 avertit que le seuil n'est pas
+                // leur nombre mais la hauteur qu'elles prennent, à vérifier au
+                // simulateur et jamais à l'œil sur un grand écran.
+                <A href="/fr/rechercher" attr:class=LIEN>"Rechercher"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>
                 <A href="/fr/l-app" attr:class=LIEN>"L'app"</A>

@@ -10,4 +10,5 @@
 pub mod comptes;
 pub mod corpus;
 pub mod horloge;
+pub mod recherche;
 pub mod vivier;

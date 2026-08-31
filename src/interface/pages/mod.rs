@@ -24,6 +24,7 @@ mod livre;
 mod negations;
 mod passage;
 mod pourquoi;
+pub mod recherche;
 
 pub use accueil::Accueil;
 pub use application::Application;
@@ -38,3 +39,4 @@ pub use livre::Livre;
 pub use negations::Negations;
 pub use passage::Passage;
 pub use pourquoi::Pourquoi;
+pub use recherche::Recherche;

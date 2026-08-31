@@ -38,6 +38,7 @@ pub fn PiedDePage() -> impl IntoView {
                 >
                     <a href="/fr/lire" class=LIEN>"Lire"</a>
                     <a href="/fr/lexique" class=LIEN>"Lexique"</a>
+                    <a href="/fr/rechercher" class=LIEN>"Rechercher"</a>
                     <a href="/fr/l-app" class=LIEN>"L'app"</a>
                 </nav>
 
