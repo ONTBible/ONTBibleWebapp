@@ -335,6 +335,71 @@ pour ce qui attend l'auteur.
 
 ---
 
+## Tronc commun et entrées locales
+
+Le journal ci-dessous a **deux régimes**, et c'est une décision de l'auteur du
+7 septembre 2026.
+
+**Le tronc commun** — ce qui a traversé. Identique dans les trois dépôts, à
+l'octet. Une entrée du tronc porte dans son corps ce qu'elle engage pour les
+autres, d'ordinaire sous la forme *« Pour les trois dépôts : … »*.
+
+**Les entrées locales** — ce qu'un dépôt apprend et qui ne concerne que lui. Une
+barre latérale qui ne se ferme pas, un test qui rougit chez un seul. Elles
+restent chez elles, et le contrôle de concordance ne les compte pas comme une
+divergence.
+
+### La marque
+
+Le titre d'une entrée locale se termine par `*(local)*` :
+
+    ### 4 septembre 2026 — la barre flottante, construite puis écartée *(local)*
+
+Trois raisons de la mettre là, et pas ailleurs :
+
+- **elle se voit en écrivant**, dans le titre, avant qu'on ait rédigé la
+  première ligne — donc au moment où l'on décide encore si ça traverse ;
+- **elle est dans le titre**, qui est l'unité que le contrôle lit déjà. Une
+  marque enfouie dans le corps obligerait à parcourir le texte pour trancher, et
+  un contrôle qui doit lire pour savoir ce qu'il compare finit par se tromper ;
+- **elle est asymétrique du marquage commun, et c'est voulu.** Une entrée qui
+  traverse a quelque chose à *dire* — quoi, à qui, ce que ça change —, donc elle
+  le dit dans son corps. Une entrée locale n'a rien à ajouter : elle ne voyage
+  pas, et un mot suffit.
+
+### Ce que ça change pour le contrôle
+
+`scripts/concorder-la-synchronisation.py` compare désormais **les troncs**, et
+non les fichiers entiers. Les entrées locales sont retirées avant l'empreinte,
+puis **comptées et rapportées par dépôt** — jamais tues. Une entrée locale est
+une décision, pas un accident : le contrôle doit pouvoir dire combien chacun en
+porte, sinon la marque devient un moyen de sortir du champ de la mesure.
+
+### La racine
+
+Elle porte **le tronc commun seul**. Elle n'est le local de personne, et rien ne
+la met à jour : lui donner les entrées locales d'un dépôt lui confierait un
+texte que personne n'entretient là où il se trouve.
+
+### Le cas qui a rendu la règle nécessaire
+
+Le 7 septembre, la concordance annonçait *cinquante-neuf entrées à porter de
+l'app vers les deux autres*. La mesure était triple-fausse — elle comptait des
+titres et non des entrées, elle prenait des sous-titres pour des entrées, et
+elle manquait les entrées écrites en `##` là où le vault écrit `###`. Il y en
+avait **quinze**, six cent deux lignes.
+
+Et le compte juste n'aurait pas suffi : ces quinze parlaient de barres
+latérales et de feuilles macOS. Les verser dans le vault de la traduction en
+aurait fait ce que l'en-tête du journal refuse — *pas un changelog du dépôt*.
+
+**Une identité obtenue en important un changelog n'est pas une concordance,
+c'est une dilution.** Le contrôle mesurait l'identité et ne savait pas dire si
+une entrée *devait* traverser ; il sait maintenant qu'il y a deux régimes, et il
+mesure celui qui doit l'être.
+
+---
+
 ## Journal
 
 Ce qui a traversé, et quand. Une ligne par franchissement — pas un changelog du
@@ -2316,6 +2381,263 @@ dans le même arbre — et à plusieurs sessions, c'est la situation normale.
 Corollaire : **un « 0 » est ce qu'on vérifie le moins**, parce qu'il ressemble
 à une absence et qu'une absence ne se relit pas.
 
+## 31 août 2026 — la troisième façon de mal dégrader, et l'exception qu'Android faisait
+
+L'entrée du 26 août dit que les cinq couleurs de surlignage sont une liste que
+personne ne valide, puis que « l'app le prévoit déjà — on préfère ignorer la
+ligne plutôt que de faire échouer toute la synchronisation — et le site fait de
+même ».
+
+**Android ne faisait ni l'un ni l'autre.** La phrase couvrait deux clients sur
+trois et se lisait comme si elle les couvrait tous.
+
+    iOS      couleur inconnue → la ligne est ignorée, rien n'est réécrit
+    site     idem
+    Android  couleur inconnue → ramenée à l'or, puis réécrite « gold »
+
+La marque reste visible, ce qui est le bon sens — perdre le surlignage du
+lecteur serait pire que le montrer d'une autre couleur. Mais la lecture ne fait
+pas que lire : le disque réécrit la clé, donc une marque posée `turquoise` par
+un client plus récent revient `gold`, et la valeur d'origine n'existe plus sur
+l'appareil.
+
+Inoffensif aujourd'hui — Android n'envoie rien au serveur. Le jour où `/sync`
+arrivera, cet appareil renverra `gold` pour la marque de quelqu'un d'autre et
+l'écrasera **pour tout le monde**.
+
+### La propriété, et la branche qui lui manquait
+
+La session macOS l'avait formulée en deux temps, en réparant un filtre de
+plateforme d'App Store Connect :
+
+> dégrader vers « ne rien faire », pas vers « tout rejeter »
+
+Un filtre écrit « garder ce qui correspond » vide la liste le jour où le champ
+disparaît, et la chaîne crée une version de plus à chaque passage.
+
+Le cas des couleurs en ajoute une troisième, et c'est la pire :
+
+    tout rejeter          une liste vide se remarque
+    ne rien faire         l'abstention est visible, c'est le repli sain
+    remplacer en silence  rien ne se remarque du tout
+
+**Les deux premières laissent une trace.** Une liste vide se voit, une exception
+s'arrête. Une valeur plausible, du bon type, rendue par une fonction qui a l'air
+d'avoir répondu — celle-là ne laisse rien.
+
+Et elle est la seule des trois qui **détruise**. Se tromper d'objet se rattrape
+en relançant ; `turquoise` devenu `gold` ne se rattrape pas.
+
+### Ce qu'on en fait
+
+Rien encore, délibérément. L'arbitrage — ignorer la ligne comme iOS, ou garder
+la chaîne inconnue à côté de la teinte affichée — appartient à qui écrira la
+synchronisation d'Android, et il se prend dans `HighlightColor.depuis`, pas dans
+un service qui n'existe pas. Le trancher maintenant serait décider sur une
+hypothèse.
+
+Ce qui est fait : la question est écrite là où on la rencontrera, et cette
+entrée-ci corrige celle du 26 août, qui affirmait de trois clients ce qui
+n'était vrai que de deux.
+
+## 31 août 2026 — la liseuse du Mac livrée, et ce que quatre contrôles verts n'ont pas mesuré
+
+**Source : l'app, cible macOS. Conséquences pour les trois.**
+
+**La liseuse macOS est sur TestFlight** — build `260831.1410`, `VALID`,
+distribué au groupe interne. Elle est passée d'« elle compile » à « elle se
+livre » : confinée,
+capable de relire le vault en direct, éprouvée par la CI, et poussée vers
+TestFlight par un job. Cinq choses en sortent qui ne se voient pas depuis un
+seul dépôt.
+
+### Le backend a un troisième client, et bientôt un quatrième
+
+Le `CLAUDE.md` de la racine dit encore « ces routes ont maintenant **deux
+clients**, bientôt trois avec Android ». C'est **trois** depuis aujourd'hui —
+iOS, le site, la liseuse macOS — et quatre avec Android.
+
+Rien ne change au contrat : `snake_case` littéral sans `rename`, et les cinq
+couleurs de surlignage que **personne ne valide côté serveur**. Mais un
+changement de forme dans une réponse casse maintenant trois plateformes qu'on
+ne regarde pas en le faisant, au lieu de deux.
+
+*Ce fichier-là n'est pas édité ici : c'est le fichier d'instructions du projet,
+et sa mise à jour revient à Gloire.*
+
+### L'achat universel range les deux plateformes dans la même collection
+
+`com.labibleont.ONT` est le même identifiant sur l'iPhone et sur le Mac —
+délibérément : Sign in with Apple délivre son code **au bundle qui l'a
+demandé**, et un `…ONT.mac` aurait exigé un App ID de plus et une troisième
+origine côté serveur.
+
+Le prix de ce choix s'est révélé aujourd'hui. Une seule fiche App Store Connect
+porte **les builds et les versions des deux plateformes, mélangés**. Deux
+requêtes qui semblaient sûres ne l'étaient plus :
+
+- `builds?filter[version]=…&limit=1` — les numéros sont datés à la minute et
+  les deux chaînes partent du même push. Le jour où elles vont à la même
+  vitesse, la requête rend deux builds, `limit: 1` en prend un, et **les deux
+  répondent `VALID`** ;
+- `apps/{id}/appStoreVersions` puis « la première modifiable » — l'ajout de la
+  plateforme macOS a créé une version `1.0` en `PREPARE_FOR_SUBMISSION` pendant
+  que l'iOS `1.0.4` était `READY_FOR_SALE`. Une livraison **iPhone** aurait
+  repris **la version du Mac**, y aurait écrit ses informations de revue et
+  rattaché son binaire.
+
+Le second était latent depuis toujours ; c'est l'ajout de la plateforme qui l'a
+armé, une heure avant qu'on le trouve. Mesuré contre le code d'avant, pas
+déduit.
+
+**Ce qui traverse :** dès qu'un identifiant est partagé entre plateformes, toute
+requête qui retrouve un objet « par son numéro » doit nommer la plateforme.
+Vaut pour Play le jour où Android livrera, et pour toute API qui range deux
+choses dans une collection commune.
+
+### Un filtre s'écrit « garder ce qui ne contredit pas »
+
+`v["attributes"].get("platform", plateforme) == plateforme`, et non
+`… ["platform"] == plateforme`. Si le fournisseur cessait de rendre le champ, la
+seconde forme viderait la liste et la chaîne créerait un objet de plus à chaque
+passage, sans rien dire. La première se contente de ne plus filtrer.
+
+**Ce qui traverse :** un filtre défensif doit dégrader vers *ne rien faire*, pas
+vers *tout rejeter*. Le site et le vault ont des filtres de la même famille.
+
+### La liseuse du Mac lit le vault en direct
+
+Elle sait maintenant rebâtir le corpus depuis le vault et **le relire** — pas
+seulement l'écrire. Un brouillon non publié apparaît dans l'app en quelques
+secondes.
+
+**Pour le vault :** on peut relire une parashah dans la liseuse avant de la
+publier. C'est un changement de méthode de travail, pas une fonctionnalité de
+plus.
+
+Deux défauts empilés s'y cachaient, et le second n'a été vu que parce que Gloire
+a demandé la bonne épreuve : un décompte identique au corpus publié ne prouve
+rien. Le chapitre 20 manquait alors que le compte disait 45.
+
+### Ce que macOS ne fait pas comme iOS
+
+Mesuré cette semaine, et à porter dans toute réflexion de parité :
+
+| ce qu'on croyait | ce que macOS fait |
+|---|---|
+| `dynamicTypeSize` règle la taille | inerte — il faut l'échelle maison `ONTUI` |
+| `.font()` habille les lignes d'une `List` | la `List` l'écrase ; `Form` non |
+| `ImageRenderer` mesure une vue | rend `0 × 0` pour une `List` |
+| `WindowGroup` = une fenêtre | il en ouvre plusieurs ; `Window` non |
+| `UIAppFonts` inscrit les fontes | ignoré ; il faut `ATSApplicationFontsPath` |
+| `aps-environment` déclare le push | c'est `com.apple.developer.aps-environment` |
+
+### Deux versions d'un outil qui se renvoient la balle
+
+La liseuse du Mac n'a pas pu être livrée ce soir, et pour une raison qu'aucun
+des deux dépôts voisins ne verrait :
+
+    Xcode 26.3  publié, runners GitHub   actool plante sur le bundle Icon Composer en macOS
+    Xcode 27.0  bêta, machine de l'auteur  compose l'icône, Apple refuse le binaire
+
+Le second n'a été connu qu'à l'envoi, **après** que l'archive et l'export ont
+réussi : « Apple is not currently accepting applications built with this version
+of Xcode. » Toute la journée avait été passée à contourner le premier — runner
+auto-hébergé compris — sans que personne vérifie l'autre bout.
+
+**Ce qui traverse :** quand on contourne une contrainte, dire à voix haute ce
+que le contournement suppose *ailleurs*. « Une machine dont l'Xcode compose
+l'icône » était nécessaire et pas suffisant, et la phrase ne le laissait pas
+deviner.
+
+La sortie est un `.appiconset` classique gravé depuis le bundle : un pont, écrit
+comme tel dans les fichiers, à retirer quand Xcode 27 sera publié.
+
+### Trois contrôles verts qui ne mesuraient rien, en une heure
+
+Sur cette seule icône, et chacun d'une famille différente :
+
+| ce qui rassurait | ce que c'était |
+|---|---|
+| « 37 ko, dimensions justes » | le gabarit vide de macOS |
+| « garder le rendu le plus sombre » | une image transparente — le vide est plus noir |
+| « les images sont au bit près identiques » | le script était mort avant d'en écrire une |
+
+Le troisième est le pire : la comparaison portait sur des fichiers que rien
+n'avait touchés. **Un contrôle qui ne peut pas échouer ne contrôle rien**, et
+celui-là ne le pouvait pas.
+
+Ce qui a tranché à chaque fois : regarder. Une planche de contact des dix
+tailles, puis l'icône dans le Dock.
+
+### Ce que la première livraison réussie a tranché
+
+Deux questions restées ouvertes toute la journée, réglées par une seule mesure :
+
+- **les groupes de testeurs ne sont pas rangés par plateforme.** Un seul
+  « Dev » pour les deux, et le garde des homonymes n'a jamais eu à refuser. On
+  avait construit ce garde faute de pouvoir mesurer — il reste, inutile et bon ;
+- **le filtre de plateforme a été éprouvé sur le cas réel, le soir même.** Les
+  deux chaînes ont produit **le même numéro** — `260831.1410` — dans la même
+  course. Sans le filtre, `filter[version]=260831.1410&limit=1` aurait rendu
+  l'un des deux au hasard, et **les deux répondent `VALID`** : le job de
+  l'iPhone aurait pu rattacher le build du Mac au groupe, sans un mot.
+
+  Et la façon dont j'ai failli conclure l'inverse mérite d'être écrite : j'avais
+  compté **un seul numéro dans le journal** et j'en avais déduit qu'une seule
+  chaîne avait livré. Il n'y en avait qu'un parce que les deux le partageaient.
+  **Le signe même du défaut, lu comme son absence** — et il a fallu la capture
+  d'écran de la fiche, où la même ligne apparaît deux fois, une par plateforme,
+  pour le voir.
+
+### Un code de sortie est une convention, pas une mesure
+
+La toute première livraison du Mac a échoué en 0,26 seconde, code **134**, avant
+d'avoir rien compilé. La cause tenait dans `xcodebuild -version | head -1` :
+`head` ferme le tuyau après sa ligne, `xcodebuild` écrit la seconde dedans.
+
+Un programme ordinaire meurt là sur `SIGPIPE`, ce qui rend **141**. Celui
+d'Xcode 27 lève une `NSFileHandleOperationException` que personne ne rattrape,
+et avorte — `SIGABRT`, donc 134.
+
+**Ce chiffre a fait écarter la bonne piste une demi-heure durant.** Le
+raisonnement était juste — SIGPIPE donne 141, j'ai 134, donc ce n'est pas un
+tuyau — et faux, parce qu'il supposait que ce programme se comporte comme les
+autres.
+
+**Ce qui traverse :** un code de sortie est une convention que le programme
+choisit de suivre ou non. Un outil qui convertit un signal en exception change
+le nombre sans changer la cause. Vaut pour le vault (`obsidian-export`), pour le
+site (`vite build`), et pour toute chaîne qui décide en lisant un `$?`.
+
+Et une réserve inscrite dans la correction elle-même : **le défaut ne se
+reproduit pas sur la machine** — cent fois l'ancienne forme, zéro échec, contre
+deux échecs sur deux en CI. Le diagnostic vient de la trace d'appel, pas d'une
+reproduction. Assez pour agir, pas assez pour dire « vérifié ».
+
+### Et le motif de ces deux jours
+
+**Le silence bien formé** : une mesure exacte qui répond à une *autre* question
+que celle posée. Un `0 × 0` qui semble un échec de rendu. Un « aucune fenêtre »
+qui vient d'un écran verrouillé. Une vignette de Stage Manager rapportée comme
+la géométrie de la fenêtre. Un décompte de corpus identique au publié. Un
+`py_compile` vert qui n'a vu aucun des scripts qu'il prétendait couvrir.
+
+Et le plus retors, celui trouvé le soir même : la livraison de l'iPhone a
+réussi de bout en bout pendant que celle du Mac mourait. **Le tableau était
+vert à première vue** — il a fallu regarder job par job pour voir qu'une des
+deux chaînes n'avait rien livré.
+
+La session Android en a rapporté une troisième forme, pire que les deux
+qu'on connaissait : ni « tout rejeter », ni « ne rien faire », mais
+**remplacer en silence**. Un `?: GOLD` sur une couleur de surlignage inconnue
+rend une valeur plausible, du bon type — et détruit l'originale. Une liste
+vide se remarque ; une abstention se remarque ; une substitution, non.
+
+Aucune de ces mesures n'est fausse. Toutes rassurent. **Une mesure qui n'affiche
+pas ses conditions ne mesure rien** — et une garde qu'on lit plus large qu'elle
+n'est vaut moins que pas de garde.
+
 ### 1ᵉʳ septembre 2026 — une stratigraphie écrite sans son apparat
 
 Le *Chazon Avraham* fait descendre un feu sur la maison de Terah. La
@@ -2626,6 +2948,216 @@ Et il se contrôle en CI par régénération et comparaison — l'échec ==dit l
 commande== et ne régénère pas en silence, la CI n'écrivant pas à la place de
 qui a relu.
 
+## 3 septembre 2026 — l'expurgation ne tenait pas en français, et les deux apps la portaient
+
+Android a des testeurs depuis aujourd'hui, donc un rapporteur d'erreurs. En
+portant celui d'iOS, deux défauts sont apparus — **dans le motif d'iOS**, pas
+seulement dans la copie.
+
+Le critère de prose y est « douze signes et une espace ». Il sépare la note d'un
+lecteur, qu'on ne doit jamais laisser sortir, d'un identifiant de ressource,
+qu'on veut garder parce qu'il *est* le diagnostic.
+
+### Les guillemets français encadrent d'espaces
+
+    clé « bereshit-1-verset-30 » absente   →   clé <texte> absente
+
+Une clé qui ne révèle rien porte deux espaces de typographie, donc le critère la
+prend pour de la prose. Le diagnostic disparaît avec le risque — le même défaut
+que la sur-expurgation de `data/corpus.json`, déjà corrigée une fois, revenue
+par une autre porte.
+
+### L'apostrophe n'est pas un guillemet
+
+    échec « ce passage m'a bouleversé hier soir »
+      →  échec <texte>a bouleversé hier soir »
+
+L'apostrophe était dans la classe des délimiteurs. Celle de `m'` ferme donc la
+citation : le début de la note est expurgé, **et la fin part en clair**.
+
+C'est le sens qui compte ici. La première lecture — « la note traverse
+intacte » — était fausse dans le sens qui rassure : ce n'est pas que rien n'est
+filtré, c'est que **la moitié qui porte le propos** est celle qui passe.
+« a bouleversé hier soir » en dit plus long que « ce passage m ».
+
+En français, l'apostrophe est dans un mot sur cinq.
+
+### Ce que ça dit du portage
+
+Un port fidèle reproduit les défauts de sa source, et c'est **le test qui les
+révèle** — pas la relecture. Les deux cas ci-dessus ont été écrits comme des
+attentes ordinaires, et ils ont échoué sur la première version du port.
+
+C'est le troisième cas cette semaine où une chose portée d'une plateforme à
+l'autre s'est révélée fausse **des deux côtés** : le libellé d'unité qu'iOS
+recopiait dans trois vues, la forme du partage écrite deux fois, et maintenant
+l'expurgation.
+
+### Ce qui reste vrai partout
+
+Les annotations d'un lecteur de Bible relèvent de l'**article 9 du RGPD** —
+convictions religieuses. Aucune remontée d'erreur, sur aucune plateforme, ne
+doit porter le texte d'une note, le contenu d'un verset ou la liste des
+passages surlignés. Ni capture d'écran, ni hiérarchie de vues, ni rejeu de
+session : un film du parcours de lecture est précisément cette donnée.
+
+Le site ne remonte rien aujourd'hui. S'il s'y met, la règle est celle-ci, et le
+critère de prose doit être celui d'après — pas celui d'avant.
+
+---
+
+## 3 septembre 2026 — Android a un compte, et l'audit qui l'a établi
+
+Le dernier écart de parité entre les deux liseuses est fermé. Ce qui suit tient
+surtout par ce que l'audit a **corrigé** en chemin.
+
+### Aucune console n'était nécessaire, contrairement à ce qu'on croyait
+
+Le backend détient les secrets clients et fait la danse OAuth de bout en bout.
+Les identifiants qui voyagent dans une app sont **publics** — ils sont dans
+l'URL d'autorisation, que le navigateur affiche — et l'adresse de retour est
+une URL HTTPS du backend. Ce sont donc des clients « application web », et un
+client web ne connaît pas la plateforme qui l'emploie.
+
+Les mêmes identifiants servent aux deux liseuses. Rien à déclarer, rien à
+créer. On l'a cru bloqué une journée entière faute d'avoir lu le flux d'iOS.
+
+### Les parutions n'ont jamais dépendu du compte
+
+L'écran d'Android affirmait « il faut donc un compte pour qu'il sache où
+l'envoyer ». C'est l'inverse d'une décision explicite du backend :
+
+> un lecteur qui vient d'installer l'app n'a pas de compte, et l'obliger à s'en
+> créer un pour être prévenu d'une parution reviendrait à faire payer la
+> notification d'une identité.
+
+La vraie cause est structurelle, et elle est **côté serveur** : `Appareil.valide()`
+exige exactement soixante-quatre caractères hexadécimaux — un jeton APNs — et le
+diffuseur ne connaît que les hôtes d'Apple. Un jeton FCM serait refusé à
+l'entrée.
+
+Ce qui manque : une plateforme sur `Appareil`, une validation qui accepte les
+deux formes, un notificateur FCM. **Chantier backend, indépendant du compte.**
+
+Et l'erreur d'analyse mérite d'être notée : les deux avaient été liés en lisant
+l'écran de l'app plutôt que le serveur. Un texte d'app est une affirmation sur
+le logiciel que le logiciel ne vérifie pas — en faire sa source, c'est la
+troisième forme du motif de la semaine.
+
+### Ce que le contrat impose, et qui n'était écrit dans aucun type
+
+`snake_case` littéral, et `expires_in` en **secondes** quand tout le reste du
+projet compte en millisecondes. iOS s'en remet à `convertFromSnakeCase` sur son
+décodeur partagé : le contrat n'y est donc constaté nulle part. Les
+`@SerialName` de Kotlin et les dix épreuves qui les entourent sont le seul
+endroit des deux plateformes où il l'est.
+
+Les charges de ces épreuves sont copiées des formes réelles du backend, jamais
+de ce que notre client produit — un test qui relirait notre propre écriture
+mesurerait la cohérence, pas la justesse. Même raison pour PKCE, éprouvé contre
+le vecteur publié en annexe B de la RFC 7636.
+
+### PKCE compte plus sur Android que sur iOS
+
+Le code d'autorisation revient par `ont://`, et **n'importe quelle app installée
+peut déclarer le même schéma** et se voir proposer l'intention, dans une feuille
+de choix que le lecteur traverse sans lire. iOS attribue un schéma à une seule
+app.
+
+Le vérificateur se range donc chiffré **avant** que le lecteur ne parte, et non
+au retour : le processus peut mourir pendant l'aller-retour.
+
+### Et la couleur inconnue a maintenant un chemin vers le serveur
+
+`HighlightColor.depuis` ramène à l'or ce qu'elle ne connaît pas, et l'envoi
+réécrit `gold`. Tant que l'arbitrage n'est pas tranché — ignorer la ligne comme
+iOS, ou garder la clé d'origine —, la synchronisation d'Android **écrasera pour
+tout le monde** la marque qu'un client plus récent aurait posée en turquoise.
+
+Une épreuve dit exactement ce que le code fait aujourd'hui, et elle échouera le
+jour où on décidera autrement. C'est le but : une décision différée doit être
+visible, pas oubliée.
+
+## 3 septembre 2026 — deux barres latérales qui n'étaient pas la même vue
+
+L'auteur pose deux captures côte à côte, iPad et Mac : « tu vois bien par contre
+que la sidebar n'est pas le même ». Elle ne l'était pas, et pas d'un réglage
+près — **ce ne sont pas la même vue**.
+
+| | iPadOS | macOS |
+|---|---|---|
+| qui la dessine | le système (`TabView` + `.sidebarAdaptable`) | l'app (`BarreLateraleONT`) |
+| fonte des lignes | SF, taille du système | Jost-**SemiBold** 14 |
+| en-tête de section | style système, discret | même corps et même graisse que les lignes |
+| « Vous » | `LigneDuCompte`, sans fond, ouvre une feuille | vraie destination, capsule dorée |
+
+`BarreLateraleONT` vit pourtant dans `app/Sources/App/`, elle est compilée dans
+les deux cibles, et le commit qui l'y a mise dit « partager celle-ci entre
+l'iPad et le Mac ». Sur iOS **elle n'est instanciée nulle part**. Le partage
+n'a jamais eu lieu ; seul le concept de la ligne de compte en bas a été repris.
+
+Le Mac ne peut pas revenir à la barre du système — les trois griefs qui l'ont
+fait partir sont consignés dans `RacineMac.swift`. Ce qui restait était de
+ranger la barre peinte à la main sur ce que l'iPad montre.
+
+### Le nombre qu'on ne devine pas
+
+La capsule dorée du compte s'étalait sur toute la colonne. La cause n'est pas
+un oubli de marge : `.listRowInsets` **est inerte** dans un `safeAreaInset` —
+ce modificateur n'agit que sur une ligne de `List`.
+
+Relevé au pixel, fenêtre à 1440 × 900, facteur 1 :
+
+    ligne choisie   x  26,0 → 295,5   270 pt
+    « Vous »        x   6,0 → 315,5   310 pt      dans une colonne de 322
+
+Vingt points d'écart de chaque côté. Après correction, les deux capsules
+tombent sur `26,0 → 295,5` — et y restent au facteur 1,5, où seule la hauteur
+bouge (36 → 54 pt). C'est ce qui autorise à écrire la marge en dur.
+
+### Ce que le site avait déjà tranché
+
+`SYNCHRONISATION.md` demande ce que le travail change chez les voisins. Ici :
+rien de `dist/`, rien du schéma. Mais une question de marque restait ouverte —
+le Mac vient-il de s'écarter du site en quittant le SemiBold ?
+
+Non. `style/main.css` du site compose `h1, h2, h3` en `var(--font-titre)` à
+**`font-weight: 400`**, et ses deux seuls 600 sont `strong` et la lettrine.
+**Le site était déjà en Jost Regular.** C'était le Mac qui divergeait, seul des
+trois, et personne ne pouvait le voir depuis le Mac.
+
+D'où un jeton plutôt qu'une chaîne : `ONTFonts.navigation` — `"Jost-Regular"` —
+à côté de `ONTFonts.display`, qui reste le SemiBold des titres.
+
+### L'épreuve, et pourquoi celle-là
+
+`Font.custom` retombe **en silence** sur la fonte du système quand le nom ne
+répond pas. C'est le défaut du 30 août, où l'hébreu s'affichait sur la machine
+de l'auteur et sur aucune autre. Ici il aurait été pire : un `"Jost-Regularr"`
+mal écrit produit exactement l'effet cherché — une barre plus légère. **La faute
+se serait lue comme le succès.**
+
+L'épreuve mesure donc deux choses, et elle a été retournée contre les deux
+fautes avant d'être gardée :
+
+| variante | ce qui rougit |
+|---|---|
+| `navigation = "Jost-SemiBold"` | `poids(nav) < poids(titre)` — le nom répond, la coupe est fausse |
+| `navigation = "Jost-Regularr"` | le `#require` — la fonte ne se résout pas |
+
+Sans la mesure de poids, le premier cas passait sans un mot.
+
+### Et la troncature n'était pas où on la cherchait
+
+« Toledot Adam ve-… » : les bornes de `navigationSplitViewColumnWidth` étaient
+figées, jamais multipliées par le facteur d'interface. ⌘= grossissait le libellé
+dans une colonne qui ne bougeait pas.
+
+Vérifié par sonde, facteur forcé à 1,5 et `min` porté à 240 : la colonne passe
+de 322 à **360 pt exactement**. La borne prime donc sur la largeur qu'AppKit
+avait gardée sous « NSSplitView Subview Frames » — ce qui n'allait pas de soi,
+et sans quoi le correctif n'aurait servi qu'au premier lancement.
+
 ### 7 septembre 2026 — `...` et `..` ne répondent pas à la même question
 
 L'audit des worktrees a trouvé deux branches locales du 30 août, jamais
@@ -2673,3 +3205,48 @@ mesure : la branche a été poussée en sauvegarde ==avant== qu'on conclue, et l
 règle de l'audit — *une non-réponse vaut « statut inconnu », pas
 « supprimable »* — a tenu tout du long. Un compte faux dans ce sens-là ne coûte
 qu'une vérification ; dans l'autre, il coûte le travail.
+
+### 7 septembre 2026 — le journal a deux régimes, et le contrôle mesurait le mauvais
+
+Décision de l'auteur : **tronc commun et entrées locales.** Seul ce qui traverse
+est partagé et identique partout ; ce qu'un dépôt apprend pour lui-même reste
+chez lui, marqué. ==La règle vit dans la section « Tronc commun et entrées
+locales »== ci-dessus, avec la marque et ses raisons — elle n'est pas redite
+ici, c'est le journal qui renvoie à la règle et non l'inverse.
+
+**Ce que le contrôle faisait de travers.** Il comparait les fichiers entiers, et
+n'avait donc qu'une façon de résorber un écart : ==importer chez les autres ce
+qu'un dépôt avait délibérément gardé pour lui==. Il mesurait l'identité sans
+pouvoir dire si une entrée *devait* traverser.
+
+**Ce qu'il fait maintenant :** l'empreinte porte sur le tronc, les entrées
+locales sont retirées avant la mesure, puis ==comptées et listées par dépôt==.
+Jamais tues : une entrée locale est une décision, pas un accident, et une marque
+qui ferait sortir du champ de la mesure sans laisser de trace serait un moyen de
+se dispenser du contrôle.
+
+**Pour les trois dépôts.** Quand une mesure ne peut se résoudre que d'une seule
+façon, ==c'est souvent la mesure qui est mal posée==, pas l'écart qui est
+coupable. Ici, la seule issue offerte était de verser six cents lignes de barres
+latérales macOS dans le vault de la traduction — ce que l'en-tête de ce journal
+refuse en toutes lettres.
+
+**Et le chemin pour y arriver mérite d'être gardé, parce qu'il a fallu trois
+relevés faux pour l'atteindre.** La concordance annonçait ==cinquante-neuf
+entrées à porter== ; il y en avait quinze, et aucune ne devait partir.
+
+    59   comptait des titres, dont des sous-titres internes aux entrées
+    44   mon propre relevé : ils étaient TOUS des sous-titres
+    15   les vraies entrées — écrites en ## quand le vault écrit ###
+
+Chaque relevé rendait un nombre bien formé. Le premier prenait la partie pour le
+tout, le deuxième ne mesurait que du bruit, et le troisième n'est sorti qu'en
+==comparant les contenus== plutôt que les titres — la règle écrite le matin même,
+appliquée l'après-midi à autre chose.
+
+**Éprouvé sur un cas dont on connaît la réponse**, avant de livrer : les quinze
+marquées `*(local)*` dans une copie de travail, le tronc de l'app tombe à ==zéro
+ligne absente du tronc du vault==. Et la mesure retournée révèle l'autre sens,
+qu'on ne cherchait pas : il ne manquait à l'app que ==deux entrées==, déjà sur sa
+branche d'intégration. La concordance était presque faite depuis le début ; c'est
+l'instrument qui la disait rompue.
