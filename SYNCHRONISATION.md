@@ -2227,6 +2227,7 @@ même leçon que les fontes non inscrites, prise par l'autre bout.
 Le défaut réel, une fois le facteur vraiment posé : **une `List` de macOS ne
 transmet pas `\.font` à ses lignes.** Vaut pour les trois dépôts au titre de la
 méthode, et pour le seul Mac au titre du remède.
+
 ### 31 août 2026 — la chaîne de publication s'est rompue trois fois, et rien ne l'a dit
 
 Gloire a demandé que sa première **parashah** du *Chazon Avraham* atteigne les
