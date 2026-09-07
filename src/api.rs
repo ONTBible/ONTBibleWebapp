@@ -406,7 +406,7 @@ pub async fn poser_surlignage(
     // qu'elles vont ensemble — mêler les deux ferait avancer le signet du
     // lecteur chaque fois qu'il surligne un verset qu'il vient de retrouver.
     Ok(sync
-        .pousser(&session.access_token, &marques, None)
+        .pousser(&session.access_token, &marques, None, None)
         .await
         .is_ok())
 }
@@ -473,9 +473,175 @@ pub async fn retenir_la_position(
     // liste vide — son `highlights` porte `#[serde(default)]` — et une liste
     // vide ne supprime rien, elle n'apparie simplement avec rien.
     Ok(sync
-        .pousser(&session.access_token, &[], Some(&position))
+        .pousser(&session.access_token, &[], Some(&position), None)
         .await
         .is_ok())
+}
+
+/// Un verset surligné, avec de quoi le lire sans ouvrir le chapitre.
+///
+/// ## Pourquoi le texte voyage ici, alors qu'on ne le stocke jamais
+///
+/// Le backend ne garde que la **référence** — livre, unité, numéro —, et c'est
+/// une décision qui tient : les surlignages d'un lecteur de Bible rattachés à
+/// une identité relèvent de l'article 9 du RGPD, donc on en stocke le moins
+/// possible.
+///
+/// Le texte, lui, est **recomposé à l'affichage** depuis le corpus embarqué. Il
+/// n'a jamais été stocké, il ne traverse aucune base : il est simplement
+/// rapproché de la référence au moment où l'on dresse la liste. C'est aussi ce
+/// qui la garde juste quand une traduction est révisée — la référence ne bouge
+/// pas, le texte suit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersetSurligne {
+    pub livre_id: String,
+    /// Le titre du livre, tel qu'on l'affiche — « Bereshit ».
+    pub livre_titre: String,
+    /// Son nom français — « Genèse ». L'app le pose sous le titre dans l'en-tête
+    /// de chaque livre ; sans lui, un lecteur qui connaît « Genèse » et pas
+    /// « Bereshit » ne reconnaît pas la section où il a marqué.
+    pub livre_francais: String,
+    pub unite_id: String,
+    /// Le titre de l'unité — « Bereshit 1 ».
+    pub unite_titre: String,
+    pub verset: u32,
+    /// Le texte du verset, recomposé depuis le corpus.
+    pub texte: String,
+    /// La couleur, telle qu'elle voyage — `gold`, `olive`…
+    pub couleur: String,
+    pub note: Option<String>,
+    /// Millisecondes depuis l'époque, pour trier du plus récent au plus ancien.
+    pub quand: i64,
+    /// La date, déjà écrite — « 12 août 2026 ».
+    ///
+    /// Composée **côté serveur** parce que `chrono` n'entre que sous `ssr` : le
+    /// faire dans le navigateur demanderait de l'embarquer dans le wasm pour
+    /// écrire cinq mots. Et le rendu du serveur porte alors la date, donc elle
+    /// est là avant l'hydratation comme pour le reste de la page.
+    pub quand_affiche: String,
+}
+
+/// Écrit une date française à partir d'un instant en millisecondes.
+///
+/// Le mois est en toutes lettres et non abrégé : l'app abrège parce qu'une
+/// ligne de liste sur téléphone est étroite, le site a la place. Les deux
+/// disent la même date.
+#[cfg(feature = "ssr")]
+fn date_francaise(ms: i64) -> String {
+    use chrono::Datelike;
+    const MOIS: [&str; 12] = [
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
+    ];
+    let Some(quand) = chrono::DateTime::from_timestamp_millis(ms) else {
+        return String::new();
+    };
+    let jour = quand.day();
+    // « 1er », et seulement le premier : c'est l'usage français, et « 1 août »
+    // se lit comme une coquille.
+    let ordinal = if jour == 1 {
+        "1ᵉʳ".to_string()
+    } else {
+        jour.to_string()
+    };
+    format!(
+        "{ordinal} {} {}",
+        MOIS[(quand.month0() as usize).min(11)],
+        quand.year()
+    )
+}
+
+/// Tous les versets que le lecteur a marqués.
+///
+/// ## L'ordre est celui du corpus, pas celui des marques
+///
+/// On lit une Bible dans son ordre, et l'on cherche « ce que j'ai marqué dans
+/// *Bereshit* » plutôt que « ce que j'ai marqué mardi ». Trier par date
+/// disperserait un même chapitre à travers la liste.
+///
+/// Vide sans compte, et **pas une erreur** : lire sans compte est le cas normal
+/// du site. Vide aussi quand la synchronisation échoue — la page dit alors
+/// qu'il n'y a rien, ce qui est faux mais inoffensif, là où un message d'échec
+/// inquiéterait pour un incident passager.
+#[server(prefix = "/api", endpoint = "mes-versets")]
+pub async fn mes_versets() -> Result<Vec<VersetSurligne>, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(Vec::new());
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+    let corpus = corpus()?;
+
+    let Ok(moisson) = sync.tirer(&session.access_token, None).await else {
+        return Ok(Vec::new());
+    };
+
+    let mut trouves: Vec<VersetSurligne> = Vec::new();
+    for marque in moisson.highlights {
+        // Les pierres tombales et les couleurs inconnues n'entrent pas : la
+        // première est une suppression venue d'un autre appareil, la seconde
+        // vient d'une version plus récente de l'app.
+        if !marque.visible() {
+            continue;
+        }
+        let Some(livre) = corpus.livre(&marque.book_id) else {
+            continue;
+        };
+        let Some(unite) = livre.chapitre(&marque.chapter_id) else {
+            continue;
+        };
+        // Un verset qui n'existe plus — unité renumérotée, passage réécrit — est
+        // **omis** plutôt que rendu vide. La marque survit côté serveur ; c'est
+        // seulement la ligne qui n'a rien à montrer.
+        let Some(verset) = unite.verset(marque.verse) else {
+            continue;
+        };
+
+        trouves.push(VersetSurligne {
+            livre_francais: livre.francais.clone(),
+            quand_affiche: date_francaise(marque.updated_at),
+            livre_id: marque.book_id.clone(),
+            livre_titre: livre.titre.clone(),
+            unite_id: marque.chapter_id.clone(),
+            unite_titre: unite.titre.clone(),
+            verset: marque.verse,
+            texte: verset.corps(),
+            couleur: marque.color.clone(),
+            note: marque.note.clone(),
+            quand: marque.updated_at,
+        });
+    }
+
+    // L'ordre du corpus : par livre tel qu'il est rangé, puis par unité, puis
+    // par verset. On s'appuie sur le sommaire plutôt que sur l'alphabet — un
+    // corpus n'est pas rangé par nom.
+    let rang_du_livre = |id: &str| {
+        corpus
+            .sommaire()
+            .iter()
+            .flat_map(|e| e.sections.iter())
+            .flat_map(|s| s.livres.iter())
+            .position(|l| l.id == id)
+            .unwrap_or(usize::MAX)
+    };
+    trouves.sort_by(|a, b| {
+        rang_du_livre(&a.livre_id)
+            .cmp(&rang_du_livre(&b.livre_id))
+            .then(a.unite_id.cmp(&b.unite_id))
+            .then(a.verset.cmp(&b.verset))
+    });
+
+    Ok(trouves)
 }
 
 /// La session du cookie, si elle vaut encore.
@@ -527,4 +693,135 @@ fn percent_decode(valeur: &str) -> String {
         i += 1;
     }
     String::from_utf8_lossy(&sortie).into_owned()
+}
+
+/// Une trouvaille, telle que la page l'affiche.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TrouvailleDto {
+    pub livre_id: String,
+    pub livre_titre: String,
+    pub unite_id: String,
+    pub unite_titre: String,
+    /// `0` hors d'un verset — un titre de section, une introduction.
+    pub verset: u32,
+    pub extrait: String,
+    /// Vrai quand la trouvaille est dans une glose et non dans le corps.
+    pub dans_une_glose: bool,
+}
+
+/// Cherche dans le corpus.
+///
+/// ## Pourquoi côté serveur
+///
+/// L'index fait 698 Ko. L'app l'embarque parce qu'elle doit chercher hors
+/// ligne ; le site n'a pas cette contrainte, et l'envoyer au navigateur
+/// tripleraient le poids du premier chargement pour une fonctionnalité que la
+/// plupart des visites n'emploient pas.
+///
+/// ## Le titre du livre et de l'unité viennent du corpus
+///
+/// L'index ne porte que des identifiants — `bereshit`, `bereshit-1`. Les
+/// afficher tels quels donnerait une liste de slugs. On les rapproche du
+/// sommaire, et une trouvaille dont le livre a disparu est **omise** plutôt que
+/// rendue sans nom.
+#[server(prefix = "/api", endpoint = "rechercher")]
+pub async fn rechercher(
+    requete: String,
+    portee: String,
+) -> Result<Vec<TrouvailleDto>, ServerFnError> {
+    use crate::domaine::recherche::{Niveau, Portee};
+
+    let corpus = corpus()?;
+    let ou = Portee::depuis_cle(&portee);
+
+    let mut sortie = Vec::new();
+    for t in crate::infrastructure::recherche::chercher(&requete, ou) {
+        let Some(livre) = corpus.livre(&t.livre_id) else {
+            continue;
+        };
+        let Some(unite) = livre.chapitre(&t.unite_id) else {
+            continue;
+        };
+        sortie.push(TrouvailleDto {
+            livre_titre: livre.titre.clone(),
+            unite_titre: unite.titre.clone(),
+            livre_id: t.livre_id,
+            unite_id: t.unite_id,
+            verset: t.verset,
+            extrait: t.extrait,
+            dans_une_glose: t.niveau == Niveau::Glose,
+        });
+    }
+    Ok(sortie)
+}
+
+/// Le profil du lecteur, ou rien.
+///
+/// Vide sans compte, et **pas une erreur** : lire sans compte est le cas normal
+/// du site.
+#[server(prefix = "/api", endpoint = "mon-profil")]
+pub async fn mon_profil() -> Result<Option<crate::domaine::profil::Profil>, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(None);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+    Ok(sync
+        .tirer(&session.access_token, None)
+        .await
+        .ok()
+        .and_then(|m| m.profil))
+}
+
+/// Écrit le profil.
+///
+/// ## L'horodatage est posé ici, et il le faut
+///
+/// Le backend garde le plus récent des deux. Un profil envoyé sans horodatage
+/// vaudrait zéro et **perdrait toujours** contre celui du téléphone : le
+/// lecteur écrirait sa bio sur le site et la verrait revenir inchangée, sans
+/// qu'aucune erreur ne le dise.
+///
+/// ## Les blancs sont rognés
+///
+/// Un nom d'usage « gloire » et « gloire » ne sont pas le même aux yeux d'une
+/// comparaison, et l'un des deux vient d'un espace qu'on n'a pas vu en tapant.
+#[server(prefix = "/api", endpoint = "enregistrer-mon-profil")]
+pub async fn enregistrer_mon_profil(
+    nom_dusage: String,
+    prenom: String,
+    nom: String,
+    bio: String,
+) -> Result<bool, ServerFnError> {
+    let Some(session) = session_valide().await else {
+        return Ok(false);
+    };
+    let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
+        .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
+
+    // Le portrait n'est pas touché : il vient de l'app, qui sait le poser. On
+    // relit celui qui existe pour ne pas l'effacer en écrivant le reste.
+    let portrait = sync
+        .tirer(&session.access_token, None)
+        .await
+        .ok()
+        .and_then(|m| m.profil)
+        .and_then(|p| p.portrait);
+
+    let profil = crate::domaine::profil::Profil {
+        nom_dusage: nom_dusage.trim().to_string(),
+        prenom: prenom.trim().to_string(),
+        nom: nom.trim().to_string(),
+        bio: bio.trim().to_string(),
+        portrait,
+        updated_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0),
+    };
+
+    Ok(sync
+        .pousser(&session.access_token, &[], None, Some(&profil))
+        .await
+        .is_ok())
 }

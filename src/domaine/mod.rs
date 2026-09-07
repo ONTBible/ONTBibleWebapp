@@ -13,6 +13,8 @@
 pub mod compte;
 pub mod corpus;
 pub mod lecture;
+pub mod profil;
+pub mod recherche;
 pub mod selection;
 pub mod surlignage;
 pub mod texte;

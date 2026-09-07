@@ -1,6 +1,6 @@
 [package]
 name = "ontbible"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [lib]
@@ -53,6 +53,15 @@ web-sys = { version = "0.3", features = [
     # chaque image, et les deux se disputaient la page.
     "ScrollToOptions",
     "ScrollBehavior",
+    # Suivre où l'on en est de sa lecture. `querySelectorAll` rend une
+    # `NodeList` — deux drapeaux pour un seul appel, et sans le second on
+    # obtient un `no method named item`, que la compilation serveur ne montre
+    # pas.
+    "Document",
+    "NodeList",
+    # `visibilitychange` : l'instant où l'on quitte la page sans la fermer —
+    # onglet changé, application mise en fond. C'est là qu'on écrit.
+    "VisibilityState",
 ], optional = true }
 # Lire un fichier et lire l'heure sont deux besoins du serveur seul. Les
 # embarquer dans le paquet WASM l'alourdirait sans que rien ne s'en serve —
@@ -103,7 +112,14 @@ chrono-tz = { version = "0.10", default-features = false, optional = true }
 # `package` parce que la caisse s'appelle `ont-pipeline` et sa bibliothèque
 # `ont` : la clé d'une dépendance est le nom du **paquet**, pas celui de la
 # cible.
-ont = { package = "ont-pipeline", path = "../ONTBibleApp/pipeline", default-features = false, optional = true }
+# `parsers` pour `ont::search` — `fold` et `strip_hebrew`, la normalisation que
+# l'app applique à l'index et à la requête. La réécrire ici ferait deux
+# normalisations à tenir d'accord, et un accent qui plie d'un côté et pas de
+# l'autre rendrait deux jeux de résultats pour la même recherche.
+#
+# `ont` n'entre que sous `ssr` : `regex` et `unicode-normalization` ne partent
+# donc jamais dans le wasm. `codegen` reste dehors, il n'a rien à faire ici.
+ont = { package = "ont-pipeline", path = "../ONTBibleApp/pipeline", default-features = false, features = ["parsers"], optional = true }
 
 [features]
 hydrate = [

@@ -8,7 +8,7 @@ use leptos_router::{
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
     Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
-    Livre, Negations, Passage, Pourquoi,
+    Livre, Negations, Passage, Pourquoi, Recherche,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -150,6 +150,11 @@ pub fn App() -> impl IntoView {
                     // peut pas faire. Celle-ci ne fait que montrer l'état.
                     <Route path=(StaticSegment("fr"), StaticSegment("compte")) view=Compte />
                     <Route path=(StaticSegment("fr"), StaticSegment("l-app")) view=Application />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("rechercher"))
+                        view=Recherche
+                        ssr=SsrMode::Async
+                    />
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("ce-que-l-ont-n-est-pas"))
                         view=Negations

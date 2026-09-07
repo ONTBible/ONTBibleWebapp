@@ -27,11 +27,15 @@ pub fn disponible(fournisseur: Fournisseur) -> bool {
         // Le client « Application Web » du backend accepte plusieurs adresses de
         // retour : il suffit d'y ajouter celle du site.
         Fournisseur::Google => true,
-        // Demande un **Services ID** à créer dans le portail Apple, distinct de
-        // l'App ID que l'app utilise. Le README du backend l'avait prévu : « il
-        // ne redeviendra nécessaire que le jour où une version web signera des
-        // comptes ».
-        Fournisseur::Apple => false,
+        // **Allumé le 30 août 2026**, après que `APPLE_SERVICES_ID` a été posé
+        // dans la configuration du backend déployé — et après l'avoir sondé
+        // plutôt que de croire qui l'annonçait :
+        //
+        //     apple 401 servi · le site le dit éteint → il peut être rallumé
+        //
+        // Le README du backend l'avait prévu : « [le Services ID] ne redeviendra
+        // nécessaire que le jour où une version web signera des comptes ».
+        Fournisseur::Apple => true,
         // GitHub accepte **plusieurs** adresses de retour par application — le
         // champ s'appelle « Authorization callback URLs », au pluriel, et porte
         // un bouton « Add more ».

@@ -71,7 +71,32 @@ fn autorisation(f: Fournisseur) -> &'static str {
 fn portees(f: Fournisseur) -> &'static str {
     match f {
         Fournisseur::Google => "openid email",
-        Fournisseur::Apple => "email",
+        // **Apple ne reçoit aucune portée, et ce n'est pas un choix de goût.**
+        //
+        // Demander `email` — ou `name` — l'oblige à répondre en `form_post` :
+        //
+        //     invalid_request
+        //     response_mode must be form_post when name or email scope
+        //     is requested.
+        //
+        // Mesuré sur `appleid.apple.com`, les trois formes : sans portée il
+        // rend sa page de connexion, avec `email` il refuse, avec
+        // `email` + `form_post` il l'accepte de nouveau.
+        //
+        // Et `form_post` est un piège pour ce montage. Apple **POSTe** alors
+        // vers l'adresse de retour, depuis son propre domaine : c'est une
+        // requête inter-site, et notre cookie d'état est en `SameSite=Lax`, qui
+        // voyage sur une navigation mais **pas sur un POST venu d'ailleurs**.
+        // L'état et le vérifieur PKCE n'arriveraient jamais. On ne le
+        // réparerait qu'en passant le cookie à `SameSite=None` — c'est-à-dire
+        // en retirant à tout le site la protection contre la falsification de
+        // requête, pour une adresse dont le backend n'a pas besoin.
+        //
+        // Car il n'en a pas besoin : `identity.email` y est facultatif — « if
+        // let Some(email) » —, et c'est le `sub` de l'`id_token` qui rattache
+        // les surlignages. Le commentaire ci-dessus le disait déjà : une portée
+        // qu'on ne demande pas est une donnée qu'on n'aura jamais à protéger.
+        Fournisseur::Apple => "",
         // GitHub n'a pas d'`openid` : sa portée vide rend déjà le profil public
         // et l'identifiant, ce qui suffit.
         Fournisseur::Github => "",
@@ -115,23 +140,27 @@ fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
         Fournisseur::Google => {
             Some("154337904456-de9o2u3res51203irei6o0ggk1lvlkq5.apps.googleusercontent.com")
         }
-        // Le Services ID existe depuis le 27 août 2026 —
-        // `com.labibleont.ont.webapp`, créé dans le portail Apple, avec
-        // `ontbible.com` en domaine et notre adresse de retour.
+        // Le Services ID, créé dans le portail Apple le 27 août 2026 —
+        // `com.labibleont.ont.webapp`, avec `ontbible.com` en domaine et notre
+        // adresse de retour.
         //
-        // **Il n'est pourtant pas rendu ici, et le bouton reste éteint.**
+        // **Allumé le 30 août 2026, après sonde.** Le backend distingue les deux
+        // flux depuis longtemps — il choisit le Services ID pour l'origine
+        // `webapp`, signe le secret client avec cette identité, et n'envoie
+        // `redirect_uri` que dans ce cas. Ce qui manquait n'était pas son code
+        // mais la **valeur** dans sa configuration déployée, absente de
+        // `oauth.env`, et dont le script de déploiement tolérait l'absence par
+        // un `${APPLE_SERVICES_ID:-}` : elle traversait tout en silence et
+        // arrivait vide sur la Lambda.
         //
-        // La raison est côté backend : son échange Apple utilise un `client_id`
-        // unique — l'App ID `com.labibleont.ONT`, qu'exige le flux natif —, et
-        // il ne sait pas encore choisir entre les deux identités. Lui envoyer un
-        // code obtenu avec le Services ID donnerait un `invalid_grant`, l'erreur
-        // exacte que son README décrit, dans l'autre sens.
+        // Ce n'est pas allumé sur la parole de qui l'a posée, mais sur
+        // `./scripts/sonder-les-fournisseurs.py`, qui a rendu :
         //
-        // L'allumer avant qu'il ne sache serait le défaut du badge App Store
-        // rejoué : une voie qui mène à une erreur où le lecteur ne peut rien
-        // faire. Le jour où le backend distingue les deux flux, cette ligne
-        // devient `Some(SERVICES_ID_APPLE)` et rien d'autre ne bouge.
-        Fournisseur::Apple => None,
+        //     apple 401 servi · le site le dit éteint → il peut être rallumé
+        //
+        // Le `401` dit que la requête est allée jusqu'à Apple, qui a refusé un
+        // code bidon. Le `503` d'avant disait qu'elle n'était jamais partie.
+        Fournisseur::Apple => Some(SERVICES_ID_APPLE),
         // L'application `La Bible ONT` existante, à laquelle
         // `https://ontbible.com/fr/compte/retour` a été ajoutée : GitHub accepte
         // plusieurs adresses de retour, contrairement à ce qu'on avait cru.
@@ -209,15 +238,40 @@ pub async fn aller(Path(cle): Path<String>) -> Response {
 
     // Le fournisseur est mis dans le cookie d'aller plutôt que dans l'adresse
     // de retour : celle-ci doit rester **identique à l'octet** entre l'aller et
-    // l'échange, donc on ne peut rien y ajouter. Et un paramètre `state` que
-    // l'on relirait sans le comparer ne protégerait de rien.
-    let aller = format!("{}|{}", fournisseur.cle(), pkce.verificateur);
+    // l'échange, donc on ne peut rien y ajouter.
+    //
+    // ## L'état, et pourquoi il a fini par être nécessaire
+    //
+    // On avait écrit ici qu'« un paramètre `state` que l'on relirait sans le
+    // comparer ne protégerait de rien ». C'est vrai, et ce n'était pas une
+    // raison de ne pas en poser un : la réponse était de le **comparer**.
+    //
+    // Tant que seuls Google et GitHub étaient allumés, l'omission ne coûtait
+    // rien — PKCE lie le code à la session. Un code obtenu par un tiers a été
+    // émis contre *son* défi ; l'échange envoie *notre* vérificateur, et le
+    // fournisseur refuse.
+    //
+    // **Apple n'a pas de PKCE** — son flux natif s'en passe et le backend
+    // n'en attend pas. Rien ne liait donc son code à qui l'avait demandé. La
+    // présence du cookie n'y suffit pas : elle dit qu'un départ a eu lieu, pas
+    // que *ce* code en vient. Un lecteur au milieu d'une connexion Apple, à qui
+    // l'on fait ouvrir un retour portant le code d'un autre, se retrouvait dans
+    // le compte de cet autre — avec ses surlignages, que le backend range à
+    // juste titre sous l'article 9 du RGPD.
+    //
+    // L'état est donc tiré comme un vérificateur — quatre-vingt-seize octets du
+    // système —, gardé dans le cookie, envoyé au fournisseur, et **comparé** au
+    // retour. Il vaut pour les trois : là où PKCE protège déjà, il ne coûte
+    // qu'un champ.
+    let etat = Pkce::neuf().verificateur;
+    let aller = format!("{}|{}|{}", fournisseur.cle(), pkce.verificateur, etat);
 
     let mut adresse = format!(
-        "{}?client_id={}&redirect_uri={}&response_type=code",
+        "{}?client_id={}&redirect_uri={}&response_type=code&state={}",
         autorisation(fournisseur),
         encoder(client),
         encoder(&retour),
+        encoder(&etat),
     );
     let p = portees(fournisseur);
     if !p.is_empty() {
@@ -242,12 +296,40 @@ pub async fn retour(
     Query(params): Query<std::collections::HashMap<String, String>>,
     entetes: axum::http::HeaderMap,
 ) -> Response {
+    /// Dit au journal pourquoi un retour n'a pas abouti.
+    ///
+    /// ## Pourquoi ça n'existait pas, et pourquoi il le fallait
+    ///
+    /// La route rendait un code grossier dans l'adresse — `interne`,
+    /// `reponse`, `fournisseur` mènent au **même** message — et n'écrivait rien.
+    /// Le 31 août 2026, une connexion Apple a échoué chez l'auteur ; les
+    /// journaux de la Lambda ne portaient que les `START`/`END` d'AWS, et il n'y
+    /// avait aucun moyen de savoir laquelle des trois branches avait tiré.
+    ///
+    /// Une panne qui ne laisse pas de trace se rediagnostique à chaque fois, et
+    /// elle se rediagnostique **chez le lecteur**, en lui demandant de
+    /// recommencer pour voir.
+    ///
+    /// On note les **clés** reçues, jamais leurs valeurs : le `code` d'un
+    /// fournisseur s'échange contre une session, et un journal n'est pas
+    /// l'endroit où le laisser traîner.
+    fn noter(quoi: &str, params: &std::collections::HashMap<String, String>) {
+        let mut cles: Vec<&str> = params.keys().map(String::as_str).collect();
+        cles.sort_unstable();
+        eprintln!("compte/retour a échoué — {quoi} · paramètres reçus : {cles:?}");
+    }
+
     // Un refus n'est pas une panne : le lecteur a pu changer d'avis sur l'écran
     // du fournisseur. On revient sans rien dire de plus.
     if params.contains_key("error") {
         return redirige("/fr/compte?erreur=refus", Some(cookie_efface(COOKIE_ALLER)));
     }
     let Some(code) = params.get("code") else {
+        // Sans `code`, la réponse n'est pas celle qu'on attend. Le cas qui le
+        // produit en pratique est un fournisseur qui **POSTe** au lieu de
+        // rediriger : la route ne lit que la requête d'adresse, donc elle ne
+        // voit rien.
+        noter("aucun code dans l'adresse", &params);
         return redirige(
             "/fr/compte?erreur=reponse",
             Some(cookie_efface(COOKIE_ALLER)),
@@ -258,15 +340,38 @@ pub async fn retour(
     // conduit : on refuse. C'est ce qui empêche qu'un lien fabriqué ouvre une
     // session chez quelqu'un qui l'a simplement cliqué.
     let Some(aller) = lire_cookie(&entetes, COOKIE_ALLER) else {
+        noter("cookie d'aller absent", &params);
         return redirige("/fr/compte?erreur=expire", None);
     };
-    let Some((cle, verificateur)) = aller.split_once('|') else {
+    let mut morceaux = aller.splitn(3, '|');
+    let (Some(cle), Some(verificateur), Some(etat_attendu)) =
+        (morceaux.next(), morceaux.next(), morceaux.next())
+    else {
+        noter("cookie d'aller mal formé", &params);
+        // Un cookie à deux morceaux vient d'un départ d'avant l'état. Il expire
+        // en dix minutes ; on refuse plutôt que de retomber sur l'ancien
+        // comportement, qui est précisément celui qu'on corrige.
         return redirige(
             "/fr/compte?erreur=expire",
             Some(cookie_efface(COOKIE_ALLER)),
         );
     };
+
+    // **L'état renvoyé doit être celui qu'on a émis.** C'est ce qui lie ce code
+    // à ce départ, et c'est la seule liaison qu'ait le flux Apple.
+    //
+    // La comparaison n'est pas à temps constant : le secret fait cent
+    // vingt-huit signes tirés du système, il est comparé une fois par requête,
+    // et il change à chaque départ. Il n'y a rien à extraire par le temps.
+    if params.get("state").map(String::as_str) != Some(etat_attendu) {
+        noter("l'état ne concorde pas", &params);
+        return redirige(
+            "/fr/compte?erreur=expire",
+            Some(cookie_efface(COOKIE_ALLER)),
+        );
+    }
     let Some(fournisseur) = Fournisseur::depuis_cle(cle) else {
+        noter("fournisseur inconnu dans le cookie", &params);
         return redirige(
             "/fr/compte?erreur=fournisseur",
             Some(cookie_efface(COOKIE_ALLER)),
@@ -280,6 +385,7 @@ pub async fn retour(
     {
         Ok(session) => {
             let Ok(serialisee) = serde_json::to_string(&session) else {
+                noter("session illisible à la sérialisation", &params);
                 return redirige(
                     "/fr/compte?erreur=interne",
                     Some(cookie_efface(COOKIE_ALLER)),
@@ -301,6 +407,11 @@ pub async fn retour(
                 .into_response()
         }
         Err(erreur) => {
+            // La cause exacte vient du backend et ne se devine pas d'ici.
+            noter(
+                &format!("le backend a refusé l'échange : {erreur:?}"),
+                &params,
+            );
             let quoi = match erreur {
                 crate::application::ports::ErreurDeCompte::Refuse => "refus",
                 crate::application::ports::ErreurDeCompte::Indisponible => "indisponible",
@@ -358,6 +469,32 @@ mod tests {
     /// Les deux listes vivent dans deux modules — l'une doit voyager jusqu'au
     /// navigateur, l'autre porte des identifiants et reste au serveur. Deux
     /// listes finissent toujours par diverger ; celle-ci ne peut plus.
+    /// ## Apple ne demande aucune portée, et le compilateur ne peut pas le tenir
+    ///
+    /// Ajouter `email` — le geste naturel de qui veut « bien faire » — fait
+    /// refuser Apple :
+    ///
+    ///     response_mode must be form_post when name or email scope is requested
+    ///
+    /// Et le repli évident, `response_mode=form_post`, casse le montage plus
+    /// discrètement : Apple POSTe alors depuis son domaine vers le nôtre, et le
+    /// cookie d'état est en `SameSite=Lax`, qui ne voyage pas sur un POST
+    /// inter-site. L'état et le vérifieur PKCE n'arriveraient jamais — une
+    /// connexion qui échoue *après* qu'Apple a dit oui, donc là où l'on cherche
+    /// la faute chez soi.
+    ///
+    /// Le backend n'en a pas besoin : `identity.email` y est facultatif, et
+    /// c'est le `sub` de l'`id_token` qui rattache les surlignages.
+    #[test]
+    fn apple_ne_demande_aucune_portee() {
+        assert_eq!(
+            portees(Fournisseur::Apple),
+            "",
+            "une portée `name` ou `email` oblige Apple au `form_post`, que notre \
+             cookie `SameSite=Lax` ne peut pas suivre"
+        );
+    }
+
     #[test]
     fn la_page_et_la_route_s_accordent_sur_les_fournisseurs() {
         for f in Fournisseur::tous() {

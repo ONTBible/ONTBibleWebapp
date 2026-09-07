@@ -260,6 +260,79 @@ enregistrement sur ce qu'on croit avoir collé.
 Un travail non commité n'est protégé de rien. C'est ce qui a rendu la première
 perte possible. Dès que ça compile : une branche, un commit signé.
 
+### Les sept rôles — se trouver sans se nommer
+
+**Posé le 7 septembre 2026, à la demande de l'auteur** : « je veux que vous
+communiquiez toutes l'une à l'autre pour vous connaître ». Les sept sessions se
+sont présentées, et la carte vit ici plutôt que dans leurs mémoires : ce fichier
+est le même dans les trois dépôts et le contrôle de concordance compare les
+exemplaires — une carte qui y vit ne peut pas diverger. Sept mémoires le
+peuvent, et le feraient.
+
+**Par rôles, jamais par noms de session.** La collecte l'a démontré : les
+annuaires ne sont pas partagés — chaque session voit les autres sous des noms
+propres à son propre `ListAgents`, et deux sessions se sont désignées toute une
+semaine par des noms que l'autre ignorait. Un registre de noms serait donc faux
+pour six lecteurs sur sept au moment même de l'écrire. Les rôles sont la seule
+chose que tout le monde voit pareil — c'est d'ailleurs ainsi que l'auteur les a
+énumérés. Qui tient un rôle *aujourd'hui* se relève par `ListAgents`, en disant
+depuis quel annuaire on nomme.
+
+- **La manageuse** — travaille depuis la racine `~/ONTBible`, seul endroit d'où
+  les trois dépôts se voient. Tient la concertation, la synchronisation
+  inter-dépôts et l'outillage de la machine (l'espace disque, les règles
+  communes). À joindre pour : tout ce qui traverse plus d'un dépôt, un registre
+  ou une carte à diffuser, une règle commune (rulesets, CI exigée), le disque.
+
+- **Le vault** — `ONTBibleTranslation` sur `main` : le `CLAUDE.md` (balisage
+  §2.5 / §2.5 bis / §2.10, glossaire §3), les fiches de `lexique/`,
+  `corpus-order.md`, la rédaction des **parashiot**, des introductions et des
+  fiches ; l'index `DECISIONS.md` (`scripts/decisions.py`) et les contrôles de
+  `pipeline/src/controles.rs`. À joindre pour : toute prose que le lecteur
+  lira, toute question de balisage ou de glossaire — et « cette décision
+  a-t-elle été prise ? » se demande d'abord à `scripts/decisions.py <mot>`.
+
+- **Les langues sources** — importe les textes en hébreu, grec, guèze et
+  latin, les joint aux unités ONT et les émet dans `dist/sources/` ; tient les
+  permissions auprès des éditeurs et des projets savants. À joindre pour :
+  `sources/` dans le vault, et la couche source dans l'app comme sur le site.
+
+- **iOS / iPadOS** — `app/Sources`, `app/Packages` (ONTKit, ONTData,
+  ONTDesignSystem, ONTFeatures), le widget, `app/Tests` et `app/UITests`. Les
+  décisions **d'interface** se prennent ici et s'appliquent ailleurs, quand
+  Android ou macOS n'ont pas de raison propre de diverger ; pour les
+  **données**, le sens est inverse — le pipeline et le vault font foi, iOS s'y
+  plie comme les autres. À joindre pour : tout arbitrage de ce que le lecteur
+  voit et touche sur iPhone et iPad, la forme des types de domaine d'ONTKit,
+  les contrats de données côté liseuse.
+
+- **Android** — `android/`, depuis son worktree dédié, intégration sur
+  `device` ; la fiche Play et la chaîne de parution. N'arbitre pas l'interface :
+  les initiatives viennent d'iOS, Android applique — règle de l'auteur. À
+  joindre pour : `android/`, la fiche Play, ce qui traverse le pipeline
+  jusqu'à Kotlin — et **avant** de toucher `scripts/corpus.sh` ou
+  `pipeline/src/schema.rs`, qui l'atteignent l'un en silence, l'autre par le
+  compilateur.
+
+- **macOS** — la liseuse du Mac : `app/MacSources` et la part proprement Mac
+  des fichiers partagés (fenêtre, barre latérale, cartes-modales, haptiques,
+  verre) ; la chaîne Homebrew de bout en bout (tap, cask, signature,
+  notarisation) ; la couche donnée des sources (`SourcesUpdater`). À joindre
+  pour : ce qui se voit ou se sent sur le Mac, le cask et la distribution hors
+  App Store. Les arbitrages d'interface vont à iOS, le Kotlin à Android.
+
+- **Le site** — `ONTBibleWebapp` / `ontbible.com`. Lit `../ONTBibleApp/dist/`
+  à la compilation, appelle le backend de l'app à l'exécution (`/auth/*`,
+  `/sync`) ; porte les **originaux de la marque** — la palette de
+  `style/main.css` et les vecteurs de `public/images/`, que l'app recopie,
+  jamais l'inverse. À joindre pour : une couleur ou un vecteur à changer, un
+  changement de forme dans `dist/` ou dans une réponse du backend, un lien
+  `ontbible.com/fr/lire/…` qui ne mène pas où il devrait.
+
+La table porte les rôles, qui durent — pas les chantiers ni les arbitrages en
+attente, qui périment : ceux-là voyagent par message, et par `DECISIONS.md`
+pour ce qui attend l'auteur.
+
 ---
 
 ## Journal
@@ -2154,3 +2227,400 @@ même leçon que les fontes non inscrites, prise par l'autre bout.
 Le défaut réel, une fois le facteur vraiment posé : **une `List` de macOS ne
 transmet pas `\.font` à ses lignes.** Vaut pour les trois dépôts au titre de la
 méthode, et pour le seul Mac au titre du remède.
+### 31 août 2026 — la chaîne de publication s'est rompue trois fois, et rien ne l'a dit
+
+Gloire a demandé que sa première **parashah** du *Chazon Avraham* atteigne les
+lecteurs. Elle ne les atteignait pas, et **personne ne le savait**.
+
+Le déploiement d'`ontbible.com` échouait **depuis six heures**. Trois défauts
+s'y étaient accumulés, indépendants :
+
+- **un bras de `match` manquant** — le site avait accueilli `Noeud::Shem` dans
+  son domaine et son rendu, sans écrire la conversion depuis `Inline::Shem`. Le
+  type d'arrivée existait, le rendu existait, **le pont entre les deux, non** ;
+- **`ONT_GENERE` posée nulle part** dans le déploiement du site. Le pipeline
+  refuse d'inventer une date — *« vide plutôt que fausse »* — et le site refuse
+  de publier un corpus indatable. Deux gardes correctes, aucune source ;
+- **une garde trop large** : le refus de publier le corpus arrêtait **tout le
+  site**. Or `/corpus/` est ce que l'app télécharge, tandis que les pages
+  portent leur corpus dans le binaire. On ne répare pas un silence en en créant
+  un plus grand.
+
+**Chacun a parfaitement joué son rôle. Chacun a refusé de publier plutôt que de
+publier faux. Aucun n'a rien dit à personne.**
+
+#### Ce qui manquait n'était pas une garde de plus
+
+`propager.yml` du vault **déclenchait et oubliait** : vert dès que GitHub
+accepte l'ordre, aveugle à tout ce qui suit.
+
+La parade posée n'est donc pas une surveillance par maillon — une garde par
+maillon ne couvre que les ruptures **qu'on a prévues**, et les trois étaient
+imprévues. C'est un contrôle de **l'état final observable** :
+`ontbible.com/corpus/manifeste.json`, ce qu'un lecteur télécharge.
+
+Et il connaît la valeur exacte à attendre, ce qui vaut mieux qu'un « ça a
+bougé » : le site estampille le corpus de la date du dernier commit du vault,
+et ce commit est celui qui déclenche le job.
+
+Trois pièges y sont encodés, tous rencontrés le même jour — `format-local` avec
+`TZ=UTC` et jamais `--date=format:`, qui rend une heure locale coiffée d'un `Z`
+et ment de l'écart au méridien sans qu'aucune vérification de forme le voie ;
+`>=` et non `==`, pour qu'une fusion qui en double une autre ne fasse pas
+rougir à tort ; et le contournement du cache, `max-age=300` sur `/corpus/`.
+
+#### Et la garde est tombée à sa première exécution
+
+`fatal: not a git repository` — le job ne fait aucun checkout, ses autres
+étapes n'appelant que l'API. Elle avait été éprouvée dans trois directions et
+jamais **dans l'environnement où elle tourne**.
+
+Ce qui la sauve est qu'elle a échoué **bruyamment et tout de suite**, ce qu'on
+lui demandait justement de faire du reste de la chaîne.
+
+**Pour les trois dépôts :** un échec de déploiement du site est un échec de
+livraison du corpus. C'est le seul chemin par lequel un texte atteint un
+lecteur, et il n'était surveillé par personne.
+
+### 31 août 2026 — onze relevés justes sur le mauvais état, en douze heures
+
+Quatre sessions, onze mesures fausses, et **aucun instrument cassé**. Toutes
+mesuraient correctement — autre chose que ce qu'on croyait. La taxonomie, parce
+que le remède diffère :
+
+| forme | exemple du jour |
+|---|---|
+| **état périmé** | un worktree de build en retard de quinze commits ; l'app compilée contre une autre branche |
+| **cache** | un corpus publié lu à travers cinq minutes de CloudFront — j'ai failli annoncer un quatrième défaut |
+| **périmètre trop étroit** | `grep ONT_GENERE .github/workflows` → rien. La variable était dans le **script que le workflow appelle** |
+| **motif mal ancré** | `grep "^brouillons"` sur une sortie `git`, qui **entoure de guillemets** les chemins accentués |
+| **unité fausse** | `grep -c` compte les **lignes**, pas les occurrences — 8 annoncés pour 10 réels |
+| **mauvais environnement** | une garde éprouvée sur trois cas et jamais là où elle s'exécute |
+| **autre chemin de code** | une sonde HTTP bien formée, sur le bon service, renvoyant six codes cohérents — et interrogeant un chemin qu'on ne voulait pas mesurer |
+
+La dernière est la pire : **sa sortie était impossible à distinguer d'une bonne
+réponse.**
+
+#### Ce qui a marché
+
+Ni le raisonnement, ni la confiance. **Comparer deux commandes.** Deux sessions
+en désaccord sur un 503 ont échangé leurs conclusions sans avancer ; l'une a
+demandé *« donne-moi ta commande exacte et je la rejoue »*, et l'écart est
+apparu en une minute — un champ du corps là où l'autre lisait un en-tête.
+
+**La règle : donner le commit, la branche et la commande sur lesquels on a
+mesuré.** Un relevé sans sa référence n'est pas vérifiable par qui n'est pas
+dans le même arbre — et à plusieurs sessions, c'est la situation normale.
+
+Corollaire : **un « 0 » est ce qu'on vérifie le moins**, parce qu'il ressemble
+à une absence et qu'une absence ne se relit pas.
+
+### 1ᵉʳ septembre 2026 — une stratigraphie écrite sans son apparat
+
+Le *Chazon Avraham* fait descendre un feu sur la maison de Terah. La
+stratigraphie du livre affirmait que le récit **répondait au silence de
+*Bereshit* 11:28** sur la mort de Haran.
+
+Vérification faite au texte : **c'est faux du témoin de base.** Le Codex
+Sylvester, le plus ancien des six slavons, fait périr **Terah**. La version où
+Haran meurt est une **insertion** de trois manuscrits tardifs, et cette
+insertion **harmonise** — elle comble le silence de la Torah et rejoint
+*Yovelim*. Une couche de copiste, du genre exact que le filtre du livre écarte.
+
+Tout tenait à une note de bas de page d'édition critique, en une ligne. **La
+stratigraphie avait été écrite sur une traduction sans son apparat.**
+
+#### Ce que l'auteur en a décidé
+
+Restituer le témoin, gloser la divergence avec *Bereshit* 11:32, ne pas
+harmoniser. La raison vaut au-delà de ce livre : **on ne corrige pas un témoin
+sur la foi d'un autre.** Écarter reviendrait à réécrire le livre d'après la
+Torah ; harmoniser reviendrait à refaire ce que les copistes ont fait et qu'on
+vient d'écarter.
+
+**Pour les trois dépôts :** toute affirmation tirée d'une traduction se
+revérifie sur une édition qui porte son apparat. Un motif peut reposer
+entièrement sur des manuscrits interpolés sans que la traduction le dise dans
+son corps.
+
+### 1ᵉʳ septembre 2026 — le seuil de contraste du projet a enfin une raison
+
+Les trois dépôts ont convergé, chacun de son côté, sur un plancher de contraste
+**au-dessus du seuil AA** — environ 6,1:1 — sans qu'aucun sache d'où venait
+l'exigence. Elle était tenue partout et écrite nulle part.
+
+Elle a maintenant un motif : **l'auteur du corpus lit à 0,6/10 corrigé**, d'un
+kératocône bilatéral sévère où les verres n'apportent rien.
+
+Deux conséquences de conception qui en découlent, et qui valent pour les trois :
+
+- **l'italique est le plus faible des discriminants** pour un astigmatisme
+  irrégulier — il multiplie les images fantômes au lieu de séparer. Ce qui tient
+  est la **couleur**, la **taille**, l'**espace** ;
+- les bascules d'affichage — masquer les gloses, masquer le niveau 3 — ne sont
+  pas un confort. Ce sont **les** fonctions d'accessibilité du corpus.
+
+**Une exigence dont on connaît la raison se défend ; une exigence orpheline se
+fait raboter au premier arbitrage.**
+
+### 2 septembre 2026 — un texte écrit sur son plan, et non sur sa source
+
+Les **parashiot** ① et ② du *Chazon Avraham* ont été refaites entièrement, sur
+les deux témoins. Elles avaient été écrites sur le plan de la stratigraphie —
+lui-même établi sans le texte sous les yeux.
+
+Ce que le témoin porte et qu'elles n'avaient pas : le temple et ses six
+matières ; l'idole **trouvée déjà tombée** aux pieds d'un autre dieu, quand la
+rédaction faisait choir une idole des mains de l'enfant ; **la vente de cinq
+dieux au marché** — l'âne, les marchands, le cri d'un chameau, trois brisés,
+les morceaux jetés au fleuve ; et l'échelle des éléments **prononcée à voix
+haute devant le père**, non ruminée. Une scène entière était au mauvais
+chapitre. Dans la ③, la voix **appelle le nom deux fois** et c'est l'homme qui
+répond *me voici* — la rédaction attribuait ce *me voici* à la voix.
+
+**Le motif est celui que le journal traque depuis le 30 août**, dans un
+matériau nouveau : une sortie cohérente, bien formée, complète, et qui ne
+répond pas à la source. Il s'était présenté sur un instrument de mesure, puis
+sur un compte de balises. Ici c'est du texte — et c'est plus grave, parce
+qu'**un build faux se refait et qu'un texte faux se lit**.
+
+**Pour les trois dépôts :** un plan n'est pas une source. Un document
+intermédiaire — stratigraphie, inventaire, schéma, note de conception — est un
+instrument comme un autre, et il se valide contre ce qu'il prétend décrire
+avant qu'on bâtisse dessus. Ce qui a rattrapé celui-ci n'est pas une relecture :
+c'est d'être allé chercher les chapitres.
+
+**Ce que le vault déclare maintenant, et qui manquait :** la feuille
+d'introduction décrivait la chaîne du *texte* — hébreu, grec, slavon — comme si
+c'était celle de **notre accès**. Les deux ne se recouvrent pas. Aucun
+manuscrit slavon n'est transcrit en accès ouvert et aucune édition n'en est
+lisible par machine : l'ONT travaille sur deux traductions savantes du domaine
+public. La chaîne est écrite maillon par maillon, avec ce qu'elle coûte et ce
+qui la rend tenable. **Un dépôt doit déclarer sur quoi il travaille, pas
+seulement d'où vient ce qu'il travaille.**
+
+### 2 septembre 2026 — le pipeline d'un arbre périmé rend un rapport faux
+
+Même vault, même commande, deux exemplaires du pipeline :
+
+    ~/ONTBible/ONTBibleApp   (branche de travail abandonnée)   204 fiches orphelines
+    worktree détaché @ origin/dev                                2 fiches orphelines
+
+L'écart n'est pas une régression : la branche est **en amont** du correctif des
+Shemot, de 939 lignes sur `pipeline/`. C'est la troisième forme de prémisse
+fausse déjà nommée — **juste ici, fausse là-bas, sans que rien n'ait bougé** —,
+et elle a failli produire un signalement de régression 3 → 204 à la session app.
+
+**Pour les trois dépôts :** un outil de contrôle se mesure **avec la référence
+sur laquelle il tourne**, au même titre qu'un `grep`. `git worktree add -f
+--detach <scratch> origin/dev` coûte une ligne et donne l'état publié.
+
+Deux faits utiles au passage. Le binaire du pipeline résout le vault en relatif
+depuis son propre chemin : hors de l'arbre habituel il faut `ONT_VAULT`, et il
+s'arrête net avec un message clair si on l'oublie — bon comportement. Et
+`scripts/corpus.sh` ne se lance **pas** sur un arbre partagé : il fait `rm -rf
+app/Resources/data`, réécrit les DTO Swift et rejoue `xcodegen`. Le binaire
+seul écrit dans `dist/`, qui est ignoré.
+
+**Et un défaut réel, trouvé en se faisant contredire.** J'avais avancé que le
+balayage ne collectait les `[[Nom]]` que depuis les unités d'un livre. La
+session app l'a **réfuté sur pièces** — les fiches produisent bien leurs nœuds
+de lien, et l'app les rend touchables. Elle a en même temps donné **la date de
+son propre corpus**, vieux de deux jours, plutôt que la conclusion sans elle :
+c'est ce qui m'a fait remesurer au lieu de conclure.
+
+Le vrai défaut est ailleurs, et il est plus large. Sur `dist/` fraîchement
+construit depuis `origin/dev` :
+
+    liens émis          corps de chapitre 4447   ·   fiches 2948
+    lemmes introuvables corps de chapitre  133   ·   fiches   88
+
+**Deux causes distinctes, et il faut les séparer parce que le remède diffère.**
+
+- **Une forme dérivée s'émet elle-même comme lemme.** `**gibborim**` sort en
+  `lemma: "gibborim"`, quand l'entrée s'appelle `gibbor` et déclare
+  `forms: [gibbor, gibborim, gibor]`. Le rapport dit « 0 mot d'or sans fiche »
+  parce que **lui** traverse `forms` ; le nœud livré, non. Et pour une partie
+  d'entre elles la traversée ne suffirait pas : `forms` garde le texte brut —
+  `mal'akhim`, `le'olam`, `kohen gadol` — tandis que `lemma` est passé par
+  `slugify`, qui **laisse tomber l'apostrophe sans séparateur**. `mal'akhim`
+  devient `malakhim`, qui n'est dans aucune liste de formes. Ces liens-là sont
+  morts quel que soit le consommateur : **25 occurrences pour le seul
+  `mal'akhim`, dans des corps de chapitre.**
+- **Une fiche citée seulement par d'autres fiches est écartée de l'index — et
+  les liens vers elle continuent d'être émis.** `shem-fils-de-noach` est visé
+  **37 fois** et `kasdim` **6 fois** depuis d'autres fiches ; ni l'un ni l'autre
+  n'entre dans `shemot.json`. C'était bien un chemin de traversée qui ne voit
+  pas une source, mais ce n'est pas celui que j'avais nommé : ce n'est pas le
+  *rendu* qui rate les fiches, c'est le **critère d'inclusion**.
+
+**Pour les trois dépôts :** un rapport qui rend `0` peut être exact et
+n'attester de rien pour le lecteur, parce qu'il **normalise autrement que le
+consommateur**. Le rapport résout la forme dérivée ; le fichier livré ne la
+résout pas. La mesure qui compte n'est pas « le contrôle passe » mais
+**« chaque lien émis retombe-t-il sur une entrée du même fichier »** — et elle
+se fait sur `dist/`, pas sur le rapport.
+
+**Confirmé indépendamment, et c'est pire que des liens morts.** La session app
+a mesuré de son côté, sur un corpus plus ancien : `126` morts dans les corps et
+`131` dans les fiches, ==les mêmes coupables==. Et elle a lu le consommateur :
+
+    LexiconModel.swift:24   byLemma = Dictionary(entries.map { ($0.lemma, $0) }, …)
+    LexiconModel.swift:36   func entry(_ lemma: String) -> GlossaryEntry? { byLemma[lemma] }
+
+**Lemme exact, rien d'autre** — le consommateur ne traverse pas `forms`. La
+première cause vaut donc les 133, non les quatre.
+
+Et l'app ne reste pas muette devant un lemme absent : elle ouvre une feuille et
+écrit *« Terme non documenté — ce mot est balisé dans le texte mais n'a pas
+encore d'entrée dans le glossaire »*. ==C'est faux== : l'entrée existe, sous le
+lemme du singulier. **Un lien mort qui ne fait rien est un défaut ; un lien mort
+qui affirme une lacune inexistante est une perte de confiance** — le lecteur en
+conclut que le glossaire est plus creux qu'il n'est, cent vingt-six fois.
+
+**Le remède est à l'émission, non chez les consommateurs**, et la raison vaut
+d'être gardée : corriger côté app en indexant `forms` obligerait chaque
+plateforme à réécrire sa propre version de `slugify` pour faire se rejoindre
+`mal'akhim` et `malakhim`. ==Deux normalisations écrites séparément divergent==,
+et le défaut deviendrait intermittent au lieu d'être systématique — pire que
+maintenant. Le pipeline, lui, tient les deux au moment d'émettre : la forme
+rencontrée et l'entrée qu'elle désigne.
+
+**Décision réservée à l'auteur**, parce que le pipeline sert les trois
+plateformes : une correction de normalisation change ce que le site compile
+autant que ce que l'app lit.
+
+Corollaire de méthode, gagné en se trompant : **une hypothèse réfutée par un
+pair est le meilleur moment pour remesurer**, pas pour clore. La réfutation
+était juste et le défaut existait quand même — deux étages plus bas.
+
+### 2 septembre 2026 — faire taire le `fetch` dont dépend toute la conclusion
+
+Une session a relu la feuille d'introduction du *Chazon Avraham* et conclu
+qu'elle ne déclarait pas son assise textuelle. Elle avait raison ==l'avant-veille==
+et tort depuis : le paragraphe manquant avait été ajouté la veille. Elle
+s'apprêtait à porter à l'auteur que son livre ne dit pas sur quoi il repose —
+inquiétude qu'il avait déjà eue une fois, et sur un point faux.
+
+Elle a trouvé la mécanique elle-même, et ==elle est meilleure que l'erreur== :
+
+    git fetch origin --quiet 2>/dev/null; git show origin/main:<fichier>
+
+**Deux silencements indépendants sur la commande qui établissait la prémisse**,
+et l'un ou l'autre aurait suffi :
+
+- `2>/dev/null` jette le message d'échec du `fetch` ;
+- et le `;` jette son **code de sortie** — le code du couple est celui du
+  `git show`, qui réussit parfaitement en lisant ==la référence locale
+  périmée==. Rien ne distingue « `origin/main` à jour » de « `origin/main` d'il
+  y a deux jours » : `git show` répond dans les deux cas, sans un mot.
+
+Le motif de la semaine était jusqu'ici *l'instrument qui avale son erreur*.
+Celui-ci est plus net et plus embarrassant : **l'instrument n'a pas avalé son
+erreur, on la lui a fait avaler** — délibérément, pour garder une sortie propre
+à lire. C'est la première fois qu'on voit le défaut ==construit à dessein==,
+et par souci de lisibilité.
+
+**Pour les trois dépôts, et la règle tient en une ligne : jamais de
+`2>/dev/null` sur ce qui établit la prémisse — seulement sur ce qui décore.**
+Et son corollaire de forme : enchaîner par `&&` plutôt que par `;` ce dont la
+suite dépend, faute de quoi on lit vraiment quelque chose, mais pas ce qu'on
+croit lire.
+
+Ce qui a rattrapé celui-ci : la session avertie a **refusé de laisser relayer**
+et donné la commande de vérification plutôt que la conclusion. Trois lignes
+suffisaient — le commit qui introduit la phrase, l'état parent qui ne la porte
+pas, l'état courant qui la porte.
+
+### 3 septembre 2026 — un rapport qui rend `0` en normalisant autrement que le lecteur
+
+Le rapport de build relevait quatre choses et rendait `0` partout. **Deux cent
+trente-sept liens du corpus livré n'ouvraient rien.**
+
+La raison tient en une phrase, et c'est elle qu'il faut garder : **le rapport
+normalisait autrement que le consommateur.** Pour décider si `**gibborim**` a
+une fiche, il traversait la liste des formes déclarées et retombait sur
+`gibbor` ; le nœud livré, lui, porte `lemma: "gibborim"`, et la liseuse indexe
+par lemme exact. Les deux avaient raison chacun de son côté, et le lecteur
+recevait ==« Terme non documenté »== sur un mot parfaitement documenté.
+
+**Pour les trois dépôts.** La question qu'un contrôle doit poser n'est pas
+« cette chose existe-t-elle ? » mais ==« la référence telle qu'elle est écrite
+dans le fichier livré retombe-t-elle sur une entrée du même fichier ? »== On ne
+mesure pas la source, on mesure ce qu'on livre.
+
+**Deux contrôles neufs en découlent**, tous deux dans le pipeline : chaque
+lemme émis doit retomber sur une entrée du même `dist/`, et la densité de glose
+par unité tourne à chaque build — le §4.1 l'exigeait depuis un mois, et une
+commande qu'il faut penser à lancer avait été oubliée ==le jour même où la
+règle a été écrite==.
+
+**Le cliquet, et pourquoi pas zéro.** Le plafond est posé à la valeur mesurée,
+non à zéro : à zéro il aurait fallu le désactiver, la correction appartenant à
+l'auteur. Or ==un contrôle qu'on branchera « le jour où » ne se branche
+jamais== — le jour venu, personne ne sait plus où le seuil devait aller. À la
+valeur réelle il protège tout de suite contre la seule chose qu'un rapport nu
+ne voit pas : **l'aggravation**. Et il se resserre dès que le compte baisse,
+sinon il cesse de cliqueter.
+
+### 3 septembre 2026 — le contrôle qu'on éprouve, et les 206 qui n'existaient pas
+
+Le premier plafond allait être commis à **206**. La session macOS avait dit
+d'éprouver chaque contrôle contre un état dont on connaît la réponse. Fait —
+**et le compte n'a pas bougé**.
+
+Le parcours ne regardait que `blocks`. Les notes de bas de section vivent dans
+`footer.notes`, et le corpus de *Bereshit* y livre ==170 nœuds touchables à lui
+seul== : l'apparat critique du §2.7 est dense en intraduisibles, il est rendu,
+il est touchable. Le vrai compte était **237**.
+
+**206 n'était pas un plafond, c'était la mesure d'un instrument borgne** — et
+il partait comme référence de tous les builds à venir.
+
+**Pour les trois dépôts.** Un contrôle neuf se retourne contre un état dont on
+connaît la réponse **avant** d'être commis, et la seule épreuve qui vaut est
+celle qui doit le faire ==rougir==. Un compteur qui rend `0` parce que son
+entrée est vide se lit exactement comme un corpus sain.
+
+Le corollaire, qui a servi trois fois dans la journée : **un `0` qui vaut zéro
+parce que le corpus est sain et un `0` qui vaut zéro parce que l'instrument est
+borgne s'écrivent pareil**, et c'est le premier qu'on lit. Le rapport porte
+désormais le compte de ce que les parcours restreints ne voient pas — ==613
+nœuds== — non pour les corriger, mais pour que leur `0` cesse d'être cru sans
+preuve.
+
+**Et une épreuve ratée qui vaut la réussie :** la première tentative de faire
+rougir le contrôle d'index ajoutait une ligne ==à la fin== du fichier, où elle
+ne décale aucun numéro. Le contrôle avait raison de se taire, et j'ai failli le
+croire cassé. ==Un cas dont on croit connaître la réponse n'est pas un cas dont
+on la connaît.==
+
+### 3 septembre 2026 — une table de renvois, et pourquoi elle n'est pas un document de plus
+
+Le savoir du vault est éclaté sur cinq sources qui ont chacune une bonne raison
+d'exister, et les arbitrages récents vivent dans les **pieds de section**, là où
+personne ne pense à chercher. Le coût n'est pas de chercher : c'est de ==ne pas
+trouver et de retrancher==, en croyant décider pour la première fois.
+
+`DECISIONS.md` répond à ça — et ==il est engendré, jamais rédigé==. Le §2.5 ter
+pose la règle : *une seule source par fait*. Une base écrite à la main serait
+une sixième source et elle divergerait. Celle-ci ne copie rien : elle dit **où**
+une décision est écrite, jamais ce qu'elle dit. On ne peut donc pas la
+contredire ; au pire elle est incomplète.
+
+**Pour les trois dépôts.** Un index engendré réclame exactement deux choses, et
+les deux ont failli manquer :
+
+- **l'idempotence** — l'index s'indexait lui-même, recopiait ses propres lignes
+  à chaque exécution et cessait de rendre le même fichier. C'est le seul
+  contrôle qu'un fichier engendré demande vraiment ;
+- **la fidélité au producteur** — l'extraction emploie ==l'expression exacte==
+  du pipeline et ==sa règle de slug exacte==. Deux versions approximatives ont
+  été écrites et jetées : l'une fabriquait un lemme inexistant, l'autre
+  manquait ==neuf réservations sur quatorze== sans que rien ne le signale,
+  puisqu'une liste courte ressemble à une liste. **Un index qui contredit son
+  producteur est pire qu'une absence d'index : il aurait fallu le croire.**
+
+Et il se contrôle en CI par régénération et comparaison — l'échec ==dit la
+commande== et ne régénère pas en silence, la CI n'écrivant pas à la place de
+qui a relu.

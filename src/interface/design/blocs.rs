@@ -200,6 +200,13 @@ fn rendre_bloc(
                         view! {
                             <span
                                 id=ancre
+                                // Le numéro, lisible depuis le navigateur : c'est
+                                // ce que `suivre_la_lecture` relève au défilement
+                                // pour savoir où l'on en est. L'ancre `v12` le
+                                // porte aussi, mais un sélecteur sur `id` ramasse
+                                // tout ce qui commence par « v » ; un attribut
+                                // nommé ne ramasse que les versets.
+                                attr:data-verset=numero
                                 class="scroll-mt-24"
                                 class=("rounded-sm", designe)
                                 class=("bg-surface", designe)
@@ -278,6 +285,7 @@ fn rendre_bloc(
                     // l'accueil à la mauvaise largeur — voir `bloc.rs`.
                     <div
                         id=ancre
+                        attr:data-verset=numero
                         class="-mx-4 rounded-sm pe-4 scroll-mt-24 transition-colors"
                         class=("ps-4", move || !designe)
                         class=("ps-5", designe)
