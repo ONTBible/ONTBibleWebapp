@@ -97,6 +97,18 @@
      pas. */
   --color-shem: #ba8c6c;
 
+  /* Le renvoi d'une chuqqah vers une autre — `((cible|libellé))`.
+
+     La valeur du thème sombre de l'app est #D08C43, mesurée là-bas à 6,94:1
+     sur son fond. Ici la nuit est plus sombre : la même valeur y donne plus,
+     et rien n'oblige à la remonter. On la reprend telle quelle — c'est la
+     seule des quatre couches où l'app et le site coïncident au chiffre près.
+
+     Elle doit se distinguer du Shem (#BA8C6C, 24,6°) : celle-ci est à 31,5°,
+     plus saturée et plus claire. ΔE mesuré entre les deux : 25, le plancher
+     que le projet s'est donné entre deux marquages. */
+  --color-renvoi: #d08c43;
+
   /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri
      comme il le fallait sur le parchemin. Le jeton garde son nom de **rôle**,
      comme `ONTColors.accent` dans l'app — ce qui permettra de le décliner un

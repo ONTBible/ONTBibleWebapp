@@ -35,6 +35,20 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Ce qu'une translittération de niveau 3 ouvre.
+///
+/// **Deux destinations qui ne se confondent pas.** Le site les mène toutes deux
+/// vers `/fr/lexique/{lemme}` — l'adresse est la même —, mais la couleur les
+/// sépare : l'accent pour un intraduisible, la teinte des Shemot pour un nom
+/// propre. C'est déjà la règle du corps du texte, et le niveau 3 la reprend.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CibleDuNiveauTrois {
+    /// Une entrée du glossaire.
+    Terme(String),
+    /// Une fiche de Shem.
+    Shem(String),
+}
+
 /// Un fragment de texte ONT.
 ///
 /// L'arbre est volontairement fidèle à ce que produit le pipeline : ce qui
@@ -67,7 +81,36 @@ pub enum Noeud {
     Hebreu {
         translitteration: String,
         hebreu: String,
+        /// La fiche que la translittération ouvre, **quand elle en ouvre une**.
+        ///
+        /// Le lecteur est sur le mot hébreu : c'est le moment où il veut sa
+        /// fiche, et l'appareil s'arrêtait au corps du texte.
+        ///
+        /// **`None` est le cas ordinaire**, et il est honnête. Le pipeline ne
+        /// résout que l'exact — un lemme, une forme déclarée au §2.5, un Shem
+        /// publié — et laisse inerte le reste : une règle morphologique qui se
+        /// trompe ne rend pas le mot inerte, elle le rend cliquable **vers la
+        /// mauvaise fiche**, ce que le lecteur ne peut pas voir.
+        cible: Option<CibleDuNiveauTrois>,
     },
+    /// Un renvoi d'une **chuqqah** vers une autre — `((cible|libellé))`.
+    ///
+    /// ## Il ne mène nulle part, et c'est délibéré
+    ///
+    /// Le site n'a pas de section chuqqot : son espace d'adresses va de
+    /// `/fr/lire` à `/fr/lexique`, et rien entre les deux. Fabriquer un
+    /// `<a href="/fr/chuqqot/…">` donnerait un lien vers un 404 — un mot
+    /// coloré qui n'ouvre rien, exactement le défaut que le pipeline refuse
+    /// partout ailleurs en laissant une translittération inerte plutôt que de
+    /// la renvoyer vers une fiche absente.
+    ///
+    /// Le libellé garde donc sa teinte — le lecteur voit qu'il désigne autre
+    /// chose — et ne se clique pas.
+    ///
+    /// **La condition pour le lever tient en une ligne** : le jour où le site
+    /// publie les chuqqot, ce nœud devient un lien vers `cible`. C'est le seul
+    /// changement à faire, et il est ici.
+    Renvoi { libelle: String, cible: String },
     /// De l'hébreu **seul**, sans translittération.
     ///
     /// Il sert dans les fiches de lexique, où l'on cite parfois un fragment
@@ -123,6 +166,7 @@ mod tests {
                 Noeud::Hebreu {
                     translitteration: "elohim".into(),
                     hebreu: "אֱלֹהִים".into(),
+                    cible: None,
                 },
                 Noeud::Texte(" ".into()),
                 Noeud::Glose(vec![Noeud::Texte("nom divin laissé intact".into())]),
