@@ -145,9 +145,18 @@ jobs:
         working-directory: ONTBibleApp
         run: |
           set -euo pipefail
-          git fetch --depth=1 origin main
+          # `app-store` et non `main` : le dépôt de l'app a renommé ses paliers
+          # le 31 août — device, dev, beta-test, app-store — et **`main`
+          # n'existe plus sur le serveur**. Le `git fetch` échouait donc par
+          # « couldn't find remote ref main », et l'étape tombait avant d'avoir
+          # rien comparé : le déploiement mourait sur une branche disparue, pas
+          # sur un désaccord de schéma.
+          #
+          # « L'app en vente » est bien `app-store` : c'est le palier que la
+          # revue d'Apple reçoit, et c'est ce que cette garde veut lire.
+          git fetch --depth=1 origin app-store
           LISEUSE="app/Packages/ONTData/Sources/ONTData/Remote/CorpusUpdater.swift"
-          attendu=$(git show "origin/main:$LISEUSE" \
+          attendu=$(git show "origin/app-store:$LISEUSE" \
             | sed -n 's/.*static let schema = \([0-9]*\).*/\1/p' | head -1)
           publie=$(sed -n 's/.*"schema": *\([0-9]*\).*/\1/p' \
             ../ONTBibleWebapp/scripts/corpus-publie.py | head -1)
@@ -555,6 +564,15 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
+          # `gh` devine le dépôt depuis le dossier courant. Ce workflow clone
+          # **trois** dépôts dans des sous-dossiers, et cette étape tourne à la
+          # racine de l'espace de travail, qui n'est pas un dépôt git : elle
+          # échouait par « not a git repository ».
+          #
+          # `GH_REPO` le dit au lieu de le faire deviner. C'est plus robuste
+          # qu'un `working-directory` : la disposition des clones peut changer,
+          # le nom du dépôt non.
+          GH_REPO: ${{ github.repository }}
           LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           corps=$(printf '%s\n' \
@@ -591,6 +609,15 @@ jobs:
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
+          # `gh` devine le dépôt depuis le dossier courant. Ce workflow clone
+          # **trois** dépôts dans des sous-dossiers, et cette étape tourne à la
+          # racine de l'espace de travail, qui n'est pas un dépôt git : elle
+          # échouait par « not a git repository ».
+          #
+          # `GH_REPO` le dit au lieu de le faire deviner. C'est plus robuste
+          # qu'un `working-directory` : la disposition des clones peut changer,
+          # le nom du dépôt non.
+          GH_REPO: ${{ github.repository }}
           LIEN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           for n in $(gh issue list --label deploiement --state open \
