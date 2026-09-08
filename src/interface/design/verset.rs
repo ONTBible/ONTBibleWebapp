@@ -206,10 +206,15 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
             // Ici, on est déjà sur le site : on rend le chemin relatif et on
             // navigue en place. Envoyer le lecteur dans un onglet neuf pour
             // aller trois écrans plus loin dans le même livre serait absurde.
-            const SITE: &str = "https://ontbible.com";
-            let interne = href.strip_prefix(SITE).map(str::to_string);
-            let cible = interne.clone().unwrap_or_else(|| href.clone());
-            let externe = interne.is_none();
+            let (cible, externe) = match classer(href) {
+                Destination::Interne(chemin) => (chemin, false),
+                Destination::Externe(adresse) => (adresse, true),
+                // Un schéma qu'on ne sert pas ne devient pas un lien : le
+                // libellé reste, et il reste lisible.
+                Destination::Refusee => {
+                    return view! { <span>{rendre(enfants)}</span> }.into_any();
+                }
+            };
             view! {
                 <a
                     href=cible
@@ -361,5 +366,189 @@ mod liens {
                 _ => {}
             }
         }
+    }
+}
+
+/// Où mène un lien du corpus.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Destination {
+    /// Le site lui-même — on rend le chemin et on navigue en place.
+    Interne(String),
+    /// Ailleurs — onglet neuf, `noopener noreferrer`.
+    Externe(String),
+    /// Un schéma qu'on ne sert pas. Le lien n'est pas rendu.
+    Refusee,
+}
+
+/// L'origine du site, telle qu'elle s'écrit dans le corpus.
+const SITE: &str = "https://ontbible.com";
+
+/// Classe un lien du corpus par son **origine**, et non par son préfixe.
+///
+/// ## Ce que le préfixe laissait passer
+///
+/// La version d'avant faisait `href.strip_prefix("https://ontbible.com")`. Un
+/// préfixe textuel n'est pas une origine :
+///
+/// * `https://ontbible.com.exemple.net/x` **commence** par la chaîne, sans être
+///   le site. Il était classé interne, rendu en adresse relative, et privé du
+///   `noopener` que tout lien étranger doit porter ;
+/// * `javascript:` et `data:` ne commençaient par rien de connu, donc partaient
+///   en lien **externe intact**. Le corpus est éditorial et rien de tel n'y
+///   figure — l'audit le dit et je l'ai vérifié —, mais une garde qui dépend du
+///   contenu n'en est pas une : le vault gagne des liens à chaque parashah, et
+///   personne ne relit un `href` en écrivant de la prose.
+///
+/// ## Ce qui fait une origine
+///
+/// L'adresse est interne si elle vaut l'origine **exactement**, ou si le
+/// caractère qui suit est `/`, `?` ou `#`. C'est ce que dit la norme d'URL, et
+/// c'est ce qui distingue `ontbible.com/fr` de `ontbible.com.exemple.net`.
+///
+/// ## Les schémas servis
+///
+/// `http`, `https`, `mailto`, et les chemins relatifs. Tout le reste est refusé
+/// — liste blanche et non liste noire : une liste noire oublie toujours le
+/// schéma qu'on n'a pas imaginé, et il en naît.
+pub fn classer(href: &str) -> Destination {
+    let brut = href.trim();
+
+    // Les blancs et les caractères de contrôle se glissent entre le schéma et
+    // ses deux-points — `java\nscript:` — et certains analyseurs les ignorent.
+    // On refuse plutôt que de deviner lequel le navigateur emploiera.
+    if brut.chars().any(|c| c.is_control()) {
+        return Destination::Refusee;
+    }
+
+    if let Some(reste) = brut.strip_prefix(SITE) {
+        if reste.is_empty() {
+            return Destination::Interne("/".to_string());
+        }
+        if reste.starts_with('/') || reste.starts_with('?') || reste.starts_with('#') {
+            return Destination::Interne(reste.to_string());
+        }
+        // `ontbible.com.exemple.net` — le préfixe est là, l'origine non.
+        return Destination::Externe(brut.to_string());
+    }
+
+    // Un schéma se lit avant le premier `:`, et seulement s'il précède le
+    // premier `/`, `?` ou `#` — sinon `bereshit-1?v=1:2` passerait pour un
+    // schéma nommé « bereshit-1?v=1 ».
+    let fin = brut
+        .find(|c| c == '/' || c == '?' || c == '#')
+        .unwrap_or(brut.len());
+    match brut[..fin].find(':') {
+        None => {
+            // Aucun schéma : un chemin. Relatif ou absolu, il reste chez nous.
+            if brut.starts_with('/') {
+                Destination::Interne(brut.to_string())
+            } else {
+                Destination::Externe(brut.to_string())
+            }
+        }
+        Some(i) => {
+            let schema = brut[..i].to_ascii_lowercase();
+            match schema.as_str() {
+                "http" | "https" | "mailto" => Destination::Externe(brut.to_string()),
+                _ => Destination::Refusee,
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod origines {
+    use super::*;
+
+    #[test]
+    fn le_site_est_interne_et_rendu_en_chemin() {
+        assert_eq!(
+            classer("https://ontbible.com/fr/lire/bereshit/bereshit-1"),
+            Destination::Interne("/fr/lire/bereshit/bereshit-1".into())
+        );
+        assert_eq!(
+            classer("https://ontbible.com"),
+            Destination::Interne("/".into())
+        );
+        assert_eq!(
+            classer("https://ontbible.com/fr?v=1"),
+            Destination::Interne("/fr?v=1".into())
+        );
+    }
+
+    /// **Le défaut que le préfixe laissait passer.**
+    ///
+    /// `ontbible.com.exemple.net` commence par notre origine sans en être une.
+    /// Classé interne, il était rendu en adresse relative et perdait son
+    /// `noopener`.
+    #[test]
+    fn un_domaine_qui_commence_comme_le_notre_reste_etranger() {
+        for adresse in [
+            "https://ontbible.com.exemple.net/x",
+            "https://ontbible.commerce.fr",
+            "https://ontbible.com@exemple.net/",
+        ] {
+            assert_eq!(
+                classer(adresse),
+                Destination::Externe(adresse.into()),
+                "« {adresse} » doit rester externe"
+            );
+        }
+    }
+
+    /// **Un schéma qu'on ne sert pas ne devient pas un lien.**
+    ///
+    /// Liste blanche et non liste noire : une liste noire oublie toujours le
+    /// schéma qu'on n'a pas imaginé.
+    #[test]
+    fn les_schemas_non_servis_sont_refuses() {
+        for adresse in [
+            "javascript:alert(1)",
+            "JavaScript:alert(1)",
+            "data:text/html;base64,PHNjcmlwdD4=",
+            "vbscript:msgbox",
+            "file:///etc/passwd",
+            "ont://read/bereshit",
+        ] {
+            assert_eq!(
+                classer(adresse),
+                Destination::Refusee,
+                "« {adresse} » ne doit pas devenir un lien"
+            );
+        }
+    }
+
+    /// Un caractère de contrôle sépare le schéma de ses deux-points chez
+    /// certains analyseurs et pas chez d'autres. On refuse plutôt que de parier.
+    #[test]
+    fn un_caractere_de_controle_fait_refuser() {
+        assert_eq!(classer("java\nscript:alert(1)"), Destination::Refusee);
+        assert_eq!(classer("java\tscript:alert(1)"), Destination::Refusee);
+    }
+
+    #[test]
+    fn les_schemas_servis_passent() {
+        assert_eq!(
+            classer("https://sefaria.org/x"),
+            Destination::Externe("https://sefaria.org/x".into())
+        );
+        assert_eq!(
+            classer("mailto:contact@ontbible.com"),
+            Destination::Externe("mailto:contact@ontbible.com".into())
+        );
+    }
+
+    /// Un chemin sans schéma reste chez nous — et `bereshit-1?v=1:2` n'est pas
+    /// un schéma nommé « bereshit-1?v=1 ».
+    #[test]
+    fn un_chemin_n_est_pas_un_schema() {
+        assert_eq!(
+            classer("/fr/lexique"),
+            Destination::Interne("/fr/lexique".into())
+        );
+        assert_eq!(
+            classer("/fr/lire/bereshit/bereshit-1?v=1:2"),
+            Destination::Interne("/fr/lire/bereshit/bereshit-1?v=1:2".into())
+        );
     }
 }
