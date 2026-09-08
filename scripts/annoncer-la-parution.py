@@ -125,7 +125,15 @@ def main() -> int:
     requete = urllib.request.Request(
         f"{options.api.rstrip('/')}/diffuser",
         data=json.dumps(quoi).encode(),
-        headers={"Content-Type": "application/json", "X-Secret-Diffusion": secret},
+        # Le secret voyage dans Authorization — l'en-tête que la télémétrie du
+        # backend filtre nativement. L'en-tête maison X-Secret-Diffusion
+        # partait chez Sentry (C02, audit du 8 septembre 2026) ; on ne
+        # l'envoie plus, même en transition : chaque envoi le remettait dans
+        # les transactions, que rien ne sait expurger. Tant que le backend
+        # déployé ne connaît pas Bearer (il arrive avec la prochaine
+        # promotion app-store), l'annonce sera refusée en 401 — non fatal,
+        # le corpus se publie quand même, comme écrit plus bas.
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {secret}"},
         method="POST",
     )
     try:
