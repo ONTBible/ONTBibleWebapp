@@ -665,12 +665,70 @@ async fn session_valide() -> Option<crate::domaine::compte::Session> {
         .ok()?
         .as_millis() as i64;
 
-    // Périmée : on ne renouvelle pas ici. Le renouvellement écrit un cookie, et
-    // une fonction serveur ne compose pas la réponse — elle rendrait un jeton
-    // neuf que rien ne garderait. C'est la route `/fr/compte/retour` qui pose
-    // les cookies, et elle seule.
-    (!session.perimee(maintenant)).then_some(session)
+    if !session.perimee(maintenant) {
+        return Some(session);
+    }
+
+    // ── Périmée : on renouvelle ──────────────────────────────────────────────
+    //
+    // ## Ce qui était écrit ici, et qui était faux
+    //
+    // « On ne renouvelle pas ici. Une fonction serveur ne compose pas la
+    // réponse — elle rendrait un jeton neuf que rien ne garderait. »
+    //
+    // C'est faux : `leptos_axum::ResponseOptions` vit dans le contexte et
+    // permet d'ajouter un en-tête à la réponse, `Set-Cookie` compris. Éprouvé
+    // en compilant avant d'écrire une ligne de ce bloc.
+    //
+    // Le coût de cette phrase : `renouveler` était **déclaré au port et
+    // implémenté**, et appelé de nulle part. Une session mourait au bout d'une
+    // heure alors que son cookie vit soixante jours — le lecteur se connectait
+    // le matin, revenait l'après-midi, et ses surlignages ne suivaient plus
+    // sans qu'aucune erreur ne le dise. Il aurait fallu rouvrir la question,
+    // et le commentaire disait qu'elle était close.
+    //
+    // ## Une seule fois par requête
+    //
+    // Une page rend plusieurs fonctions serveur ; toutes appellent ceci. Sans
+    // garde, chacune présenterait le **même** jeton de rafraîchissement, et un
+    // jeton à usage unique invaliderait les suivantes. On range donc la session
+    // renouvelée dans le contexte de la requête : la première la demande, les
+    // autres la trouvent.
+    //
+    // Ça ne coordonne pas deux **requêtes** parallèles du navigateur, et rien
+    // ici ne le peut : elles ont deux contextes. Le pire cas reste une
+    // déconnexion que le lecteur répare en se reconnectant — pas une perte.
+    if let Some(deja) = use_context::<SessionRenouvelee>() {
+        return Some(deja.0);
+    }
+
+    let comptes = use_context::<std::sync::Arc<dyn crate::application::ports::Comptes>>()?;
+    let fraiche = comptes.renouveler(&session.refresh_token).await.ok()?;
+
+    // Le cookie repart pour soixante jours — la durée du jeton de
+    // rafraîchissement, pas celle du jeton d'accès. C'est ce que fait déjà
+    // `compte::retour`, et deux durées différentes pour un même cookie
+    // finiraient par en faire deux comportements.
+    if let Some(reponse) = use_context::<leptos_axum::ResponseOptions>() {
+        if let Ok(serialisee) = serde_json::to_string(&fraiche) {
+            let biscuit = crate::interface::compte::cookie_de_session(&serialisee);
+            if let Ok(valeur) = axum::http::HeaderValue::from_str(&biscuit) {
+                reponse.append_header(axum::http::header::SET_COOKIE, valeur);
+            }
+        }
+    }
+
+    provide_context(SessionRenouvelee(fraiche.clone()));
+    Some(fraiche)
 }
+
+/// La session renouvelée pendant cette requête, s'il y en a eu une.
+///
+/// Elle vit dans le contexte de la requête et nulle part ailleurs : c'est ce qui
+/// borne le renouvellement à un par requête sans rien retenir entre elles.
+#[cfg(feature = "ssr")]
+#[derive(Clone)]
+struct SessionRenouvelee(crate::domaine::compte::Session);
 
 /// Décodage d'un composant d'adresse — l'inverse de `interface::compte::encoder`.
 #[cfg(feature = "ssr")]
