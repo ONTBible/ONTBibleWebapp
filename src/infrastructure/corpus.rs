@@ -117,6 +117,10 @@ fn noeud(source: pipeline::Inline) -> Noeud {
                 pipeline::CibleDuNiveauTrois::Shem { lemma } => CibleDuNiveauTrois::Shem(lemma),
             }),
         },
+        pipeline::Inline::Renvoi { v, cible } => Noeud::Renvoi {
+            libelle: v,
+            cible,
+        },
         pipeline::Inline::Heb { v } => Noeud::HebreuNu(v),
         pipeline::Inline::Link { href, children } => Noeud::Lien {
             href,

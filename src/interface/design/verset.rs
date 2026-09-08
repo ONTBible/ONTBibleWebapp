@@ -177,6 +177,23 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         }
         .into_any(),
 
+        // **Coloré, pas cliquable — et ce n'est pas un oubli.**
+        //
+        // Le site n'a pas de section chuqqot : son espace d'adresses va de
+        // `/fr/lire` à `/fr/lexique`, et rien entre les deux. Un
+        // `<a href="/fr/chuqqot/…">` mènerait à un 404 — un mot coloré qui
+        // n'ouvre rien, exactement ce que le pipeline refuse en laissant une
+        // translittération inerte plutôt que de l'envoyer vers une fiche
+        // absente.
+        //
+        // La teinte suffit à dire « ceci désigne autre chose ». Le jour où le
+        // site publie les chuqqot, ce `<span>` devient un `<a>` vers `cible` —
+        // c'est le seul geste, et `cible` est déjà là pour le recevoir.
+        Noeud::Renvoi { libelle, .. } => view! {
+            <span class="text-renvoi">{libelle.clone()}</span>
+        }
+        .into_any(),
+
         Noeud::Accentuation(enfants) => view! {
             <b class="font-semibold text-accentuation">{rendre(enfants)}</b>
         }

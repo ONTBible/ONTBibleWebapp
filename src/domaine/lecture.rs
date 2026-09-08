@@ -442,7 +442,12 @@ pub fn corps(noeuds: &[Noeud]) -> String {
         for noeud in noeuds {
             match noeud {
                 Noeud::Texte(t) => sortie.push_str(t),
-                Noeud::Intraduisible { mot, .. } | Noeud::Shem { mot, .. } => sortie.push_str(mot),
+                // Le libellé du renvoi **est** du corps de texte : « déjà posé
+                // en ((la-chuqqah|cette disposition)) » se lit d'une traite, et
+                // l'omettre trouerait la phrase.
+                Noeud::Intraduisible { mot, .. }
+                | Noeud::Shem { mot, .. }
+                | Noeud::Renvoi { libelle: mot, .. } => sortie.push_str(mot),
                 Noeud::Accentuation(enfants)
                 | Noeud::Emphase(enfants)
                 | Noeud::Lien { enfants, .. } => aplatir(enfants, sortie),

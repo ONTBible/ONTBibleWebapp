@@ -93,6 +93,24 @@ pub enum Noeud {
         /// mauvaise fiche**, ce que le lecteur ne peut pas voir.
         cible: Option<CibleDuNiveauTrois>,
     },
+    /// Un renvoi d'une **chuqqah** vers une autre — `((cible|libellé))`.
+    ///
+    /// ## Il ne mène nulle part, et c'est délibéré
+    ///
+    /// Le site n'a pas de section chuqqot : son espace d'adresses va de
+    /// `/fr/lire` à `/fr/lexique`, et rien entre les deux. Fabriquer un
+    /// `<a href="/fr/chuqqot/…">` donnerait un lien vers un 404 — un mot
+    /// coloré qui n'ouvre rien, exactement le défaut que le pipeline refuse
+    /// partout ailleurs en laissant une translittération inerte plutôt que de
+    /// la renvoyer vers une fiche absente.
+    ///
+    /// Le libellé garde donc sa teinte — le lecteur voit qu'il désigne autre
+    /// chose — et ne se clique pas.
+    ///
+    /// **La condition pour le lever tient en une ligne** : le jour où le site
+    /// publie les chuqqot, ce nœud devient un lien vers `cible`. C'est le seul
+    /// changement à faire, et il est ici.
+    Renvoi { libelle: String, cible: String },
     /// De l'hébreu **seul**, sans translittération.
     ///
     /// Il sert dans les fiches de lexique, où l'on cite parfois un fragment
