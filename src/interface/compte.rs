@@ -203,6 +203,20 @@ fn identifiant_client(f: Fournisseur) -> Option<&'static str> {
 /// ce qui coupe la falsification de requête.
 /// **`Path=/`** — la session vaut pour tout le site, pas seulement pour la page
 /// qui l'a posée.
+/// Le cookie de session, fabriqué **au seul endroit** qui le fabrique.
+///
+/// Deux chemins le posent : `retour`, à l'ouverture, et `api::session_valide`,
+/// au renouvellement. Deux recettes finiraient par donner deux durées, ou deux
+/// encodages — et l'écart ne se verrait qu'au bout d'une heure, chez un lecteur
+/// dont la session tombe sur un chemin et tient sur l'autre.
+///
+/// Soixante jours : la durée du jeton de rafraîchissement, pas celle du jeton
+/// d'accès. Le second se renouvelle tout seul tant que le premier vaut ; le
+/// caler sur une heure déconnecterait le lecteur chaque heure.
+pub fn cookie_de_session(serialisee: &str) -> String {
+    cookie(COOKIE_SESSION, &encoder(serialisee), 60 * 24 * 3600)
+}
+
 fn cookie(nom: &str, valeur: &str, duree_s: i64) -> String {
     format!("{nom}={valeur}; Max-Age={duree_s}; Path=/; HttpOnly; Secure; SameSite=Lax")
 }
@@ -395,7 +409,7 @@ pub async fn retour(
             // rafraîchissement, pas celle du jeton d'accès. Le second se
             // renouvelle tout seul tant que le premier vaut ; le caler sur une
             // heure déconnecterait le lecteur chaque heure.
-            let session_cookie = cookie(COOKIE_SESSION, &encoder(&serialisee), 60 * 24 * 3600);
+            let session_cookie = cookie_de_session(&serialisee);
             (
                 StatusCode::FOUND,
                 [
