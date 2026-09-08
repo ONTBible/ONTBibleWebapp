@@ -477,6 +477,7 @@ mod tests {
                 Noeud::Hebreu {
                     translitteration: "elohim".into(),
                     hebreu: "אֱלֹהִים".into(),
+                    cible: None,
                 },
                 Noeud::Texte(" ".into()),
                 Noeud::Glose(vec![Noeud::Texte("nom divin laissé intact".into())]),

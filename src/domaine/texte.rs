@@ -35,6 +35,20 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Ce qu'une translittération de niveau 3 ouvre.
+///
+/// **Deux destinations qui ne se confondent pas.** Le site les mène toutes deux
+/// vers `/fr/lexique/{lemme}` — l'adresse est la même —, mais la couleur les
+/// sépare : l'accent pour un intraduisible, la teinte des Shemot pour un nom
+/// propre. C'est déjà la règle du corps du texte, et le niveau 3 la reprend.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CibleDuNiveauTrois {
+    /// Une entrée du glossaire.
+    Terme(String),
+    /// Une fiche de Shem.
+    Shem(String),
+}
+
 /// Un fragment de texte ONT.
 ///
 /// L'arbre est volontairement fidèle à ce que produit le pipeline : ce qui
@@ -67,6 +81,17 @@ pub enum Noeud {
     Hebreu {
         translitteration: String,
         hebreu: String,
+        /// La fiche que la translittération ouvre, **quand elle en ouvre une**.
+        ///
+        /// Le lecteur est sur le mot hébreu : c'est le moment où il veut sa
+        /// fiche, et l'appareil s'arrêtait au corps du texte.
+        ///
+        /// **`None` est le cas ordinaire**, et il est honnête. Le pipeline ne
+        /// résout que l'exact — un lemme, une forme déclarée au §2.5, un Shem
+        /// publié — et laisse inerte le reste : une règle morphologique qui se
+        /// trompe ne rend pas le mot inerte, elle le rend cliquable **vers la
+        /// mauvaise fiche**, ce que le lecteur ne peut pas voir.
+        cible: Option<CibleDuNiveauTrois>,
     },
     /// De l'hébreu **seul**, sans translittération.
     ///
@@ -123,6 +148,7 @@ mod tests {
                 Noeud::Hebreu {
                     translitteration: "elohim".into(),
                     hebreu: "אֱלֹהִים".into(),
+                    cible: None,
                 },
                 Noeud::Texte(" ".into()),
                 Noeud::Glose(vec![Noeud::Texte("nom divin laissé intact".into())]),

@@ -261,6 +261,7 @@ mod tests {
             Noeud::Hebreu {
                 translitteration: "elohim".into(),
                 hebreu: "אֱלֹהִים".into(),
+                cible: None,
             },
             Noeud::Texte(" ".into()),
             Noeud::Glose(vec![Noeud::Texte("nom divin laissé intact".into())]),
@@ -382,6 +383,7 @@ mod tests {
             Noeud::Hebreu {
                 translitteration: "shamayim".into(),
                 hebreu: "שָׁמַיִם".into(),
+                cible: None,
             },
         ])];
         assert_eq!(
@@ -409,6 +411,7 @@ mod tests {
             Noeud::Hebreu {
                 translitteration: "eloah".into(),
                 hebreu: "אֱלוֹהַּ".into(),
+                cible: None,
             },
             Noeud::Texte(" au pluriel".into()),
         ])];

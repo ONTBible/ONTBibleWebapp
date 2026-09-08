@@ -34,7 +34,7 @@ use crate::domaine::corpus::{
     Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section,
     SousTitre, Statut,
 };
-use crate::domaine::texte::{Noeud, Verset};
+use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset};
 
 // `LIVRES: &[(&str, &str)]` — l'identifiant du livre et son JSON.
 include!(concat!(env!("OUT_DIR"), "/livres.rs"));
@@ -103,9 +103,19 @@ fn noeud(source: pipeline::Inline) -> Noeud {
         pipeline::Inline::Accentuation { children } => Noeud::Accentuation(noeuds(children)),
         pipeline::Inline::Gloss { children } => Noeud::Glose(noeuds(children)),
         pipeline::Inline::Em { children } => Noeud::Emphase(noeuds(children)),
-        pipeline::Inline::Translit { translit, hebrew } => Noeud::Hebreu {
+        pipeline::Inline::Translit {
+            translit,
+            hebrew,
+            cible,
+        } => Noeud::Hebreu {
             translitteration: translit,
             hebreu: hebrew,
+            // Le `match` est exhaustif : une troisième destination ajoutée au
+            // pipeline casserait la compilation du site au lieu de s'y perdre.
+            cible: cible.map(|c| match c {
+                pipeline::CibleDuNiveauTrois::Term { lemma } => CibleDuNiveauTrois::Terme(lemma),
+                pipeline::CibleDuNiveauTrois::Shem { lemma } => CibleDuNiveauTrois::Shem(lemma),
+            }),
         },
         pipeline::Inline::Heb { v } => Noeud::HebreuNu(v),
         pipeline::Inline::Link { href, children } => Noeud::Lien {

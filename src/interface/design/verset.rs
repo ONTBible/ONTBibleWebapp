@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::domaine::texte::{Noeud, Verset as VersetDomaine};
+use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset as VersetDomaine};
 
 /// Un verset de l'ONT, avec ses trois niveaux.
 ///
@@ -118,6 +118,37 @@ pub fn composer(texte: &str) -> String {
     sortie
 }
 
+/// La part latine du niveau 3 — un lien quand elle ouvre une fiche, du texte
+/// sinon.
+///
+/// **Seule la part latine devient cliquable.** L'hébreu reste hors du lien : il
+/// se compose en RTL, et une zone cliquable à cheval sur la barre oblique
+/// traverserait deux directions d'écriture.
+///
+/// **La couleur dit d'avance ce qui répond.** Sur 2086 translittérations, 829
+/// ouvrent une fiche et 1257 non ; laissées toutes grises, elles obligeraient
+/// le lecteur à essayer sur chacune pour savoir sur laquelle essayer. Les
+/// teintes sont celles du corps du texte — l'accent pour un intraduisible, la
+/// teinte des Shemot pour un nom propre —, et elles disent la même chose :
+/// ceci ouvre, et voilà quoi.
+///
+/// L'italique reste dans les trois cas : c'est la marque du niveau 3, et elle
+/// ne dépend pas de ce que le mot ouvre.
+fn rendre_la_translitteration(mot: &str, cible: Option<&CibleDuNiveauTrois>) -> AnyView {
+    let (lemme, teinte) = match cible {
+        Some(CibleDuNiveauTrois::Terme(l)) => (l, "text-accent decoration-accent/40"),
+        Some(CibleDuNiveauTrois::Shem(l)) => (l, "text-shem decoration-shem/40"),
+        None => return view! { <i>{mot.to_string()}</i> }.into_any(),
+    };
+    let mot = mot.to_string();
+    view! {
+        <a href=format!("/fr/lexique/{lemme}") class=teinte>
+            <i>{mot}</i>
+        </a>
+    }
+    .into_any()
+}
+
 fn rendre_un(noeud: &Noeud) -> AnyView {
     match noeud {
         Noeud::Texte(t) => composer(t).into_any(),
@@ -168,9 +199,10 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         Noeud::Hebreu {
             translitteration,
             hebreu,
+            cible,
         } => view! {
             <span class="text-[0.86em] text-encre-douce">
-                "("<i>{translitteration.clone()}</i>
+                "("{rendre_la_translitteration(translitteration, cible.as_ref())}
                 " / "
                 // 1,08 — `ONTFonts.hebrewScale`. L'hébreu compose plus petit
                 // que le latin à taille égale : sans cette correction, les deux

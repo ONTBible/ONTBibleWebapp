@@ -28,11 +28,13 @@ pub fn bereshit_1_1() -> Verset {
             Noeud::Hebreu {
                 translitteration: "elohim".into(),
                 hebreu: "אֱלֹהִים".into(),
+                cible: None,
             },
             Noeud::Texte(" commença à orchestrer ".into()),
             Noeud::Hebreu {
                 translitteration: "bara".into(),
                 hebreu: "בָּרָא".into(),
+                cible: None,
             },
             Noeud::Texte(" ".into()),
             Noeud::Glose(vec![Noeud::Texte(
@@ -48,6 +50,7 @@ pub fn bereshit_1_1() -> Verset {
             Noeud::Hebreu {
                 translitteration: "hashamayim ve'ha'aretz".into(),
                 hebreu: "הַשָּׁמַיִם וְהָאָרֶץ".into(),
+                cible: None,
             },
             Noeud::Texte(" ".into()),
             Noeud::Glose(vec![Noeud::Texte(
