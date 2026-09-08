@@ -50,11 +50,22 @@ SORTIE = RACINE / "target" / "corpus"
 # `search.json` et `report.md` restent au vestiaire : le premier sert à la
 # recherche du site, que l'app fait autrement ; le second est un rapport de
 # construction destiné à un humain.
+# Les clés sont celles que les clients cherchent, **relevées chez eux** et non
+# choisies ici : `shemot` et `recherche` apparaissent onze et quatre fois dans
+# `app/` et `android/`, contre une seule pour `search`. Une clé bien nommée mais
+# autrement ne rend rien, et ne rend rien *en silence* — le client cherche, ne
+# trouve pas, et garde ce qu'il avait.
 FICHIERS = {
     "plan": "corpus.json",
     "quotidien": "daily.json",
     "glossaire": "glossary.json",
     "occurrences": "occurrences.json",
+    # Ajoutés le 8 septembre 2026, sur l'audit externe (A10). Sans eux, les
+    # fiches de Shemot et l'index de recherche restaient ceux de l'installation
+    # pendant que le texte évoluait : `gavriel`, `moshe`, `sinai`, `eliyahu`
+    # étaient déjà signalés comme Shemot sans fiche distribuée.
+    "shemot": "shemot.json",
+    "recherche": "search.json",
 }
 
 
