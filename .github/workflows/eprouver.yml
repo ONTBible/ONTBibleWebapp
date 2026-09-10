@@ -164,6 +164,42 @@ jobs:
       # pas à produire un artefact livrable, seulement à savoir qu'il compile
       # et qu'il démarre. `cargo lambda` et zig restent l'affaire du
       # déploiement.
+      # ── Ce que cette étape prouve, et ce qu'elle ne prouve pas ────────────
+      #
+      # Elle compile **en release**, comme la production — et non en debug. La
+      # question vient de la session Android, dont l'app n'était plus
+      # empaquetable pour Play depuis sept jours sous une CI verte : elle
+      # compilait en debug, où l'optimiseur ne tourne pas. Un contrôle branché,
+      # exigé, qui rougissait sur d'autres choses, et qui regardait un autre
+      # mode que celui qu'on livre.
+      #
+      # Ce contrôle-ci n'a pas ce défaut. Mais il en garde un plus petit, et il
+      # vaut mieux l'écrire que le laisser supposer :
+      #
+      #     ici          cargo build  --release                  hôte x86_64
+      #     déployeur    cargo lambda build --release --arm64    croisé, zig
+      #
+      # **Ce ne sont ni le même éditeur de liens ni la même cible.** Une
+      # divergence de liaison n'est pas une hypothèse dans ce projet : le §8
+      # quater note que `cargo leptos build --release` *échoue* sur macOS par
+      # une limite du linker d'Apple sur la longueur des symboles.
+      #
+      # ## Pourquoi on ne comble pas l'écart, et le chiffre qui l'a décidé
+      #
+      # L'étape `cargo lambda` du déployeur coûte **328 secondes**, mesurées sur
+      # une exécution réelle. `eprouver` en fait 480 : l'ajouter porterait chaque
+      # pull request à treize minutes au lieu de huit — **soixante-huit pour
+      # cent de plus**, pour toujours.
+      #
+      # Ce qu'on achèterait : apprendre à la PR plutôt qu'au déploiement, qui
+      # suit la fusion de quelques minutes et **ouvre un incident depuis le
+      # 31 août**. Le défaut d'Android était silencieux sept jours ; celui-ci
+      # crie tout de suite. Ce n'est pas la même urgence, et le remède ne se
+      # recopie pas d'un dépôt à l'autre sans regarder ce qu'il coûte.
+      #
+      # Ce qui ferait changer d'avis : une panne de liaison réelle. Il n'y en a
+      # pas eu — les déploiements tombés l'ont été sur une branche disparue et
+      # sur un `gh` sans dépôt, jamais sur l'éditeur de liens.
       - name: Le serveur
         working-directory: ONTBibleWebapp
         run: cargo build --release --no-default-features --features ssr
