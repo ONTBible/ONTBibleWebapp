@@ -141,7 +141,27 @@ jobs:
       # La référence est **`main` de l'app** — ce qui est en vente, non ce qui
       # est en cours. Le clone ci-dessus est sur `dev` : on va chercher `main`
       # à part, en profondeur 1.
-      - name: Le schéma du corpus
+      # ── Le plafond de la version en vente ───────────────────────────────
+      #
+      # Cette étape comparait deux nombres : celui que `corpus-publie.py`
+      # écrivait en dur, et celui que lit la liseuse en vente. Elle ne peut plus,
+      # et c'est le but — **le script n'écrit plus de nombre**, il recopie le
+      # `contrat` que le pipeline émet dans son manifeste. Le littéral qu'elle
+      # allait chercher par `sed` n'existe plus, et une étape qui grep une
+      # constante disparue rend la chaîne vide, puis tombe en annonçant un
+      # désaccord de schéma qui n'a pas eu lieu.
+      #
+      # Elle **fournit** donc au lieu de comparer. La garde vit maintenant dans
+      # le script, en un seul endroit, et refuse avant d'écrire quoi que ce soit.
+      # Ce que le script ne sait pas aller chercher seul, c'est `app-store` : il
+      # faudrait un `git fetch` depuis un script de publication. On le relève
+      # ici et on le lui passe.
+      #
+      # Et le refus ne tue plus le déploiement. Le corpus et les pages du site
+      # sont indépendants — les pages embarquent `dist/` à la compilation — donc
+      # un corpus qu'on s'abstient de publier laisse le site partir, et les
+      # liseuses gardent le corpus précédent, qu'elles savent lire.
+      - name: Le plafond de la liseuse en vente
         working-directory: ONTBibleApp
         run: |
           set -euo pipefail
@@ -149,31 +169,28 @@ jobs:
           # le 31 août — device, dev, beta-test, app-store — et **`main`
           # n'existe plus sur le serveur**. Le `git fetch` échouait donc par
           # « couldn't find remote ref main », et l'étape tombait avant d'avoir
-          # rien comparé : le déploiement mourait sur une branche disparue, pas
-          # sur un désaccord de schéma.
-          #
-          # « L'app en vente » est bien `app-store` : c'est le palier que la
-          # revue d'Apple reçoit, et c'est ce que cette garde veut lire.
-          git fetch --depth=1 origin app-store
+          # rien comparé.
           LISEUSE="app/Packages/ONTData/Sources/ONTData/Remote/CorpusUpdater.swift"
-          attendu=$(git show "origin/app-store:$LISEUSE" \
+          if ! git fetch --depth=1 origin app-store 2>/dev/null; then
+            echo "::warning::Impossible de récupérer app-store : le plafond de la"
+            echo "::warning::version en vente ne sera pas appliqué. Le script se"
+            echo "::warning::rabat sur les liseuses du dossier cloné."
+            exit 0
+          fi
+          en_vente=$(git show "origin/app-store:$LISEUSE" 2>/dev/null \
             | sed -n 's/.*static let schema = \([0-9]*\).*/\1/p' | head -1)
-          publie=$(sed -n 's/.*"schema": *\([0-9]*\).*/\1/p' \
-            ../ONTBibleWebapp/scripts/corpus-publie.py | head -1)
 
-          if [ -z "$attendu" ] || [ -z "$publie" ]; then
-            echo "::error::Schéma illisible — attendu « $attendu », publié « $publie »."
-            echo "::error::L'une des deux constantes a été renommée ou déplacée."
-            exit 1
+          # Ne pas trouver n'est pas « trouver zéro ». Une constante renommée
+          # rend une chaîne vide, et une chaîne vide passée telle quelle se
+          # lirait comme un plafond de 0 : le script refuserait tout.
+          if [ -z "$en_vente" ]; then
+            echo "::warning::La constante \`static let schema\` est introuvable dans"
+            echo "::warning::$LISEUSE sur app-store — elle a dû être renommée."
+            echo "::warning::Le plafond de la version en vente n'est pas appliqué."
+            exit 0
           fi
-          if [ "$attendu" != "$publie" ]; then
-            echo "::error::Le corpus publierait le schéma $publie, l'app en vente lit le $attendu."
-            echo "::error::CorpusUpdater s'abstiendrait sans rien dire : tous les lecteurs"
-            echo "::error::installés cesseraient d'être mis à jour, en silence."
-            echo "::error::Livrer d'abord une version de l'app qui lit le $publie."
-            exit 1
-          fi
-          echo "  schéma $publie — l'app en vente le lit"
+          echo "ONT_SCHEMA_EN_VENTE=$en_vente" >> "$GITHUB_ENV"
+          echo "  la liseuse en vente lit le schéma $en_vente"
 
       - name: Le vault
         uses: actions/checkout@v4

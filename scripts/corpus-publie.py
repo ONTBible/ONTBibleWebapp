@@ -35,6 +35,7 @@ empreinte, et l'app ne prend que ce qui a bougé.
 
 import hashlib
 import json
+import os
 import pathlib
 import datetime
 import re
@@ -141,8 +142,10 @@ def verifier_la_date(genere: str) -> None:
     C'est la règle de `soumettre-aux-index.py` : ne pas répondre à une question
     qu'on ne peut pas trancher vaut mieux que rendre une réponse bien formée.
 
-    Le refus bloque le déploiement du site tant que le pipeline n'écrit pas la
-    date — et c'est voulu, puisque déployer dans cet état reconduit le défaut.
+    Le refus n'écarte que la publication du corpus : il rend `REFUS`, que le
+    workflow traite comme un pas de côté annoncé, et les pages du site partent
+    quand même — elles embarquent `dist/` à la compilation et ne dépendent pas
+    de ce qu'on publie ici. Les liseuses gardent le corpus précédent.
     """
     if not genere:
         raise Refus(
@@ -210,6 +213,170 @@ def verifier_la_date(genere: str) -> None:
         )
 
 
+# Les deux liseuses comparent le schéma du manifeste au leur **en égalité
+# stricte** — `guard manifeste.schema == Self.schema` côté Swift, `!=` côté
+# Kotlin. Relevé sur `origin/device` et `origin/app-store` le 11 septembre 2026,
+# pas déduit.
+LISEUSES = {
+    "iOS": (
+        "app/Packages/ONTData/Sources/ONTData/Remote/CorpusUpdater.swift",
+        re.compile(r"static\s+let\s+schema\s*=\s*(\d+)"),
+    ),
+    "Android": (
+        "android/ontdata/src/main/kotlin/com/labibleont/ont/data"
+        "/remote/CorpusUpdater.kt",
+        re.compile(r"const\s+val\s+SCHEMA\s*:\s*Int\s*=\s*(\d+)"),
+    ),
+}
+
+
+def lire_le_contrat(manifeste: dict) -> int:
+    """Rend le contrat des nœuds émis par le pipeline. Ne l'invente jamais.
+
+    ## Ce que ce nombre garde
+
+    Ce n'est pas une version de format, c'est la **garde de compatibilité des
+    liseuses installées**. Une liseuse refuse un corpus dont le schéma n'est pas
+    le sien, et *lève* sur un type de nœud qu'elle ne connaît pas. Les deux
+    comportements sont justes ; c'est leur accord qui ne l'était pas.
+
+    Ce script écrivait `2` en dur. Le jour où le pipeline émet un type de plus —
+    `Renvoi`, pour les renvois entre chuqqot — le nombre ne bougeait pas : les
+    liseuses installées acceptaient le corpus, échouaient à le décoder, et
+    retombaient **pour toujours** sur leur bundle. Sans une erreur, sans un
+    signe. Un corpus qu'on croit distribué et que personne ne lit.
+
+    Le pipeline émet donc `contrat` dans son manifeste, depuis `CONTRAT_DES_NOEUDS`,
+    et une garde chez lui fait rougir la construction si un type paraît sans que
+    ce nombre bouge. On le **recopie**. Écrire ici un nombre, fût-il le bon
+    aujourd'hui, c'est reconduire exactement le défaut qu'on retire : la seule
+    propriété qu'on demande à cette valeur est de *suivre* l'autre.
+
+    ## Pourquoi refuser quand il manque
+
+    Un pipeline antérieur au champ ne permet pas de trancher. Retomber sur `2`
+    serait une valeur par défaut à la place d'une mesure absente — la faute que
+    `verifier_la_date` décrit, sur la ligne d'à côté. Et elle serait armée : la
+    variante `Renvoi` existe déjà dans le schéma de `dev`, donc un corpus
+    construit là **peut** porter du contrat 3 le jour où le vault publie ses
+    chuqqot.
+
+    Le refus n'arrête que la publication du corpus, pas le déploiement du site.
+    Les liseuses gardent le corpus précédent, qu'elles savent lire.
+    """
+    contrat = manifeste.get("contrat")
+    if contrat is None:
+        raise Refus(
+            "  dist/manifest.json ne porte pas de « contrat ».\n"
+            "  Ce pipeline est antérieur au champ, et le contrat des nœuds ne se\n"
+            "  devine pas : un nombre écrit ici laisserait les liseuses accepter\n"
+            "  un corpus qu'elles ne savent pas décoder, puis retomber sur leur\n"
+            "  bundle en silence.\n"
+            "  C'est `CONTRAT_DES_NOEUDS` qu'il faut faire arriver jusqu'à la\n"
+            "  branche que la CI clone — fusionner `device` dans `dev`."
+        )
+    if not isinstance(contrat, int) or isinstance(contrat, bool) or contrat < 1:
+        raise Refus(
+            f"  dist/manifest.json porte « contrat » = {contrat!r}.\n"
+            "  Les liseuses le comparent à un entier ; tout le reste se lit comme\n"
+            "  un schéma inconnu, et le corpus est refusé en bloc."
+        )
+    return contrat
+
+
+# Le schéma de la liseuse **en vente**, que ce script ne peut pas relever seul :
+# elle vit sur `app-store`, une branche que le dépôt voisin n'a pas forcément
+# décochée. La CI la va chercher en profondeur 1 et la passe ici.
+#
+# C'est le plafond qui compte vraiment. Les liseuses du dossier cloné ne sont
+# dans les mains de personne ; celle de la boutique est dans toutes. Publier
+# au-dessus d'elle ne lui fait pas « ignorer ce qu'elle ne comprend pas » : elle
+# refuse le corpus entier, donc aussi les corrections des livres qu'elle lisait
+# très bien.
+#
+# Absente, on ne remplace pas la mesure par une valeur : on se rabat sur les
+# liseuses visibles et le rapport dit lesquelles ont servi.
+EN_VENTE = "ONT_SCHEMA_EN_VENTE"
+
+
+def verifier_le_plafond_des_liseuses(contrat: int) -> None:
+    """Refuse de publier un corpus qu'aucune liseuse construite ne sait lire.
+
+    La comparaison est en **égalité stricte** des deux côtés. Publier un nombre
+    au-dessus de ce que les liseuses portent ne les fait pas « ignorer ce qu'elles
+    ne comprennent pas » : elles refusent le corpus entier.
+
+    Entre les deux façons d'échouer, celle-là est la bonne — un refus est net,
+    réversible, et laisse le corpus précédent en place, là où le nombre trop bas
+    gèle silencieusement. Mais la bonne façon d'échouer reste une façon d'échouer,
+    et elle se voit **ici**, avant la publication, plutôt qu'en production.
+
+    D'où l'ordre, et il n'est pas négociable : on monte `CorpusUpdater.schema`
+    dans les deux liseuses, on les livre, **puis** le corpus suit. C'est le même
+    ordre que pour les liens universels au §4 — le lecteur d'abord, ce qu'il lit
+    ensuite.
+
+    La garde lit les liseuses **à la source**, dans le dépôt voisin que la CI
+    clone déjà. Un nombre recopié ici serait un troisième endroit à tenir
+    d'accord, c'est-à-dire un troisième endroit qui peut mentir.
+    """
+    racine = SOURCE.parent
+    releves: dict[str, int] = {}
+    manquants: list[str] = []
+
+    for liseuse, (chemin, motif) in LISEUSES.items():
+        fichier = racine / chemin
+        if not fichier.exists():
+            manquants.append(f"{liseuse} : {chemin} introuvable")
+            continue
+        trouve = motif.search(fichier.read_text())
+        if trouve is None:
+            manquants.append(
+                f"{liseuse} : la constante a changé de forme dans {chemin}"
+            )
+            continue
+        releves[liseuse] = int(trouve.group(1))
+
+    en_vente = os.environ.get(EN_VENTE, "").strip()
+    if en_vente:
+        if not en_vente.isdigit():
+            raise Refus(
+                f"  {EN_VENTE} vaut « {en_vente} », qui n'est pas un entier.\n"
+                "  La CI le relève dans CorpusUpdater.swift de `app-store` ;\n"
+                "  une valeur mal formée veut dire que le relevé a glissé."
+            )
+        releves["la version en vente"] = int(en_vente)
+
+    # Le témoin positif. Une garde qui ne trouve **rien** à comparer passerait
+    # sans rien vérifier, et son silence se lirait comme un accord : c'est le
+    # défaut qu'on a payé sur le `grep` de la page servie, qui ne pouvait rien
+    # trouver et rendait exactement ce qu'on espérait lire.
+    if manquants:
+        raise Refus(
+            "  Impossible de relever ce que les liseuses acceptent :\n"
+            + "".join(f"    {m}\n" for m in manquants)
+            + "  Cette garde ne sait plus ce qu'elle garde, donc elle ne laisse\n"
+            "  pas passer. Si la constante a bougé, c'est LISEUSES qu'il faut\n"
+            "  remettre d'accord avec elle."
+        )
+
+    accord = ", ".join(f"{l} {v}" for l, v in sorted(releves.items()))
+    print(f"  contrat {contrat} — plafonds relevés : {accord}")
+
+    trop_vieilles = {l: v for l, v in releves.items() if v < contrat}
+    if trop_vieilles:
+        detail = ", ".join(
+            f"{l} en accepte {v}" for l, v in sorted(trop_vieilles.items())
+        )
+        raise Refus(
+            f"  Le pipeline émet du contrat {contrat}, et {detail}.\n"
+            "  La comparaison est en égalité stricte : publier ce corpus le ferait\n"
+            "  refuser en bloc par ces liseuses, qui garderaient leur bundle.\n"
+            "  L'ordre est : monter `CorpusUpdater.schema` des deux côtés, livrer\n"
+            "  les liseuses, puis republier le corpus."
+        )
+
+
 def main() -> None:
     if not SOURCE.exists():
         raise SystemExit(
@@ -230,8 +397,16 @@ def main() -> None:
     # `deployer.sh` porte `set -euo pipefail` et n'y serait pas allé — mais une
     # garde ne doit pas dépendre du soin de celui qui l'appelle. Échouer avant
     # d'agir ne laisse rien à rattraper.
-    genere = json.loads((SOURCE / "manifest.json").read_text()).get("generatedAt", "")
+    manifeste_du_pipeline = json.loads((SOURCE / "manifest.json").read_text())
+    genere = manifeste_du_pipeline.get("generatedAt", "")
     verifier_la_date(genere)
+
+    # Le contrat des nœuds, recopié et non écrit — puis confronté à ce que les
+    # liseuses savent lire. Les deux gardes sont ici, avant la première copie,
+    # pour la raison dite plus haut : échouer avant d'agir ne laisse rien à
+    # rattraper.
+    contrat = lire_le_contrat(manifeste_du_pipeline)
+    verifier_le_plafond_des_liseuses(contrat)
 
     if SORTIE.exists():
         shutil.rmtree(SORTIE)
@@ -251,7 +426,10 @@ def main() -> None:
     # même manifeste. Lu et vérifié en tête de cette fonction.
 
     manifeste = {
-        "schema": 2,
+        # Le contrat des nœuds tel que le pipeline l'a émis. Les liseuses lisent
+        # cette clé sous le nom `schema` : elle ne se renomme pas, seule sa
+        # provenance a changé.
+        "schema": contrat,
         "genere": genere,
         "fichiers": fichiers,
         "livres": livres,
