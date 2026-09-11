@@ -261,6 +261,7 @@ mod tests {
             Noeud::Hebreu {
                 translitteration: "elohim".into(),
                 hebreu: "אֱלֹהִים".into(),
+                cible: None,
             },
             Noeud::Texte(" ".into()),
             Noeud::Glose(vec![Noeud::Texte("nom divin laissé intact".into())]),
@@ -382,6 +383,7 @@ mod tests {
             Noeud::Hebreu {
                 translitteration: "shamayim".into(),
                 hebreu: "שָׁמַיִם".into(),
+                cible: None,
             },
         ])];
         assert_eq!(
@@ -409,6 +411,7 @@ mod tests {
             Noeud::Hebreu {
                 translitteration: "eloah".into(),
                 hebreu: "אֱלוֹהַּ".into(),
+                cible: None,
             },
             Noeud::Texte(" au pluriel".into()),
         ])];
@@ -439,7 +442,12 @@ pub fn corps(noeuds: &[Noeud]) -> String {
         for noeud in noeuds {
             match noeud {
                 Noeud::Texte(t) => sortie.push_str(t),
-                Noeud::Intraduisible { mot, .. } | Noeud::Shem { mot, .. } => sortie.push_str(mot),
+                // Le libellé du renvoi **est** du corps de texte : « déjà posé
+                // en ((la-chuqqah|cette disposition)) » se lit d'une traite, et
+                // l'omettre trouerait la phrase.
+                Noeud::Intraduisible { mot, .. }
+                | Noeud::Shem { mot, .. }
+                | Noeud::Renvoi { libelle: mot, .. } => sortie.push_str(mot),
                 Noeud::Accentuation(enfants)
                 | Noeud::Emphase(enfants)
                 | Noeud::Lien { enfants, .. } => aplatir(enfants, sortie),

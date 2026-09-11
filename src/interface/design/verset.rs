@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::domaine::texte::{Noeud, Verset as VersetDomaine};
+use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset as VersetDomaine};
 
 /// Un verset de l'ONT, avec ses trois niveaux.
 ///
@@ -118,6 +118,37 @@ pub fn composer(texte: &str) -> String {
     sortie
 }
 
+/// La part latine du niveau 3 — un lien quand elle ouvre une fiche, du texte
+/// sinon.
+///
+/// **Seule la part latine devient cliquable.** L'hébreu reste hors du lien : il
+/// se compose en RTL, et une zone cliquable à cheval sur la barre oblique
+/// traverserait deux directions d'écriture.
+///
+/// **La couleur dit d'avance ce qui répond.** Sur 2086 translittérations, 829
+/// ouvrent une fiche et 1257 non ; laissées toutes grises, elles obligeraient
+/// le lecteur à essayer sur chacune pour savoir sur laquelle essayer. Les
+/// teintes sont celles du corps du texte — l'accent pour un intraduisible, la
+/// teinte des Shemot pour un nom propre —, et elles disent la même chose :
+/// ceci ouvre, et voilà quoi.
+///
+/// L'italique reste dans les trois cas : c'est la marque du niveau 3, et elle
+/// ne dépend pas de ce que le mot ouvre.
+fn rendre_la_translitteration(mot: &str, cible: Option<&CibleDuNiveauTrois>) -> AnyView {
+    let (lemme, teinte) = match cible {
+        Some(CibleDuNiveauTrois::Terme(l)) => (l, "text-accent decoration-accent/40"),
+        Some(CibleDuNiveauTrois::Shem(l)) => (l, "text-shem decoration-shem/40"),
+        None => return view! { <i>{mot.to_string()}</i> }.into_any(),
+    };
+    let mot = mot.to_string();
+    view! {
+        <a href=format!("/fr/lexique/{lemme}") class=teinte>
+            <i>{mot}</i>
+        </a>
+    }
+    .into_any()
+}
+
 fn rendre_un(noeud: &Noeud) -> AnyView {
     match noeud {
         Noeud::Texte(t) => composer(t).into_any(),
@@ -146,6 +177,23 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         }
         .into_any(),
 
+        // **Coloré, pas cliquable — et ce n'est pas un oubli.**
+        //
+        // Le site n'a pas de section chuqqot : son espace d'adresses va de
+        // `/fr/lire` à `/fr/lexique`, et rien entre les deux. Un
+        // `<a href="/fr/chuqqot/…">` mènerait à un 404 — un mot coloré qui
+        // n'ouvre rien, exactement ce que le pipeline refuse en laissant une
+        // translittération inerte plutôt que de l'envoyer vers une fiche
+        // absente.
+        //
+        // La teinte suffit à dire « ceci désigne autre chose ». Le jour où le
+        // site publie les chuqqot, ce `<span>` devient un `<a>` vers `cible` —
+        // c'est le seul geste, et `cible` est déjà là pour le recevoir.
+        Noeud::Renvoi { libelle, .. } => view! {
+            <span class="text-renvoi">{libelle.clone()}</span>
+        }
+        .into_any(),
+
         Noeud::Accentuation(enfants) => view! {
             <b class="font-semibold text-accentuation">{rendre(enfants)}</b>
         }
@@ -168,9 +216,10 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         Noeud::Hebreu {
             translitteration,
             hebreu,
+            cible,
         } => view! {
             <span class="text-[0.86em] text-encre-douce">
-                "("<i>{translitteration.clone()}</i>
+                "("{rendre_la_translitteration(translitteration, cible.as_ref())}
                 " / "
                 // 1,08 — `ONTFonts.hebrewScale`. L'hébreu compose plus petit
                 // que le latin à taille égale : sans cette correction, les deux
@@ -347,6 +396,86 @@ mod liens {
             relatifs.len(),
             relatifs.iter().take(6).collect::<Vec<_>>()
         );
+    }
+
+    /// ## Chaque Shem du corpus a sa fiche
+    ///
+    /// `Noeud::Shem` est rendu **en or et cliquable**, vers
+    /// `/fr/lexique/{lemme}`. La promesse est celle de l'intraduisible : un mot
+    /// coloré ouvre quelque chose.
+    ///
+    /// Elle a été rompue dix jours. Le site publiait `shemot.json` pour les
+    /// liseuses depuis l'audit A10 et **ne le consultait pas lui-même** : les
+    /// 2 878 liens de Shem menaient tous à « Fiche introuvable ».
+    ///
+    /// **Rien ne pouvait le voir.** `chaque_lemme_cite_par_une_page_a_sa_fiche`
+    /// couvre les lemmes que la *prose du site* cite — pas ceux que le corpus
+    /// porte. `aucun_lien_du_corpus_n_est_relatif` vérifie la forme d'un `href`,
+    /// pas l'existence de sa cible. Et la page « Fiche introuvable » répond
+    /// **200**, donc un relevé par code de statut voyait tout en vert.
+    ///
+    /// Cette garde ferme le trou par le seul bout qui vaille : elle part du
+    /// **corpus**, pas du lexique. C'est le corpus qui promet.
+    #[test]
+    fn chaque_shem_du_corpus_a_sa_fiche() {
+        use crate::application::ports::Lexique;
+        use crate::infrastructure::corpus::LexiqueEmbarque;
+
+        let corpus = CorpusEmbarque::charger().expect("le corpus doit se charger");
+        let lexique = LexiqueEmbarque::charger().expect("le lexique doit se charger");
+
+        let mut lemmes = std::collections::BTreeSet::new();
+        for ensemble in corpus.sommaire() {
+            for section in &ensemble.sections {
+                for entree in &section.livres {
+                    let Some(livre) = corpus.livre(&entree.id) else {
+                        continue;
+                    };
+                    for unite in livre.intro.iter().chain(livre.chapitres.iter()) {
+                        for verset in unite.versets() {
+                            relever_les_shemot(&verset.noeuds, &mut lemmes);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sans témoin, un relevé vide passerait pour « aucun Shem sans fiche »
+        // alors qu'il dirait « je n'ai relevé aucun Shem ». C'est le défaut qui
+        // a coûté la semaine, et il se pose ici comme ailleurs.
+        assert!(
+            lemmes.len() > 50,
+            "seulement {} Shem relevés — le parcours ne mesure rien",
+            lemmes.len()
+        );
+
+        let orphelins: Vec<&String> = lemmes
+            .iter()
+            .filter(|l| lexique.entree(l).is_none())
+            .collect();
+        assert!(
+            orphelins.is_empty(),
+            "{} Shem sans fiche, sur {} : {:?}\n\
+             Un mot d'or qui n'ouvre rien est pire qu'un mot noir.",
+            orphelins.len(),
+            lemmes.len(),
+            orphelins.iter().take(8).collect::<Vec<_>>()
+        );
+    }
+
+    fn relever_les_shemot(noeuds: &[Noeud], dans: &mut std::collections::BTreeSet<String>) {
+        for noeud in noeuds {
+            match noeud {
+                Noeud::Shem { lemme, .. } => {
+                    dans.insert(lemme.clone());
+                }
+                Noeud::Accentuation(enfants)
+                | Noeud::Glose(enfants)
+                | Noeud::Emphase(enfants)
+                | Noeud::Lien { enfants, .. } => relever_les_shemot(enfants, dans),
+                _ => {}
+            }
+        }
     }
 
     fn releve(noeuds: &[Noeud], relatifs: &mut Vec<String>) {
