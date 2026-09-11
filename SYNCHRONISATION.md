@@ -3253,6 +3253,168 @@ l'instrument qui la disait rompue.
 
 ---
 
+### 8 septembre 2026 — une règle que son porteur viole n'est pas violée, elle a un périmètre non écrit
+
+Le §2.5 du `CLAUDE.md` du vault interdit le gras d'insistance « partout, y
+compris dans les feuilles d'introduction et les notes ». Relevé du jour : le
+document qui porte la règle l'employait **337 fois**, et ==trois fois dans la
+phrase même de l'interdit== — dont une sur le mot « accentuation », dans la
+clause qui renvoie à `==…==`.
+
+**Ce n'est pas de l'étourderie, et c'est ce qu'il faut voir.** Une règle qu'on
+enfreint à chaque page depuis toujours, sans que personne ne le remarque, n'est
+pas une règle enfreinte : c'est une règle dont ==le périmètre n'a jamais été
+écrit==. Elle ne se compare à rien, donc elle ne peut pas diverger visiblement.
+C'est exactement la forme que le §2.9 du vault avait déjà nommée pour les
+translittérations.
+
+**Le périmètre est celui de la raison d'être de l'interdit**, et cette raison est
+mécanique : Affinity applique son style au copier-coller, l'app affiche le mot en
+or et le rend touchable. ==Un fichier qui ne passe ni dans l'un ni dans l'autre
+ne peut produire ni l'un ni l'autre.== La règle vaut donc pour ce qui est
+distribué — corps, gloses, notes, feuilles d'introduction, fiches de `lexique/` —
+et non pour les documents de travail des dépôts, ce journal compris.
+
+**L'exception est le vrai critère, et il ne porte pas sur le fichier :**
+==ce qui compte est ce qui fabrique un lemme==. Les entrées de glossaire sont
+lues par le pipeline et émises vers `dist/`.
+
+#### Ce qui vaut pour les trois dépôts : la règle a été écrite d'après une mesure
+
+J'allais écrire « les puces du §2.5 **et** les cases du §3 fabriquent des
+lemmes », par lecture du code. Deux témoins plantés, un dans chaque, puis une
+construction :
+
+    dans une puce du §2.5   → devient un lemme, signalé en lien mort
+    dans une case du §3     → rien
+
+Le §2.5 a la préséance sur le §3 pour la définition, et le terme témoin avait
+déjà sa puce : sa case n'était pas lue. ==Le §3 ne mord donc que pour les termes
+sans puce au §2.5.== La règle écrite dit ce que le code fait, non ce qu'il a
+l'air de faire.
+
+**Et la moitié qu'on oublie a deux moitiés.** Retirer les témoins, oui. Mais
+==avoir copié le fichier avant de les planter== est ce qui a rendu le retrait
+vérifiable : le compte est revenu à 235, c'est-à-dire exactement l'état d'avant.
+Sans la copie, il aurait fallu croire qu'on avait bien remis les choses.
+
+#### Une catégorie de plus pour « vérifier ce qu'un pair affirme »
+
+La session Android a corrigé une erreur que j'allais porter à l'auteur. J'avais
+écrit « la CI de `dev` est rouge », déduit d'un compte exact — 235 liens morts
+pour un plafond de 224. Ses trois dernières exécutions étaient ==vertes== : la CI
+tire le vault au moment où elle tourne, et n'avait pas encore vu le travail du
+jour.
+
+C'est une **prémisse périmée** et non fausse — la distinction est déjà dans le
+skill `concerter-les-sessions`, avec les deux autres.
+
+**Et il faut dire comment cette entrée a rétréci avant d'être portée**, parce que
+c'est le meilleur du fil. Je l'avais d'abord écrite ainsi : *la donnée était
+exacte et datée, et rien dans sa forme ne portait sa date*. La session Android a
+rouvert le skill et m'a montré qu'il porte déjà l'exemple qui la contredit :
+
+    « 0 par `git grep -F` sur `origin/android-suite` @ `d120907` »
+
+Ce `@ d120907` ==date le relevé== : un SHA fixe un état. Pour tout ce qui se
+mesure sur git, la règle existante suffit, et ma formulation ne faisait que la
+redire — ==une règle qui en redit une autre les affaiblit toutes les deux==.
+
+**Ce qui reste, et qui est neuf, est plus étroit :**
+
+> ==Une mesure qui n'est pas une mesure git n'a aucun SHA à donner.==
+
+« 235 liens morts pour un plafond de 224 » ne se rattache à rien qui le date.
+« La CI est verte » non plus, ni une taille de disque, ni un temps de
+construction. Ce sont ==celles-là== qui périment en silence, parce que la règle
+de l'outil et de la référence ne leur donne aucune prise. Elles doivent porter
+==ce sur quoi elles ont été prises et quand== — pour un compte de pipeline, la
+révision du vault qu'il a lue ; pour un état de CI, l'exécution nommée.
+
+Et le fait que l'entrée ait rétréci ==avant== d'être portée dans les trois dépôts
+est le seul mérite du procédé : une formulation trop large, portée trois fois,
+aurait été trois fois plus longue à défaire.
+
+#### Annoncer le geste ne suffit pas — il faut annoncer le contenu
+
+Constat de la session Android, sur cette entrée même. Le skill
+`concerter-les-sessions` demande d'annoncer ==avant== de toucher à ce qui est
+partagé. Il ne demande pas d'annoncer ==quoi==.
+
+La différence est entière pour celui qui reçoit :
+
+> Une annonce qui dit seulement le geste le laisse choisir entre faire confiance
+> et tout relire. Une annonce qui dit le contenu lui permet de vérifier ==la
+> partie qui le concerne==, et rien d'autre.
+
+Éprouvé ici : l'annonce portait les deux points mécaniques qui engageaient
+l'app, et la session Android les a ==vérifiés dans son code== au lieu de les
+découvrir dans un diff. Les deux ont tenu, et sa vérification vaut mieux que mon
+affirmation :
+
+- son nœud est `data class Shem(val value: String, val lemma: String)` — il ne
+  porte ==aucun genre==. La distinction identité / fonction vit dans la fiche,
+  jamais dans le nœud, donc le rendu ==ne peut pas diverger par construction==.
+  C'est plus solide qu'une décision de ne rien changer : il n'y a rien à changer ;
+- si la canonisation de `kelim` ratait, l'app ne casse pas — elle affiche que le
+  terme est balisé sans avoir encore d'entrée. ==Visible sans être grave==, ce
+  qui est la bonne façon d'échouer.
+
+#### Ce que le vault a décidé d'autre, et qui traverse
+
+- **La couche des Shemot distingue un `Shem` d'identité d'un `Shem` de
+  fonction.** Le critère est le surplus : un **navi** excède sa mission, un
+  **mal'akh** ==est== sa mission sans reste. ==La marque ne bouge pas== — l'app
+  et le site gardent la terre brûlée et la zone touchable, l'espace chaud étant
+  saturé sous ΔE 25. C'est la ==fiche== qui déclare qu'elle nomme une charge et
+  non une personne. Rien à faire côté rendu.
+- **`kli` / `Kli` / `kelim` devient intraduisible**, avec sa fiche. Il arrive par
+  le pipeline comme les autres. ==Attention au dérivé== : `kelim` retombe sur le
+  lemme `kli`, et c'est la canonisation à l'émission qui le rabat — sans elle il
+  paraît en lien mort, ce qu'il fait aujourd'hui quatre fois sur `dev`.
+
+### 8 septembre 2026 — le secret de diffusion voyage dans Authorization, parce que la télémétrie ne filtre que ce qu'elle connaît
+
+L'audit cyber du 8 septembre (C02) l'a reproduit avec le SDK réel et un
+transport en mémoire : un événement Sentry du backend portait l'en-tête
+`x-secret-diffusion` — le secret qui autorise `/diffuser` — et un autre le
+`?code=` d'un retour OAuth. Le témoin `Authorization` était, lui, correctement
+absent.
+
+Le mécanisme, lu dans `sentry-tower` 0.48.5 : quand `send_default_pii` est
+faux, les en-têtes passent par la liste `is_sensitive_header` du SDK — un
+en-tête **maison** n'y figure pas, donc traverse — et l'URL par
+`scrub_pii_from_url`, qui retire les identifiants et **garde la query**. Et
+les transactions n'ont aucun crochet d'expurgation dans cette version : seul
+`before_send` existe, et il ne voit que les événements.
+
+Le remède a deux étages, parce qu'un seul ne suffisait pas :
+
+- **le contrat** (ONTBibleApp#249, `device`) : le secret voyage dans
+  `Authorization: Bearer` — l'en-tête que le SDK filtre nativement,
+  transactions comprises. L'ancien en-tête reste accepté le temps de la
+  transition, puis tombera ;
+- **la ceinture** (même PR, module `observabilite`, éprouvé) : un
+  `before_send` retire l'en-tête hérité et toute query string des événements
+  — si un secret repasse un jour par un chemin non filtré, il meurt avant
+  l'envoi.
+
+**L'annonceur du site n'envoie plus que Bearer** (ONTBibleWebapp#124) — pas de
+période à double en-tête : chaque envoi de l'ancien le remettrait dans les
+transactions, que rien ne sait expurger. La fenêtre est assumée et écrite dans
+le script : tant que le backend déployé (palier `app-store`) ne connaît pas
+Bearer, une annonce de parution est refusée en 401 — non fatale par
+construction, le corpus se publie quand même.
+
+**Ce que ça engage.** Tout futur appelant de `/diffuser` emploie
+`Authorization: Bearer` ; l'en-tête maison meurt à la fin de la transition.
+Et la leçon vaut au-delà du cas : *un secret ne voyage que dans un en-tête que
+la télémétrie sait filtrer* — en inventer un, c'est le publier.
+
+**Reste opérationnel, chez l'auteur** : vérifier les événements déjà reçus
+côté Sentry (l'accès outillé a expiré, le jeton local n'est qu'un jeton CI),
+et faire tourner le secret si l'exposition se confirme.
+
 ## 4 septembre 2026 — la liseuse du Mac s'installe par Homebrew
 
 Sur la demande de l'auteur, calquée sur `gloiiire/cocker` — dont la formule et
@@ -3738,3 +3900,169 @@ la télémétrie sait filtrer* — en inventer un, c'est le publier.
 **Reste opérationnel, chez l'auteur** : vérifier les événements déjà reçus
 côté Sentry (l'accès outillé a expiré, le jeton local n'est qu'un jeton CI),
 et faire tourner le secret si l'exposition se confirme.
+## 8 septembre 2026 — le niveau 3 devient touchable, et le champ qui le porte traverse les trois
+
+Le lecteur lit `(*chesed* / חֶסֶד)`, il est dessus, c'est exactement le moment où
+il veut la fiche — et rien ne répond. Le même mot, balisé `**chesed**` trente
+lignes plus haut, l'ouvre pourtant. L'appareil qui relie un mot à sa fiche
+s'arrêtait au corps du texte, à l'endroit précis où on le demande.
+
+`Inline::Translit` porte désormais une **`cible`**, remplie à la construction :
+`{"t":"term","lemma":"…"}` ou `{"t":"shem","lemma":"…"}`, escamotée quand il n'y
+en a pas. Sur 2086 translittérations, **829 se résolvent** — 398 vers une entrée
+de glossaire, 431 vers un Shem — et 1257 restent inertes.
+
+**Aucune résolution morphologique, et c'est la décision.** `vayiven` vient de
+`banah`, `lehavdil` de `badal` ; ces règles se codent. Le problème n'est pas leur
+difficulté mais leur **mode d'échec** : une règle qui se trompe ne rend pas le
+mot inerte, elle le rend touchable ==vers la mauvaise fiche==. Le lecteur arrive
+ailleurs sans que rien ne le dise. L'abstention se voit, la substitution
+silencieuse non. Le chemin de sortie est le §2.5, et `dist/report.md` classe
+maintenant les 989 formes restantes **par fréquence** pour que la déclaration
+commence par ce qui sert le plus — `YHWH Elohim` en tête, 26 occurrences.
+
+### Ce que ça change pour chaque dépôt
+
+- **App** — le pipeline émet le champ ; iOS et Android le lisent et le rendent
+  touchable, avec la couleur de la destination. 191 épreuves iOS, `:ontdata` et
+  `:ontkit` verts côté Android.
+- **Site** — il compile contre la caisse `ont-pipeline` elle-même, donc **un
+  champ ajouté à `Inline::Translit` casse sa compilation**, immédiatement et par
+  construction. Porté dans la même session : branche `lier-le-niveau-trois`.
+  ==Elle ne compile qu'une fois le pipeline fusionné sur `device`== — c'est la
+  dépendance de chemin `../ONTBibleApp/pipeline`, et l'ordre de fusion est donc
+  App puis Site, jamais l'inverse.
+- **Vault** — rien à porter, une liste de travail à recevoir : la section
+  « Niveau 3 non résolu — par où déclarer » du rapport.
+
+### Deux défauts trouvés en chemin, et ils se ressemblent
+
+**Le codegen Swift ne savait pas décoder un optionnel dans une variante d'enum.**
+`cible` est le premier, et la Swift engendrée écrivait
+`try container.decode(Cible?.self, forKey:)` — qui lève `keyNotFound` sur une clé
+absente, là où le `Decodable` synthétisé lirait `decodeIfPresent`. Mesuré sur un
+`{"a":"x"}`. Le commentaire du module affirmait « les optionnels vont bien tout
+seuls » : vrai du synthétisé, faux de l'écrit à la main — et une variante d'enum
+tagué s'écrit **toujours**. Le champ escamoté étant le cas ordinaire, la faute
+n'aurait pas raté un nœud : elle aurait fait échouer le décodage du corpus
+entier.
+
+**`.github/scripts/epreuves.py` n'était lancé par personne.** Écrit le 31 août
+contre un faux App Store Connect, précisément pour les deux défauts que
+`py_compile` ne voit pas — et `tests.yml` s'arrêtait à `py_compile`. Sa propre
+docstring donnait la commande, et personne ne la tapait. Même famille d'un cran
+au-dessus : l'instrument exact qui ne répond à la question de personne. La CI les
+lance maintenant.
+
+## 8 septembre 2026 — la 1.0.6, et le rappel que trois livraisons mortes n'avaient pas obtenu
+
+Apple a validé la **1.0.5**. Le numéro public est donc brûlé : App Store Connect
+refuse un téléversement qui le reprend, et le refus arrive **après** la
+compilation et la signature de l'archive. Puis ça recommence à chaque fusion tant
+que le numéro n'a pas bougé — cinq livraisons de suite en août.
+
+Troisième occurrence en quinze jours : 1.0.3 le 24 août, 1.0.4 le 30, 1.0.5 le 8
+septembre. `app/project.yml` portait les deux premières écrites et la conclusion
+« ce qui manque est un **rappel**, pas une automatisation ». La phrase y est
+restée, et la troisième est arrivée. ==Un texte qui nomme ce qui manque ne le
+fournit pas.==
+
+`livraison.yml` demande maintenant à App Store Connect si le numéro est libre, en
+tête, avant la première étape qui coûte — iOS et macOS, chacun sur sa plateforme.
+
+**Pourquoi Apple et non les releases GitHub.** Une release existe dès qu'une
+version atteint `app-store`, donc dès la *soumission*, pas dès l'approbation. Une
+version soumise puis **rejetée** accepte parfaitement un nouveau build sous le
+même numéro ; s'appuyer sur la release bloquerait exactement la correction qu'un
+rejet appelle. L'instrument aurait été exact, et il aurait répondu à une autre
+question que celle qu'on pose.
+
+**Pour les trois dépôts** : rien à porter, une chose à savoir — la version
+publique de l'app est **1.0.6** partout où l'on en parle, et le geste de la
+monter n'est plus laissé à la mémoire de qui livre.
+
+### Addendum du 8 septembre au soir — `## Formes`, et l'endroit où l'on déclare
+
+Le classement envoyé au vault dans la journée conseillait *« ajouter la forme au
+§2.5 de son entrée »*. **C'était faux**, et la session du vault l'a relevé.
+
+L'auteur a tranché le même jour (§2.5 ter) qu'une fiche déclare ses propres
+formes fléchies, **après son corps** :
+
+    lexique/<lemme>.md
+
+    ## Formes
+
+    vayomer · vayomru · amarti · vaʾomar
+
+Pas au §2.5 du document de référence : celui-ci réserve `**…**` aux
+**intraduisibles**, et y déclarer `vayomer` ferait d'`amar` un intraduisible —
+lui faisant perdre son rendu « formuler » du §3.1. Le même endroit ne peut pas
+dire les deux.
+
+**Le pipeline ne lisait aucune de ces sections.** Trente-quatre fiches, cent
+soixante-quatre formes écrites, zéro effet : `form_index` ne se construisait
+qu'à partir du `CLAUDE.md`. Le contrôle positif était sous le nez — `asah.md`
+déclare `vayaʿas`, et le rapport du même build l'imprimait en inerte à six
+occurrences. Mesuré par la session du vault sur trois états successifs du vault,
+sans lire une ligne de code.
+
+Corrigé : **844 → 977 translittérations résolues sur 2085**, et la prose du
+rapport dit maintenant le bon endroit — dans le même commit que le lecteur, et
+pas avant, sinon on enverrait écrire dans un endroit que rien ne lit.
+
+**Ce que ça change pour le vault, et c'est tout ce qu'il y a à retenir** : la
+section « Niveau 3 non résolu — par où déclarer » du rapport porte la liste, et
+son remède est `## Formes` dans la fiche. Pour un nom propre, c'est la fiche de
+Shem qu'il faut écrire. Sept fiches — `halakh`, `mut`, `yada`, `sim`, `zera`,
+`gan`, `toledot` — existent dans `lexique/` **sans entrée de glossaire** : leurs
+formes restent inertes tant que l'entrée n'est pas écrite, parce qu'un lien vers
+une fiche absente de `glossary.json` donnerait un mot doré qui n'ouvre rien.
+
+## 8 septembre 2026 — un jeton survivait à son compte, et l'app le savait déjà faire
+
+`DELETE /me` répondait `204`, et le jeton d'accès continuait d'ouvrir `PUT /sync`
+pendant **cinquante-neuf minutes**. Le lecteur pouvait donc réécrire ce qu'il
+venait de faire effacer.
+
+**Ce n'est pas un scénario d'attaquant.** C'est l'app elle-même qui le ferait :
+elle pousse sa file locale à la prochaine occasion, sans savoir que le compte
+n'est plus. L'effacement cessait d'être final, et rien ne le disait — ni au
+lecteur, ni au journal.
+
+Un JWT ne se révoque pas : signé, il vaut jusqu'à son expiration. Le remède posé
+dans `domain/token.rs` — le garder court, une heure — est juste pour une fuite.
+Il ne l'est pas pour un effacement, qui doit valoir tout de suite.
+
+`erase` supprime toute la partition du lecteur, **profil compris**. « Le compte
+existe-t-il » et « ce jeton vaut-il encore » sont donc la même question, posée à
+un objet qui existe déjà. Une liste de révocation aurait demandé un type d'objet
+neuf, un TTL à tenir, et un endroit de plus où l'oubli d'une écriture rouvre le
+trou.
+
+### Ce que ça change pour les trois clients — vérifié, pas supposé
+
+Le contrat de forme ne bouge pas : ==aucune réponse ne change de shape==. Ce qui
+change est qu'un `401` peut désormais arriver **là où l'app n'en attendait pas**
+— sur une route qui répondait encore il y a une heure.
+
+- **iOS** — `AccountModel.synchronise()` porte déjà
+  `catch AccountError.unauthorized { signOut() }`. Un compte effacé ailleurs
+  déconnecte proprement au lieu de ressusciter ses données. Rien à porter.
+- **Le site** — `infrastructure/comptes.rs` traduit `401` en
+  `ErreurDeCompte::Refuse` sur ses deux appels de synchronisation. Rien à porter.
+- **Android** — la synchronisation n'est pas encore branchée ; le jour où elle
+  le sera, le `401` doit déconnecter et non réessayer. Une boucle de
+  rafraîchissement échouerait de toute façon : le jeton de rafraîchissement vit
+  en base, et l'effacement l'emporte avec le reste.
+
+`DELETE /me` reste **idempotent** : c'est la seule route qui ne vérifie que la
+signature. Un second appel n'a rien à effacer et ne doit pas se plaindre.
+
+Le prix est un `GetItem` par requête authentifiée. L'alternative gratuite — une
+écriture conditionnelle sur `PUT /sync` seulement — fermait la réécriture sans
+rien coûter, mais laissait un compte effacé lire et diffuser. **Une révocation
+qui ne vaut que sur une route n'est pas une révocation.**
+
+`livraison.yml` ignore `backend/**` : ce correctif ne consomme aucune place de
+téléversement Apple. Il part par `deployer-backend.yml`.
