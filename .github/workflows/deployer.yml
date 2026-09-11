@@ -179,6 +179,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ONTBible/ONTBibleTranslation
+          # `main`, **nommée**. Sans `ref:`, `checkout` prend la branche par
+          # défaut du dépôt — une valeur qui vit chez GitHub, pas ici, et qui
+          # bascule sans qu'une ligne de ce fichier ne bouge.
+          #
+          # Ce n'est pas théorique : l'app a renommé ses paliers le 31 août, et
+          # sa branche par défaut est passée à `app-store`. Un `checkout` sans
+          # `ref:` la juge donc depuis un palier resté en arrière, et **rien ne
+          # le dit** — le comportement reste correct tant que le défaut l'est.
+          #
+          # Une valeur par défaut implicite est une dépendance non déclarée.
+          # Celle-ci vise juste aujourd'hui ; elle le vise par chance.
+          ref: main
           path: ONTBibleTranslation
 
       - name: Rust
