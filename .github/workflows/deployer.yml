@@ -141,26 +141,32 @@ jobs:
       # La référence est **`main` de l'app** — ce qui est en vente, non ce qui
       # est en cours. Le clone ci-dessus est sur `dev` : on va chercher `main`
       # à part, en profondeur 1.
-      # ── Le plafond de la version en vente ───────────────────────────────
+      # ── Le schéma de la liseuse en vente ────────────────────────────────
       #
-      # Cette étape comparait deux nombres : celui que `corpus-publie.py`
-      # écrivait en dur, et celui que lit la liseuse en vente. Elle ne peut plus,
-      # et c'est le but — **le script n'écrit plus de nombre**, il recopie le
-      # `contrat` que le pipeline émet dans son manifeste. Le littéral qu'elle
-      # allait chercher par `sed` n'existe plus, et une étape qui grep une
-      # constante disparue rend la chaîne vide, puis tombe en annonçant un
-      # désaccord de schéma qui n'a pas eu lieu.
+      # Cette étape comparait deux nombres : celui que `corpus-publie.py` écrit
+      # et celui que lit la liseuse en vente. Elle **fournit** désormais le
+      # second, et c'est le script qui compare — avec les deux liseuses du
+      # dossier cloné en plus, et avant d'écrire quoi que ce soit plutôt
+      # qu'après avoir copié huit fichiers.
       #
-      # Elle **fournit** donc au lieu de comparer. La garde vit maintenant dans
-      # le script, en un seul endroit, et refuse avant d'écrire quoi que ce soit.
       # Ce que le script ne sait pas aller chercher seul, c'est `app-store` : il
-      # faudrait un `git fetch` depuis un script de publication. On le relève
-      # ici et on le lui passe.
+      # faudrait un `git fetch` depuis un script de publication. C'est le seul
+      # rôle qui reste ici.
       #
-      # Et le refus ne tue plus le déploiement. Le corpus et les pages du site
-      # sont indépendants — les pages embarquent `dist/` à la compilation — donc
-      # un corpus qu'on s'abstient de publier laisse le site partir, et les
-      # liseuses gardent le corpus précédent, qu'elles savent lire.
+      # **Et c'est bien ce plafond-là qui compte.** Un premier correctif avait
+      # confondu deux nombres qui portent presque le même nom :
+      #
+      #     dist/manifest.json       le pipeline    schema 1, contrat 3
+      #     /corpus/manifeste.json   ce dépôt       schema 2
+      #
+      # La liseuse récupère `ontbible.com/corpus/` — le nôtre — et compare
+      # **notre** `schema`. Le `contrat` du pipeline ne l'atteint jamais.
+      # Publier 3 ici aurait fait refuser le corpus par toutes les liseuses
+      # installées, qui sont à 2 et qui ont raison de l'être.
+      #
+      # Le refus ne tue pas le déploiement : il rend `REFUS`, que l'étape du
+      # corpus traite comme un pas de côté annoncé. Les pages du site partent
+      # quand même — elles embarquent `dist/` à la compilation.
       - name: Le plafond de la liseuse en vente
         working-directory: ONTBibleApp
         run: |
