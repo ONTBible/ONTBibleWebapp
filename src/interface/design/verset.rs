@@ -194,6 +194,57 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         }
         .into_any(),
 
+        // Une référence biblique. **La même apparence dans les deux cas** —
+        // teinte du renvoi, soulignement pointillé —, décidé par l'auteur le
+        // 11 septembre 2026 : une référence qui n'aboutit pas reste une
+        // référence, et la farder autrement apprendrait au lecteur à ne plus
+        // les voir.
+        //
+        // Le pointillé, et non le trait plein de `Lien` : il dit « ceci désigne
+        // un passage » là où le trait plein dit « ceci ouvre une page ». Les
+        // deux ouvrent une page, et seul le second le promet sans réserve.
+        //
+        // Ce qui diffère est le **geste**, pas la couleur : résolue, elle
+        // s'ouvre ; non résolue, elle nomme le livre qui manque. Dire « Ésaïe
+        // n'est pas encore traduit » est une réponse ; un lien mort n'en est
+        // pas une.
+        Noeud::Reference {
+            libelle,
+            livre_cite,
+            cible,
+            ..
+        } => match cible {
+            Some(c) => {
+                // `?v=` est la route des liens partagés, et elle désigne déjà le
+                // verset à l'arrivée. Rien à inventer : la page sait le faire
+                // depuis le premier jour, pour les liens venus de l'app.
+                let vers = match c.verset {
+                    Some(n) => format!("/fr/lire/{}/{}?v={n}", c.livre, c.unite),
+                    None => format!("/fr/lire/{}/{}", c.livre, c.unite),
+                };
+                view! {
+                    <a href=vers class="text-renvoi underline decoration-dotted">
+                        {libelle.clone()}
+                    </a>
+                }
+                .into_any()
+            }
+            // Pas un `<a>` : une ancre sans destination est un lien mort, et un
+            // lien mort s'essaie. Le `title` dit ce qui manque et nomme le
+            // livre — c'est peu, et c'est honnête. Le jour où le livre est
+            // traduit, le pipeline posera `cible` et la branche du dessus
+            // prendra le relais sans qu'on touche à ce fichier.
+            None => view! {
+                <span
+                    class="text-renvoi underline decoration-dotted"
+                    title=format!("{livre_cite} n'est pas encore traduit")
+                >
+                    {libelle.clone()}
+                </span>
+            }
+            .into_any(),
+        },
+
         Noeud::Accentuation(enfants) => view! {
             <b class="font-semibold text-accentuation">{rendre(enfants)}</b>
         }
