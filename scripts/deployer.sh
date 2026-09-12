@@ -127,6 +127,40 @@ if [ -n "$SEAU" ]; then
   # des adresses qui n'existent pas encore.
   aws --profile "$PROFIL" s3 cp target/corpus/manifeste.json "s3://$SEAU/corpus/manifeste.json" \
     --cache-control "public, max-age=300" --no-progress
+
+  # ── Les langues sources, pour que les fiches hébraïques arrivent sans build ──
+  #
+  # Une fiche du lexique voyage déjà par le réseau : sa définition vit dans
+  # `glossary.json`. Mais le **mot hébreu touchable**, non — la jointure par
+  # numéro de Strong est faite par le pipeline, et son résultat vit dans
+  # `sources/*.json`, que `CorpusUpdater` ne nomme pas. L'app le lisait donc
+  # depuis son bundle, et rendre un mot touchable exigeait une revue Apple.
+  #
+  # **Cinq minutes de cache sur tout**, y compris les fichiers — et c'est la
+  # différence avec le corpus, qui en prend un an.
+  #
+  # La raison n'est pas la prudence, c'est la géométrie : les noms des sources
+  # sont **fixes**. Le manifeste les nomme, le lecteur écrit sur son disque au
+  # même chemin, et le paquet emploie la même chaîne — « la même chaîne désigne
+  # le fichier dans le paquet, sur le disque et chez le publieur », dit
+  # `SourcesUpdater`. Un nom par contenu ferait diverger ces trois-là.
+  #
+  # Un cache long devient alors un **risque de corrélation** : un ancien fichier
+  # servi sous un manifeste neuf fait échouer l'empreinte, la liseuse jette la
+  # génération entière, et `synchroniser()` rend `0` — la même valeur que
+  # « rien n'a changé ». Le gel serait muet.
+  etape "Les langues sources pour l'app"
+  ./scripts/sources-publie.py
+
+  aws --profile "$PROFIL" s3 sync target/sources "s3://$SEAU/sources" \
+    --delete --exclude "manifeste.json" \
+    --cache-control "public, max-age=300" --no-progress
+
+  # Le manifeste en dernier, pour la même raison que celui du corpus : il nomme
+  # des fichiers qui doivent déjà être là. L'inverse fait rater un tour à la
+  # liseuse — sans casse, mais sans rien dire non plus.
+  aws --profile "$PROFIL" s3 cp target/sources/manifeste.json "s3://$SEAU/sources/manifeste.json" \
+    --cache-control "public, max-age=300" --no-progress
 else
   etape "Les fichiers vers S3 — sauté (le seau n'existe pas encore)"
 fi
@@ -153,6 +187,7 @@ etape "Invalidation du HTML"
 DISTRIBUTION=$(terraform -chdir=infra output -raw distribution)
 aws --profile "$PROFIL" cloudfront create-invalidation \
   --distribution-id "$DISTRIBUTION" --paths "/" "/fr" "/fr/*" "/sitemap.xml" "/images/*" \
+  "/sources/*" \
   --query 'Invalidation.Id' --output text
 
 printf '\n\033[1m%s\033[0m\n' "$(terraform -chdir=infra output -raw adresse)"
