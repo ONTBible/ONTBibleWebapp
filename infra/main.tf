@@ -489,6 +489,37 @@ resource "aws_cloudfront_distribution" "site" {
     compress                   = true
   }
 
+  // Les langues sources — `sources/manifeste.json` et les fichiers qu'il nomme.
+  //
+  // **Une seule règle pour les deux**, et cinq minutes sur tout : c'est
+  // l'inverse du corpus, et la raison est géométrique.
+  //
+  // Les noms des sources sont **fixes**. `SourcesUpdater` écrit sur le disque du
+  // lecteur au chemin que le manifeste donne, et le paquet emploie la même
+  // chaîne — « la même chaîne désigne le fichier dans le paquet, sur le disque
+  // et chez le publieur », dit son en-tête. Un nom par contenu ferait diverger
+  // ces trois-là, donc il est exclu, donc un cache long n'est pas gratuit.
+  //
+  // Il devient un **risque de corrélation** : deux ressources qui doivent être
+  // cohérentes à l'instant — le manifeste et les fichiers qu'il empreinte.
+  // Servir un ancien fichier sous un manifeste neuf fait échouer la vérification
+  // d'empreinte, la liseuse jette la génération entière, et `synchroniser()`
+  // rend `0` — la même valeur que « rien n'a changé ». Le gel est alors muet.
+  //
+  // Cinq minutes bornent la fenêtre, l'invalidation de `/sources/*` la ramène à
+  // presque rien, et le coût est nul : la liseuse ne télécharge que quand
+  // `genere` bouge, et c'est elle qui en décide.
+  ordered_cache_behavior {
+    path_pattern               = "/sources/*"
+    target_origin_id           = "seau"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    cache_policy_id            = aws_cloudfront_cache_policy.manifeste.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.securite.id
+    compress                   = true
+  }
+
   // Le corpus lui-même. Chaque fichier porte l'empreinte de son contenu, donc
   // une adresse ne désigne jamais qu'une version : un an, sans revalidation.
   ordered_cache_behavior {
