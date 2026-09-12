@@ -243,6 +243,14 @@ pub struct ResumeDto {
     pub titre: String,
     pub hebreu: String,
     pub rendu: String,
+    /// L'espèce de l'entrée — un nom propre, ou un intraduisible.
+    ///
+    /// Elle voyage jusqu'à l'index parce que **la teinte en dépend**, et que la
+    /// teinte est un contrat : l'or promet un intraduisible, la couleur du Shem
+    /// promet un nom propre. Sans ce champ, l'index rendait les deux en or et
+    /// apprenait au lecteur que l'or ne veut rien dire — sur la page même qui
+    /// est censée le lui enseigner.
+    pub est_un_nom: bool,
 }
 
 /// L'index du lexique.
@@ -256,6 +264,7 @@ pub async fn lexique() -> Result<Vec<ResumeDto>, ServerFnError> {
             titre: e.titre.clone(),
             hebreu: e.hebreu.clone(),
             rendu: e.rendu.clone(),
+            est_un_nom: e.est_un_nom,
         })
         .collect())
 }
