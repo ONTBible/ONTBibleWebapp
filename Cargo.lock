@@ -1554,6 +1554,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "ont-pipeline",
+ "percent-encoding",
  "rand 0.8.8",
  "reqwest",
  "serde",
