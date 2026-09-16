@@ -3581,3 +3581,100 @@ qui ne vaut que sur une route n'est pas une révocation.**
 
 `livraison.yml` ignore `backend/**` : ce correctif ne consomme aucune place de
 téléversement Apple. Il part par `deployer-backend.yml`.
+
+
+### 11 septembre 2026 — deux manifestes portent presque le même nom, et on les a confondus
+
+Le site publie `manifeste.json` sur `/corpus/`. Le pipeline écrit
+`manifest.json` dans `dist/`. **Ce ne sont pas les mêmes fichiers, et ils ne
+portent pas les mêmes nombres :**
+
+| fichier | qui l'écrit | ce qu'il porte |
+|---|---|---|
+| `dist/manifest.json` | le pipeline | `schema: 1`, `contrat: 3` |
+| `/corpus/manifeste.json` | `corpus-publie.py`, chez le site | `schema: 2` |
+
+La liseuse récupère `ontbible.com/corpus/` — **celui du site** — et compare
+**son** `schema` au sien. Le `contrat` du pipeline ne l'atteint jamais.
+
+#### Le défaut vu, le correctif faux, et ce qui a sauvé la mise
+
+La session du pipeline a signalé, à juste titre, que le `2` du site était écrit
+en dur et ne bougeait pas quand un type de nœud apparaissait. Elle a demandé de
+recopier son `contrat` à la place. C'est ce qui a été fait, et **c'était faux** :
+publier 3 aurait fait refuser le corpus **entier** par toutes les liseuses
+installées, qui comparent en égalité stricte et sont à 2.
+
+Ce qui l'a arrêté n'est pas la relecture du correctif — il compilait, onze
+chemins l'éprouvaient, et le tableau était vert. C'est **la lecture de la
+liseuse**, et une seule ligne :
+
+    CorpusUpdater.swift:87   « La version du manifeste que ce code sait lire.
+                               2 depuis 1.0.3, où l'accentuation a changé de
+                               nom sur le fil. »
+
+Le nombre était donc déjà nommé, déjà daté, déjà justifié — dans le dépôt
+d'à côté, à l'endroit exact où la question se pose. Trois sessions ont raisonné
+une heure sur ce qu'il devait valoir sans aller lire ce qu'il valait.
+
+#### La distinction qui manquait, et elle vaut bien au-delà d'ici
+
+> **Une valeur dont l'unique devoir est de *suivre* une autre se recopie.**
+> **Une valeur *copropriétaire* de deux parties se garde par une mesure.**
+
+`contrat` est de la première espèce : il suit `CONTRAT_DES_NOEUDS`, et l'écrire
+à la main est une faute. `schema` est de la seconde : il est le numéro de
+compatibilité du **fil**, tenu d'un commun accord par le script de publication
+et les deux liseuses. Il se monte délibérément, dans le même lot qu'une liseuse
+qui sait lire la nouveauté.
+
+Le défaut n'était donc pas qu'il soit écrit à la main. **C'est que personne ne
+le mesurait contre quoi que ce soit.** Le premier correctif a supprimé le
+littéral — et un littéral gardé vaut mieux qu'une recopie fausse.
+
+#### On garde sur le contenu, jamais sur l'attestation
+
+Le correctif refusait de publier quand `contrat` manquait. Il gardait une
+**déclaration**, et c'était faux deux fois : une déclaration absente se lisait
+comme un danger, une déclaration présente comme une garantie.
+
+Or ce qui met une liseuse en danger n'est pas ce que le pipeline *dit*, c'est ce
+que le corpus *contient*. La variante `Renvoi` existe déjà dans le schéma de
+`dev` **sans** le champ `contrat` : la garde sur l'attestation aurait laissé
+passer exactement le cas qu'elle prétendait couvrir.
+
+La garde regarde donc le corpus, et refuse tout type de nœud hors d'une liste
+figée **à côté** de `SCHEMA_DU_MANIFESTE` — les deux ne se déplacent que dans le
+même commit, avec la liseuse qui sait lire le type nouveau. Dix-sept types
+relevés le 11 septembre ; un `renvoi` planté est refusé quoi que déclare le
+manifeste.
+
+C'est plus long à écrire qu'un nombre recopié. C'est la seule mesure qui ne
+puisse pas mentir.
+
+#### Trois choses de forme, apprises au passage
+
+- **Ne rien trouver n'est pas trouver zéro.** Deux témoins positifs : la garde
+  refuse si elle ne lit aucun nœud, et si elle ne relève aucune liseuse. Sans
+  eux, un chemin renommé chez le pipeline ferait passer la garde en silence, et
+  son silence se lirait comme un accord.
+- **Retirer un littéral casse ceux qui le lisaient.** Une étape de CI relevait
+  le `"schema": 2` par `sed` pour le comparer à la liseuse en vente. En le
+  retirant, son relevé rendait une chaîne vide et elle **tuait le déploiement**
+  sur un désaccord qui n'avait pas eu lieu. Avant d'en retirer une, chercher qui
+  la lit.
+- **Une liseuse en avance n'est pas une panne.** C'est l'ordre voulu — le
+  lecteur d'abord, ce qu'il lit ensuite. La garde le dit et continue ; elle ne
+  refuse que devant une liseuse **en retard**, et le plafond qui compte est celui
+  de la version en vente, la seule qui soit dans des mains.
+
+#### Et un défaut bien vu ne garantit pas le correctif proposé
+
+La session du pipeline avait raison sur le mécanisme, et s'est trompée sur les
+nombres — puis est revenue le corriger d'elle-même. Elle avait annoncé
+`contrat = 4` quand `origin/device` en porte 3.
+
+Un correctif reçu d'une session voisine se mesure comme tout le reste, **y
+compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
+utile n'était pas dans les branches qu'on a comparées : elle était dans le
+commentaire du fichier qu'on cherchait à protéger.
