@@ -35,7 +35,75 @@ pub fn Verset(verset: VersetDomaine) -> impl IntoView {
 /// d'un verset et celui d'une liste — qui finiraient par diverger, et l'un des
 /// deux cesserait de mener à sa fiche.
 pub fn rendre_noeuds(noeuds: &[Noeud]) -> Vec<AnyView> {
-    noeuds.iter().map(rendre_un).collect()
+    souder(noeuds).iter().map(rendre_un).collect()
+}
+
+/// Le premier signe que ce nœud fera paraître, s'il en fait paraître un.
+///
+/// On regarde le **texte rendu**, pas la forme du nœud : un `Em` qui ne porte
+/// qu'un point-virgule commence par un point-virgule, quel que soit le balisage
+/// qui l'enveloppe.
+fn premier_signe(noeud: &Noeud) -> Option<char> {
+    crate::domaine::lecture::corps(std::slice::from_ref(noeud))
+        .chars()
+        .next()
+}
+
+/// Rend insécable une espace que la ponctuation double suit **dans le nœud
+/// d'après**.
+///
+/// ## Le défaut, et pourquoi `composer` ne pouvait pas le voir
+///
+/// `composer` travaille sur une chaîne. Il rend donc insécable l'espace de
+/// « mot ; » quand les deux vivent dans le même fragment — ce qui est le cas des
+/// 2124 relevés dans le corpus.
+///
+/// Il en existe un autre, et il échappe par construction : l'espace finit un
+/// fragment, et la ponctuation commence **l'élément suivant**. Relevé dans les
+/// notes de *Bereshit* 1 :
+///
+/// ```text
+/// Texte(" lehaʾir ")   Emphase([Texte(";")])
+/// ```
+///
+/// Rendu, cela donne `… lehaʾir <em>;</em>` — une espace ordinaire suivie d'une
+/// balise, donc un point de coupure que rien dans les deux chaînes ne révèle.
+/// C'est la famille des « littéraux coupés en deux » du §8 bis, déplacée d'un
+/// cran : cette fois la coupure n'est pas dans le source, elle est dans l'arbre.
+///
+/// ## Pourquoi ici plutôt que dans `composer`
+///
+/// Parce que la question n'est pas de la même nature. `composer` répond
+/// « qu'est-ce qui suit cette espace **dans cette chaîne** » ; celle-ci répond
+/// « qu'est-ce qui suit ce nœud **dans cette suite** ». Un seul passage ne peut
+/// pas répondre aux deux : le second a besoin du voisin, que le premier n'a pas.
+///
+/// Elle est posée dans `rendre_noeuds`, l'entonnoir unique par lequel tout
+/// passe — versets, notes, gloses, fiches. Une correction posée plus bas ne
+/// couvrirait qu'un chemin, et c'est exactement ce qui a laissé les notes de
+/// côté : elles ne traversent pas `preparer`, donc pas la fusion des fragments.
+fn souder(noeuds: &[Noeud]) -> Vec<Noeud> {
+    const FINE: char = '\u{202F}';
+    const INSECABLE: char = '\u{00A0}';
+
+    let mut sortie: Vec<Noeud> = noeuds.to_vec();
+    for i in 0..sortie.len().saturating_sub(1) {
+        let Some(signe) = premier_signe(&sortie[i + 1]) else {
+            continue;
+        };
+        let remplacement = match signe {
+            ';' | '!' | '?' | '»' => FINE,
+            ':' => INSECABLE,
+            _ => continue,
+        };
+        if let Noeud::Texte(texte) = &mut sortie[i] {
+            if texte.ends_with(' ') {
+                texte.pop();
+                texte.push(remplacement);
+            }
+        }
+    }
+    sortie
 }
 
 fn rendre(noeuds: &[Noeud]) -> Vec<AnyView> {
@@ -194,6 +262,57 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         }
         .into_any(),
 
+        // Une référence biblique. **La même apparence dans les deux cas** —
+        // teinte du renvoi, soulignement pointillé —, décidé par l'auteur le
+        // 11 septembre 2026 : une référence qui n'aboutit pas reste une
+        // référence, et la farder autrement apprendrait au lecteur à ne plus
+        // les voir.
+        //
+        // Le pointillé, et non le trait plein de `Lien` : il dit « ceci désigne
+        // un passage » là où le trait plein dit « ceci ouvre une page ». Les
+        // deux ouvrent une page, et seul le second le promet sans réserve.
+        //
+        // Ce qui diffère est le **geste**, pas la couleur : résolue, elle
+        // s'ouvre ; non résolue, elle nomme le livre qui manque. Dire « Ésaïe
+        // n'est pas encore traduit » est une réponse ; un lien mort n'en est
+        // pas une.
+        Noeud::Reference {
+            libelle,
+            livre_cite,
+            cible,
+            ..
+        } => match cible {
+            Some(c) => {
+                // `?v=` est la route des liens partagés, et elle désigne déjà le
+                // verset à l'arrivée. Rien à inventer : la page sait le faire
+                // depuis le premier jour, pour les liens venus de l'app.
+                let vers = match c.verset {
+                    Some(n) => format!("/fr/lire/{}/{}?v={n}", c.livre, c.unite),
+                    None => format!("/fr/lire/{}/{}", c.livre, c.unite),
+                };
+                view! {
+                    <a href=vers class="text-renvoi underline decoration-dotted">
+                        {libelle.clone()}
+                    </a>
+                }
+                .into_any()
+            }
+            // Pas un `<a>` : une ancre sans destination est un lien mort, et un
+            // lien mort s'essaie. Le `title` dit ce qui manque et nomme le
+            // livre — c'est peu, et c'est honnête. Le jour où le livre est
+            // traduit, le pipeline posera `cible` et la branche du dessus
+            // prendra le relais sans qu'on touche à ce fichier.
+            None => view! {
+                <span
+                    class="text-renvoi underline decoration-dotted"
+                    title=format!("{livre_cite} n'est pas encore traduit")
+                >
+                    {libelle.clone()}
+                </span>
+            }
+            .into_any(),
+        },
+
         Noeud::Accentuation(enfants) => view! {
             <b class="font-semibold text-accentuation">{rendre(enfants)}</b>
         }
@@ -288,6 +407,49 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Le cas des notes de *Bereshit* 1, qui a rougi en CI.
+    #[test]
+    fn l_espace_se_soude_a_la_ponctuation_du_noeud_suivant() {
+        let noeuds = vec![
+            Noeud::Texte(" lehaʾir ".into()),
+            Noeud::Emphase(vec![Noeud::Texte(";".into())]),
+        ];
+        let soudes = souder(&noeuds);
+        assert_eq!(
+            soudes[0],
+            Noeud::Texte(" lehaʾir\u{202F}".into()),
+            "l'espace finit un nœud et le point-virgule commence le suivant : \
+             `composer` ne peut pas les voir ensemble"
+        );
+    }
+
+    #[test]
+    fn le_deux_points_du_noeud_suivant_prend_l_insecable_pleine() {
+        let noeuds = vec![
+            Noeud::Texte("ainsi ".into()),
+            Noeud::Emphase(vec![Noeud::Texte(":".into())]),
+        ];
+        assert_eq!(souder(&noeuds)[0], Noeud::Texte("ainsi\u{00A0}".into()));
+    }
+
+    /// Une espace suivie d'autre chose ne bouge pas — sans quoi la soudure
+    /// rendrait insécable tout ce qu'elle touche.
+    #[test]
+    fn une_espace_ordinaire_reste_ordinaire() {
+        let noeuds = vec![
+            Noeud::Texte("un mot ".into()),
+            Noeud::Emphase(vec![Noeud::Texte("autre".into())]),
+        ];
+        assert_eq!(souder(&noeuds)[0], Noeud::Texte("un mot ".into()));
+    }
+
+    /// Un nœud vide ne fait paraître aucun signe, et ne doit rien souder.
+    #[test]
+    fn un_noeud_sans_texte_ne_soude_rien() {
+        let noeuds = vec![Noeud::Texte("un mot ".into()), Noeud::Saut];
+        assert_eq!(souder(&noeuds)[0], Noeud::Texte("un mot ".into()));
+    }
 
     #[test]
     fn la_fine_insecable_precede_le_point_virgule_et_l_exclamation() {

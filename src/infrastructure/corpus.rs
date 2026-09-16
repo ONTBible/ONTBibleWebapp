@@ -34,7 +34,9 @@ use crate::domaine::corpus::{
     Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section,
     SousTitre, Statut,
 };
-use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset};
+use crate::domaine::texte::{
+    CibleDeLaReference, CibleDuNiveauTrois, Noeud, PorteeDeLaReference, Verset,
+};
 
 // `LIVRES: &[(&str, &str)]` — l'identifiant du livre et son JSON.
 include!(concat!(env!("OUT_DIR"), "/livres.rs"));
@@ -129,6 +131,36 @@ fn noeud(source: pipeline::Inline) -> Noeud {
             }),
         },
         pipeline::Inline::Renvoi { v, cible } => Noeud::Renvoi { libelle: v, cible },
+        // Une référence biblique. `systeme` et `chapitre` ne traversent pas :
+        // le libellé les porte déjà sous la forme que le lecteur lit, et la
+        // navigation n'a besoin que de `cible`. Les recopier donnerait deux
+        // écritures du même fait, dont l'une finirait par mentir.
+        //
+        // `portee`, elle, traverse — non pour servir, mais pour que son `match`
+        // exhaustif fasse rougir la compilation si le pipeline en ajoute une
+        // quatrième.
+        pipeline::Inline::Reference {
+            v,
+            livre,
+            portee,
+            cible,
+            ..
+        } => Noeud::Reference {
+            libelle: v,
+            livre_cite: livre,
+            portee: match portee {
+                pipeline::PorteeDeLaReference::Chapitre => PorteeDeLaReference::Chapitre,
+                pipeline::PorteeDeLaReference::Verset { n } => PorteeDeLaReference::Verset { n },
+                pipeline::PorteeDeLaReference::Plage { premier, dernier } => {
+                    PorteeDeLaReference::Plage { premier, dernier }
+                }
+            },
+            cible: cible.map(|c| CibleDeLaReference {
+                livre: c.livre,
+                unite: c.unite,
+                verset: c.verset,
+            }),
+        },
         pipeline::Inline::Heb { v } => Noeud::HebreuNu(v),
         pipeline::Inline::Link { href, children } => Noeud::Lien {
             href,
