@@ -578,6 +578,104 @@ mod liens {
     ///
     /// Cette garde ferme le trou par le seul bout qui vaille : elle part du
     /// **corpus**, pas du lexique. C'est le corpus qui promet.
+    /// Un lemme visé par un **niveau 3** a sa fiche, comme les mots d'or.
+    ///
+    /// ## Le chemin que rien ne gardait
+    ///
+    /// Un lemme s'atteint par **quatre** voies, et deux seulement étaient
+    /// gardées :
+    ///
+    /// ```text
+    /// shem            220 lemmes   gardé
+    /// term            156 lemmes   gardé
+    /// translit→shem   209 lemmes   ← personne
+    /// translit→term   138 lemmes   ← personne
+    /// ```
+    ///
+    /// Une translittération reçoit une `cible` **si et seulement si** son lemme
+    /// est déclaré au §2.5 — c'est le pipeline qui en décide, et le site n'a
+    /// aucun moyen de savoir qu'une cible a été omise. Elle ne peut donc pas
+    /// mentir par excès ; elle peut mentir par défaut, et une cible fausse
+    /// n'éteint pas le mot : **elle l'envoie ailleurs sans le dire**.
+    ///
+    /// Trois cent quarante-sept lemmes passaient par là sans épreuve. La
+    /// remarque vient de la session du vault, qui tenait le fait et pas le
+    /// modèle : *« un même lemme peut être atteint par plusieurs sortes de
+    /// nœuds — si ton compte agrège sans distinguer la sorte, ce n'est
+    /// peut-être pas le seul cas de figure à prévoir. »*
+    ///
+    /// ## Posée verte, et c'est délibéré
+    ///
+    /// Elle passe au premier tour : les quatre voies aboutissent aujourd'hui.
+    /// C'est exactement le moment de l'écrire — une garde posée rouge est une
+    /// garde qu'on désactive, et celle-ci garde un chemin qui n'a encore jamais
+    /// failli.
+    #[test]
+    fn chaque_cible_de_niveau_trois_a_sa_fiche() {
+        use crate::application::ports::Lexique;
+        use crate::domaine::texte::CibleDuNiveauTrois;
+        use crate::infrastructure::corpus::LexiqueEmbarque;
+
+        fn relever(noeuds: &[Noeud], sortie: &mut std::collections::BTreeSet<String>) {
+            for noeud in noeuds {
+                match noeud {
+                    Noeud::Hebreu { cible: Some(c), .. } => {
+                        // Les deux destinations mènent à une fiche ; seule la
+                        // couleur les sépare au rendu, pas l'existence.
+                        let (CibleDuNiveauTrois::Terme(l) | CibleDuNiveauTrois::Shem(l)) = c;
+                        sortie.insert(l.clone());
+                    }
+                    Noeud::Accentuation(enfants)
+                    | Noeud::Emphase(enfants)
+                    | Noeud::Glose(enfants)
+                    | Noeud::Lien { enfants, .. } => relever(enfants, sortie),
+                    _ => {}
+                }
+            }
+        }
+
+        let corpus = CorpusEmbarque::charger().expect("le corpus doit se charger");
+        let lexique = LexiqueEmbarque::charger().expect("le lexique doit se charger");
+
+        let mut lemmes = std::collections::BTreeSet::new();
+        for ensemble in corpus.sommaire() {
+            for section in &ensemble.sections {
+                for entree in &section.livres {
+                    let Some(livre) = corpus.livre(&entree.id) else {
+                        continue;
+                    };
+                    for unite in livre.intro.iter().chain(livre.chapitres.iter()) {
+                        for verset in unite.versets() {
+                            relever(&verset.noeuds, &mut lemmes);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Le témoin positif : zéro cible relevée passerait aussi, et ce serait
+        // un relevé cassé, pas un corpus sans niveau 3.
+        assert!(
+            lemmes.len() > 100,
+            "seulement {} cible(s) relevée(s) — le parcours ne mesure rien",
+            lemmes.len()
+        );
+
+        let orphelines: Vec<&String> = lemmes
+            .iter()
+            .filter(|l| lexique.entree(l).is_none())
+            .collect();
+        assert!(
+            orphelines.is_empty(),
+            "{} lemme(s) visés par un niveau 3 sans fiche, sur {} : {:?}\n\
+             Le mot hébreu est touchable et n'ouvre rien — le lecteur essaie, \
+             et rien ne vient.",
+            orphelines.len(),
+            lemmes.len(),
+            orphelines
+        );
+    }
+
     #[test]
     fn chaque_shem_du_corpus_a_sa_fiche() {
         use crate::application::ports::Lexique;
