@@ -561,8 +561,23 @@ mod tests {
     ///
     /// La question vient de la session du vault, qui l'avait rencontrée chez
     /// elle. Appliquée ici, elle a trouvé `moreh` : présent dans `glossary.json`
-    /// *et* dans `shemot.json`, avec deux définitions différentes et **une seule
-    /// adresse**. `/fr/lexique/moreh` en servait une ; l'autre était injoignable.
+    /// *et* dans `shemot.json`.
+    ///
+    /// **Et ma première lecture était fausse.** J'ai écrit « deux définitions,
+    /// une seule adresse, l'une est injoignable » — puis mesuré : les deux
+    /// définitions sont **identiques à l'octet**, même `sha256`, mêmes 19 595
+    /// octets. Ce n'est pas un conflit de contenus, c'est **une seule fiche
+    /// émise deux fois**, dans deux couches.
+    ///
+    /// La fiche le dit elle-même, et c'est la base de connaissances du vault qui
+    /// me l'a donnée : « ce n'est pas une collision de graphies : le lieu porte
+    /// le nom du concept ». Le correctif en préparation coupait donc en deux ce
+    /// que la source déclare être un.
+    ///
+    /// La garde reste juste — deux entrées pour un lemme faussent tout compte,
+    /// et l'ordre de fusion décide de ce qui est servi. Seul son diagnostic a
+    /// changé, et c'est ce qui compte : **une garde qui détecte bien et explique
+    /// mal envoie chercher au mauvais endroit.**
     ///
     /// ## Pourquoi la garde est ici et pas au vault
     ///
@@ -615,11 +630,13 @@ mod tests {
 
         assert!(
             doubles.is_empty(),
-            "{} lemme(s) servis par deux fiches : {doubles:?}\n\
-             Une seule adresse pour deux définitions : l'une est injoignable, et \
-             rien ne dit laquelle — c'est l'ordre de fusion qui tranche.\n\
-             La réparation est à la source : les deux fiches doivent être \
-             discernables avant d'être émises.",
+            "{} lemme(s) portés par deux entrées : {doubles:?}\n\
+             Deux entrées pour un lemme faussent tout compte du lexique, et \
+             l'ordre de fusion décide laquelle est servie.\n\
+             Regarder d'abord si les deux définitions sont identiques : si oui, \
+             c'est une fiche émise deux fois et la réparation est à l'émission ; \
+             si non, ce sont deux fiches qui se disputent une adresse et la \
+             réparation est à la source.",
             doubles.len()
         );
     }
