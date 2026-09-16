@@ -49,6 +49,17 @@ const GLOSSAIRE: &str = include_str!(concat!(
     "/../ONTBibleApp/dist/glossary.json"
 ));
 
+/// Les fiches des **Shemot** — les noms propres hébreux.
+///
+/// Un fichier à part du glossaire, et ce n'est pas un détail d'organisation :
+/// un Shem n'a ni forme fléchie, ni rendu français, ni hébreu à citer, puisque
+/// c'est **le nom lui-même** qui est l'hébreu. Le pipeline les émet donc dans
+/// leur propre fichier, avec trois champs au lieu de treize.
+const SHEMOT: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../ONTBibleApp/dist/shemot.json"
+));
+
 const OCCURRENCES: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../ONTBibleApp/dist/occurrences.json"
@@ -204,6 +215,29 @@ fn livre(source: pipeline::Book) -> Livre {
     }
 }
 
+/// Une fiche de Shem, ramenée à la forme d'une entrée de lexique.
+///
+/// Les trois champs manquants restent vides, et le rendu les tolère déjà : le
+/// §8 bis note que `hebrew`, `rendering` et `forms` sont nuls sur plusieurs
+/// fiches du glossaire lui-même. Un Shem est simplement le cas où ils le sont
+/// toujours.
+///
+/// **Le lemme est la clé, et il est le même des deux côtés.** C'est ce qui
+/// permet à `/fr/lexique/{lemme}` de servir les deux sans que le lecteur ait à
+/// savoir lequel il consulte — et c'est ce que le corpus suppose déjà, puisque
+/// `Noeud::Shem` et `Noeud::Intraduisible` pointent la même route.
+fn entree_de_shem(source: pipeline::ShemEntry) -> Entree {
+    Entree {
+        lemme: source.lemma,
+        titre: source.title,
+        hebreu: String::new(),
+        rendu: String::new(),
+        formes: Vec::new(),
+        est_un_nom: true,
+        definition: blocs(source.definition),
+    }
+}
+
 fn entree(source: pipeline::GlossaryEntry) -> Entree {
     Entree {
         lemme: source.lemma,
@@ -211,6 +245,7 @@ fn entree(source: pipeline::GlossaryEntry) -> Entree {
         hebreu: source.hebrew.unwrap_or_default(),
         rendu: source.rendering.unwrap_or_default(),
         formes: source.forms,
+        est_un_nom: false,
         definition: blocs(source.definition.unwrap_or_default()),
     }
 }
@@ -382,8 +417,25 @@ pub struct LexiqueEmbarque {
 impl LexiqueEmbarque {
     pub fn charger() -> Result<Self, serde_json::Error> {
         let glossaire: pipeline::GlossaryFile = serde_json::from_str(GLOSSAIRE)?;
+        let shemot: pipeline::ShemotFile = serde_json::from_str(SHEMOT)?;
 
-        let mut entrees: Vec<Entree> = glossaire.entries.into_iter().map(entree).collect();
+        // ── Les deux fichiers font un seul lexique ───────────────────────────
+        //
+        // Le site publiait `shemot.json` pour les liseuses depuis l'audit (A10)
+        // et **ne le consultait pas lui-même**. Les 2 878 liens de Shem du
+        // corpus menaient donc tous à « Fiche introuvable » — mesuré : la page
+        // d'`eden` faisait 9 752 octets, exactement celle d'un lemme inventé.
+        //
+        // Le commentaire d'`Absente` disait pourtant qu'on ne pouvait pas y
+        // arriver, « les liens d'or venant du même pipeline que le lexique ».
+        // Vrai des intraduisibles, faux des Shemot — et c'est la phrase qui a
+        // fermé la question pendant dix jours.
+        let mut entrees: Vec<Entree> = glossaire
+            .entries
+            .into_iter()
+            .map(entree)
+            .chain(shemot.entries.into_iter().map(entree_de_shem))
+            .collect();
         // L'ordre du pipeline suit le vault. Une page de lexique se lit par
         // ordre alphabétique du lemme — et c'est le lemme, pas le titre, qui
         // fait foi : c'est lui qui est dans l'adresse.

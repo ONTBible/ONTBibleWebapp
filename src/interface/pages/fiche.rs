@@ -97,10 +97,14 @@ pub fn Fiche() -> impl IntoView {
                             )
                         } else {
                             format!(
-                                "{}{hebreu_cite} — l'intraduisible hébreu que La Bible ONT \
-                                 laisse debout : ce qu'il porte, pourquoi il ne se traduit \
-                                 pas{occurrences_citees}.",
+                                "{}{hebreu_cite} — {} que La Bible ONT laisse debout : ce \
+                                 qu'il porte, pourquoi il ne se traduit pas{occurrences_citees}.",
                                 e.titre,
+                                if e.est_un_nom {
+                                    "le nom propre hébreu"
+                                } else {
+                                    "l'intraduisible hébreu"
+                                },
                             )
                         };
                         let hebreu = e.hebreu.clone();
@@ -120,7 +124,22 @@ pub fn Fiche() -> impl IntoView {
                                 titre=if rendu_distinct {
                                     format!("{} (hébreu) : {}", e.titre, e.rendu)
                                 } else {
-                                    format!("{}, l'intraduisible hébreu", e.titre)
+                                    // Un Shem n'est pas un intraduisible, et
+                                    // le §8 octies tient à la distinction :
+                                    // « l'or promet une fiche et la tient ; le
+                                    // bordeaux marque sans rien promettre ».
+                                    // Les nommer pareil dans un titre — celui
+                                    // que Google affiche — brouillerait ce que
+                                    // la couleur sépare.
+                                    format!(
+                                        "{}, {}",
+                                        e.titre,
+                                        if e.est_un_nom {
+                                            "nom propre hébreu"
+                                        } else {
+                                            "l'intraduisible hébreu"
+                                        }
+                                    )
                                 }
                                 description=description
                                 chemin=format!("/fr/lexique/{}", e.lemme)
@@ -198,6 +217,25 @@ pub fn Fiche() -> impl IntoView {
 /// qu'un terme a été retiré du glossaire sans que le corpus le sache.
 #[component]
 fn Absente() -> impl IntoView {
+    // ── Un 404 pour une page qui n'existe pas ────────────────────────────────
+    //
+    // Elle répondait **200**. Le `noindex` ci-dessous protégeait le
+    // référencement — un moteur ne l'indexe pas —, mais un code de statut sert
+    // aussi à **mesurer**, et celui-là mentait.
+    //
+    // C'est ce qui a caché dix jours que les 2 878 liens de Shem du corpus
+    // menaient tous ici : un relevé par code voyait `200` sur chaque fiche et
+    // concluait qu'elles existaient toutes. Il a fallu comparer les **octets**
+    // pour voir que la page d'`eden` pesait exactement celle d'un lemme
+    // inventé.
+    //
+    // Une page introuvable qui répond « tout va bien » est une garde retournée
+    // contre celui qui mesure.
+    #[cfg(feature = "ssr")]
+    if let Some(reponse) = use_context::<leptos_axum::ResponseOptions>() {
+        reponse.set_status(axum::http::StatusCode::NOT_FOUND);
+    }
+
     view! {
         <Tete
             titre="Fiche introuvable"

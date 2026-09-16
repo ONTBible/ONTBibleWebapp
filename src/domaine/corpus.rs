@@ -254,6 +254,19 @@ pub struct Entree {
     pub rendu: String,
     /// Les formes attestées, quand elles diffèrent du lemme.
     pub formes: Vec<String>,
+    /// Vrai quand la fiche nomme un **Shem** — un porteur — et non un
+    /// intraduisible.
+    ///
+    /// Les deux vivent dans le même lexique et à la même adresse : c'est ce que
+    /// le corpus suppose, `Noeud::Shem` et `Noeud::Intraduisible` pointant la
+    /// même route. Mais ils ne se disent pas pareil, et le titre le dit.
+    ///
+    /// **Un champ plutôt qu'une déduction.** On pourrait deviner — un Shem n'a
+    /// ni rendu, ni formes, ni hébreu à citer. Mais le §8 bis note que ces
+    /// champs sont nuls sur plusieurs fiches du glossaire lui-même : la
+    /// déduction se tromperait sur celles-là, et se tromperait en silence.
+    #[serde(default)]
+    pub est_un_nom: bool,
     pub definition: Vec<Bloc>,
 }
 

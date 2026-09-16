@@ -398,6 +398,86 @@ mod liens {
         );
     }
 
+    /// ## Chaque Shem du corpus a sa fiche
+    ///
+    /// `Noeud::Shem` est rendu **en or et cliquable**, vers
+    /// `/fr/lexique/{lemme}`. La promesse est celle de l'intraduisible : un mot
+    /// coloré ouvre quelque chose.
+    ///
+    /// Elle a été rompue dix jours. Le site publiait `shemot.json` pour les
+    /// liseuses depuis l'audit A10 et **ne le consultait pas lui-même** : les
+    /// 2 878 liens de Shem menaient tous à « Fiche introuvable ».
+    ///
+    /// **Rien ne pouvait le voir.** `chaque_lemme_cite_par_une_page_a_sa_fiche`
+    /// couvre les lemmes que la *prose du site* cite — pas ceux que le corpus
+    /// porte. `aucun_lien_du_corpus_n_est_relatif` vérifie la forme d'un `href`,
+    /// pas l'existence de sa cible. Et la page « Fiche introuvable » répond
+    /// **200**, donc un relevé par code de statut voyait tout en vert.
+    ///
+    /// Cette garde ferme le trou par le seul bout qui vaille : elle part du
+    /// **corpus**, pas du lexique. C'est le corpus qui promet.
+    #[test]
+    fn chaque_shem_du_corpus_a_sa_fiche() {
+        use crate::application::ports::Lexique;
+        use crate::infrastructure::corpus::LexiqueEmbarque;
+
+        let corpus = CorpusEmbarque::charger().expect("le corpus doit se charger");
+        let lexique = LexiqueEmbarque::charger().expect("le lexique doit se charger");
+
+        let mut lemmes = std::collections::BTreeSet::new();
+        for ensemble in corpus.sommaire() {
+            for section in &ensemble.sections {
+                for entree in &section.livres {
+                    let Some(livre) = corpus.livre(&entree.id) else {
+                        continue;
+                    };
+                    for unite in livre.intro.iter().chain(livre.chapitres.iter()) {
+                        for verset in unite.versets() {
+                            relever_les_shemot(&verset.noeuds, &mut lemmes);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sans témoin, un relevé vide passerait pour « aucun Shem sans fiche »
+        // alors qu'il dirait « je n'ai relevé aucun Shem ». C'est le défaut qui
+        // a coûté la semaine, et il se pose ici comme ailleurs.
+        assert!(
+            lemmes.len() > 50,
+            "seulement {} Shem relevés — le parcours ne mesure rien",
+            lemmes.len()
+        );
+
+        let orphelins: Vec<&String> = lemmes
+            .iter()
+            .filter(|l| lexique.entree(l).is_none())
+            .collect();
+        assert!(
+            orphelins.is_empty(),
+            "{} Shem sans fiche, sur {} : {:?}\n\
+             Un mot d'or qui n'ouvre rien est pire qu'un mot noir.",
+            orphelins.len(),
+            lemmes.len(),
+            orphelins.iter().take(8).collect::<Vec<_>>()
+        );
+    }
+
+    fn relever_les_shemot(noeuds: &[Noeud], dans: &mut std::collections::BTreeSet<String>) {
+        for noeud in noeuds {
+            match noeud {
+                Noeud::Shem { lemme, .. } => {
+                    dans.insert(lemme.clone());
+                }
+                Noeud::Accentuation(enfants)
+                | Noeud::Glose(enfants)
+                | Noeud::Emphase(enfants)
+                | Noeud::Lien { enfants, .. } => relever_les_shemot(enfants, dans),
+                _ => {}
+            }
+        }
+    }
+
     fn releve(noeuds: &[Noeud], relatifs: &mut Vec<String>) {
         for n in noeuds {
             match n {
