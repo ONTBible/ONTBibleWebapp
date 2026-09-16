@@ -550,6 +550,80 @@ mod tests {
     /// `livre()` rend `None` sur échec plutôt que de tomber : sans ce test, un
     /// livre devenu illisible se manifesterait par un 404, ce qui ressemble
     /// beaucoup trop à « ce livre n'est pas encore écrit ».
+    /// Deux fiches ne partagent jamais un lemme — donc jamais une adresse.
+    ///
+    /// ## Ce qu'aucune autre garde ne pouvait voir
+    ///
+    /// Les gardes de ce dépôt comparent toutes **un élément à un ensemble** :
+    /// *ce Shem a-t-il une fiche*, *ce lemme cité mène-t-il quelque part*, *cette
+    /// fiche porte-t-elle une définition*. Aucune ne compare deux fiches **l'une
+    /// à l'autre**, et c'est une forme entière de défaut qui passe dessous.
+    ///
+    /// La question vient de la session du vault, qui l'avait rencontrée chez
+    /// elle. Appliquée ici, elle a trouvé `moreh` : présent dans `glossary.json`
+    /// *et* dans `shemot.json`, avec deux définitions différentes et **une seule
+    /// adresse**. `/fr/lexique/moreh` en servait une ; l'autre était injoignable.
+    ///
+    /// ## Pourquoi la garde est ici et pas au vault
+    ///
+    /// Le vault n'a **qu'un seul fichier** par fiche : sa propre garde de
+    /// collision ne pouvait rien voir. La collision naît entre deux **émissions**
+    /// du pipeline, que seul celui qui les fusionne observe ensemble. C'est donc
+    /// à ce dépôt de la tenir — et le défaut vivait précisément dans l'angle mort
+    /// que l'instrument du vault ne couvrait pas.
+    ///
+    /// ## Ce que la collision cachait, et qui était pire
+    ///
+    /// Le témoin hébreu porte deux numéros de Strong distincts — `4175` pour le
+    /// mot qui montre la direction, `4176` pour le chêne de *Bereshit* 12. La
+    /// fiche unique déclarait `4175` alors qu'elle était émise comme le Shem du
+    /// lieu : **la fiche du lieu portait le numéro du mot.** L'adresse disputée
+    /// n'était que le symptôme visible.
+    ///
+    /// ## Le témoin, et pourquoi il compte
+    ///
+    /// Cette garde a été **vue rougir** sur l'état du 16 septembre 2026, avant
+    /// que le vault ne sépare les deux fiches :
+    ///
+    /// ```text
+    /// 1 lemme(s) servis par deux fiches : ["moreh"]
+    /// ```
+    ///
+    /// Un zéro qu'on n'a jamais vu rougir ne prouve rien — et une fois la source
+    /// corrigée, on ne peut plus l'obtenir.
+    #[test]
+    fn deux_fiches_ne_partagent_jamais_un_lemme() {
+        let lexique = LexiqueEmbarque::charger().expect("le lexique s'ouvre");
+
+        // Le témoin positif : un relevé vide passerait aussi.
+        assert!(
+            lexique.entrees().len() > 300,
+            "seulement {} fiches lues — le relevé est cassé, pas le lexique",
+            lexique.entrees().len()
+        );
+
+        let mut comptes: std::collections::BTreeMap<&str, usize> =
+            std::collections::BTreeMap::new();
+        for entree in lexique.entrees() {
+            *comptes.entry(entree.lemme.as_str()).or_default() += 1;
+        }
+        let doubles: Vec<&str> = comptes
+            .into_iter()
+            .filter(|(_, n)| *n > 1)
+            .map(|(lemme, _)| lemme)
+            .collect();
+
+        assert!(
+            doubles.is_empty(),
+            "{} lemme(s) servis par deux fiches : {doubles:?}\n\
+             Une seule adresse pour deux définitions : l'une est injoignable, et \
+             rien ne dit laquelle — c'est l'ordre de fusion qui tranche.\n\
+             La réparation est à la source : les deux fiches doivent être \
+             discernables avant d'être émises.",
+            doubles.len()
+        );
+    }
+
     #[test]
     fn chaque_livre_embarque_s_analyse() {
         for (id, source) in LIVRES {
