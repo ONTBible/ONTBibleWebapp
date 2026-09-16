@@ -2753,6 +2753,117 @@ tout allait bien.
   aujourd'hui omise plutôt que mise à `null` ;
 - l'action **Image** de l'app, qui rend un carré de 1080 px.
 
+## 8 decies. Trois contrats arrêtés, et rien de construit — le 11 septembre 2026
+
+Ce qui suit n'est **pas** dans le code. Ce sont des accords passés avec les
+sessions voisines, dont la moitié attend une branche de l'app. Ils sont ici
+parce qu'ils ont coûté une journée à établir et qu'ils se perdraient dans des
+messages : une décision qu'on redérive est une décision qu'on retrouve
+différente.
+
+### Le manifeste du corpus porte **deux** nombres, et on les confond
+
+C'est le piège le plus coûteux de la journée, et il se retend tout seul :
+**deux fichiers portent presque le même nom.**
+
+| fichier | qui l'écrit | ce qu'il porte |
+|---|---|---|
+| `dist/manifest.json` | le pipeline | `schema: 1`, `contrat: 3` |
+| `/corpus/manifeste.json` | **ce dépôt** | `schema: 2`, `contrat` recopié |
+
+La liseuse récupère `ontbible.com/corpus/` — **le nôtre** — et compare **notre**
+`schema` au sien, en égalité stricte. Le `contrat` du pipeline ne l'atteint
+jamais.
+
+- **`schema`** est le numéro de compatibilité du **fil**, copropriété de
+  `corpus-publie.py` et des deux liseuses. Il se monte **délibérément**, dans le
+  même lot qu'une version de liseuse qui sait lire la nouveauté. Il vaut 2
+  depuis la 1.0.3, où l'accentuation a changé de nom sur le fil.
+- **`contrat`** suit `CONTRAT_DES_NOEUDS` du pipeline. Il se **recopie**, à côté
+  et jamais à la place, et il est **omis** quand le pipeline se tait.
+
+D'où la distinction qui manquait, et elle vaut partout :
+
+> **Une valeur dont l'unique devoir est de *suivre* une autre se recopie.**
+> **Une valeur *copropriétaire* de deux parties se garde par une mesure.**
+
+**Et la garde porte sur le contenu, jamais sur l'attestation.**
+`verifier_les_types_emis` parcourt `books/`, `glossary.json` et `shemot.json`,
+et refuse tout type de nœud hors de `TYPES_DE_NOEUDS_CONNUS` — figée **à côté**
+de `SCHEMA_DU_MANIFESTE`, les deux ne bougeant que dans le même commit. La
+raison est mécanique : la variante `Renvoi` vit déjà dans le schéma de `dev`
+**sans** le champ `contrat`. Une garde sur la déclaration aurait laissé passer
+exactement le cas qu'elle prétend couvrir.
+
+### Deux types de nœuds arrivent, avec leur rendu déjà arbitré
+
+`renvoi` et `reference` sont sur une branche de l'app. **Le jour où ils
+atteignent `dev`, la publication du corpus se refusera** — c'est le
+comportement voulu, et il faut les ajouter avec leur rendu dans le même lot.
+
+```json
+{"t":"renvoi","v":"…","cible":"<id de chuqqah>"}
+{"t":"reference","v":"*Genèse* 9:27","livre":"Genèse","systeme":"recu",
+ "chapitre":9,"portee":{"t":"verset","n":27},
+ "cible":{"livre":"bereshit","unite":"bereshit-9","verset":8}}
+```
+
+`portee` a trois variantes — `chapitre`, `verset{n}`, `plage{premier,dernier}`.
+`cible` est **omis** quand le livre visé n'est pas traduit : 707 des 915
+références en ont une.
+
+**Arbitré par l'auteur le 11 septembre, et ça ne se devine pas :**
+
+- **ambre du renvoi et soulignement pointillé**, la même apparence pour toutes,
+  résolues ou non. Celles qui ne mènent nulle part répondent par un message
+  nommant le livre — « Ésaïe n'est pas encore traduit » ;
+- **le verset visé se désigne à l'arrivée**, pas seulement s'atteint. « Arriver
+  dans une unité de trente versets sans que rien ne marque celui qu'on venait
+  chercher, c'est arriver nulle part » ;
+- **un renvoi empile, il ne remplace pas** : le retour rend le passage d'où l'on
+  vient, à sa hauteur de défilement. Ici c'est l'historique du navigateur, donc
+  gratuit — côté app il a fallu distinguer deux gestes que le routeur
+  confondait.
+
+### Le publieur des langues sources — le contrat, pas le code
+
+`dist/sources/` n'existe que sur `device`. Le publieur reste **à écrire**, et
+délibérément : l'écrire contre une forme qu'on ne peut pas faire tourner est la
+faute de la journée. Le contrat, lui, est arrêté avec la session macOS.
+
+| | |
+|---|---|
+| adresse | `ontbible.com/sources/…`, **jamais sous `/corpus/`** |
+| cache | un an, `immutable` — le nom porte le contenu |
+| invalidation | bornée à `/sources/*`, jamais mêlée à `/corpus/*` |
+| `sha256` | l'empreinte **pleine** des octets, intacte |
+| `genere` | vérifié par `verifier_la_date`, jamais réécrit |
+
+Les cycles de vie sont distincts — un témoin grec ne change pas quand un
+chapitre est corrigé —, et les mêler dans une même invalidation ferait
+retélécharger l'un à chaque publication de l'autre.
+
+**Le manifeste publié est celui du pipeline, transformé dans une seule
+dimension — les `chemin` — et dans aucune autre.**
+
+**Le nom publié porte une tranche du `sha256` déjà présent**, jamais un hachage
+neuf : il n'y a ainsi qu'**une seule empreinte dans toute la chaîne**, et le nom
+n'en est qu'une présentation. C'est la seconde normalisation évitée par
+construction plutôt que par discipline.
+
+Et parce que le nom dépend d'un hachage *déclaré*, le publieur **recalcule le
+`sha256` des octets qu'il publie et le compare au déclaré**, refusant en cas de
+désaccord. Ce n'est pas une seconde normalisation : c'est une vérification qui
+ne sert qu'à rougir, et dont le résultat n'est écrit nulle part. Elle attrape
+ici, avant publication, ce que le client attraperait après téléchargement.
+
+**Ne pas tronquer ces empreintes-là.** Les douze signes de `corpus-publie.py`
+sont un **détecteur de changement** (`connus[local] != entree.empreinte`) ; le
+`sha256` des sources est une **vérification d'intégrité** sur les octets reçus.
+Tronquer le premier est sans conséquence, tronquer le second en a une. Garder
+les deux chemins séparés plutôt que de paramétrer une longueur : un
+`tronquer=True` finit par être passé à l'envers.
+
 ## 9. Ce qui reste à trancher
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.
