@@ -13,6 +13,11 @@ leptos_meta = "0.8"
 # `serde` traverse la frontière client ↔ serveur : il est des deux côtés.
 serde = { version = "1", features = ["derive"] }
 axum = { version = "0.8", optional = true }
+# Déjà dans l'arbre par axum — on la déclare pour pouvoir l'employer
+# directement, sans la résoudre deux fois. La couche de redirection du
+# lexique compare des chemins **décodés** : `ʾ` s'écrit `%CA%BE` dans une
+# adresse, et les deux formes arrivent.
+percent-encoding = { version = "2.3", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8", optional = true }
 # L'adaptateur du runtime Lambda. Le **même** binaire sert des deux côtés :
@@ -134,6 +139,7 @@ hydrate = [
 ssr = [
     "dep:ont",
     "dep:axum",
+  "dep:percent-encoding",
     "dep:lambda_http",
     "dep:tokio",
     "dep:leptos_axum",
