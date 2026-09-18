@@ -24,20 +24,21 @@ pub fn Lexique() -> impl IntoView {
             // visible reste « Lexique », qui suffit à qui est arrivé.
             // « Lexique » seul ne répond à aucune recherche : c'est un mot
             // de sommaire, pas un mot de question.
-            titre="Lexique des intraduisibles hébreux"
-            description="Les intraduisibles de La Bible ONT — les termes hébreux et araméens \
-                         laissés debout, et pourquoi."
+            titre="Intraduisibles et noms propres hébreux"
+            description="Les intraduisibles et les noms propres hébreux de La Bible ONT — \
+                         les mots laissés debout, et pourquoi."
             chemin="/fr/lexique"
         />
 
         <PageDeLecture
-            rappel="Les intraduisibles"
+            rappel="Les mots laissés debout"
             titre="Lexique"
             chapeau=Box::new(|| {
                 view! {
                     <p class="text-encre-douce text-pretty">
                         "Ce que la restitution a choisi de ne pas traduire, et comment elle \
-                         le rend. Chaque mot d'or du corpus mène ici."
+                         le rend. Et les noms propres, qu'elle garde dans leur forme hébraïque. \
+                         Chaque mot d'or et chaque nom du corpus mène ici."
                     </p>
                 }
                     .into_any()
@@ -59,7 +60,19 @@ pub fn Lexique() -> impl IntoView {
                                                         class="block py-4 no-underline"
                                                     >
                                                         <span class="flex items-baseline justify-between gap-4">
-                                                            <span class="font-semibold text-accent">
+                                                            // La teinte suit l'**espèce**, et ce
+                                                            // n'est pas une décoration : c'est le
+                                                            // contrat de couleurs du corpus. L'or
+                                                            // promet un intraduisible, la teinte du
+                                                            // Shem promet un nom propre. Les rendre
+                                                            // tous en or apprenait au lecteur que
+                                                            // l'or ne veut rien dire — sur la page
+                                                            // même qui est censée le lui enseigner.
+                                                            <span class=if entree.est_un_nom {
+                                                                "font-semibold text-shem"
+                                                            } else {
+                                                                "font-semibold text-accent"
+                                                            }>
                                                                 {entree.titre}
                                                             </span>
                                                             <span

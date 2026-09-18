@@ -270,7 +270,32 @@ TYPES_DE_NOEUDS_CONNUS = {
     # les nœuds en ligne
     "text", "term", "accentuation", "gloss", "em", "translit", "heb",
     "link", "break", "shem",
+    # Arrivés le 18 septembre 2026 avec la navigation entre renvois, et rendus
+    # par `verset.rs` depuis la même fusion. Les ajouter ici fait partie du lot :
+    # la liste et le rendu ne se déplacent que dans le même commit, et j'ai
+    # oublié la liste — le corpus a cessé d'être publié pendant deux jours.
+    "renvoi", "reference",
 }
+
+# Les champs d'un nœud qui portent **leur propre** type somme.
+#
+# `PorteeDeLaReference` et `CibleDuNiveauTrois` sont sérialisés avec
+# `#[serde(tag = "t")]`, comme les nœuds — donc le même nom de clé sert deux
+# espaces de noms sans rapport :
+#
+#     {"t": "reference", …, "portee": {"t": "verset", "n": 27}}
+#                                       ↑ ce n'est pas un type de nœud
+#
+# Sans cette exclusion, la garde comptait `chapitre` (570), `verset` (626) et
+# `plage` (84) comme des types inconnus, et refusait de publier un corpus qui
+# n'avait rien de nouveau. Un faux positif dans une garde qui bloque vaut un
+# défaut : elle a tenu la production figée du 16 au 18 septembre.
+#
+# On ne descend donc pas dans ces champs. C'est plus sûr que de les nommer dans
+# la liste des types connus : leurs variantes y cohabiteraient avec les nœuds, et
+# un type de nœud nouveau qui porterait par hasard le nom d'une étendue passerait
+# sans rougir.
+CHAMPS_D_UN_AUTRE_TYPE = {"portee", "cible"}
 
 # Les fichiers où `t` désigne un **type de nœud**. Ailleurs il porte autre
 # chose — dans `search.json` c'est le texte de l'extrait, et le parcourir ferait
@@ -374,8 +399,11 @@ def verifier_les_types_emis() -> None:
                 vus += 1
                 if t not in TYPES_DE_NOEUDS_CONNUS:
                     inconnus[t] = inconnus.get(t, 0) + 1
-            for y in x.values():
-                parcourir(y)
+            for cle, y in x.items():
+                # Un champ qui porte son propre type somme n'est pas un nœud —
+                # voir CHAMPS_D_UN_AUTRE_TYPE.
+                if cle not in CHAMPS_D_UN_AUTRE_TYPE:
+                    parcourir(y)
         elif isinstance(x, list):
             for y in x:
                 parcourir(y)
