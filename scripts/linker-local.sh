@@ -25,6 +25,25 @@
 # et faux **en silence**, puisque cargo dirait seulement « linker introuvable ».
 # Le script le résout à l'exécution ; `.cargo/config.toml` est ignoré par git.
 #
+# ## Et depuis macOS 27, il faut aussi lui donner un SDK qu'il sache lire
+#
+# Les SDK de macOS 27 déclarent une architecture que `ld64.lld` ne connaît pas :
+#
+#     targets: [ …, arm64e.x1-macos, arm64e.x1-maccatalyst ]
+#     rust-lld: could not load TAPI file … CoreFoundation.tbd: malformed file
+#                                          4:54: error: unknown architecture
+#
+# Les deux moitiés se referment l'une sur l'autre, et c'est ce qui rend le
+# diagnostic trompeur : sans ce script, le linker d'Apple **plante** sur l'objet
+# géant ; avec lui mais sans le SDK, `rust-lld` **refuse** le SDK. On croit alors
+# que le script ne sert plus, et l'on essaie de s'en passer — ce qui ramène au
+# premier plantage, sous une autre trace.
+#
+# Le SDK n'est pas écrit en dur : on prend **le plus récent qui ne porte pas le
+# jeton**, mesuré dans le fichier lui-même. Le jour où Rust embarquera un `lld`
+# qui lit les SDK de macOS 27, cette moitié pourra tomber — et son retrait se
+# signalera par l'erreur ci-dessus.
+#
 # Ne touche ni la CI (Ubuntu, linker GNU) ni le déploiement (`cargo lambda` et
 # zig, qui croise-compile vers Linux).
 
@@ -40,6 +59,29 @@ if [[ ! -x "$LLD" ]]; then
   exit 1
 fi
 
+# Le plus récent SDK que `ld64.lld` sache lire — celui dont le `CoreFoundation.tbd`
+# ne déclare pas `arm64e.x1`. On regarde le fichier, on ne devine pas d'après le
+# numéro de version.
+SDK=""
+for candidat in $(ls -d \
+      /Library/Developer/CommandLineTools/SDKs/MacOSX*.sdk \
+      /Applications/Xcode*.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX*.sdk \
+      2>/dev/null | sort -rV); do
+  TBD="$candidat/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation.tbd"
+  [[ -f "$TBD" ]] || continue
+  if ! grep -q "arm64e\.x1" "$TBD"; then
+    SDK="$candidat"
+    break
+  fi
+done
+
+if [[ -z "$SDK" ]]; then
+  echo "aucun SDK lisible par ld64.lld — tous déclarent arm64e.x1" >&2
+  echo "installer les Command Line Tools d'une version antérieure, ou vérifier" >&2
+  echo "si la toolchain Rust embarque désormais un lld qui les lit" >&2
+  exit 1
+fi
+
 mkdir -p .cargo
 cat > .cargo/config.toml <<TOML
 # Engendré par scripts/linker-local.sh — ne pas éditer à la main.
@@ -49,6 +91,12 @@ cat > .cargo/config.toml <<TOML
 # passent.
 [target.${CIBLE}]
 rustflags = ["-C", "link-arg=-fuse-ld=${LLD}"]
+
+# Le SDK que ce linker sait lire. \`force = false\` : une session qui pose son
+# propre \`SDKROOT\` garde le sien — les sessions iOS compilent contre la bêta.
+[env]
+SDKROOT = { value = "${SDK}", force = false }
 TOML
 
 echo "linker → $LLD"
+echo "SDK    → $SDK"
