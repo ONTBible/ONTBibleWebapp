@@ -459,11 +459,33 @@ jobs:
           # `|| code=$?` parce que le shell tourne avec `-e` : sans ça le pas
           # de côté n'a pas lieu, le job s'arrête, et ce commentaire décrit un
           # comportement qui n'existe pas.
+          # `publie` est une variable **de ce shell**, et c'est tout le sujet.
+          #
+          # Le refus ne s'écrivait que dans `$GITHUB_ENV`, qui n'est lu qu'au
+          # début des étapes **suivantes**. Dans celle-ci la variable restait
+          # vide, le `${CORPUS_PUBLIE:-oui}` plus bas prenait « oui » par défaut,
+          # et l'étape poussait vers S3 un manifeste que le refus venait de ne pas
+          # écrire :
+          #
+          #     aws: The user-provided path target/corpus/manifeste.json
+          #          does not exist.                              exit code 255
+          #
+          # Le message disait donc « Le site est déployé quand même » et le job
+          # mourait trois lignes plus bas. **Un pas de côté annoncé qui tue le
+          # travail qu'il prétend épargner** — la production est restée figée du
+          # 16 au 18 septembre, et la seule trace était un avertissement
+          # rassurant.
+          #
+          # `$GITHUB_ENV` reste écrit : les étapes d'après en ont besoin, et
+          # `if: env.CORPUS_PUBLIE != 'non'` y fonctionne. Ce qui change est
+          # qu'on ne le **relit** pas ici.
           code=0
+          publie=oui
           ./scripts/corpus-publie.py || code=$?
           if [ "$code" = "2" ]; then
             echo "::warning title=Corpus non publié::Le corpus n'a pas été publié pour l'app — voir le refus ci-dessus. Le site est déployé quand même ; l'app reste sur le manifeste précédent."
             echo "CORPUS_PUBLIE=non" >> "$GITHUB_ENV"
+            publie=non
           elif [ "$code" != "0" ]; then
             exit "$code"
           fi
@@ -489,7 +511,7 @@ jobs:
           # et un `--delete` sur un dossier vide effacerait le corpus en ligne.
           # C'est le seul endroit où le pas de côté pourrait faire pire que
           # l'arrêt qu'il remplace.
-          if [ "${CORPUS_PUBLIE:-oui}" = "non" ]; then
+          if [ "$publie" = "non" ]; then
             echo "  corpus non publié — rien à pousser, l'app garde le précédent"
             exit 0
           fi
