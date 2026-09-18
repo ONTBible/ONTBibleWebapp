@@ -238,8 +238,17 @@ def verifier_les_empreintes(annonces: list[dict]) -> None:
 
 def main() -> None:
     if not SOURCE.exists():
-        raise SystemExit(
-            f"{SOURCE} introuvable — le pipeline de ONTBibleApp doit avoir tourné"
+        # **Un refus, pas une panne.** Un pipeline qui n'émet pas encore
+        # `sources/` est un état légitime — les liseuses gardent leur bundle, et
+        # rien n'est perdu. Rendre 1 ici tuerait le déploiement du site entier
+        # pour une couche qui n'existe pas, ce qui est exactement le défaut que
+        # le corpus vient de payer : un pas de côté qui tue le travail qu'il
+        # prétend épargner.
+        raise Refus(
+            f"  {SOURCE} n'existe pas.\n"
+            "  Le pipeline n'émet pas encore la couche des langues sources, ou\n"
+            "  `dist/` n'a pas été régénéré. Rien à publier — les liseuses\n"
+            "  gardent ce qu'elles portent."
         )
 
     # ── Avant d'écrire quoi que ce soit ─────────────────────────────────────

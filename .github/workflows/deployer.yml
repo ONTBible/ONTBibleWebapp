@@ -536,6 +536,55 @@ jobs:
       # tomber le job — c'est-à-dire exactement l'arrêt que l'étape précédente
       # vient d'éviter, une étape plus loin. Un pas de côté ne vaut que s'il
       # couvre tout ce qui dépendait de ce qu'on a sauté.
+      # ── Les langues sources ───────────────────────────────────────────────
+      #
+      # Cette étape manquait, et c'est le défaut du corpus rejoué : #147 a livré
+      # le publieur, son appel dans `scripts/deployer.sh` et le comportement
+      # CloudFront dans `infra/main.tf` — **mais pas cette étape-ci**, qui est le
+      # seul chemin par lequel le site se déploie vraiment.
+      #
+      # `/sources/manifeste.json` rendait donc 404 pendant que
+      # `/corpus/manifeste.json` rendait 200 — le témoin qui prouve que le défaut
+      # n'était ni le réseau ni le seau.
+      #
+      # J'avais câblé la moitié que je regardais. `deployer.sh` est le geste
+      # local, `deployer.yml` celui qui part ; les deux existent, et rien ne dit
+      # lequel est en vigueur — sinon la production.
+      #
+      # Même forme que l'étape du corpus, et pour les mêmes raisons : le refus
+      # rend **2** et n'écarte que cette couche, le manifeste part **en dernier**,
+      # et `publie` est une variable de ce shell — `$GITHUB_ENV` n'est lu qu'à
+      # l'étape suivante.
+      - name: Les langues sources pour l'app
+        working-directory: ONTBibleWebapp
+        run: |
+          code=0
+          publie=oui
+          ./scripts/sources-publie.py || code=$?
+          if [ "$code" = "2" ]; then
+            echo "::warning title=Sources non publiées::La couche des langues sources n'a pas été publiée — voir le refus ci-dessus. Le site est déployé quand même ; les liseuses gardent la génération précédente."
+            publie=non
+          elif [ "$code" != "0" ]; then
+            exit "$code"
+          fi
+
+          if [ "$publie" = "non" ]; then
+            echo "  sources non publiées — rien à pousser"
+            exit 0
+          fi
+
+          # Cinq minutes sur **tout**, fichiers compris — l'inverse du corpus, et
+          # la raison est géométrique : les noms des sources sont **fixes**, la
+          # liseuse écrivant sur son disque au chemin que le manifeste donne. Un
+          # cache long devient alors un risque de corrélation : un ancien fichier
+          # servi sous un manifeste neuf fait échouer l'empreinte, la liseuse jette
+          # la génération entière, et `synchroniser()` rend `0` — la même valeur
+          # que « rien n'a changé ». Le gel serait muet.
+          aws s3 sync target/sources "s3://$SEAU/sources" --delete --exclude "manifeste.json" \
+            --cache-control "public, max-age=300" --no-progress
+          aws s3 cp target/sources/manifeste.json "s3://$SEAU/sources/manifeste.json" \
+            --cache-control "public, max-age=300" --no-progress
+
       - name: L'annonce de la parution
         if: env.CORPUS_PUBLIE != 'non'
         working-directory: ONTBibleWebapp
@@ -568,7 +617,7 @@ jobs:
       - name: Le cache
         run: |
           aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
-            --paths "/" "/fr" "/fr/*" "/sitemap.xml" "/images/*" \
+            --paths "/" "/fr" "/fr/*" "/sitemap.xml" "/images/*" "/sources/*" \
             --query 'Invalidation.Id' --output text
 
       # Le déploiement n'est pas fini quand la commande rend la main : il est

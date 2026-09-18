@@ -304,7 +304,22 @@ async fn main() {
             "/",
             axum::routing::get(|| async { axum::response::Redirect::temporary("/fr") }),
         )
-        // Les anciennes adresses du lexique, **avant** le routeur de Leptos.
+        .leptos_routes_with_context(&leptos_options, routes, dependances, {
+            let leptos_options = leptos_options.clone();
+            move || shell(leptos_options.clone())
+        })
+        .fallback(leptos_axum::file_and_error_handler(shell))
+        // Les anciennes adresses du lexique.
+        //
+        // **Posée après les routes**, et c'est tout le sujet : une `layer`
+        // d'Axum n'enveloppe que ce qui est déclaré **avant** elle. Placée
+        // plus haut — le réflexe, puisqu'elle doit agir « avant » Leptos —
+        // elle ne voyait aucune route du routeur, et les 114 redirections
+        // engendrées rendaient toutes 404.
+        //
+        // « Avant » décrit l'ordre d'exécution d'une requête, « après »
+        // l'ordre d'écriture des routes. Les deux mots disent la même
+        // chose et se contredisent à la lecture.
         //
         // Une couche et non une route : une route `/fr/lexique/{lemme}` capterait
         // *toutes* les fiches, et il faudrait lui faire rendre la main pour
@@ -348,11 +363,6 @@ async fn main() {
                 }
             }
         }))
-        .leptos_routes_with_context(&leptos_options, routes, dependances, {
-            let leptos_options = leptos_options.clone();
-            move || shell(leptos_options.clone())
-        })
-        .fallback(leptos_axum::file_and_error_handler(shell))
         // Le HTML n'est pas gardé, et il le **dit**.
         //
         // En pratique il ne l'était déjà pas : CloudFront ne le retient pas, et
