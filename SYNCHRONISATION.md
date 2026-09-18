@@ -4150,6 +4150,237 @@ qui ne vaut que sur une route n'est pas une révocation.**
 téléversement Apple. Il part par `deployer-backend.yml`.
 
 ---
+## 10 septembre 2026 — sept jours sans paquet livrable, sous une CI verte
+
+L'app Android n'était plus empaquetable pour Play depuis le 3 septembre.
+`:app:minifyReleaseWithR8` échouait net :
+
+    Missing class com.google.errorprone.annotations.CanIgnoreReturnValue
+    (referenced from: com.google.crypto.tink.KeysetManager … et 52 autres)
+
+Personne ne l'a su, parce que **personne ne construisait de bundle** et que la CI
+n'en construisait pas non plus.
+
+### Une dépendance inutilisée est invisible, et le jour où l'on s'en sert n'est pas celui où on l'a ajoutée
+
+`security-crypto` — donc tink — est déclaré depuis le portage du 24 août. Le
+bundle du 2 septembre se construisait pourtant sans peine, et sa carte proguard
+dit pourquoi : **zéro** occurrence de `com.google.crypto.tink`. R8 élague ce que
+personne n'atteint ; la bibliothèque n'entrait pas dans le graphe, donc ses
+annotations manquantes ne regardaient personne.
+
+Le 3 septembre, le coffre à jetons a employé `EncryptedSharedPreferences` pour la
+première fois. La carte du bundle d'aujourd'hui en compte **13 979**.
+
+    2 septembre    tink dans la carte :      0     bundle : construit
+    10 septembre   tink dans la carte : 13 979     bundle : construit, après correctif
+
+Deux relevés, deux artefacts distincts, le même instrument — c'est ce croisement
+qui date le basculement à la journée.
+
+### Le contrôle ne pouvait pas rougir
+
+La CI lance `./gradlew test`, qui compile en **debug**, où R8 ne tourne pas. Elle
+est restée verte sept jours — ==y compris sur une PR ouverte le matin même du
+diagnostic==, dont le contrôle `Android` est passé en 4 min 9 s pendant que le
+bundle ne se construisait pas.
+
+Ce n'est pas la variante « un contrôle qui s'exécute sans exiger » du 9 septembre.
+C'est un cran plus bas : **un contrôle qui ne mesure pas la chose**. Il exigeait,
+il rougissait, il était branché — et il regardait ailleurs.
+
+Et le détail qui pique : `proguard-rules.pro` portait **déjà deux fois** la phrase
+« rien ne le montre en debug, où R8 ne tourne pas », écrite pour
+`kotlinx.serialization`, puis pour Room. Troisième occurrence.
+
+> ==Une leçon écrite trois fois et jamais outillée n'est pas une leçon.==
+
+Le job `Android` construit donc désormais `:app:bundleRelease`. Sans magasin de
+clés, `signingConfig` vaut `null` et le bundle sort non signé : aucun secret n'est
+requis pour vérifier que R8 passe. Et l'étape **compte le fichier déposé** plutôt
+que le tampon `BUILD SUCCESSFUL`, comme l'étape des tests le faisait déjà.
+
+### La garde neuve a rougi à son premier tour, sur autre chose
+
+`verifierLeCorpus` a arrêté `chuqqot.json` : un document que le pipeline produit
+depuis le 10 septembre, dont iOS a un onglet entier, et qu'Android n'ouvre nulle
+part. Exclu de la copie, inscrit aux connus avec sa raison, écart consigné.
+
+C'est le **second en trois jours** après `prononciation.json`. `corpus.sh` copie
+`dist/*.json` par **glob**, pas par liste : tout ce que le pipeline produit entre
+dans les ressources, et seul `verifierLeCorpus` l'arrête — côté Android
+uniquement.
+
+C'est ce qui motive le portage de cette garde en amont, décidé par l'auteur. Un
+contrôle qui ne vit que chez un client ne protège que lui, et ce n'est pas là que
+la fuite commence. La version amont devra ==regarder les comptes, pas la
+présence== : un fichier vide et un fichier absent ne se distinguent pas, et l'un
+des deux est une panne.
+
+### Un numéro que le lecteur voit et qui ne distingue rien
+
+`versionName` était resté à `0.1.0` depuis le 24 août, pour les deux binaires
+téléversés. C'est le **seul** numéro qui sorte jusqu'au testeur — la fiche Play,
+les réglages du téléphone, « À propos de cette application » n'affichent que lui.
+
+Une testeuse a signalé un défaut corrigé le 28 août ; savoir si elle l'avait déjà
+exigeait de savoir laquelle des deux versions elle avait, et rien ne pouvait le
+dire. Seule la Play Console le savait, parce qu'elle affiche le `versionCode`.
+
+La doctrine ne change pas — elle vient d'iOS, où `CFBundleVersion` est daté et
+`CFBundleShortVersionString` s'écrit à la main, geste de dépôt délibéré. C'est ce
+geste qui n'avait jamais été fait : iOS en est à `1.0.6`.
+
+### Nommer, ramasser, compter — un partage de terrain, pas une hiérarchie
+
+La journée a mis trois mécanismes côte à côte sur le même problème, et la
+comparaison est plus utile qu'aucun des trois pris seul.
+
+Le site **ne peut pas** avoir le défaut d'Android. Chaque fichier de `dist/` y
+est nommé un par un, et `include_str!` **exige un chemin littéral** : ce qui
+n'est pas nommé n'entre pas dans le binaire. Il n'y a pas d'équivalent du
+`dist/*.json` d'Android. Le défaut ne se rattrape pas, il ne naît pas.
+
+    site       chaque fichier nommé, `include_str!` littéral
+               → la classe de défaut est supprimée
+    Android    `dist/*.json` par glob, puis `verifierLeCorpus` refuse les inconnus
+               → la classe de défaut existe, un contrôle l'attrape
+
+**Mais la supériorité de nommer a un périmètre**, et la session du site l'a posé
+elle-même avant que la formule ne circule sans lui : ==nommer ne s'applique que
+là où l'ensemble est fini et connu à la compilation==. Ses cinq fichiers, oui.
+`dist/books/`, non — elle le parcourt par `read_dir`, et il le faut : soixante-dix
+livres viendront, et c'est le vault qui les nomme.
+
+D'où la règle en trois termes, qui n'est pas un classement :
+
+    nommer     quand l'ensemble est fini et connu à la compilation
+    ramasser   quand il ne l'est pas — et alors un contrôle est obligatoire
+    compter    dans les deux cas, toujours
+
+Le troisième terme ne se déduit pas des deux autres. Un fichier vide et un
+fichier absent ne se distinguent pas, et l'un des deux est une panne : le vault
+a vu une table passer de 67 entrées à 0 sous une construction verte, et le site
+a vu des fiches vides répondre `200` du poids exact d'un lemme inventé.
+
+Et une quatrième exigence, que la garde d'Android **ne remplit pas** : `connusDuCorpus`
+vérifie qu'un fichier est **connu**, pas qu'il est **utilisé**. `prononciation.json`
+y figure depuis le 8 septembre et Android ne le lit toujours pas. ==Inscrire un nom
+y déclare un lecteur, et rien ne vérifie que la déclaration est vraie== — la garde a
+laissé exister le trou qu'elle devait fermer.
+
+### Ce que ça change pour chaque dépôt
+
+**ONTBibleApp** — `-dontwarn com.google.errorprone.annotations.**` dans
+`proguard-rules.pro` ; le job `Android` construit `:app:bundleRelease` (environ
+3 à 4 minutes de plus sur chaque PR) ; `chuqqot.json` exclu de la copie ;
+`versionName` à `0.1.1`.
+
+**ONTBibleWebapp** — le site lit `dist/` lui aussi, et rien n'y vérifie qu'un
+document neuf a un lecteur. Deux sont arrivés en trois jours. La question à se
+poser : `prononciation.json` et `chuqqot.json` sont-ils servis, ignorés, ou
+embarqués sans être lus ?
+
+**ONTBibleTranslation** — rien à changer. Mais le vault est la source du glob :
+tout document neuf du pipeline atterrit chez deux clients qui n'en savent rien
+jusqu'à ce qu'un contrôle le dise.
+
+### 11 septembre 2026 — deux manifestes portent presque le même nom, et on les a confondus
+
+Le site publie `manifeste.json` sur `/corpus/`. Le pipeline écrit
+`manifest.json` dans `dist/`. **Ce ne sont pas les mêmes fichiers, et ils ne
+portent pas les mêmes nombres :**
+
+| fichier | qui l'écrit | ce qu'il porte |
+|---|---|---|
+| `dist/manifest.json` | le pipeline | `schema: 1`, `contrat: 3` |
+| `/corpus/manifeste.json` | `corpus-publie.py`, chez le site | `schema: 2` |
+
+La liseuse récupère `ontbible.com/corpus/` — **celui du site** — et compare
+**son** `schema` au sien. Le `contrat` du pipeline ne l'atteint jamais.
+
+#### Le défaut vu, le correctif faux, et ce qui a sauvé la mise
+
+La session du pipeline a signalé, à juste titre, que le `2` du site était écrit
+en dur et ne bougeait pas quand un type de nœud apparaissait. Elle a demandé de
+recopier son `contrat` à la place. C'est ce qui a été fait, et **c'était faux** :
+publier 3 aurait fait refuser le corpus **entier** par toutes les liseuses
+installées, qui comparent en égalité stricte et sont à 2.
+
+Ce qui l'a arrêté n'est pas la relecture du correctif — il compilait, onze
+chemins l'éprouvaient, et le tableau était vert. C'est **la lecture de la
+liseuse**, et une seule ligne :
+
+    CorpusUpdater.swift:87   « La version du manifeste que ce code sait lire.
+                               2 depuis 1.0.3, où l'accentuation a changé de
+                               nom sur le fil. »
+
+Le nombre était donc déjà nommé, déjà daté, déjà justifié — dans le dépôt
+d'à côté, à l'endroit exact où la question se pose. Trois sessions ont raisonné
+une heure sur ce qu'il devait valoir sans aller lire ce qu'il valait.
+
+#### La distinction qui manquait, et elle vaut bien au-delà d'ici
+
+> **Une valeur dont l'unique devoir est de *suivre* une autre se recopie.**
+> **Une valeur *copropriétaire* de deux parties se garde par une mesure.**
+
+`contrat` est de la première espèce : il suit `CONTRAT_DES_NOEUDS`, et l'écrire
+à la main est une faute. `schema` est de la seconde : il est le numéro de
+compatibilité du **fil**, tenu d'un commun accord par le script de publication
+et les deux liseuses. Il se monte délibérément, dans le même lot qu'une liseuse
+qui sait lire la nouveauté.
+
+Le défaut n'était donc pas qu'il soit écrit à la main. **C'est que personne ne
+le mesurait contre quoi que ce soit.** Le premier correctif a supprimé le
+littéral — et un littéral gardé vaut mieux qu'une recopie fausse.
+
+#### On garde sur le contenu, jamais sur l'attestation
+
+Le correctif refusait de publier quand `contrat` manquait. Il gardait une
+**déclaration**, et c'était faux deux fois : une déclaration absente se lisait
+comme un danger, une déclaration présente comme une garantie.
+
+Or ce qui met une liseuse en danger n'est pas ce que le pipeline *dit*, c'est ce
+que le corpus *contient*. La variante `Renvoi` existe déjà dans le schéma de
+`dev` **sans** le champ `contrat` : la garde sur l'attestation aurait laissé
+passer exactement le cas qu'elle prétendait couvrir.
+
+La garde regarde donc le corpus, et refuse tout type de nœud hors d'une liste
+figée **à côté** de `SCHEMA_DU_MANIFESTE` — les deux ne se déplacent que dans le
+même commit, avec la liseuse qui sait lire le type nouveau. Dix-sept types
+relevés le 11 septembre ; un `renvoi` planté est refusé quoi que déclare le
+manifeste.
+
+C'est plus long à écrire qu'un nombre recopié. C'est la seule mesure qui ne
+puisse pas mentir.
+
+#### Trois choses de forme, apprises au passage
+
+- **Ne rien trouver n'est pas trouver zéro.** Deux témoins positifs : la garde
+  refuse si elle ne lit aucun nœud, et si elle ne relève aucune liseuse. Sans
+  eux, un chemin renommé chez le pipeline ferait passer la garde en silence, et
+  son silence se lirait comme un accord.
+- **Retirer un littéral casse ceux qui le lisaient.** Une étape de CI relevait
+  le `"schema": 2` par `sed` pour le comparer à la liseuse en vente. En le
+  retirant, son relevé rendait une chaîne vide et elle **tuait le déploiement**
+  sur un désaccord qui n'avait pas eu lieu. Avant d'en retirer une, chercher qui
+  la lit.
+- **Une liseuse en avance n'est pas une panne.** C'est l'ordre voulu — le
+  lecteur d'abord, ce qu'il lit ensuite. La garde le dit et continue ; elle ne
+  refuse que devant une liseuse **en retard**, et le plafond qui compte est celui
+  de la version en vente, la seule qui soit dans des mains.
+
+#### Et un défaut bien vu ne garantit pas le correctif proposé
+
+La session du pipeline avait raison sur le mécanisme, et s'est trompée sur les
+nombres — puis est revenue le corriger d'elle-même. Elle avait annoncé
+`contrat = 4` quand `origin/device` en porte 3.
+
+Un correctif reçu d'une session voisine se mesure comme tout le reste, **y
+compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
+utile n'était pas dans les branches qu'on a comparées : elle était dans le
+commentaire du fichier qu'on cherchait à protéger.
+
 ## 11 septembre 2026 — deux jointures qu'on croyait être une seule
 
 Le chantier du lexique est parti d'une mesure : *Bereshit* 1-19 porte 6 478 mots
