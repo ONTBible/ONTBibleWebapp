@@ -49,6 +49,38 @@ pub enum CibleDuNiveauTrois {
     Shem(String),
 }
 
+/// Ce qu'une référence biblique désigne, quand le corpus porte le passage.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CibleDeLaReference {
+    /// Le livre qui porte l'unité — `bereshit`.
+    pub livre: String,
+    /// L'unité à ouvrir — `bereshit-7`.
+    pub unite: String,
+    /// Le verset à désigner en arrivant, dans la numérotation de l'unité.
+    ///
+    /// Nul quand la référence vise un chapitre entier, et nul aussi quand le
+    /// pipeline n'a pas pu confirmer son calcul. **Mieux vaut ouvrir la bonne
+    /// unité sans rien désigner que d'en désigner un faux** — c'est sa règle,
+    /// et le site n'a pas à la rejouer.
+    pub verset: Option<u32>,
+}
+
+/// L'étendue que la référence nomme — ce que le lecteur lit dans le libellé.
+///
+/// Conservée jusqu'ici alors que la navigation n'emploie que `cible`, pour une
+/// raison de garde : le `match` qui la traduit est **exhaustif**, donc une
+/// quatrième étendue ajoutée au pipeline casserait la compilation du site au
+/// lieu de s'y perdre. C'est la règle déjà appliquée à `CibleDuNiveauTrois`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PorteeDeLaReference {
+    /// `Genèse 3` — l'unité entière.
+    Chapitre,
+    /// `Genèse 3:24` — un verset.
+    Verset { n: u32 },
+    /// `Genèse 1:11-12` — une plage. La navigation vise son ouverture.
+    Plage { premier: u32, dernier: u32 },
+}
+
 /// Un fragment de texte ONT.
 ///
 /// L'arbre est volontairement fidèle à ce que produit le pipeline : ce qui
@@ -111,6 +143,30 @@ pub enum Noeud {
     /// publie les chuqqot, ce nœud devient un lien vers `cible`. C'est le seul
     /// changement à faire, et il est ici.
     Renvoi { libelle: String, cible: String },
+    /// Une **référence biblique** — `*Genèse* 9:27` dans le corps d'un texte.
+    ///
+    /// Distincte de [`Noeud::Renvoi`], et la distinction n'est pas de forme mais
+    /// de destination : un `Renvoi` vise une *chuqqah*, une `Reference` vise un
+    /// *passage du corpus*. L'une attend que le site publie les chuqqot, l'autre
+    /// peut aboutir dès aujourd'hui.
+    ///
+    /// `cible` est nulle quand le livre cité **n'est pas traduit** — 208 des 915
+    /// références. Le pipeline le dit explicitement plutôt que de laisser le
+    /// client chercher un livre qu'il ne trouvera pas.
+    ///
+    /// **Les deux cas portent la même apparence**, décidé par l'auteur le
+    /// 11 septembre 2026 : une référence qui n'aboutit pas reste une référence,
+    /// et la farder autrement apprendrait au lecteur à ne plus les voir.
+    Reference {
+        libelle: String,
+        /// Le livre tel que la référence le nomme — `Genèse`. Sert à dire
+        /// *lequel* manque quand la cible est nulle : « Ésaïe n'est pas encore
+        /// traduit » est une réponse, « ce lien ne mène nulle part » n'en est
+        /// pas une.
+        livre_cite: String,
+        portee: PorteeDeLaReference,
+        cible: Option<CibleDeLaReference>,
+    },
     /// De l'hébreu **seul**, sans translittération.
     ///
     /// Il sert dans les fiches de lexique, où l'on cite parfois un fragment

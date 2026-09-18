@@ -445,9 +445,13 @@ pub fn corps(noeuds: &[Noeud]) -> String {
                 // Le libellé du renvoi **est** du corps de texte : « déjà posé
                 // en ((la-chuqqah|cette disposition)) » se lit d'une traite, et
                 // l'omettre trouerait la phrase.
+                // La référence biblique aussi : « comme il est dit en
+                // *Genèse* 9:27 » est une phrase, et retirer la référence la
+                // couperait en deux.
                 Noeud::Intraduisible { mot, .. }
                 | Noeud::Shem { mot, .. }
-                | Noeud::Renvoi { libelle: mot, .. } => sortie.push_str(mot),
+                | Noeud::Renvoi { libelle: mot, .. }
+                | Noeud::Reference { libelle: mot, .. } => sortie.push_str(mot),
                 Noeud::Accentuation(enfants)
                 | Noeud::Emphase(enfants)
                 | Noeud::Lien { enfants, .. } => aplatir(enfants, sortie),
