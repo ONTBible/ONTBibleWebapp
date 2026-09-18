@@ -3497,6 +3497,491 @@ la télémétrie sait filtrer* — en inventer un, c'est le publier.
 côté Sentry (l'accès outillé a expiré, le jeton local n'est qu'un jeton CI),
 et faire tourner le secret si l'exposition se confirme.
 
+## 4 septembre 2026 — la liseuse du Mac s'installe par Homebrew
+
+Sur la demande de l'auteur, calquée sur `gloiiire/cocker` — dont la formule et
+`sync-homebrew-tap` rodent la mécanique depuis des mois.
+
+### Ce qui a été monté
+
+- **`ONTBible/homebrew-ont`** — un dépôt neuf, le tap : `Casks/la-bible-ont.rb`
+  et une épreuve `eprouver` (le style Homebrew du cask). Installation :
+  `brew install --cask ontbible/ont/la-bible-ont` ;
+- **`scripts/publier-le-cask.sh`** — construit en Release, signe **Developer
+  ID** avec exécution durcie, notarise par `notarytool` (la clé ASC déjà en
+  place), agrafe, zippe, rend le sha256 ;
+- **`.github/workflows/cask.yml`** — sur `brew-vX.Y.Z` : tout ce qui précède
+  sur le runner, release GitHub, puis réécriture du cask par l'API contents —
+  le commit sort signé « GitHub web flow », le chemin exact de cocker ;
+- **`app/ONTMac-cask.entitlements`** — les droits *restreints* retirés
+  (connexion Apple, push, liens universels) : sans profil Developer ID,
+  macOS refuse de lancer une app qui les porte. Le cask le dit en caveats.
+
+### Ce que seul l'auteur peut faire, et qui bloque le premier tir
+
+1. créer le certificat **« Developer ID Application »** (Xcode → Réglages →
+   Comptes → Gérer les certificats — titulaire du compte ; le trousseau n'a
+   que Development et Distribution, vérifiés) → l'exporter en .p12 → secrets
+   `DEVELOPER_ID_P12` (base64) et `DEVELOPER_ID_P12_MDP` ;
+2. un PAT fine-grained sur `ONTBible/homebrew-ont` (Contents : Read/Write) →
+   secret `HOMEBREW_TAP_TOKEN`.
+
+Puis : `git tag brew-v1.0.5 && git push origin brew-v1.0.5` — le reste est
+machine. Le workflow valide les secrets **en premier** et échoue en nommant ce
+qui manque.
+
+### Deux exceptions assumées, écrites pour être relevées
+
+- **le tap n'a pas encore le ruleset commun** : la CI y écrit `main` en
+  direct par l'API. Le protéger exigera le flux PR + auto-merge de cocker
+  (une trentaine de lignes, déjà écrites là-bas) — à faire quand le premier
+  tir aura prouvé la chaîne ;
+- **le tap n'est pas raccordé** à la table des dépôts de la racine — c'est le
+  fichier de l'auteur. Un dépôt satellite écrit par la machine, mais la règle
+  dit qu'un dépôt hors table est un dépôt qu'on oublie : à trancher.
+
+Rien de `dist/` ni du schéma ne bouge. La notarisation ne consomme **aucune**
+place du quota App Store Connect — c'est une voie parallèle, pas un palier de
+plus dans la chaîne de promotion.
+
+### Le canal bêta du cask, sur le motif de firefox@beta
+
+Question de l'auteur : « comme Firefox Nightly — des flags pour une bêta et
+une stable, mappées sur mes branches ? » Homebrew ne connaît pas de flags de
+canal : la convention est **un cask par canal, à suffixe** — `firefox`,
+`firefox@beta`. Transposé :
+
+    brew-vX.Y.Z        (posée sur app-store) → Casks/la-bible-ont.rb
+    brew-beta-vX.Y.Z-N (posée sur beta-test) → Casks/la-bible-ont@beta.rb
+
+Les deux casks se déclarent en conflit mutuel — même app posée — et la CI
+réécrit celui du canal de l'étiquette. La release bêta part en `--prerelease`.
+L'épreuve `eprouver` du tap a encore mordu au passage (six offenses de style
+sur le cask neuf, corrigées par `brew style --fix` avant de pousser).
+
+### Le premier tir du cask — vert, et deux leçons de secret au passage
+
+`brew-beta-v1.0.5-1` : build, signature Developer ID durcie, notarisation,
+release en *prerelease*, cask réécrit (`1.0.5-1`), épreuve du tap verte.
+Vérifié comme Gatekeeper le fera chez un inconnu : sha du cask = sha du zip au
+bit près, `spctl` rend « accepted — source=Notarized Developer ID », agrafe
+valide. `brew install --cask ontbible/ont/la-bible-ont@beta` est réel.
+
+Le tir a coûté trois essais, tous morts **à la validation, en une seconde** —
+ce pour quoi elle existe :
+
+1. un secret **vide** — `gh secret set` interactif sans terminal lit un stdin
+   vide et pose le vide sans un mot ;
+2. le **texte d'exemple** posé tel quel — attrapé par le contrôle
+   d'authentification ajouté entre les deux (le curl de cocker) : un jeton
+   présent mais faux n'aurait rougi qu'après vingt-cinq minutes de build ;
+3. le vrai jeton — vert.
+
+La discipline voulue par l'auteur est structurelle : le tap n'a aucun autre
+écrivain que `cask.yml`, qui ne part que sur étiquette et **crée** la release.
+Son README de profil balaie déjà l'organisation : les stables y paraîtront
+d'eux-mêmes ; les bêtas, marquées *prerelease*, en sont filtrées par son
+propre script — le profil annonce le stable, la bêta reste entre testeurs.
+
+---
+
+## 7 septembre 2026 — le contrat des langues sources, arrêté à cinq sessions
+
+Le maillon que personne n'avait pris pendant une semaine — la forme de
+`dist/sources/` entre le vault (52 Mo, cinq témoins, 40 798 versets) et la
+liseuse — est arrêté. Les rôles, vérifiés et non devinés :
+
+| session | couloir |
+|---|---|
+| `ontbibletranslation-ed` | pipeline : jointure, émission, gardes |
+| `fix-sync-concordance-logic` | les six phrases `transmission` (prose de corpus) |
+| `ontbibleapp-92` (iOS) | arbitrages d'écran — **c'est elle qui décide** |
+| cette session (macOS) | `SourcesUpdater` + rendu macOS de ce qu'iOS décide |
+| `ontbibleapp-a5` (Android) | applique, notifiée explicitement à deux jalons |
+
+### Le contrat, validé par iOS « tel quel »
+
+`dist/sources/manifeste.json` — attributions par source, et par livre : témoins
+{chemin, sha256, octets} + phrase `transmission` pour les six livres sans
+témoin. Un fichier par livre × témoin ; clés = **unités ONT**, versets en
+**chaînes jointes**, numérotés comme la liseuse numérote ; **aucun champ
+d'analyse en v1** — poids ÷5 et la contrainte CC BY-SA de MorphGNT réglée par
+construction (`…-analyse.json` restera possible sans casser le contrat).
+
+La jointure unité ↔ plage biblique est **mesurée**, pas supposée : 13/13
+exactes sur les unités verrouillées de Bereshit, quatre formes de sous-titre
+traversées ; les deux écarts sont des brouillons déjà signalés. Gardes
+pipeline : compte ≠ plage déclarée → rouge ; livre sans témoin sans phrase →
+rouge.
+
+### Les arbitrages d'écran rendus par iOS
+
+- **entrée par le verset sélectionné** (« qu'est-ce que l'hébreu dit ici »),
+  aperçu avec colophon, puis « tout le texte source » — pas de chrome
+  permanent ; l'entrée d'unité se rajouterait sans rien défaire ;
+- **segments, pas colonnes**, et pour la vraie raison : deux colonnes
+  affirment une correspondance ligne à ligne que la donnée ne porte pas ;
+- **aucune phrase de transmission composée côté client** — elle vient du
+  vault ou il n'y a rien ; registre de note, ni icône ni fond d'alerte.
+
+### `SourcesUpdater` — à cette session, sous trois conditions d'iOS
+
+Les deux gardes de date (refus du manifeste plus vieux **et** purge au
+lancement), le **vrai** `sha256` — le `CorpusUpdater` actuel ne compare que la
+taille, de son propre aveu en commentaire —, `Application Support` exclu des
+sauvegardes, écriture atomique. iOS relit avant fusion.
+
+### En attente
+
+Les deux goûts chez Gloire (sigles critiques du SBLGNT en lecture — 570
+paires de `⸂⸃` sur trois livres —, ordre des deux grecs) ; la réponse d'iOS
+sur le **type engendré** du manifeste (codegen Swift+Kotlin pour que les
+compilateurs redeviennent garde-fous — question du vault) ; l'échantillon
+`he-wlc/bereshit.json`, qui part à l'instant.
+
+Au passage, trois leçons de concertation payées comptant : cette session
+s'est attribuée deux périmètres qui ne sont pas les siens (corrigée par
+l'auteur en riant) ; l'identité d'une session se **mesure** par le
+`Claude-Session` de ses commits, pas par son nom ; et un fichier de données
+hors codegen ne prévient aucun compilateur — la notification explicite est le
+seul mécanisme restant.
+
+### 2 septembre 2026 — faire taire le `fetch` dont dépend toute la conclusion
+
+Une session a relu la feuille d'introduction du *Chazon Avraham* et conclu
+qu'elle ne déclarait pas son assise textuelle. Elle avait raison ==l'avant-veille==
+et tort depuis : le paragraphe manquant avait été ajouté la veille. Elle
+s'apprêtait à porter à l'auteur que son livre ne dit pas sur quoi il repose —
+inquiétude qu'il avait déjà eue une fois, et sur un point faux.
+
+Elle a trouvé la mécanique elle-même, et ==elle est meilleure que l'erreur== :
+
+    git fetch origin --quiet 2>/dev/null; git show origin/main:<fichier>
+
+**Deux silencements indépendants sur la commande qui établissait la prémisse**,
+et l'un ou l'autre aurait suffi :
+
+- `2>/dev/null` jette le message d'échec du `fetch` ;
+- et le `;` jette son **code de sortie** — le code du couple est celui du
+  `git show`, qui réussit parfaitement en lisant ==la référence locale
+  périmée==. Rien ne distingue « `origin/main` à jour » de « `origin/main` d'il
+  y a deux jours » : `git show` répond dans les deux cas, sans un mot.
+
+Le motif de la semaine était jusqu'ici *l'instrument qui avale son erreur*.
+Celui-ci est plus net et plus embarrassant : **l'instrument n'a pas avalé son
+erreur, on la lui a fait avaler** — délibérément, pour garder une sortie propre
+à lire. C'est la première fois qu'on voit le défaut ==construit à dessein==,
+et par souci de lisibilité.
+
+**Pour les trois dépôts, et la règle tient en une ligne : jamais de
+`2>/dev/null` sur ce qui établit la prémisse — seulement sur ce qui décore.**
+Et son corollaire de forme : enchaîner par `&&` plutôt que par `;` ce dont la
+suite dépend, faute de quoi on lit vraiment quelque chose, mais pas ce qu'on
+croit lire.
+
+Ce qui a rattrapé celui-ci : la session avertie a **refusé de laisser relayer**
+et donné la commande de vérification plutôt que la conclusion. Trois lignes
+suffisaient — le commit qui introduit la phrase, l'état parent qui ne la porte
+pas, l'état courant qui la porte.
+
+### 7 septembre 2026 — `...` et `..` ne répondent pas à la même question
+
+L'audit des worktrees a trouvé deux branches locales du 30 août, jamais
+poussées. J'ai mesuré ce qu'elles portaient et annoncé **197 lignes de journal
+absentes de `main`** — de quoi interdire tout ménage, puisqu'une branche locale
+n'a de copie nulle part.
+
+Il n'en manquait ==aucune==. Les trois étages de la mesure :
+
+    git diff main...branche    trois points    197 lignes
+    git diff main..branche     deux points       1 ligne
+    comparaison de contenu                       0 ligne absente
+
+**Chaque étage répond à une question différente, et une seule était la mienne.**
+
+- `main...branche` demande *« qu'a ajouté cette branche depuis qu'elle a
+  divergé »*. La divergence datait du 29 août : tout ce que `main` avait acquis
+  depuis, ==par d'autres routes==, était recompté comme manquant ;
+- `main..branche` demande *« qu'a la branche que `main` n'a pas »*. C'était la
+  question ;
+- et l'écart qui reste, de 1 à 0, est encore autre chose : cette ligne est bien
+  dans `main`, ==à une autre place==. Un diff compare des positions, pas des
+  contenus.
+
+**Le diagnostic facile était faux, et c'est le cœur de l'entrée.** Mon `main`
+local datait en effet, et la session qui m'a corrigé a d'abord conclu que
+c'était la cause. Ce n'en était pas une : avec un `main` parfaitement à jour,
+les trois points auraient rendu ==les mêmes 197==. La leçon « fetcher plus
+souvent » n'aurait protégé personne — on l'aurait suivie, et remesuré 197.
+
+**Pour les trois dépôts.** Pour savoir ce qui manque quelque part, **comparer
+des contenus, pas des positions**, et se souvenir que `...` est le mauvais
+outil pour cette question-là :
+
+    git show <ref>:<fichier>   des deux côtés, puis comparer les lignes
+
+C'est la même famille que tout le reste de la semaine — un instrument qui rend
+un nombre bien formé à une question qu'on ne lui a pas posée —, mais dans sa
+forme la plus traître : ==les deux opérateurs ne diffèrent que d'un point==, ils
+ne rendent jamais d'erreur, et le plus verbeux des deux est celui qui a l'air
+d'en dire plus.
+
+**Ce qui a bien fonctionné, et qu'il faut garder.** La prudence a précédé la
+mesure : la branche a été poussée en sauvegarde ==avant== qu'on conclue, et la
+règle de l'audit — *une non-réponse vaut « statut inconnu », pas
+« supprimable »* — a tenu tout du long. Un compte faux dans ce sens-là ne coûte
+qu'une vérification ; dans l'autre, il coûte le travail.
+
+### 7 septembre 2026 — le journal a deux régimes, et le contrôle mesurait le mauvais
+
+Décision de l'auteur : **tronc commun et entrées locales.** Seul ce qui traverse
+est partagé et identique partout ; ce qu'un dépôt apprend pour lui-même reste
+chez lui, marqué. ==La règle vit dans la section « Tronc commun et entrées
+locales »== ci-dessus, avec la marque et ses raisons — elle n'est pas redite
+ici, c'est le journal qui renvoie à la règle et non l'inverse.
+
+**Ce que le contrôle faisait de travers.** Il comparait les fichiers entiers, et
+n'avait donc qu'une façon de résorber un écart : ==importer chez les autres ce
+qu'un dépôt avait délibérément gardé pour lui==. Il mesurait l'identité sans
+pouvoir dire si une entrée *devait* traverser.
+
+**Ce qu'il fait maintenant :** l'empreinte porte sur le tronc, les entrées
+locales sont retirées avant la mesure, puis ==comptées et listées par dépôt==.
+Jamais tues : une entrée locale est une décision, pas un accident, et une marque
+qui ferait sortir du champ de la mesure sans laisser de trace serait un moyen de
+se dispenser du contrôle.
+
+**Pour les trois dépôts.** Quand une mesure ne peut se résoudre que d'une seule
+façon, ==c'est souvent la mesure qui est mal posée==, pas l'écart qui est
+coupable. Ici, la seule issue offerte était de verser six cents lignes de barres
+latérales macOS dans le vault de la traduction — ce que l'en-tête de ce journal
+refuse en toutes lettres.
+
+**Et le chemin pour y arriver mérite d'être gardé, parce qu'il a fallu trois
+relevés faux pour l'atteindre.** La concordance annonçait ==cinquante-neuf
+entrées à porter== ; il y en avait quinze, et aucune ne devait partir.
+
+    59   comptait des titres, dont des sous-titres internes aux entrées
+    44   mon propre relevé : ils étaient TOUS des sous-titres
+    15   les vraies entrées — écrites en ## quand le vault écrit ###
+
+Chaque relevé rendait un nombre bien formé. Le premier prenait la partie pour le
+tout, le deuxième ne mesurait que du bruit, et le troisième n'est sorti qu'en
+==comparant les contenus== plutôt que les titres — la règle écrite le matin même,
+appliquée l'après-midi à autre chose.
+
+**Éprouvé sur un cas dont on connaît la réponse**, avant de livrer : les quinze
+marquées `*(local)*` dans une copie de travail, le tronc de l'app tombe à ==zéro
+ligne absente du tronc du vault==. Et la mesure retournée révèle l'autre sens,
+qu'on ne cherchait pas : il ne manquait à l'app que ==deux entrées==, déjà sur sa
+branche d'intégration. La concordance était presque faite depuis le début ; c'est
+l'instrument qui la disait rompue.
+
+### 8 septembre 2026 — le secret de diffusion voyage dans Authorization, parce que la télémétrie ne filtre que ce qu'elle connaît
+
+L'audit cyber du 8 septembre (C02) l'a reproduit avec le SDK réel et un
+transport en mémoire : un événement Sentry du backend portait l'en-tête
+`x-secret-diffusion` — le secret qui autorise `/diffuser` — et un autre le
+`?code=` d'un retour OAuth. Le témoin `Authorization` était, lui, correctement
+absent.
+
+Le mécanisme, lu dans `sentry-tower` 0.48.5 : quand `send_default_pii` est
+faux, les en-têtes passent par la liste `is_sensitive_header` du SDK — un
+en-tête **maison** n'y figure pas, donc traverse — et l'URL par
+`scrub_pii_from_url`, qui retire les identifiants et **garde la query**. Et
+les transactions n'ont aucun crochet d'expurgation dans cette version : seul
+`before_send` existe, et il ne voit que les événements.
+
+Le remède a deux étages, parce qu'un seul ne suffisait pas :
+
+- **le contrat** (ONTBibleApp#249, `device`) : le secret voyage dans
+  `Authorization: Bearer` — l'en-tête que le SDK filtre nativement,
+  transactions comprises. L'ancien en-tête reste accepté le temps de la
+  transition, puis tombera ;
+- **la ceinture** (même PR, module `observabilite`, éprouvé) : un
+  `before_send` retire l'en-tête hérité et toute query string des événements
+  — si un secret repasse un jour par un chemin non filtré, il meurt avant
+  l'envoi.
+
+**L'annonceur du site n'envoie plus que Bearer** (ONTBibleWebapp#124) — pas de
+période à double en-tête : chaque envoi de l'ancien le remettrait dans les
+transactions, que rien ne sait expurger. La fenêtre est assumée et écrite dans
+le script : tant que le backend déployé (palier `app-store`) ne connaît pas
+Bearer, une annonce de parution est refusée en 401 — non fatale par
+construction, le corpus se publie quand même.
+
+**Ce que ça engage.** Tout futur appelant de `/diffuser` emploie
+`Authorization: Bearer` ; l'en-tête maison meurt à la fin de la transition.
+Et la leçon vaut au-delà du cas : *un secret ne voyage que dans un en-tête que
+la télémétrie sait filtrer* — en inventer un, c'est le publier.
+
+**Reste opérationnel, chez l'auteur** : vérifier les événements déjà reçus
+côté Sentry (l'accès outillé a expiré, le jeton local n'est qu'un jeton CI),
+et faire tourner le secret si l'exposition se confirme.
+
+---
+
+### 8 septembre 2026 — une règle que son porteur viole n'est pas violée, elle a un périmètre non écrit
+
+Le §2.5 du `CLAUDE.md` du vault interdit le gras d'insistance « partout, y
+compris dans les feuilles d'introduction et les notes ». Relevé du jour : le
+document qui porte la règle l'employait **337 fois**, et ==trois fois dans la
+phrase même de l'interdit== — dont une sur le mot « accentuation », dans la
+clause qui renvoie à `==…==`.
+
+**Ce n'est pas de l'étourderie, et c'est ce qu'il faut voir.** Une règle qu'on
+enfreint à chaque page depuis toujours, sans que personne ne le remarque, n'est
+pas une règle enfreinte : c'est une règle dont ==le périmètre n'a jamais été
+écrit==. Elle ne se compare à rien, donc elle ne peut pas diverger visiblement.
+C'est exactement la forme que le §2.9 du vault avait déjà nommée pour les
+translittérations.
+
+**Le périmètre est celui de la raison d'être de l'interdit**, et cette raison est
+mécanique : Affinity applique son style au copier-coller, l'app affiche le mot en
+or et le rend touchable. ==Un fichier qui ne passe ni dans l'un ni dans l'autre
+ne peut produire ni l'un ni l'autre.== La règle vaut donc pour ce qui est
+distribué — corps, gloses, notes, feuilles d'introduction, fiches de `lexique/` —
+et non pour les documents de travail des dépôts, ce journal compris.
+
+**L'exception est le vrai critère, et il ne porte pas sur le fichier :**
+==ce qui compte est ce qui fabrique un lemme==. Les entrées de glossaire sont
+lues par le pipeline et émises vers `dist/`.
+
+#### Ce qui vaut pour les trois dépôts : la règle a été écrite d'après une mesure
+
+J'allais écrire « les puces du §2.5 **et** les cases du §3 fabriquent des
+lemmes », par lecture du code. Deux témoins plantés, un dans chaque, puis une
+construction :
+
+    dans une puce du §2.5   → devient un lemme, signalé en lien mort
+    dans une case du §3     → rien
+
+Le §2.5 a la préséance sur le §3 pour la définition, et le terme témoin avait
+déjà sa puce : sa case n'était pas lue. ==Le §3 ne mord donc que pour les termes
+sans puce au §2.5.== La règle écrite dit ce que le code fait, non ce qu'il a
+l'air de faire.
+
+**Et la moitié qu'on oublie a deux moitiés.** Retirer les témoins, oui. Mais
+==avoir copié le fichier avant de les planter== est ce qui a rendu le retrait
+vérifiable : le compte est revenu à 235, c'est-à-dire exactement l'état d'avant.
+Sans la copie, il aurait fallu croire qu'on avait bien remis les choses.
+
+#### Une catégorie de plus pour « vérifier ce qu'un pair affirme »
+
+La session Android a corrigé une erreur que j'allais porter à l'auteur. J'avais
+écrit « la CI de `dev` est rouge », déduit d'un compte exact — 235 liens morts
+pour un plafond de 224. Ses trois dernières exécutions étaient ==vertes== : la CI
+tire le vault au moment où elle tourne, et n'avait pas encore vu le travail du
+jour.
+
+C'est une **prémisse périmée** et non fausse — la distinction est déjà dans le
+skill `concerter-les-sessions`, avec les deux autres.
+
+**Et il faut dire comment cette entrée a rétréci avant d'être portée**, parce que
+c'est le meilleur du fil. Je l'avais d'abord écrite ainsi : *la donnée était
+exacte et datée, et rien dans sa forme ne portait sa date*. La session Android a
+rouvert le skill et m'a montré qu'il porte déjà l'exemple qui la contredit :
+
+    « 0 par `git grep -F` sur `origin/android-suite` @ `d120907` »
+
+Ce `@ d120907` ==date le relevé== : un SHA fixe un état. Pour tout ce qui se
+mesure sur git, la règle existante suffit, et ma formulation ne faisait que la
+redire — ==une règle qui en redit une autre les affaiblit toutes les deux==.
+
+**Ce qui reste, et qui est neuf, est plus étroit :**
+
+> ==Une mesure qui n'est pas une mesure git n'a aucun SHA à donner.==
+
+« 235 liens morts pour un plafond de 224 » ne se rattache à rien qui le date.
+« La CI est verte » non plus, ni une taille de disque, ni un temps de
+construction. Ce sont ==celles-là== qui périment en silence, parce que la règle
+de l'outil et de la référence ne leur donne aucune prise. Elles doivent porter
+==ce sur quoi elles ont été prises et quand== — pour un compte de pipeline, la
+révision du vault qu'il a lue ; pour un état de CI, l'exécution nommée.
+
+Et le fait que l'entrée ait rétréci ==avant== d'être portée dans les trois dépôts
+est le seul mérite du procédé : une formulation trop large, portée trois fois,
+aurait été trois fois plus longue à défaire.
+
+#### Annoncer le geste ne suffit pas — il faut annoncer le contenu
+
+Constat de la session Android, sur cette entrée même. Le skill
+`concerter-les-sessions` demande d'annoncer ==avant== de toucher à ce qui est
+partagé. Il ne demande pas d'annoncer ==quoi==.
+
+La différence est entière pour celui qui reçoit :
+
+> Une annonce qui dit seulement le geste le laisse choisir entre faire confiance
+> et tout relire. Une annonce qui dit le contenu lui permet de vérifier ==la
+> partie qui le concerne==, et rien d'autre.
+
+Éprouvé ici : l'annonce portait les deux points mécaniques qui engageaient
+l'app, et la session Android les a ==vérifiés dans son code== au lieu de les
+découvrir dans un diff. Les deux ont tenu, et sa vérification vaut mieux que mon
+affirmation :
+
+- son nœud est `data class Shem(val value: String, val lemma: String)` — il ne
+  porte ==aucun genre==. La distinction identité / fonction vit dans la fiche,
+  jamais dans le nœud, donc le rendu ==ne peut pas diverger par construction==.
+  C'est plus solide qu'une décision de ne rien changer : il n'y a rien à changer ;
+- si la canonisation de `kelim` ratait, l'app ne casse pas — elle affiche que le
+  terme est balisé sans avoir encore d'entrée. ==Visible sans être grave==, ce
+  qui est la bonne façon d'échouer.
+
+#### Ce que le vault a décidé d'autre, et qui traverse
+
+- **La couche des Shemot distingue un `Shem` d'identité d'un `Shem` de
+  fonction.** Le critère est le surplus : un **navi** excède sa mission, un
+  **mal'akh** ==est== sa mission sans reste. ==La marque ne bouge pas== — l'app
+  et le site gardent la terre brûlée et la zone touchable, l'espace chaud étant
+  saturé sous ΔE 25. C'est la ==fiche== qui déclare qu'elle nomme une charge et
+  non une personne. Rien à faire côté rendu.
+- **`kli` / `Kli` / `kelim` devient intraduisible**, avec sa fiche. Il arrive par
+  le pipeline comme les autres. ==Attention au dérivé== : `kelim` retombe sur le
+  lemme `kli`, et c'est la canonisation à l'émission qui le rabat — sans elle il
+  paraît en lien mort, ce qu'il fait aujourd'hui quatre fois sur `dev`.
+
+### 8 septembre 2026 — le secret de diffusion voyage dans Authorization, parce que la télémétrie ne filtre que ce qu'elle connaît
+
+L'audit cyber du 8 septembre (C02) l'a reproduit avec le SDK réel et un
+transport en mémoire : un événement Sentry du backend portait l'en-tête
+`x-secret-diffusion` — le secret qui autorise `/diffuser` — et un autre le
+`?code=` d'un retour OAuth. Le témoin `Authorization` était, lui, correctement
+absent.
+
+Le mécanisme, lu dans `sentry-tower` 0.48.5 : quand `send_default_pii` est
+faux, les en-têtes passent par la liste `is_sensitive_header` du SDK — un
+en-tête **maison** n'y figure pas, donc traverse — et l'URL par
+`scrub_pii_from_url`, qui retire les identifiants et **garde la query**. Et
+les transactions n'ont aucun crochet d'expurgation dans cette version : seul
+`before_send` existe, et il ne voit que les événements.
+
+Le remède a deux étages, parce qu'un seul ne suffisait pas :
+
+- **le contrat** (ONTBibleApp#249, `device`) : le secret voyage dans
+  `Authorization: Bearer` — l'en-tête que le SDK filtre nativement,
+  transactions comprises. L'ancien en-tête reste accepté le temps de la
+  transition, puis tombera ;
+- **la ceinture** (même PR, module `observabilite`, éprouvé) : un
+  `before_send` retire l'en-tête hérité et toute query string des événements
+  — si un secret repasse un jour par un chemin non filtré, il meurt avant
+  l'envoi.
+
+**L'annonceur du site n'envoie plus que Bearer** (ONTBibleWebapp#124) — pas de
+période à double en-tête : chaque envoi de l'ancien le remettrait dans les
+transactions, que rien ne sait expurger. La fenêtre est assumée et écrite dans
+le script : tant que le backend déployé (palier `app-store`) ne connaît pas
+Bearer, une annonce de parution est refusée en 401 — non fatale par
+construction, le corpus se publie quand même.
+
+**Ce que ça engage.** Tout futur appelant de `/diffuser` emploie
+`Authorization: Bearer` ; l'en-tête maison meurt à la fin de la transition.
+Et la leçon vaut au-delà du cas : *un secret ne voyage que dans un en-tête que
+la télémétrie sait filtrer* — en inventer un, c'est le publier.
+
+**Reste opérationnel, chez l'auteur** : vérifier les événements déjà reçus
+côté Sentry (l'accès outillé a expiré, le jeton local n'est qu'un jeton CI),
+et faire tourner le secret si l'exposition se confirme.
 ## 8 septembre 2026 — le niveau 3 devient touchable, et le champ qui le porte traverse les trois
 
 Le lecteur lit `(*chesed* / חֶסֶד)`, il est dessus, c'est exactement le moment où
@@ -3664,6 +4149,145 @@ qui ne vaut que sur une route n'est pas une révocation.**
 `livraison.yml` ignore `backend/**` : ce correctif ne consomme aucune place de
 téléversement Apple. Il part par `deployer-backend.yml`.
 
+---
+## 11 septembre 2026 — deux jointures qu'on croyait être une seule
+
+Le chantier du lexique est parti d'une mesure : *Bereshit* 1-19 porte 6 478 mots
+hébreux, 925 lemmes, et le vault n'avait que 356 fiches. Quatre agents ont été
+lancés sur des lots disjoints pour combler l'écart.
+
+**Les trois quarts des fiches assignées existaient déjà.** Le lotissement avait
+été bâti sur un inventaire qui comparait des noms de fichiers à des lemmes sans
+passer par la fonction de slug du pipeline — or elle retire les demi-anneaux.
+`ʾamar.md` **est** la fiche du lemme `amar`, et l'inventaire ne le savait pas.
+
+Le vrai manque était ailleurs, et il ne se voyait pas : les sections `## Formes`
+ne déclaraient pas ce que le corpus écrit. Vingt-cinq formes attestées n'étaient
+déclarées nulle part, donc vingt-cinq mots restaient **lisibles et inertes** —
+et rien ne le signale, puisque ce n'est pas un lien mort.
+
+### Une fiche sert le corps du texte ; elle ne sert pas le verset hébreu
+
+C'est le fait structurel de la journée, et il a fallu la session iOS pour le
+nommer. Le projet a **deux jointures**, et elles ne lisent pas la même chose :
+
+    corps du texte     slug de la translittération d'un niveau 3   →  toutes les fiches
+    verset hébreu      champ `hebrew` d'une entrée de glossaire    →  133 fiches sur 357
+
+`glossary.json` est bâti sur le §2.5 et le §3 du `CLAUDE.md`, qui ne portent que
+les intraduisibles et les rendus fixés. **224 fiches n'y ont aucune entrée**, donc
+aucun hébreu déclaré, donc rien à joindre. Elles contiennent bien leur hébreu —
+234 sur 239 au relevé — mais dans la prose : deux seulement l'avaient à un endroit
+fixe.
+
+Écrire une fiche ne rend donc pas un mot touchable dans le verset d'origine. Le
+chantier avait été annoncé comme s'il le faisait.
+
+### Décision de l'auteur — la Source vit dans la fiche
+
+Section `## Source`, après les Formes : le numéro de Strong nu, et la forme
+absolue hébraïque.
+
+    ## Source
+
+    559 · אָמַר
+
+Le §3 aurait été l'autre emplacement, et il a été écarté sur la mesure : il est un
+glossaire d'**arbitrages de traduction**, et l'y faire grossir de huit cents
+entrées pour accueillir le vocabulaire ordinaire lui aurait fait changer de nature
+— pour ne couvrir que 133 fiches sur 357.
+
+Ce que le numéro achète est ==un mode d'échec==, non une commodité. Sans lui, la
+liseuse doit deviner quel mot du verset ouvre quelle fiche, en ôtant les voyelles.
+Deux mots peuvent avoir le même squelette, et une devinette fausse ne rend pas le
+mot inerte : elle le rend **touchable vers la mauvaise fiche**.
+
+    un squelette qui se trompe est silencieux
+    un Strong qui se trompe est contredit par le témoin
+
+164 fiches ont reçu leur Source, dérivée et non tapée : les formes que la fiche
+déclare → leur hébreu dans le corpus → le lemme du témoin. Quand les formes ne
+s'accordent pas sur un seul numéro, rien n'est écrit.
+
+### Un instrument qui mesure deux fois la même chose rend des chiffres qui se ressemblent trop
+
+La dérivation s'est trompée d'abord, et son symptôme mérite d'être gardé parce
+qu'il est lisible **avant** de connaître la réponse.
+
+J'indexais le témoin sur la forme vocalisée **et** sur son squelette consonantique
+— donc je récoltais précisément les collisions que le numéro existe pour éviter.
+Le relevé rendait des comptes rigoureusement égaux : 14 contre 14, 5 contre 5,
+2 contre 2. Une égalité parfaite entre deux candidats n'est pas une ambiguïté du
+monde, c'est le signe que **les deux branches ont fait la même requête**.
+
+Repris en vocalisé seul, les comptes égaux sont restés. Ce n'était donc plus
+l'instrument : c'est le témoin lui-même qui donne deux lemmes au même texte selon
+le contexte. שֵׁם est 8034 et 8035.
+
+La leçon n'est pas « vérifier deux fois ». Elle est qu'une **forme de sortie**
+peut trahir un défaut d'instrument avant qu'on ait de quoi contrôler le fond.
+
+### Le témoin faisait déjà la distinction, avec une donnée que le dépôt contenait
+
+73 fiches portent deux numéros ou plus. C'est la liste des mots que notre
+translittération confond et que le témoin sépare, et elle n'avait jamais été
+produite.
+
+    shem     8034 · 8035     le concept / le fils de Noach
+    ʾadam     120 ·  121     l'humanité / le nom propre
+    Hevel    1892 · 1893     « souffle » / le frère
+    Sarai    8269 · 8297     « princes » / l'ʾIshah
+    Charan   2771 a · 2771 b
+
+La dernière ligne est la plus instructive. **Deux jours plus tôt**, l'auteur avait
+séparé à la main `Haran` de `Charan`, après qu'une passe de translittération les
+eut fondus — et le journal du 10 septembre décrit le coût : des gloses verrouillées
+s'étaient mises à **expliquer** une homonymie qu'aucun manuscrit ne connaît.
+
+Le témoin portait la distinction depuis toujours, et personne ne la lui avait
+demandée. La passe fautive avait été bâtie sur une liste blanche de formes
+translittérées ; ==une seule requête sur les lemmes du témoin l'aurait arrêtée==.
+
+### Un artefact engendré n'a pas de date visible dans sa mesure
+
+Le plafond a d'abord été annoncé à **118 fiches**. Le chiffre venait de
+`ONTBibleApp/dist/glossary.json`, daté du **8 septembre à 14h53** — antérieur à la
+passe `ph → f` du même jour, et il portait encore `nephilim`. Le bon chiffre est
+133.
+
+La mesure était juste ; elle ne l'était plus. C'est la **prémisse périmée** que la
+note de concertation décrit, sous une forme qu'elle ne prévoyait pas : non pas une
+branche non rafraîchie, mais un **fichier engendré** dont rien dans la lecture ne
+dit l'âge. Un `git fetch` n'y aurait rien fait.
+
+Le même jour, la session iOS a rencontré la même forme sur un autre terrain : deux
+relevés exacts de `device`, l'un sur la locale en retard de 99 commits, l'autre sur
+le distant. ==Trois fois dans la journée, sur trois terrains sans rapport.==
+
+La parade est étroite et elle se dit : **un chiffre tiré d'un artefact engendré se
+rapporte avec la date de l'artefact**, comme un zéro se rapporte avec son outil et
+sa référence.
+
+### Ce que ça change pour chaque dépôt
+
+**ONTBibleTranslation** — le §2.5 ter porte la règle de la section `## Source`.
+164 fiches l'ont ; 73 attendent un arbitrage de l'auteur, un par un comme
+`Haran` / `Charan` ; 122 n'ont aucun appariement dans le corpus et attendent qu'il
+les emploie. Deux homographes vivants restent ouverts : `yamim` — יַמִּים les mers
+et יָמִים les jours sous une seule graphie — et `min`, dont le risque a été mesuré
+nul aujourd'hui parce que le corpus n'écrit aucun `min` nu.
+
+**ONTBibleApp** — le pipeline ne lit pas `## Source`. Tant qu'il ne l'émet pas,
+les 164 numéros sont écrits et personne ne les reçoit ; il faut un
+`source_declaree` à côté de `formes_declarees` (`reference.rs`), puis deux champs
+sur l'entrée émise. `glossary.json` porte son propre `schema`, indépendant de
+`CONTRAT_DES_NOEUDS`, et deux champs facultatifs ne cassent aucun décodeur. La
+session iOS le prend, dans le même lot que sa jointure par `forms`.
+
+**ONTBibleWebapp** — rien à faire aujourd'hui. Mais le site lit `dist/` comme
+l'app : le jour où `glossary.json` porte une Source, il la recevra sans qu'on l'ait
+prévenu. C'est la même remarque que le 10 septembre sur `prononciation.json`, et
+elle vaut deux jours de suite.
 
 ### 11 septembre 2026 — deux manifestes portent presque le même nom, et on les a confondus
 
@@ -3760,3 +4384,327 @@ Un correctif reçu d'une session voisine se mesure comme tout le reste, **y
 compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
 utile n'était pas dans les branches qu'on a comparées : elle était dans le
 commentaire du fichier qu'on cherchait à protéger.
+
+## 18 septembre 2026 — le dépôt a ses chuqqot, et on répare depuis elles
+
+**Consigne de l'auteur**, portée aux sept sessions. Ses mots :
+
+> « au final le projet ONT lui même a ses propre chuqqot les choses graver qui
+> regisse le reste, et les manifestation qui en decoule »
+
+> « toujours se fier aux ONT's chuqqot pour construire et toujours reparer a
+> partir d'elles »
+
+**Ce que sont les chuqqot du dépôt.** Des énoncés qu'on ==n'argumente plus== et
+qu'on ==invoque pour trancher autre chose== : `**...**` est exclusivement
+l'intraduisible ; le témoin fait foi ; on restitue l'ambiguïté au lieu de la
+trancher (§4.11) ; aucune catégorie extérieure n'entre (§4.7) ; une seule source
+par fait ; `1254 a` n'est pas `1254 b`.
+
+Elles se sont écrites ==comme celles du corpus : après coup, sur une pratique==.
+Le §2.9 le déclare de lui-même — *« c'est le relevé de ce qu'il fait déjà, rendu
+opposable »*. L'écriture n'a pas produit la règle ; elle a produit que ==la
+divergence devienne visible==. Une pratique non écrite ne se compare à rien,
+donc elle ne peut pas diverger visiblement.
+
+### Les deux gestes
+
+**Construire à partir d'elles.** Avant d'écrire, chercher ==quel énoncé
+gouverne== ce qu'on va faire. Ne pas inventer une règle locale pour un cas
+local : presque toujours l'énoncé existe, et il décide.
+
+**Réparer à partir d'elles.** Un défaut n'est pas un accident, c'est ==une
+manifestation==. On ne rustine pas : on remonte à l'énoncé qu'il contredit, et
+on répare là.
+
+### La preuve, sur une seule journée
+
+Quatre défauts du 18 septembre, quatre manifestations d'un énoncé gravé :
+
+    un contrôle barrait [[Yosef]]      contre « des marques de travail à faire,
+                                       pas des erreurs » (CLAUDE.md, inline.rs)
+    deux fiches réclamaient 7200       contre « une seule source par fait »
+    l'option « 7203 » écrite nue       contre « 1254 a n'est pas 1254 b »
+    trois gras d'emphase               contre « le gras est EXCLUSIVEMENT
+                                       l'intraduisible » (§2.5)
+
+==Aucun n'a été attrapé par plus de rigueur.== Tous par une contradiction entre
+ce qu'on faisait et ce qui était gravé. Et chacun pouvait être « réparé » par un
+cas particulier — une exception dans le contrôle, une règle morphologique pour
+départager, un gras toléré « juste ici ». ==Chaque rustine aurait ajouté une
+règle de plus==, qui aurait divergé à son tour.
+
+### La nuance sans laquelle la consigne devient un dogme
+
+Remonter à l'énoncé ==ne veut pas dire que l'énoncé a raison==. Parfois c'est
+lui qui doit être corrigé : le §13.2 l'a fait — les « vingt-deux marqueurs
+déséquilibrés » n'existaient pas —, et la fiche de `moreh` l'a fait cette
+semaine, qui déclarait un numéro que le témoin ne lui donne pas.
+
+    remonter à l'énoncé              TOUJOURS
+    puis décider lequel est faux     la manifestation, ou l'énoncé
+
+Ce qui est interdit, c'est de rustiner ==sans être remonté==. Un correctif qui
+n'est rattaché à aucun énoncé est ==une règle orpheline==, et le projet en a
+déjà payé plusieurs.
+
+### Le même défaut ne se reconnaît pas quand il change d'échelle
+
+Relevé par la session des langues sources, le même jour, sur elle-même :
+
+> J'ai passé la matinée à mesurer une chose, et l'après-midi à la commettre
+> ailleurs.
+
+Le matin, elle déclarait une limite du pont Septante : il écrit `2617` là où le
+témoin écrit `2617 a`. L'après-midi, elle proposait qu'une fiche déclare `7203`
+là où le témoin écrit `7203 a`. ==Le même énoncé violé deux fois en un jour, à
+deux étages du projet==, par la personne qui venait de l'inscrire.
+
+    le pont écrit 2617    là où le témoin écrit 2617 a    → limite déclarée
+    une fiche écrirait 7203   là où le témoin écrit 7203 a  → rien ne joindrait
+
+**Et le second cas est muet**, ce qui le rend pire : `7203` nu n'existe pas dans
+le témoin — ==zéro occurrence==. Une fiche qui le déclarerait ne joindrait pas
+« moins », elle ne joindrait ==rien==, sans qu'aucun contrôle ne s'en plaigne.
+
+D'où la clause qui manquait aux deux gestes : ==remonter à un énoncé ne dispense
+pas de regarder si on vient de le violer soi-même ailleurs==. Une règle qu'on
+vient d'écrire est précisément celle qu'on croit tenir, donc celle qu'on ne
+vérifie plus.
+
+### Un énoncé coupe dans les deux sens — en appliquer la moitié, c'est croire le tenir
+
+Relevé par la session du vault, sur elle-même, une heure après avoir transmis
+la présente consigne.
+
+L'énoncé est celui du §2.5 ter : ==`1254 a` n'est pas `1254 b`==. Elle l'avait
+lu comme ==« écris la lettre »==, et c'est vrai. Mais il dit aussi l'inverse :
+==ne revendique pas une lettre qui n'est pas ton mot==.
+
+La fiche de `roʿeh` a déclaré un moment `7203 a + 7203 b`. Or les deux ne sont
+pas le même mot, et le témoin le montre par la préposition :
+
+    שָׁגוּ    בַּיַּיִן        b/3196        ils ont erré dans le vin
+             וּבַשֵּׁכָר      c/b/7941      et dans la boisson forte
+    שָׁגוּ    בָּרֹאֶה         b/7203 b      ils ont erré ba-roʾeh
+                              Rd/Ncmsa
+
+Le `b/` range `7203 b` ==dans la même série que le vin et la boisson forte==,
+et son étiquette est un ==nom==, non le participe des cinq de *1 Shemuel* 9.
+C'est ==la chose vue==, pas celui qui voit. Une fiche du Voyant qui le
+revendiquerait enverrait le lecteur ==vers l'égarement des ivrognes== — le mode
+d'échec exact que le §2.5 ter existe pour fermer.
+
+**D'où la clause, et elle est la plus coûteuse des trois à tenir :** ==une
+moitié d'énoncé appliquée est une règle qu'on croit tenir==. Elle ne se signale
+pas comme un manque — elle se signale comme une conformité.
+
+La fiche déclare désormais `7203 a` seul, et elle ==nomme== `7203 b` pour dire
+qu'elle ne le revendique pas, ==plutôt que de le taire== : une absence déclarée
+se relit, un silence non.
+
+### Un tube avale le code de sortie — et fabrique une réussite
+
+Relevé le 18 septembre 2026 par la session du vault, sur ses propres commandes,
+après un accident de la manageuse.
+
+    bash -c 'set -e; false | tail -1; echo ATTEINT'    →  ATTEINT
+    bash -c 'set -e; false; echo jamais'               →  arrêté
+
+==Une commande dont la sortie passe dans un tube n'est plus protégée par
+`set -e`== : c'est le statut du ==dernier maillon== qui compte, et `tail` réussit
+toujours.
+
+**Ce que ça a produit, et ce que ça aurait pu produire :**
+
+- un enchaînement de la manageuse a commité ==dans l'arbre partagé== : le
+  `worktree add` avait échoué, son échec a été avalé, le `cd` suivant a échoué à
+  son tour, et `add`/`commit`/`push` se sont exécutés dans le dossier courant.
+  ==Sans dégât par hasard== — l'arbre se trouvait sur la bonne branche ;
+- le vault écrivait `git push --quiet 2>&1 | tail -1` ==sur chaque PR de la
+  journée==. Si une poussée avait échoué — distant en avance, jeton expiré,
+  branche protégée —, ==le tube aurait avalé le code et la poussée aurait été
+  annoncée réussie à l'auteur==.
+
+**C'est le motif du 25 août sous une forme qu'on n'avait pas vue** : *le format
+de sortie survit à l'absence de mesure*. Ici ==le tube fabrique le format==. La
+ligne rendue est bien formée, elle ressemble à un succès, et rien n'a été mesuré.
+
+**Les trois remèdes, et ils ne coûtent rien :**
+
+    git -C <chemin> …          plutôt que `cd` puis `git` — ne dépend d'aucun
+                               dossier courant, donc aucun `cd` à réussir
+    pas de tube                sur ce dont l'échec doit arrêter le script
+    vérifier par les SHA       `rev-parse <branche>` contre
+                               `rev-parse origin/<branche>` — un push n'a pas
+                               de `set -e` pour le protéger en interactif
+
+==Le dernier est le seul qui mesure l'atterrissage== au lieu de lire ce que la
+commande a bien voulu dire. Les trois branches de cette entrée ont été
+vérifiées ainsi avant d'être annoncées.
+
+**Et une règle d'arbre partagé, du même accident** : ==ne jamais annoncer de
+mémoire la branche d'un arbre que six sessions lisent==. `git branch
+--show-current` coûte une commande ; l'inexactitude qui l'a remplacée a failli
+faire commiter un tiers sur `main`.
+
+### La forme négative : « je ne vois pas » devenu « il n'y a pas »
+
+Relevée par la session macOS sur elle-même, le 18 septembre au soir, et c'est
+==la plus sournoise des cinq==.
+
+Les quatre précédentes sont des conclusions ==positives== tirées du mauvais
+champ : un compte bien formé sur une question voisine. Celle-ci ne lit
+==aucun== champ — elle transforme *je ne vois pas* en *il n'y a pas*.
+
+Deux sessions ont affirmé ne pas voir leur place dans Herdr. L'une a écrit
+*« ni mon environnement, ni mes outils, ni aucun fichier de mon périmètre ne le
+portent »* — ==sans avoir lancé `env`==, qui portait sa place exacte.
+
+**Et elle se déguise en rigueur**, ce qui la rend difficile à attraper de
+l'intérieur : *« je ne peux pas le confirmer »* ==sonne comme de la prudence==,
+alors que la prudence aurait été de chercher. Une réponse qui s'abstient a
+l'air plus sage qu'une réponse qui affirme ; elle ne l'est que si l'abstention
+vient après la mesure.
+
+    ✗  X ne porte pas Y
+    ✓  j'ai cherché Y dans X, il n'y est pas
+    ✓  je n'ai pas cherché
+
+==La règle : ne jamais écrire « X ne porte pas Y » sans avoir lancé la commande
+qui chercherait==, et distinguer dans la phrase **« je n'ai pas cherché »** de
+**« j'ai cherché et il n'y a rien »**. Les deux sont honnêtes ; les confondre ne
+l'est pas.
+
+### Un contrôle vert est une affirmation sur l'instant où il a tourné
+
+Relevé par la session du site le 18 septembre au soir, et c'est ==la seule des
+six qui porte sur le temps== plutôt que sur la mesure.
+
+    #149  pass  8m36s   tourné AVANT l'arrivée des demi-anneaux
+    #150  pass  7m55s   idem
+    #151  fail  2m13s   tourné APRÈS — deux fiches sans définition
+
+Les trois disent la vérité. ==Les deux premières la disent d'un dépôt qui
+n'existe plus== : cinquante-deux clés du lexique ont changé entre-temps.
+
+**Fusionner sur un vert périmé ne casse pas seulement la branche**, et c'est ce
+qui le rend coûteux : ==la PR suivante porte le chapeau== d'un défaut qui n'est
+pas le sien. C'est exactement ce qui a tenu le corpus publié huit jours en
+arrière — le site a servi un texte du 10 septembre jusqu'au 18, et les deux
+gardes qui ont fini par voir la panne étaient ==externes==, ni l'une ni l'autre
+ne cherchant cela.
+
+==Le vert n'est pas un état, c'est un horodatage.== Avant de fusionner, regarder
+non pas *si* le contrôle est vert, mais ==quand il l'est devenu== — et ce qui a
+bougé depuis.
+
+**Et un corollaire que la journée a donné deux fois** : un espace où travaille
+==un seul agent n'a pas de témoin==. Le défaut qui bloquait le site était chez
+le seul qui y travaillait, donc personne ne pouvait le voir de l'intérieur.
+
+**Et il y a deux horodatages, non un.** Précision de la session du site, une
+heure après, sur un cas qu'elle a failli rapporter à l'envers.
+
+Le vault venait de fusionner le correctif. Elle a mesuré, trouvé le défaut
+toujours là, et s'apprêtait à écrire que la fusion n'avait rien changé. Elle a
+comparé les octets avant :
+
+    git ls-tree origin/main   lexique/basar-ʾechad.md   la fiche neuve
+    ls lexique/               basar-echad.md            l'ancienne
+    HEAD local du vault       68c7849                   avant la fusion
+
+==L'arbre qu'elle lisait n'avait pas tiré.== Elle régénère depuis ce dossier :
+sa mesure était fraîche, et sa source périmée.
+
+    l'horodatage du contrôle           se voit sur la PR
+    l'horodatage de ce qu'il a mesuré  ==ne se voit nulle part==
+
+Les deux se périment séparément, et aucun tableau n'affiche l'état du dépôt
+voisin au moment où le contrôle a tourné. D'où la règle courte, qui est d'elle :
+==un `fetch` met à jour ce qu'on voit, pas ce qu'on lit.==
+
+### Deux instruments justes peuvent couvrir le même angle
+
+Relevée par la session du vault le 18 septembre au soir, contre ==sa propre
+vérification et la mienne==, toutes deux exactes.
+
+Un agent Codex venait de commiter cinq fichiers qu'il avait laissés non commités
+dans l'arbre partagé. ==Deux sessions ont vérifié la sauvegarde== avant de
+laisser restaurer l'arbre : l'une par empreinte SHA-256, l'autre octet par
+octet. Les cinq fichiers identiques des deux côtés, deux fois.
+
+**Et les deux posaient la même question** — *le contenu du commit égale-t-il
+celui de l'arbre ?* Personne n'a posé l'autre : ==ce travail est-il durable ?==
+
+    ls-remote --heads origin <branche>     0
+    branch -r --contains <commit>          aucune
+    branch -a --contains <commit>          la branche locale, seule
+
+==Une branche locale, un seul disque, aucune copie serveur.== Mieux qu'un arbre
+sale — un commit ne s'efface pas par un `switch` — mais ce n'est pas ce que
+« sauvegardé » veut dire, et c'est ce que deux sessions lui avaient laissé
+croire.
+
+**Le motif, et il est plus utile que le cas :** ==on mesure ce qui vient d'être
+nommé==, parce que c'est la question fraîche, et non ce que la manœuvre engage
+vraiment.
+
+> ==Deux vérifications ne valent que si elles peuvent échouer pour des raisons
+> différentes.== Deux instruments justes qui couvrent le même angle laissent
+> l'autre entier.
+
+**Et c'est le même défaut que le 25 août par l'autre bout.** Ce jour-là, *trois
+instruments, trois fautes indépendantes, la même conclusion à chaque fois ; la
+concordance n'a rien prouvé*. Ici, deux instruments ==justes== qui concordent, et
+la concordance ne prouve pas davantage. ==Ce n'est donc pas la justesse des
+instruments qui est en cause, c'est qu'ils ne pouvaient pas se contredire.==
+
+**Le corollaire tient pour les sauvegardes comme pour les mesures — et il a
+fallu deux tours pour le formuler juste.**
+
+Premier jet : le filet gardé par la session qui avait alerté vivait dans `/tmp`,
+que le dépôt condamne déjà — *« un redémarrage a purgé `/tmp` et emporté tous
+les fichiers de travail »* —, donc ==deux copies qui meurent ensemble==.
+
+==C'était faux, et la session concernée l'a mesuré plutôt que de l'accepter== :
+le `.git` qui portait le commit n'est **pas** dans `/tmp`. Les deux copies
+mouraient de causes **différentes** :
+
+    redémarrage                    tuait le patch seul
+    ref de branche perdue, puis gc tuerait le commit seul
+    perte du disque                ==tue les deux==
+
+La couverture était donc ==partielle, pas nulle==, et c'est la troisième ligne
+qui vérifie la règle, non la première. La formulation juste est plus large :
+
+> ==Deux copies sur le même disque ne font pas deux copies.== Le seul geste qui
+> en fabrique une seconde est celui qui met les octets ==sur une autre
+> machine==.
+
+==Et c'est la septième forme appliquée à sa propre correction== : le premier
+jet nommait un risque réel et manquait le principal, parce qu'il mesurait ce
+qui venait d'être nommé — `/tmp` — plutôt que ce que la situation engageait.
+
+### Le motif de fond
+
+La dixième **chuqqah** soutient qu'une **chuqqah** ==ne se sait pas, elle
+s'habite==. Personne n'a jamais *appris* le §2.5 : on s'y cogne. Ce n'est pas de
+la **binah** — on ne cartographie pas ces règles depuis le dehors, on travaille
+dedans, et c'est ==en en sortant== qu'on s'en aperçoit.
+
+Conséquence pratique, et c'est elle qui change une habitude de session : ==le
+`CLAUDE.md` n'est pas une documentation qu'on consulte en cas de doute==. Il
+n'est pas la carte du vault, il est ==le dedans où l'on travaille==. Une session
+qui ne l'ouvre que bloquée s'en sert mal — et c'est le même défaut que la base
+de connaissances a révélé le 16 : *l'outil ne dort pas parce qu'il serait
+mauvais, il dort parce que le réflexe n'est pas installé*.
+
+**Ce qu'ils partagent avec les chuqqot du corpus est la forme, non le rang.**
+Les énoncés du corpus sont ceux d'une ontologie ancienne ; ceux du document de
+référence ne sont que les conventions d'un projet. L'observation vaut par sa
+structure — ce qui est gravé régit, et le reste en découle —, et elle ne tire
+aucune gloire de la comparaison.
+
+*Porté dans `brouillons/chuqqot/chuqqot-0-intro.md` par le vault (PR #109),
+section « Le dépôt qui les porte en a aussi ».*

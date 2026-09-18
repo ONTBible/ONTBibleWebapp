@@ -462,12 +462,43 @@ impl LexiqueEmbarque {
         // arriver, « les liens d'or venant du même pipeline que le lexique ».
         // Vrai des intraduisibles, faux des Shemot — et c'est la phrase qui a
         // fermé la question pendant dix jours.
-        let mut entrees: Vec<Entree> = glossaire
+        // ── Une fiche peut sortir par les deux portes ───────────────────────
+        //
+        // Ce ne sont pas deux fichiers, mais **deux emplois** de la même fiche
+        // dans le corpus, et le pipeline les compte séparément :
+        //
+        //     glossary.json   les intraduisibles déclarés au §2.5, balisés `**gras**`
+        //     shemot.json     les lemmes cibles d'un `[[lien]]` du corpus
+        //
+        // `moreh` est les deux : le §2.5 le déclare — « celui qui pointe du doigt
+        // la direction » — et *Bereshit* 12 écrit « jusqu'au chêne de [[Moreh]] ».
+        // Le concept et le lieu, ce que la fiche affirme elle-même : « ce n'est
+        // pas une collision de graphies : le lieu porte le nom du concept ».
+        //
+        // **Ce n'est donc pas un défaut à réparer, c'est un fait à fusionner.**
+        // Les deux entrées portent la même définition, au même octet — on n'en
+        // garde qu'une, et `chaque_lemme_n_a_qu_une_fiche` refuse le jour où
+        // elles différeraient, parce qu'alors ce serait deux fiches rivales pour
+        // une seule adresse.
+        //
+        // **Le glossaire l'emporte**, et ce n'est pas un choix : c'est celui du
+        // pipeline, `niveau_trois.rs::le_glossaire_passe_avant_les_shemot`. Son
+        // commentaire dit pourquoi l'ordre doit être fixé — « sans quoi la même
+        // entrée ouvrirait une fiche ou l'autre selon l'ordre de parcours d'un
+        // `HashSet`, qui n'est pas stable ». Trancher autrement ici ferait ouvrir
+        // au site une fiche que l'app n'ouvre pas, pour le même mot touché.
+        let mut vus: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut entrees: Vec<Entree> = Vec::new();
+        for entree in glossaire
             .entries
             .into_iter()
             .map(entree)
             .chain(shemot.entries.into_iter().map(entree_de_shem))
-            .collect();
+        {
+            if vus.insert(entree.lemme.clone()) {
+                entrees.push(entree);
+            }
+        }
         // L'ordre du pipeline suit le vault. Une page de lexique se lit par
         // ordre alphabétique du lemme — et c'est le lemme, pas le titre, qui
         // fait foi : c'est lui qui est dans l'adresse.
@@ -550,6 +581,97 @@ mod tests {
     /// `livre()` rend `None` sur échec plutôt que de tomber : sans ce test, un
     /// livre devenu illisible se manifesterait par un 404, ce qui ressemble
     /// beaucoup trop à « ce livre n'est pas encore écrit ».
+    /// Deux entrées d'un même lemme portent la **même** fiche.
+    ///
+    /// ## Ce que la garde d'avant demandait, et pourquoi c'était la mauvaise
+    ///
+    /// Elle exigeait qu'aucun lemme ne soit servi deux fois. Elle rougissait donc
+    /// sur `moreh`, et j'ai cru tenir un défaut du vault — au point d'arrêter une
+    /// session voisine qui s'apprêtait à couper la fiche en deux.
+    ///
+    /// **Ce n'est pas un défaut.** Une fiche sort par **deux portes**, et le
+    /// critère n'est ni la casse de son nom de fichier ni rien qui la concerne :
+    /// c'est son **emploi dans le corpus**, relevé par la session qui tient le
+    /// pipeline —
+    ///
+    /// ```text
+    /// glossary.json   les intraduisibles déclarés au §2.5, balisés `**gras**`
+    /// shemot.json     les lemmes cibles d'un `[[lien]]`   (inline.rs:455)
+    /// ```
+    ///
+    /// `moreh` est les deux : déclaré au §2.5, et lié depuis *Bereshit* 12 —
+    /// « jusqu'au chêne de [[Moreh]] ». Le concept **et** le lieu.
+    ///
+    /// ## Ce que cette garde demande à la place
+    ///
+    /// Que les deux portes mènent au **même texte**. Deux entrées identiques sont
+    /// un emploi double, que `charger` fusionne ; deux entrées **différentes**
+    /// seraient deux fiches rivales pour une seule adresse, et l'une deviendrait
+    /// injoignable sans que rien ne dise laquelle.
+    ///
+    /// C'est la question que l'ancien message posait à l'envers : il *répondait*
+    /// « l'une est injoignable » au lieu de **demander** si les contenus
+    /// diffèrent. Une garde qui détecte bien et explique mal envoie chercher au
+    /// mauvais endroit.
+    ///
+    /// ## Elle relit les sources, pas le lexique fusionné
+    ///
+    /// Après `charger`, il n'y a plus de doublon à voir — c'est tout l'objet de
+    /// la fusion. Une garde posée sur le résultat mesurerait donc son propre
+    /// effet, et passerait toujours.
+    #[test]
+    fn deux_portes_d_un_lemme_mènent_au_meme_texte() {
+        let glossaire: pipeline::GlossaryFile =
+            serde_json::from_str(GLOSSAIRE).expect("le glossaire s'ouvre");
+        let shemot: pipeline::ShemotFile =
+            serde_json::from_str(SHEMOT).expect("les Shemot s'ouvrent");
+
+        let par_lemme: std::collections::BTreeMap<String, Entree> = glossaire
+            .entries
+            .into_iter()
+            .map(entree)
+            .map(|e| (e.lemme.clone(), e))
+            .collect();
+
+        let mut partages = 0usize;
+        let mut divergents: Vec<String> = Vec::new();
+        for shem in shemot.entries.into_iter().map(entree_de_shem) {
+            if let Some(autre) = par_lemme.get(&shem.lemme) {
+                partages += 1;
+                if autre.definition != shem.definition {
+                    divergents.push(shem.lemme.clone());
+                }
+            }
+        }
+
+        // Le témoin positif, et il est **inversé** par rapport aux autres gardes
+        // de ce fichier : ici, zéro partage est l'état normal. Ce qu'on refuse de
+        // laisser passer en silence, c'est un relevé qui ne lirait aucune des deux
+        // sources — auquel cas il n'y aurait rien à comparer et tout paraîtrait
+        // sain.
+        assert!(
+            !par_lemme.is_empty(),
+            "aucune entrée lue au glossaire — le relevé est cassé, pas le lexique"
+        );
+
+        assert!(
+            divergents.is_empty(),
+            "{} lemme(s) servis par deux fiches de textes DIFFÉRENTS : {divergents:?}\n\
+             Deux portes mènent au même lemme, ce qui est normal — le §2.5 le \
+             déclare et le corpus le lie. Mais elles doivent mener au même texte : \
+             une seule adresse pour deux contenus en rend un injoignable, et rien \
+             ne dit lequel.\n\
+             La réparation est à la source, pas ici : les deux fiches doivent être \
+             discernables avant d'être émises.",
+            divergents.len()
+        );
+
+        // Ce que la fusion a effectivement absorbé, dit à voix haute plutôt que
+        // constaté en silence — c'est ce nombre qui bougera le jour où un second
+        // mot sera déclaré **et** lié.
+        println!("  {partages} lemme(s) employés des deux côtés, fusionnés");
+    }
+
     #[test]
     fn chaque_livre_embarque_s_analyse() {
         for (id, source) in LIVRES {
