@@ -114,7 +114,7 @@ pub fn Accueil() -> impl IntoView {
             />
 
             <p class="mt-10">
-                <Terme lemme="bara">"Bara"</Terme> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
+                <Terme lemme="baraʾ">"Bara"</Terme> " n'est pas un acte d'artisan. C'est un acte de roi : inaugurer "
                 "un espace, attribuer des rôles, mettre en fonction. Le cosmos ne sort pas "
                 "d'une usine — il est inauguré comme on inaugure un Temple."
             </p>

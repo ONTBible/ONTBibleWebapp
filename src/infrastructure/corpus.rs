@@ -735,10 +735,10 @@ mod tests {
         let lexique = LexiqueEmbarque::charger().expect("glossary.json");
         let corpus = CorpusEmbarque::charger().unwrap();
 
-        let elohim = lexique.entree("elohim").expect("la fiche « elohim »");
+        let elohim = lexique.entree("ʾelohim").expect("la fiche « ʾelohim »");
         assert!(!elohim.definition.is_empty());
 
-        let occurrences = lexique.occurrences("elohim");
+        let occurrences = lexique.occurrences("ʾelohim");
         assert!(!occurrences.is_empty(), "« elohim » paraît dans le corpus");
 
         // Le lien d'une occurrence doit mener quelque part. C'est exactement le
