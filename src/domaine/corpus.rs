@@ -354,3 +354,131 @@ mod tests {
         assert!(livre.chapitre("bereshit-1").is_some());
     }
 }
+
+/// Les deux demi-anneaux que la translittération emploie — l'alef et le ayin.
+///
+/// `ʾ` est U+02BE, `ʿ` est U+02BF. **Ce sont des consonnes, pas des ornements.**
+const DEMI_ANNEAUX: [char; 2] = ['\u{02BE}', '\u{02BF}'];
+
+/// La forme qu'un lemme avait avant que les demi-anneaux ne comptent.
+///
+/// Une fonction pure, pour qu'elle s'éprouve sans glossaire.
+pub fn depouiller(lemme: &str) -> String {
+    lemme
+        .chars()
+        .filter(|c| !DEMI_ANNEAUX.contains(c))
+        .collect()
+}
+
+/// Les redirections du lexique — **déduites, jamais écrites**.
+///
+/// ## Ce qu'elles réparent
+///
+/// Le 13 septembre 2026, le pipeline a cessé de jeter `ʾ` et `ʿ` en fabriquant
+/// les clés du glossaire : ce sont des consonnes, et `malʾakh` l'envoyé tombait
+/// sur la même clé que `malakh` régner — de sorte que la fiche du verbe, 347
+/// emplois, ne pouvait pas être écrite.
+///
+/// Quarante-quatre clés changent donc. Les anciennes sont dans `sitemap.xml`,
+/// donc déclarées aux moteurs ; sans redirection elles rendent 404. L'auteur a
+/// tranché pour du **301**.
+///
+/// ## Pourquoi aucune table n'est écrite
+///
+/// L'ancienne clé est exactement la nouvelle **privée de ses demi-anneaux**. La
+/// table se déduit donc, et trois choses en découlent :
+///
+/// - **zéro ligne à la main** — quarante-quatre lignes recopiées seraient
+///   quarante-quatre occasions de se tromper ;
+/// - **elle ne se périme pas** : la prochaine fiche à demi-anneau est couverte
+///   sans que personne n'y pense ;
+/// - **et elle ne fait rien avant l'heure.** Tant que le glossaire ne porte
+///   aucun demi-anneau, elle est vide. Une table écrite à la main aujourd'hui
+///   casserait quarante-quatre adresses qui fonctionnent.
+///
+/// ## La règle qui évite de se retourner contre son but
+///
+/// **Une redirection ne capte jamais un chemin qui est lui-même un lemme
+/// vivant.** La fiche existante gagne, toujours.
+///
+/// Sans cette exclusion, `malʾakh` engendrerait une redirection depuis `malakh`
+/// — qui est le lemme du verbe, avec sa propre fiche. L'adresse naturelle du
+/// verbe deviendrait une redirection permanente vers l'envoyé, et un `301` se
+/// met en cache sans expiration : le lecteur qui l'a suivie une fois ne
+/// retrouverait plus jamais le verbe. On aurait reprise d'une main ce que le
+/// changement de clé venait de rendre possible.
+pub fn redirections_du_lexique(lemmes: &[String]) -> Vec<(String, String)> {
+    let vivants: std::collections::HashSet<&str> = lemmes.iter().map(String::as_str).collect();
+    let mut table: Vec<(String, String)> = lemmes
+        .iter()
+        .filter(|l| l.chars().any(|c| DEMI_ANNEAUX.contains(&c)))
+        .filter_map(|l| {
+            let ancien = depouiller(l);
+            // L'exclusion, et c'est tout le sujet.
+            (!vivants.contains(ancien.as_str())).then(|| (ancien, l.clone()))
+        })
+        .collect();
+    table.sort();
+    table.dedup_by(|a, b| a.0 == b.0);
+    table
+}
+
+#[cfg(test)]
+mod redirections {
+    use super::*;
+
+    fn table(lemmes: &[&str]) -> Vec<(String, String)> {
+        let v: Vec<String> = lemmes.iter().map(|s| s.to_string()).collect();
+        redirections_du_lexique(&v)
+    }
+
+    #[test]
+    fn un_glossaire_sans_demi_anneau_ne_redirige_rien() {
+        assert!(table(&["adam", "bara", "malakh"]).is_empty());
+    }
+
+    #[test]
+    fn le_demi_anneau_engendre_sa_forme_depouillee() {
+        assert_eq!(
+            table(&["ʾadam", "baraʾ", "raqiaʿ"]),
+            vec![
+                ("adam".into(), "ʾadam".into()),
+                ("bara".into(), "baraʾ".into()),
+                ("raqia".into(), "raqiaʿ".into()),
+            ]
+        );
+    }
+
+    /// Le cas qui a motivé l'exclusion, et le seul des quarante-quatre.
+    #[test]
+    fn un_lemme_vivant_n_est_jamais_capte() {
+        let t = table(&["malakh", "malʾakh"]);
+        assert!(
+            t.is_empty(),
+            "`malakh` est un lemme vivant — le rediriger vers `malʾakh` rendrait \
+             la fiche du verbe injoignable, et un 301 ne se reprend pas : {t:?}"
+        );
+    }
+
+    /// Le seul des quarante-quatre où le tiret pouvait piéger — la session de
+    /// l'app y a trouvé un défaut dans son premier jet, qui rendait
+    /// `basarʾechad`.
+    #[test]
+    fn le_tiret_survit_au_depouillement() {
+        assert_eq!(
+            table(&["basar-ʾechad"]),
+            vec![("basar-echad".into(), "basar-ʾechad".into())]
+        );
+    }
+
+    #[test]
+    fn deux_lemmes_de_meme_forme_depouillee_ne_rendent_qu_une_entree() {
+        // `ʿani` pauvre et `ʾani` moi dépouillent tous deux en `ani` : l'ancienne
+        // adresse était ambiguë, et aucune redirection ne peut la désambiguïser.
+        // On en garde une seule, la première par ordre, plutôt que d'en écrire
+        // deux dont la seconde ne servirait jamais.
+        let t = table(&["ʿani", "ʾani"]);
+        assert_eq!(t.len(), 1, "{t:?}");
+        assert_eq!(t[0].0, "ani");
+    }
+}

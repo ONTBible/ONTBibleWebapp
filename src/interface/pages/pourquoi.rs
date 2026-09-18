@@ -262,7 +262,7 @@ pub fn Pourquoi() -> impl IntoView {
 
             <p>
                 "Nommer n'est pas étiqueter une chose déjà là. C'est "
-                <Terme lemme="qara">"qara"</Terme>
+                <Terme lemme="qaraʾ">"qara"</Terme>
                 ", l'acte souverain par excellence\u{202f}: faire entrer dans l'existence "
                 "fonctionnelle. Ce qui était "
                 <Terme lemme="tohu-vavohu">"tohu vavohu"</Terme>
@@ -315,10 +315,10 @@ pub fn Pourquoi() -> impl IntoView {
                 "est "
                 <i>"performative"</i>
                 "\u{202f}: elle accomplit ce qu'elle énonce. "
-                <Terme lemme="elohim">"Elohim"</Terme>
+                <Terme lemme="ʾelohim">"Elohim"</Terme>
                 " ne dit pas que la Lumière est — il la formule, et elle advient. Nommer "
                 "n'étiquette pas ce qui se trouvait déjà là\u{202f}: "
-                <Terme lemme="qara">"qara"</Terme>
+                <Terme lemme="qaraʾ">"qara"</Terme>
                 " fait entrer dans l'existence. La parole ne vient pas après le réel pour en "
                 "rendre compte. Elle est le mouvement par lequel il tient."
             </p>
@@ -384,7 +384,7 @@ pub fn Pourquoi() -> impl IntoView {
                 ", indissociablement. Quand le texte dit que le "
                 <Terme lemme="ruach">"Ruach"</Terme>
                 " d'"
-                <Terme lemme="elohim">"Elohim"</Terme>
+                <Terme lemme="ʾelohim">"Elohim"</Terme>
                 " couvait la face des eaux, il dit un vent qui souffle et une présence qui "
                 "agit, dans le même mot et sans les distinguer. Le traducteur doit choisir. "
                 "Choisir, ici, c'est amputer."
@@ -825,13 +825,13 @@ pub fn Pourquoi() -> impl IntoView {
                 >
                     <p>
                         "Au "
-                        <Terme lemme="sheol">"She'ol"</Terme>
+                        <Terme lemme="sheʾol">"She'ol"</Terme>
                         ", les morts sont morts. Dans l'Hadès grec, les âmes des morts sont "
                         "vivantes. D'un trait de plume, des morts sont devenus des vivants — "
                         "et le lieu du silence est devenu, par le latin "
                         <i>"infernus"</i>
                         ", un lieu de tourment. On descend au "
-                        <Terme lemme="sheol">"She'ol"</Terme>
+                        <Terme lemme="sheʾol">"She'ol"</Terme>
                         "\u{202f}; on ne s'en envole pas."
                     </p>
                 </Correspondance>
@@ -843,7 +843,7 @@ pub fn Pourquoi() -> impl IntoView {
                     francais="éternité"
                 >
                     <p>
-                        <Terme lemme="olam">"Olam"</Terme>
+                        <Terme lemme="ʿolam">"Olam"</Terme>
                         " vient d'une racine de dissimulation\u{202f}: ce qui est au-delà du "
                         "visible. Le latin "
                         <i>"aeternitas"</i>
@@ -991,14 +991,14 @@ pub fn Pourquoi() -> impl IntoView {
 
             <ul class="mt-8 m-0 list-none p-0">
                 <li class="border-t border-filet py-5 first:border-t-0">
-                    <Terme lemme="bara">"Bara"</Terme>
+                    <Terme lemme="baraʾ">"Bara"</Terme>
                     " — orchestrer. Inaugurer dans l'existence fonctionnelle, attribuer des "
                     "rôles. Son sujet est toujours "
-                    <Terme lemme="elohim">"Elohim"</Terme>
+                    <Terme lemme="ʾelohim">"Elohim"</Terme>
                     ", et jamais aucune matière première n'est mentionnée."
                 </li>
                 <li class="border-t border-filet py-5">
-                    <Terme lemme="asah">"Asah"</Terme>
+                    <Terme lemme="ʿasah">"Asah"</Terme>
                     " — mettre en place. La dimension structurelle de la parole\u{202f}: sa "
                     "réalisation concrète."
                 </li>
@@ -1010,7 +1010,7 @@ pub fn Pourquoi() -> impl IntoView {
             </ul>
 
             <p class="mt-10">
-                <Terme lemme="bara">"Bara"</Terme>
+                <Terme lemme="baraʾ">"Bara"</Terme>
                 " n'est pas un acte d'artisan. C'est un acte de roi\u{202f}: inaugurer un "
                 "espace, attribuer des rôles, mettre en fonction. Le cosmos ne sort pas d'une "
                 "usine — il est inauguré comme on inaugure un Temple. Et un Temple commence à "
@@ -1064,7 +1064,7 @@ pub fn Pourquoi() -> impl IntoView {
                 "L'être humain est le "
                 <Terme lemme="tselem">"tselem"</Terme>
                 " d'"
-                <Terme lemme="elohim">"Elohim"</Terme>
+                <Terme lemme="ʾelohim">"Elohim"</Terme>
                 " sur la Terre."
             </p>
 
@@ -1223,7 +1223,7 @@ pub fn Pourquoi() -> impl IntoView {
                 <Nom>"Nistarot"</Nom>
                 " — les réalités voilées, que ce découpage est seul à nommer — traversent "
                 "les structures invisibles. Là encore, c'est le principe de "
-                <Terme lemme="qara">"qara"</Terme>
+                <Terme lemme="qaraʾ">"qara"</Terme>
                 " appliqué\u{202f}: si une distinction fonctionnelle est réelle, elle mérite "
                 "un nom."
             </p>
