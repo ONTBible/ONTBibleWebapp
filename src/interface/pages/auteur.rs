@@ -81,7 +81,7 @@ pub fn Auteur() -> impl IntoView {
             </p>
             <p>
                 "Et je laisse debout ce qui ne se traduit pas. "
-                <Terme lemme="elohim">"Elohim"</Terme> ", "
+                <Terme lemme="ʾelohim">"Elohim"</Terme> ", "
                 <Terme lemme="ruach">"ruach"</Terme> ", "
                 <Terme lemme="nefesh">"nefesh"</Terme> ", "
                 <Terme lemme="kavod">"kavod"</Terme> ", "
@@ -113,7 +113,7 @@ pub fn Auteur() -> impl IntoView {
             <p>
                 "Si une réalité fonctionne d'une manière distincte, elle mérite un nom "
                 "distinct. C'est le principe de "
-                <Terme lemme="qara">"qara"</Terme>
+                <Terme lemme="qaraʾ">"qara"</Terme>
                 " : nommer, c'est faire entrer dans l'existence."
             </p>
         </Bloc>
