@@ -147,7 +147,23 @@ pub fn Fiche() -> impl IntoView {
 
                             <PageDeLecture
                                 fil=vec![("/fr/lexique".to_string(), "Lexique".to_string())]
-                                rappel="Intraduisible"
+                                // Le rappel nomme l'**espèce**, et il était
+                                // écrit en dur. Les deux cent vingt fiches de
+                                // Shemot affichaient donc « Intraduisible »
+                                // pendant que leur propre titre, trois lignes
+                                // plus haut, annonçait « nom propre hébreu ».
+                                //
+                                // La page se contredisait elle-même, sur la
+                                // distinction qui fait tout le projet : l'or
+                                // promet un intraduisible, la teinte du Shem
+                                // promet un nom. Un lecteur qui vient vérifier
+                                // laquelle des deux il tient lisait les deux.
+                                //
+                                // `est_un_nom` décidait déjà du titre et du
+                                // chapeau, vingt lignes plus haut. Il manquait
+                                // ici — c'est le troisième endroit où l'espèce
+                                // se lit, et le seul qui ne la lisait pas.
+                                rappel=if e.est_un_nom { "Nom propre" } else { "Intraduisible" }
                                 titre=titre
                                 chapeau=Box::new(move || {
                                     view! {

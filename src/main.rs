@@ -44,6 +44,28 @@ async fn main() {
             .expect("glossary.json illisible — le lexique est embarqué à la compilation"),
     );
 
+    // Les redirections du lexique — **déduites du glossaire**, jamais écrites.
+    //
+    // Bâties une fois au démarrage : la table ne dépend que du glossaire, qui est
+    // embarqué à la compilation. La recalculer par requête serait un parcours de
+    // cent cinquante-huit lemmes pour un résultat invariant.
+    //
+    // Elle est **vide aujourd'hui**, et c'est voulu — voir
+    // `redirections_du_lexique`. Elle s'allumera d'elle-même quand le pipeline
+    // portera les demi-anneaux jusqu'à la branche que la CI clone.
+    let redirections: Arc<std::collections::HashMap<String, String>> = Arc::new(
+        ontbible::domaine::corpus::redirections_du_lexique(
+            &lexique
+                .entrees()
+                .iter()
+                .map(|e| e.lemme.clone())
+                .collect::<Vec<_>>(),
+        )
+        .into_iter()
+        .collect(),
+    );
+    println!("  {} redirection(s) de lexique", redirections.len());
+
     // Le compte, joint chez le backend de l'app.
     //
     // La racine se lit dans l'environnement plutôt qu'en dur : c'est
@@ -282,6 +304,50 @@ async fn main() {
             "/",
             axum::routing::get(|| async { axum::response::Redirect::temporary("/fr") }),
         )
+        // Les anciennes adresses du lexique, **avant** le routeur de Leptos.
+        //
+        // Une couche et non une route : une route `/fr/lexique/{lemme}` capterait
+        // *toutes* les fiches, et il faudrait lui faire rendre la main pour
+        // celles qui existent. Une couche regarde, agit quand elle reconnaît, et
+        // passe la requête sinon — c'est exactement ce qu'on demande.
+        //
+        // La comparaison se fait sur le chemin **décodé**. `ʾ` est U+02BE et
+        // s'écrit `%CA%BE` dans une adresse : les deux formes arrivent, et une
+        // table qui compare la chaîne brute échoue sur celle qui est encodée.
+        // C'est la famille du `+` et du `/` de PKCE, un cran plus bas — deux
+        // représentations d'une même chaîne, dont une seule est celle qu'on a en
+        // tête en écrivant la comparaison.
+        .layer(axum::middleware::from_fn({
+            let redirections = redirections.clone();
+            move |requete: axum::extract::Request, suite: axum::middleware::Next| {
+                let redirections = redirections.clone();
+                async move {
+                    let chemin = requete.uri().path();
+                    if let Some(lemme) = chemin.strip_prefix("/fr/lexique/") {
+                        let decode = percent_encoding::percent_decode_str(lemme)
+                            .decode_utf8_lossy()
+                            .into_owned();
+                        if let Some(vers) = redirections.get(&decode) {
+                            // **301 et non 302** — l'ancienne adresse ne
+                            // reviendra pas, et c'est la décision de l'auteur :
+                            // un moteur qui la détient doit transférer son
+                            // ancienneté à la nouvelle, ce qu'un 302 ne fait pas.
+                            let cible = format!(
+                                "/fr/lexique/{}",
+                                percent_encoding::utf8_percent_encode(
+                                    vers,
+                                    percent_encoding::NON_ALPHANUMERIC,
+                                )
+                            );
+                            return axum::response::IntoResponse::into_response(
+                                axum::response::Redirect::permanent(&cible),
+                            );
+                        }
+                    }
+                    suite.run(requete).await
+                }
+            }
+        }))
         .leptos_routes_with_context(&leptos_options, routes, dependances, {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())
