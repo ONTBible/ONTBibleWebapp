@@ -5138,6 +5138,211 @@ compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
 utile n'était pas dans les branches qu'on a comparées : elle était dans le
 commentaire du fichier qu'on cherchait à protéger.
 
+## 11 septembre 2026, l'après-midi — le simulateur est un appareil sans main
+
+L'auteur : « c'est bizarre, le long press fonctionne sur le sim mais pas sur mon
+iPhone ». **Quatre causes empilées, et aucune ne suffisait seule.** Trois
+corrections plausibles ont été posées avant qu'une sonde d'une ligne ne tranche.
+
+### Les quatre silences
+
+**Le geste n'existait pas en prose continue.** Il était posé sur `VerseRow`, la
+branche des versets séparés. L'auteur lit en prose ; l'appareil de mesure, non.
+==Les deux appareils ne rendaient pas la même vue== — et la comparaison qui
+fondait tout le raisonnement ne comparait donc rien.
+
+**La feuille était présentée depuis une vue trop imbriquée.** Une feuille
+attachée sous une pile paresseuse est ignorée **sans un mot** : pas d'erreur,
+pas de ligne de journal, rien. Elle est désormais tenue au niveau du chapitre,
+et les deux modes de lecture y poussent leur demande.
+
+**L'état posé depuis un rappel UIKit ne réveillait pas SwiftUI.** Le rappel
+arrive pendant le traitement du toucher, hors du cycle de rendu : la
+modification était bien enregistrée, et rien ne la relevait.
+
+**La sélection de texte du système gagnait le geste.** Relevée sur une **capture
+de l'auteur**, le pavé gris couvrant tout le bloc. Un toucher synthétisé
+n'appelle pas l'interaction de texte : ==aucun banc ne pouvait la montrer==.
+
+### Pourquoi le simulateur passait, et l'appareil non
+
+`LongPressGesture` abandonne dès que le doigt s'écarte de `maximumDistance`, qui
+vaut **10 points** par défaut. Le simulateur est piloté par un pointeur qui ne
+bouge pas : le geste y part toujours. Un doigt tremble.
+
+Le SDK nomme lui-même la différence — `GestureInputKinds` distingue
+`directTouch` de `pointer`. ==Le simulateur n'est pas un appareil plus petit,
+c'est un appareil sans main== : il a l'écran, le système et la mémoire, il n'a
+pas la main. Et les gestes sont précisément ce qu'il ne sait pas éprouver.
+
+Le remède n'élargit pas la tolérance — ce qui laisserait le geste concurrent de
+la zone défilante, et l'un des deux perdrait. `UIGestureRecognizerRepresentable`
+fait entrer un vrai `UILongPressGestureRecognizer` dans l'arbitrage d'UIKit, qui
+sait de naissance cohabiter avec un `UIScrollView`. On ne départage plus deux
+gestes, on laisse le système le faire.
+
+### Une hypothèse n'est pas un diagnostic, même quand elle est vraie
+
+Les trois premières corrections ont été annoncées comme des causes **trouvées**.
+C'étaient des causes **possibles** — et chacune était vraie, ce qui est plus
+coûteux qu'une erreur franche : une fois réparée, le symptôme ne bouge pas, et
+le raisonnement qui l'a produite sort intact.
+
+La sonde qui a tranché ne demandait qu'une chose — ==« est-ce que le geste
+part ? »== — et elle n'avait pas été posée. Séparer « ça ne part pas » de « ça
+part et rien ne suit » coûtait une ligne, et faisait tomber deux hypothèses d'un
+coup.
+
+Le correctif du troisième silence s'est retourné à son tour, et c'est la mesure
+sur l'appareil qui l'a dit : reporter d'un tour de boucle — `Task { @MainActor }`
+— **empêche** la feuille de s'ouvrir, là où l'appel immédiat dans le rappel la
+laisse passer. L'explication était plausible et fausse. Elle est écrite dans
+`ONTAppuiLong`, au-dessus de la ligne qu'elle justifie, et non ici.
+
+### La même forme, quatre fois dans la journée — et trois sont déjà écrites
+
+Un instrument exact braqué sur autre chose que la question. Les trois autres
+occurrences sont au journal, chacune à sa place, et il ne s'agit pas de les
+redire :
+
+- le contrôle d'inventaire du pipeline trouvait ses preuves dans `Schema.swift`
+  et `Schema.kt`, **que le pipeline venait d'écrire lui-même** à l'étape
+  suivante — vert au premier passage, rouge au second. Entrée « le contrôle
+  lisait ce que le pipeline venait d'écrire » ;
+- `device` en local avait **99 commits de retard**, et deux sessions ont compté
+  `CONTRAT_DES_NOEUDS` sur deux objets différents — 0 d'un côté, 4 de l'autre,
+  les deux mesures exactes. Entrée « la détection avait quadruplé, la navigation
+  était tombée à zéro » ;
+- un plafond de « 118 fiches » relevé sur un `dist/glossary.json` daté du
+  **8 septembre**, antérieur à une passe de renommage : il portait encore
+  `nephilim`. Le bon chiffre est 133. Entrée « deux jointures qu'on croyait être
+  une seule ».
+
+Ce qu'aucune ne dit seule, et qui ne se voit qu'en les mettant côte à côte : une
+branche en retard se rattrape par `git fetch` et se lit par `origin/<branche>`,
+mais ==un artefact engendré n'a pas de date visible dans sa mesure==. Le
+simulateur est de la même famille sans être un artefact : il rend fidèlement un
+état du monde qui n'est pas celui qu'on interroge.
+
+    un banc sans main ne mesure pas un geste
+    un artefact engendré ne porte pas sa date
+
+### Ce que ça change pour chaque dépôt
+
+- **ONTBibleApp** — `ONTAppuiLong` vit dans `ONTDesignSystem`, et son extension
+  `ontAppuiLong` est **hors** du `#if canImport(UIKit)` : enfermée dedans, elle
+  disparaissait pour macOS, et la liseuse du Mac cessait de compiler sur un
+  geste qu'elle n'emploie même pas. Là où le pont n'existe pas, on retombe sur
+  le geste de SwiftUI, qui ne connaît pas la position et rend le centre — mieux
+  vaut désigner le verset du milieu que n'ouvrir rien. **Android porte les mêmes
+  deux modes de lecture** : un geste posé sur une seule des deux branches y
+  produira le même silence, et cela se vérifie sur un appareil, pas sur
+  l'émulateur.
+- **ONTBibleWebapp** — rien à porter, et la raison vaut d'être écrite plutôt que
+  supposée : le site n'a pas d'appui long, et sa sélection de texte est celle du
+  navigateur. Ce qui lui revient est la leçon, pas le correctif — un navigateur
+  sans tête est lui aussi un appareil sans main.
+- **ONTBibleTranslation** — rien à porter. La feuille ouvre le verset hébreu et
+  se joint au vault par ce que les fiches déclarent ; ce contrat est celui de
+  l'entrée « deux jointures qu'on croyait être une seule », et il n'a pas bougé
+  cet après-midi.
+
+### 11 septembre 2026 — deux manifestes portent presque le même nom, et on les a confondus
+
+Le site publie `manifeste.json` sur `/corpus/`. Le pipeline écrit
+`manifest.json` dans `dist/`. **Ce ne sont pas les mêmes fichiers, et ils ne
+portent pas les mêmes nombres :**
+
+| fichier | qui l'écrit | ce qu'il porte |
+|---|---|---|
+| `dist/manifest.json` | le pipeline | `schema: 1`, `contrat: 3` |
+| `/corpus/manifeste.json` | `corpus-publie.py`, chez le site | `schema: 2` |
+
+La liseuse récupère `ontbible.com/corpus/` — **celui du site** — et compare
+**son** `schema` au sien. Le `contrat` du pipeline ne l'atteint jamais.
+
+#### Le défaut vu, le correctif faux, et ce qui a sauvé la mise
+
+La session du pipeline a signalé, à juste titre, que le `2` du site était écrit
+en dur et ne bougeait pas quand un type de nœud apparaissait. Elle a demandé de
+recopier son `contrat` à la place. C'est ce qui a été fait, et **c'était faux** :
+publier 3 aurait fait refuser le corpus **entier** par toutes les liseuses
+installées, qui comparent en égalité stricte et sont à 2.
+
+Ce qui l'a arrêté n'est pas la relecture du correctif — il compilait, onze
+chemins l'éprouvaient, et le tableau était vert. C'est **la lecture de la
+liseuse**, et une seule ligne :
+
+    CorpusUpdater.swift:87   « La version du manifeste que ce code sait lire.
+                               2 depuis 1.0.3, où l'accentuation a changé de
+                               nom sur le fil. »
+
+Le nombre était donc déjà nommé, déjà daté, déjà justifié — dans le dépôt
+d'à côté, à l'endroit exact où la question se pose. Trois sessions ont raisonné
+une heure sur ce qu'il devait valoir sans aller lire ce qu'il valait.
+
+#### La distinction qui manquait, et elle vaut bien au-delà d'ici
+
+> **Une valeur dont l'unique devoir est de *suivre* une autre se recopie.**
+> **Une valeur *copropriétaire* de deux parties se garde par une mesure.**
+
+`contrat` est de la première espèce : il suit `CONTRAT_DES_NOEUDS`, et l'écrire
+à la main est une faute. `schema` est de la seconde : il est le numéro de
+compatibilité du **fil**, tenu d'un commun accord par le script de publication
+et les deux liseuses. Il se monte délibérément, dans le même lot qu'une liseuse
+qui sait lire la nouveauté.
+
+Le défaut n'était donc pas qu'il soit écrit à la main. **C'est que personne ne
+le mesurait contre quoi que ce soit.** Le premier correctif a supprimé le
+littéral — et un littéral gardé vaut mieux qu'une recopie fausse.
+
+#### On garde sur le contenu, jamais sur l'attestation
+
+Le correctif refusait de publier quand `contrat` manquait. Il gardait une
+**déclaration**, et c'était faux deux fois : une déclaration absente se lisait
+comme un danger, une déclaration présente comme une garantie.
+
+Or ce qui met une liseuse en danger n'est pas ce que le pipeline *dit*, c'est ce
+que le corpus *contient*. La variante `Renvoi` existe déjà dans le schéma de
+`dev` **sans** le champ `contrat` : la garde sur l'attestation aurait laissé
+passer exactement le cas qu'elle prétendait couvrir.
+
+La garde regarde donc le corpus, et refuse tout type de nœud hors d'une liste
+figée **à côté** de `SCHEMA_DU_MANIFESTE` — les deux ne se déplacent que dans le
+même commit, avec la liseuse qui sait lire le type nouveau. Dix-sept types
+relevés le 11 septembre ; un `renvoi` planté est refusé quoi que déclare le
+manifeste.
+
+C'est plus long à écrire qu'un nombre recopié. C'est la seule mesure qui ne
+puisse pas mentir.
+
+#### Trois choses de forme, apprises au passage
+
+- **Ne rien trouver n'est pas trouver zéro.** Deux témoins positifs : la garde
+  refuse si elle ne lit aucun nœud, et si elle ne relève aucune liseuse. Sans
+  eux, un chemin renommé chez le pipeline ferait passer la garde en silence, et
+  son silence se lirait comme un accord.
+- **Retirer un littéral casse ceux qui le lisaient.** Une étape de CI relevait
+  le `"schema": 2` par `sed` pour le comparer à la liseuse en vente. En le
+  retirant, son relevé rendait une chaîne vide et elle **tuait le déploiement**
+  sur un désaccord qui n'avait pas eu lieu. Avant d'en retirer une, chercher qui
+  la lit.
+- **Une liseuse en avance n'est pas une panne.** C'est l'ordre voulu — le
+  lecteur d'abord, ce qu'il lit ensuite. La garde le dit et continue ; elle ne
+  refuse que devant une liseuse **en retard**, et le plafond qui compte est celui
+  de la version en vente, la seule qui soit dans des mains.
+
+#### Et un défaut bien vu ne garantit pas le correctif proposé
+
+La session du pipeline avait raison sur le mécanisme, et s'est trompée sur les
+nombres — puis est revenue le corriger d'elle-même. Elle avait annoncé
+`contrat = 4` quand `origin/device` en porte 3.
+
+Un correctif reçu d'une session voisine se mesure comme tout le reste, **y
+compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
+utile n'était pas dans les branches qu'on a comparées : elle était dans le
+commentaire du fichier qu'on cherchait à protéger.
+
 ## 18 septembre 2026 — le dépôt a ses chuqqot, et on répare depuis elles
 
 **Consigne de l'auteur**, portée aux sept sessions. Ses mots :
@@ -5200,6 +5405,38 @@ semaine, qui déclarait un numéro que le témoin ne lui donne pas.
 Ce qui est interdit, c'est de rustiner ==sans être remonté==. Un correctif qui
 n'est rattaché à aucun énoncé est ==une règle orpheline==, et le projet en a
 déjà payé plusieurs.
+
+### On ne le sait qu'après — et c'est ce qui rend la consigne difficile
+
+Relevé par la session Android le jour même, et il manquait :
+
+> ==On ne sait qu'un défaut est une manifestation qu'après être remonté.==
+> Avant, il a exactement l'air d'un accident local.
+
+**Son cas.** En mesurant ce que faisait sa feuille d'un **Shem** — pour pouvoir
+seulement la *décrire* à une session voisine —, elle a vu que ses titres étaient
+==fixes en points== alors que le corps suit le réglage du lecteur. Au curseur
+haut, ==un titre passait sous son propre texte==.
+
+Deux choses en sortent, et la seconde est la plus grave :
+
+- ==le défaut ne se voyait pas au réglage par défaut== — la seule position où
+  personne n'en a besoin ;
+- il frappait ==exactement qui monte le curseur==, c'est-à-dire l'auteur.
+
+**L'énoncé contredit n'était pas une règle d'interface.** C'était que ==l'app se
+lit avec le curseur monté== — un invariant d'accessibilité, pas de typographie.
+Le titre trop petit n'en était qu'une manifestation.
+
+**D'où la conséquence de méthode, qui corrige les deux gestes sans les annuler.**
+On ne peut pas trier les défauts en « accidents » et « manifestations » avant de
+remonter : ==le tri est le résultat du remontage, pas son critère d'entrée==.
+Elle n'aurait pas trouvé en cherchant un défaut de titre ; elle l'a trouvé en
+cherchant ==d'où venait une divergence==.
+
+Donc la règle s'applique ==à tout défaut==, y compris — et surtout — à ceux qui
+ont l'air anodins. ==Le remontage n'est pas une sévérité supplémentaire, c'est
+un autre geste.==
 
 ### Le même défaut ne se reconnaît pas quand il change d'échelle
 
@@ -5438,6 +5675,26 @@ qui vérifie la règle, non la première. La formulation juste est plus large :
 ==Et c'est la septième forme appliquée à sa propre correction== : le premier
 jet nommait un risque réel et manquait le principal, parce qu'il mesurait ce
 qui venait d'être nommé — `/tmp` — plutôt que ce que la situation engageait.
+
+**Et le versant positif, relevé le surlendemain sur le même terrain.** Cinq
+worktrees à démonter ; ==cinq relevés indépendants== demandés aux sessions.
+Trois se contredisaient — l'un donnait un commit déjà poussé, l'autre trois
+orphelins au lieu d'un, le troisième le compte exact.
+
+==C'est la divergence entre eux qui a sorti la trouvaille==, non le soin de
+celui qui menait l'opération : un commit détaché sur une branche que son propre
+auteur avait supprimée le matin même, sans voir qu'un worktree y pendait.
+
+> ==Un relevé à la fois aurait été vérifié une seule fois, par la même
+> personne.== C'est la raison de fond pour laquelle un lot se décide mieux
+> qu'une unité — non l'économie de gestes, mais ==le désaccord qu'il rend
+> possible==.
+
+**Et le contrôle qui tranche est le contenu, jamais l'ascendance.** Un
+==écrasement== laisse pour toujours des commits « non poussés » sur une branche
+dont le contenu est ==intégralement dans `main`==. Deux sessions ont failli
+donner une fausse alerte sur ce point exact ; la question juste est *ce que
+cette branche porte que la cible n'a pas*, et elle se pose fichier par fichier.
 
 ### Le motif de fond
 
