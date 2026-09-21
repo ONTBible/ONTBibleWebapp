@@ -264,14 +264,46 @@ mod tests {
     /// site il porte les titres de section en capitales espacées à 16 px,
     /// c'est-à-dire du texte courant. Ce n'est pas une dette d'ornement.
     ///
-    /// Elle n'est pas corrigée ici, et il faut dire pourquoi : ces valeurs
+    /// Elle n'a pas été corrigée ici, et il faut dire pourquoi : ces valeurs
     /// sont celles de l'app, la corriger d'un côté ferait exactement la
-    /// divergence que le portage existe pour empêcher. Elle est **relevée**,
-    /// signalée à la session iOS, et tenue par le cliquet ci-dessous.
+    /// divergence que le portage existe pour empêcher. Elle a été **relevée**,
+    /// puis portée à la session iOS.
     ///
-    /// Le cliquet serre dans les deux sens, comme celui du surlignage : une
-    /// valeur qui s'améliore fait échouer le test aussi, pour que la dette
-    /// inscrite descende avec le défaut.
+    /// ## L'or a été soumis à l'auteur, et il l'a gardé
+    ///
+    /// **Le 21 septembre 2026**, la session iOS a construit trois versions
+    /// réelles de l'app — même chapitre, même passage, une seule valeur
+    /// changée — et les a mises sous son œil :
+    ///
+    /// ```text
+    /// #A6874F   3,11:1   aujourd'hui
+    /// #866D40   4,50:1   AA, à teinte et saturation constantes
+    /// #6A5733   6,40:1   le plancher de ce site
+    /// ```
+    ///
+    /// Il a gardé le premier. « On garde ce qu'il y a aujourd'hui mais
+    /// note-le dans un coin si jamais je veux y revenir un jour. »
+    ///
+    /// C'est **son** œil qui tranche : c'est lui qui lit, et son kératocône
+    /// est la raison pour laquelle la question a été posée au lieu d'être
+    /// corrigée d'office. Le relevé est dans `ONTBibleApp` PR #327, avec les
+    /// quatre emplois texte et la consigne de ne pas « réparer » la valeur en
+    /// la trouvant basse.
+    ///
+    /// **Ces deux lignes-là sortent donc de la dette.** Une garde qui rougit
+    /// tous les jours sur une valeur assumée est une garde qu'on apprend à
+    /// ignorer — et le jour où elle rougira pour autre chose, personne ne la
+    /// lira. Elles restent **mesurées** et tenues par le cliquet ; elles ne
+    /// sont simplement plus présentées comme quelque chose à payer.
+    ///
+    /// Les trois autres lignes n'ont pas été soumises et restent dues.
+    /// `inkSoft` est la plus sournoise : c'est la glose, donc le texte qu'on
+    /// lit **quand on ne comprend pas**. Elle passe AA à 4,62 et rate le
+    /// plancher d'ici.
+    ///
+    /// Le cliquet serre dans les deux sens, dans les deux cas : une valeur qui
+    /// s'améliore fait échouer le test aussi, pour que la table descende avec
+    /// le défaut — ou que l'on sache que l'auteur a changé d'avis.
     #[test]
     fn aucune_couleur_de_texte_ne_descend_sous_le_plancher_de_la_rampe() {
         const PLANCHER: f64 = 6.4;
@@ -279,14 +311,24 @@ mod tests {
         /// Ce qu'on tolère d'écart avant de demander la mise à jour de la table.
         const JEU: f64 = 0.05;
 
-        /// Les manques des palettes portées de l'app — thème, rôle, fond,
-        /// contraste mesuré. Des dettes relevées, pas des cibles.
-        const DETTES: [(&str, &str, &str, f64); 8] = [
+        /// Ce que l'auteur a **regardé et gardé** — thème, rôle, fond, mesure.
+        ///
+        /// Pas des dettes : des décisions. Trois versions réelles de l'app
+        /// sous son œil le 21 septembre 2026, et il a gardé celle-ci.
+        const ASSUME: [(&str, &str, &str, f64); 4] = [
             ("parchemin", "accent", "background", 3.12),
             ("parchemin", "accent", "surface", 3.31),
-            ("parchemin", "inkSoft", "background", 4.62),
             ("clair", "accent", "background", 3.39),
             ("clair", "accent", "surface", 3.39),
+        ];
+
+        /// Ce qui n'a pas été soumis, et reste dû.
+        ///
+        /// Des manques relevés, pas des cibles — mais on ne les efface pas en
+        /// les inscrivant : ils attendent la même méthode que l'or, c'est-à-
+        /// dire l'œil de l'auteur sur un rendu réel.
+        const DETTES: [(&str, &str, &str, f64); 4] = [
+            ("parchemin", "inkSoft", "background", 4.62),
             ("clair", "inkSoft", "background", 4.61),
             ("sombre", "accentuation", "background", 6.16),
             ("sombre", "shem", "background", 6.14),
@@ -313,18 +355,22 @@ mod tests {
                     [("background", PLANCHER), ("surface", PLANCHER_SUR_SURFACE)]
                 {
                     let mesure = contraste(teinte, palette[fond]);
-                    match DETTES
+                    let inscrite = ASSUME
                         .iter()
-                        .find(|(t, r, f, _)| *t == theme && *r == nom && *f == fond)
-                    {
-                        // Une dette connue : elle ne doit ni empirer, ni
-                        // s'améliorer sans que la table le dise.
-                        Some((_, _, _, dette)) => {
+                        .map(|ligne| ("assumée", ligne))
+                        .chain(DETTES.iter().map(|ligne| ("dette", ligne)))
+                        .find(|(_, (t, r, f, _))| *t == theme && *r == nom && *f == fond);
+
+                    match inscrite {
+                        // Inscrite, dans l'une ou l'autre table : elle ne doit
+                        // ni empirer, ni s'améliorer sans qu'on le sache.
+                        Some((nature, (_, _, _, valeur))) => {
                             vues.push((theme, nom, fond));
-                            if (mesure - dette).abs() > JEU {
+                            if (mesure - valeur).abs() > JEU {
                                 fautes.push(format!(
                                     "  {theme}/{nom} sur {fond} : {mesure:.2}:1, \
-                                     la table en inscrit {dette:.2} — mettre la table à jour"
+                                     la table ({nature}) en inscrit {valeur:.2} — \
+                                     mettre la table à jour"
                                 ));
                             }
                         }
@@ -340,10 +386,10 @@ mod tests {
         // Une dette qui ne se rencontre plus est une dette payée — ou un rôle
         // renommé. Dans les deux cas la table ment, et le silence d'une ligne
         // morte est exactement ce qu'un cliquet ne doit pas permettre.
-        for (theme, nom, fond, _) in DETTES {
+        for (theme, nom, fond, _) in ASSUME.into_iter().chain(DETTES) {
             assert!(
                 vues.contains(&(theme, nom, fond)),
-                "la dette {theme}/{nom} sur {fond} ne correspond à rien de mesuré"
+                "la ligne {theme}/{nom} sur {fond} ne correspond à rien de mesuré"
             );
         }
 
