@@ -185,11 +185,28 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                 <a
                                     href=destination.chemin
                                     aria-current=move || actif.get().then_some("page")
+                                    // **La capsule choisie est en accent, pas
+                                    // en aubergine.**
+                                    //
+                                    // Le premier jet la peignait `bg-aubergine`
+                                    // — la marque, qui ne suit aucun thème par
+                                    // construction. Sur une nuit elle se lisait ;
+                                    // sur du parchemin, une capsule aubergine
+                                    // sous un libellé doré **disparaissait**.
+                                    //
+                                    // C'est le défaut du massif sur l'accueil,
+                                    // un étage plus bas : une couleur de marque
+                                    // posée sur un fond qui, lui, change. Ici on
+                                    // n'a pas le choix de borner — la barre est
+                                    // *dans* la liseuse. Elle prend donc l'accent
+                                    // du thème, qui change avec lui.
                                     class="flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm uppercase tracking-capitales no-underline transition-colors"
-                                    class=("bg-aubergine/50", move || actif.get())
+                                    class=("bg-accent/15", move || actif.get())
+                                    class=("ring-1", move || actif.get())
+                                    class=("ring-accent/30", move || actif.get())
                                     class=("text-accent", move || actif.get())
                                     class=("text-encre-douce", move || !actif.get())
-                                    class=("hover:bg-aubergine/25", move || !actif.get())
+                                    class=("hover:bg-accent/8", move || !actif.get())
                                     class=("hover:text-encre", move || !actif.get())
                                 >
                                     <Signe nom=destination.signe />
