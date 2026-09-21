@@ -2966,6 +2966,65 @@ sortis identiques à l'octet près.** Sans cette comparaison on serait allé
 chercher la panne dans le signal, dans l'hydratation ou dans l'attribut — trois
 endroits où il n'y avait rien.
 
+### Le thème ne vaut que dans la liseuse
+
+**Arbitré par l'auteur le 21 septembre 2026, devant trois rendus de l'accueil.**
+La liseuse encaisse les quatre peaux ; l'ouverture, non.
+
+La cause est dans la rampe. `--color-aubergine` est **la marque**, donc elle ne
+suit aucun thème — une enseigne ne change pas de couleur parce que le lecteur a
+baissé la lumière. Le massif, la voûte et le portail sont dessinés avec elle.
+Sur les deux peaux sombres ils tiennent ; posés sur du parchemin, le massif
+devient une forme violette sur de la crème, et « C'est un Temple », qui est en
+or, disparaît dans son fond.
+
+Les deux autres voies ont été écartées devant lui :
+
+- **redessiner l'ouverture par thème** ferait de la nuit d'aubergine — trouvée
+  en trois essais, §5 — un thème parmi quatre ;
+- **n'offrir que les deux peaux sombres** laisserait le lecteur qui lit sur
+  parchemin ne pas le retrouver, c'est-à-dire l'écart que ce chantier ferme.
+
+**La recherche n'en est pas**, bien qu'elle rende du corpus : elle porte une
+ouverture, avec le même massif, et un bouton « Chercher » en or qui disparaît
+sur du clair. La règle n'est donc pas « les pages qui montrent du corpus » mais
+« les pages du lecteur » — et celles-là ont un fil d'Ariane, pas une ouverture.
+
+Le départage se lit d'ailleurs dans le code sans aucune table : **les cinq pages
+de la liseuse sont exactement celles qui emploient `PageDeLecture`.**
+
+#### La peau suit la vue, et non l'URL
+
+La première version consultait `use_location().pathname` et comparait à une
+table de préfixes. **Elle a été prise en défaut avant d'être livrée**, par un
+banc qui charge le site dans un cadre de même origine et clique un lien à sa
+place — le seul moyen d'agir sur la page sans main sur l'écran :
+
+```
+ 6 s  url=/fr  peau=—      titre=Le cosmos hébreu n'est
+14 s  url=/fr  peau=—      titre=Le cosmos hébreu n'est   ← clic sur « Lire »
+16 s  url=/fr  peau=clair  titre=Le cosmos hébreu n'est
+20 s  url=/fr  peau=clair  titre=Le cosmos hébreu n'est
+```
+
+L'accueil porte la peau de la liseuse, et il la garde — exactement le rendu qui
+venait d'être écarté.
+
+`PeauDeLaLiseuse` est donc **montée par `PageDeLecture`** : elle pose l'attribut
+en arrivant, le retire en partant. Un montage suit la vue par construction,
+donc l'attribut ne peut plus exister sans que la page de lecture soit à l'écran.
+
+**Et il ne faut pas faire dire au banc plus qu'il ne dit.** La cause exacte du
+défaut n'est pas établie : sur la version corrigée, il n'obtient plus aucune
+navigation du tout, ni vers la liseuse ni vers une page d'édition, sur vingt
+secondes de relevé. Un clic synthétique dans un cadre ne pilote pas ce routeur ;
+il permet seulement d'observer.
+
+Ce qui est établi suffit, et tient en deux lignes : l'accueil **a été vu**
+portant `clair` ; il ne peut plus l'être. La seconde propriété ne dépend
+d'aucune hypothèse sur le routeur — elle est vraie par construction, pas par
+mesure, et c'est pour ça qu'on la préfère.
+
 ### La peau se pose avant le premier rendu
 
 Le thème vit dans `localStorage`, que le serveur ne voit pas : il rend toujours

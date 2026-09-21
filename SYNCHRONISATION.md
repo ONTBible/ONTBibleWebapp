@@ -6199,3 +6199,32 @@ Le défaut s'est vu exactement comme le §8 sexies du site l'annonce : **quatre
 aperçus sortis identiques à l'octet près**. Sans cette comparaison, on serait
 allé chercher la panne dans le signal, l'hydratation ou l'attribut — trois
 endroits où il n'y avait rien.
+
+### Et une leçon de vérification, qui vaut pour les trois dépôts
+
+Le thème a été borné à la liseuse, et la première version le bornait **par
+l'URL**. Elle a été prise en défaut avant d'être livrée, par un banc qui charge
+le site dans un cadre de même origine et clique un lien à sa place :
+
+```
+14 s  url=/fr  peau=—      titre=Le cosmos hébreu   ← clic vers la liseuse
+16 s  url=/fr  peau=clair  titre=Le cosmos hébreu
+```
+
+La page d'accueil portait la peau de la liseuse — le rendu qui venait d'être
+écarté. La peau se pose maintenant par **montage** d'un composant que seule la
+page de lecture monte : elle suit la vue par construction.
+
+> ==Une condition qui dépend d'un état *en cours de changement* — une URL
+> pendant une navigation, une pile pendant une transition — est fausse pendant
+> l'intervalle. Faire dépendre l'affichage du **montage** plutôt que de l'état
+> supprime l'intervalle au lieu de le raccourcir.==
+
+Et la seconde moitié compte autant : **on n'a pas fait dire au banc plus qu'il
+ne dit.** La cause exacte n'est pas établie — sur la version corrigée, le banc
+n'obtient plus aucune navigation, ni vers la liseuse ni ailleurs. Un clic
+synthétique dans un cadre ne pilote pas ce routeur ; il observe.
+
+Ce qui est établi suffisait : le défaut a été **vu**, il ne peut plus survenir.
+La seconde propriété ne dépend d'aucune hypothèse sur l'outil qui a trouvé la
+première — c'est ce qui la rend préférable à une explication plausible.
