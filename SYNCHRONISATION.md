@@ -6228,3 +6228,73 @@ synthétique dans un cadre ne pilote pas ce routeur ; il observe.
 Ce qui est établi suffisait : le défaut a été **vu**, il ne peut plus survenir.
 La seconde propriété ne dépend d'aucune hypothèse sur l'outil qui a trouvé la
 première — c'est ce qui la rend préférable à une explication plausible.
+
+## 21 septembre 2026, le soir — la webapp, et ce qu'un portage rapporte
+
+L'auteur a demandé que la webapp soit identique en tout point à l'app. Le
+portage est fait : couleurs, thèmes, typographie, fontes, navigation, icône,
+métriques. Ce qui suit ne retient que ce qui vaut pour les trois dépôts.
+
+### Un portage ne tient pas seulement d'accord, il rapporte
+
+Le site portait les cinq pastels **de jour** de l'app, posés sur sa nuit
+d'aubergine. Sa garde inscrivait la dette depuis des semaines, avec son propre
+diagnostic : « ce sont les six couleurs à la fois — soit l'opacité, soit un
+marquage qui s'ajusterait au fond réel. Un chantier, pas un correctif. »
+
+Le chantier était fait chez le voisin. Les trois marquages les plus faibles
+passent de 2,29:1 à 4,43:1 — d'illisible à au-dessus d'AA — sans qu'une seule
+décision ait été prise ici.
+
+> ==Personne d'un côté n'a cherché ce gain, personne de l'autre ne savait qu'il
+> manquait. Un an de divergence, et chacun aurait réparé son côté — deux fois
+> le même travail, avec deux résultats différents.==
+
+### Le site a un réglage là où l'app en a deux, et c'est arrivé deux fois
+
+D'abord sur les largeurs — `readingWidth 700` borne la prose, `pageWidth 850`
+borne une page, et macOS l'a dit : *la leçon n'est ni l'une ni l'autre valeur,
+c'est qu'il en faut deux.*
+
+Puis sur les échelles. L'app règle l'interface et le corps du texte
+**séparément**, et son code dit pourquoi : *un lecteur atteint de kératocône
+monte le corps du texte très haut pour lire, et n'a aucune raison de faire
+enfler du même geste une barre latérale qui lui mangerait la place où ce texte
+s'affiche.*
+
+> ==Quand un voisin a deux réglages là où l'on en a un, la question n'est pas
+> « lequel reprendre » mais « qu'est-ce qu'il distingue que je confonds ».==
+
+### Une valeur n'est portable que si l'on sait ce qu'elle compense
+
+La session iOS a séparé, dans une même liste de six nombres, celui qui ne
+devait pas voyager : `hebrewScale = 1,08` n'est pas un rapport de hiérarchie,
+c'est une compensation de fonte — EzraSIL a un œil plus petit que Literata à
+taille égale. Sans EzraSIL servie, le 1,08 serait faux.
+
+Il se trouve que le site la sert, donc la compensation voyage. Mais la réserve
+était juste, et elle aurait coûté si elle n'avait pas été posée.
+
+### Mesurer contre la spécification n'est pas mesurer à l'exécution
+
+Deux sessions ont vérifié les multiplicateurs du Dynamic Type, et aucune ne les
+a mesurés sur un appareil : elles ont confirmé qu'ils **reproduisent la table
+publiée**. Ce sont deux affirmations différentes, et le dire coûte une ligne.
+
+> ==« J'ai vérifié » ne dit pas *contre quoi*. Une vérification qui ne nomme
+> pas sa référence se lit comme une mesure.==
+
+### Une propriété personnalisée ne se lit que vers le bas
+
+Deux fois dans la journée, sur deux dépôts de problème différents :
+
+- `[data-fonte='x'] .liseuse` est une **descendance** — vrai sur la racine,
+  faux sur une ligne de menu qui porte les deux sur le même élément. Six lignes
+  composaient juste, la septième non ;
+- une hauteur déclarée **sur** la barre d'onglets était invisible au bouton
+  flottant, qui en est le **frère**.
+
+> ==Une variable CSS descend, elle ne traverse pas. Et le jeton honnête est
+> celui auquel l'élément se conforme, pas celui qui décrit l'élément d'à
+> côté.== Un nombre qui décrit la géométrie d'un autre élément est toujours
+> faux quelque part — c'est la leçon de `--hauteur-entete`, reprise du bon côté.

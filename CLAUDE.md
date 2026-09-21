@@ -3199,17 +3199,142 @@ iOS, et tenue par un cliquet à double sens — une valeur qui s'améliore fait
   n'est ni l'une ni l'autre valeur : c'est qu'il en faut deux.** Le site n'en a
   qu'une, et c'est là qu'il faut commencer.
 
+### La seconde échelle — le corps du texte
+
+**L'app en porte deux, et son code dit pourquoi en nommant l'auteur :**
+
+> Un lecteur atteint de kératocône monte le corps du texte très haut pour lire,
+> et n'a aucune raison de faire enfler du même geste une barre latérale qui lui
+> mangerait la place où ce texte s'affiche.
+
+| | l'app | le site |
+|---|---|---|
+| l'interface | ⌘+ / ⌘−, sept crans de 0,85 à 1,50 | le zoom du navigateur |
+| le corps du texte | un curseur, **11 à 28**, défaut 19 | `--lecture` |
+
+Le site n'avait que la première — et par chance elle était déjà juste : la
+feuille est tout entière en `rem`, donc la taille de police par défaut du
+navigateur et son zoom commandent déjà, ce qui est le rôle que `@ScaledMetric`
+tient là-bas.
+
+**C'est la même leçon que `readingWidth 700` contre `pageWidth 850`, et elle est
+arrivée deux fois le même jour : le site a un réglage là où l'app en a deux.**
+
+`--lecture` vaut `corps / 19`. Au défaut il vaut 1, donc `calc(x * 1)` rend `x`
+— mesuré : l'aperçu du cran par défaut est **identique à l'octet** à celui
+d'avant le portage. Une taille absolue aurait demandé de choisir laquelle, et le
+site en a deux : la prose à 21 px, le corpus à `--text-lg`.
+
+Il n'est lu que par `.liseuse`. Ni la navigation, ni le fil d'Ariane, ni le
+panneau lui-même ne bougent — **c'est la moitié du sujet, et c'est la moitié
+qu'on oublie.**
+
+#### L'amplitude réelle est un facteur 9,6, pas un réglage de confort
+
+Relevée par la session iOS, vérifiée ici contre la table publiée d'Apple pour
+`.body` : le curseur et le Dynamic Type se **multiplient**.
+
+```
+le plus petit   11 × 0,82  =   9,1 pt
+le défaut       19 × 1,00  =  19,0 pt
+le plus grand   28 × 3,12  =  87,3 pt
+```
+
+Ce qu'il faut en retenir n'est pas les bornes mais le rapport : **à 87 pt, une
+mise en page à deux colonnes n'existe plus**, et la comparaison de l'accueil est
+la pièce qui porte tout le site. Une épreuve de typographie se fait donc aux
+**deux bouts**, jamais au milieu.
+
+### Les sept fontes de lecture
+
+Le site n'en offrait aucune, et ce §défendait la décision. Elle était plus
+fragile qu'elle n'en avait l'air : **une fonte n'est pas un goût quand on lit
+mal.** L'œil qui bute sur une romane à fort contraste ne bute pas sur une
+linéale, et c'est mesurable sur la vitesse de lecture, pas sur l'opinion.
+
+Six familles embarquées — Literata, EB Garamond, Spectral, Source Serif 4,
+Newsreader, Jost — **en trois coupes chacune**, plus Georgia que le système
+fournit. Les trois coupes comptent : l'app note qu'« une famille amputée de son
+italique se résout quand même, en pente simulée », et chez nous la
+translittération du niveau 3 **est** en italique.
+
+Chaque ligne du menu se compose dans la fonte qu'elle propose — une ligne qui
+dit « Spectral » en Literata ne dit rien. Le piège : `[data-fonte='x'] .liseuse`
+est une **descendance**, et une ligne de menu porte les deux sur le *même*
+élément. Six lignes composaient juste, la septième non.
+
+### La navigation de la liseuse
+
+Le site portait la navigation d'une **édition**. La liseuse porte maintenant
+celle de l'app : barre latérale au-delà de `lg`, barre d'onglets en bas en
+dessous.
+
+**La règle est venue d'une réserve de la session macOS, pas de son accord :**
+
+> Ma barre est toujours là, et c'est cette constance qui la rend invisible. Une
+> barre qui apparaît et disparaît selon la section devient au contraire une
+> chose qu'on **surveille**.
+
+D'où : *le passage est un acte du lecteur, pas une conséquence de l'URL* — et le
+site a déjà cet acte, c'est le portail de l'accueil.
+
+**Trois destinations, deux absences assumées.** Qahal et Chuqqot ne sont pas de
+la chrome à porter, ce sont des fonctionnalités à écrire ; les poser en onglets
+vides ferait ce que ce dépôt s'interdit depuis le badge App Store. « Reprendre »
+attend la position de lecture (§8 nonies).
+
+Le compte est **épinglé en bas** de la barre latérale : *ce n'est pas une
+destination parmi les livres, c'est qui regarde.*
+
+Le bouton « aA » se posait dessus. Le premier calage déclarait la hauteur **sur
+la barre** — et une propriété personnalisée n'est visible que de ses
+descendants, or le bouton est un frère. Le jeton est sur `:root`, et c'est la
+barre qui s'y conforme : le nombre ne décrit plus la géométrie d'un autre
+élément, il *est* la géométrie.
+
+### Les surlignages — une dette payée sans qu'on la répare
+
+Le site portait les cinq pastels **de jour** de l'app, posés sur une nuit
+d'aubergine. Sa garde inscrivait la dette avec son propre diagnostic — « ce sont
+les six couleurs à la fois : soit l'opacité, soit un marquage qui s'ajusterait
+au fond réel. Un chantier, pas un correctif ».
+
+**Le chantier était fait ailleurs.** L'app a rendu `highlight` fonction du
+thème, avec une palette de nuit à teinte et saturation conservées.
+
+| | avant | après |
+|---|---|---|
+| `ink` | 4,01 | **7,77** |
+| `inkStrong` | 5,38 | **10,42** |
+| `inkSoft` | 2,29 | **4,43** |
+| `accentuation` | 2,30 | **4,46** |
+| `accent` | 3,67 | **7,10** |
+| `shem` | 2,29 | **4,44** |
+
+> ==C'est le meilleur argument qu'on ait pour ce portage : il ne tient pas
+> seulement les deux dépôts d'accord, il **rapporte les corrections du
+> voisin**.== Personne ici n'a cherché ce gain, personne là-bas ne savait que le
+> site en avait besoin.
+
+### L'icône et les rayons
+
+Le fond de `ONT.icon` est `display-p3:0.23945, 0.11440, 0.14897` — converti en
+sRGB, **exactement `#421B26`**. Les deux dépôts y étaient d'accord sans le
+savoir. La composition, non : la montagne occupe 66,7 % du côté chez elle contre
+72 ici, et elle est **remontée de 3,66 %** — une montagne centrée
+géométriquement paraît basse, sa masse étant en bas.
+
+Les quatre rayons d'`ONTRadius` sont des jetons. Celui de la feuille valait
+l'épreuve : *« à 22, la carte du Mac se lisait comme une boîte de dialogue, pas
+comme une feuille »* — et le panneau « aA » du site était à 22.
+
 ### Ce qui reste de la webapp
 
-- la **typographie** — `ONTTypography.swift`, six styles, six familles
-  embarquées dans `app/Resources/Fonts/` ;
-- les **métriques** — `ONTMetrics.swift` : pilule 999, surlignage 6, bloc 18,
-  carte 22, feuille 34 ;
-- les **composants** et la **navigation** — `RootView.swift`, les onglets
-  Qahal / Bible / Lexique / Chuqqot / Vous ;
-- l'**icône** — `app/ONT.icon`, un paquet Icon Composer ;
-- les **cinq couleurs de surlignage**, qui ne sont pas dans les vingt rôles et
-  restent littérales dans `main.css`.
+- **Qahal** et **Chuqqot** — deux onglets de l'app dont le site n'a aucune page.
+  Ce sont des fonctionnalités, pas de la chrome ;
+- **Reprendre** — la position de lecture, que le backend porte déjà (§8 nonies) ;
+- l'**action Image** de l'app, qui rend un carré de 1080 px ;
+- les **composants** restants — segments, rail de lettres, survol des termes.
 
 ## 9. Ce qui reste à trancher
 
