@@ -131,25 +131,48 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 /// erreur ne le dise.
 #[component]
 fn PeauAvantLePremierRendu() -> impl IntoView {
-    use crate::domaine::lecture::Theme;
+    view! { <script inner_html=script_de_la_peau()></script> }
+}
+
+/// Le script lui-même, séparé du composant pour qu'une épreuve puisse le lire.
+///
+/// Les deux tables qu'il porte — les quatre thèmes, les trois préfixes de la
+/// liseuse — sont **engendrées** depuis `Theme::TOUS` et `LA_LISEUSE`. Une
+/// entrée ajoutée d'un côté ne peut pas manquer de l'autre.
+///
+/// Ce qui *peut* diverger est la **façon de comparer** : la condition de chemin
+/// est écrite deux fois, ici en JavaScript et dans `c_est_la_liseuse` en Rust,
+/// faute de pouvoir appeler la seconde depuis l'en-tête d'une page. C'est la
+/// seule duplication de tout ce mécanisme, et `le_script_reprend_les_trois_
+/// clauses_de_la_regle` en garde la forme.
+fn script_de_la_peau() -> String {
+    use crate::domaine::lecture::{Theme, LA_LISEUSE};
 
     let connus = Theme::TOUS
         .iter()
         .map(|theme| format!("'{}'", theme.attribut()))
         .collect::<Vec<_>>()
         .join(",");
+    let liseuse = LA_LISEUSE
+        .iter()
+        .map(|prefixe| format!("'{prefixe}'"))
+        .collect::<Vec<_>>()
+        .join(",");
 
     // `try` sur tout : `localStorage` **lève** quand le site est bloqué —
     // navigation privée stricte, cookies refusés — et une exception ici
     // arrêterait l'analyse de l'en-tête. La page partirait sans sa feuille.
-    let script = format!(
-        "try{{var c=[{connus}],         t=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}').theme;         if(c.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);         }}catch(e){{}}"
-    );
-
-    view! { <script inner_html=script></script> }
+    format!(
+        "try{{var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
+         for(var i=0;i<L.length;i++)if(p===L[i]||p.indexOf(L[i]+'/')===0)d=1;\
+         if(d){{var c=[{connus}],\
+         t=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}').theme;\
+         if(c.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);}}\
+         }}catch(e){{}}"
+    )
 }
 
-/// Ce qu'un moteur de recherche comprend du site sans le lire.
+/// Ce qu'un moteur de recherche comprend du site sans le lire./// Ce qu'un moteur de recherche comprend du site sans le lire.
 ///
 /// `Book` et non `WebSite` : l'objet de ce domaine est une traduction, pas une
 /// entreprise. C'est ce qui permet à un moteur de la relier à son auteur et à
@@ -172,11 +195,12 @@ fn FicheStructuree() -> impl IntoView {
 pub fn App() -> impl IntoView {
     provide_meta_context();
 
-    // **Pour tout le site, et pas pour la seule liseuse.** L'auteur a demandé
-    // le 21 septembre 2026 une webapp identique à l'app, thème compris : la
-    // peau vaut donc sur l'accueil et les pages légales autant que sur un
-    // chapitre. Les quatre pages de corpus continuent de l'appeler ; la
-    // fonction est idempotente et leur rend ce signal-ci.
+    // **Ici et pas dans les pages**, bien que la peau ne vaille que sur la
+    // liseuse : c'est `PeauDeLaLiseuse` — montée par `PageDeLecture` — qui la
+    // borne, et elle a besoin que le signal existe déjà quand elle se monte.
+    //
+    // Les pages de corpus continuent de l'appeler pour leurs propres niveaux de
+    // texte ; la fonction est idempotente et leur rend ce signal-ci.
     crate::interface::design::fournir_preferences();
 
     view! {
@@ -324,5 +348,95 @@ fn Introuvable() -> impl IntoView {
             </p>
             <Bouton href="/fr" principal=true>"Revenir à l'accueil"</Bouton>
         </Hero>
+    }
+}
+
+#[cfg(test)]
+mod epreuves_de_la_peau {
+    use super::script_de_la_peau;
+    use crate::domaine::lecture::{c_est_la_liseuse, Theme, LA_LISEUSE};
+
+    /// ## Le script porte les deux tables, et rien de plus
+    ///
+    /// Il les engendre, donc elles ne peuvent pas manquer. Ce que l'épreuve
+    /// attrape est l'inverse : un thème ou un préfixe **retiré** des tables
+    /// alors que le script continuerait de le nommer — ce qui arriverait si
+    /// quelqu'un figeait la chaîne un jour où le `format!` gênerait.
+    #[test]
+    fn le_script_porte_exactement_les_deux_tables() {
+        let script = script_de_la_peau();
+        for theme in Theme::TOUS {
+            assert!(
+                script.contains(&format!("'{}'", theme.attribut())),
+                "le script ignore le thème {}",
+                theme.attribut()
+            );
+        }
+        for prefixe in LA_LISEUSE {
+            assert!(
+                script.contains(&format!("'{prefixe}'")),
+                "le script ignore le préfixe {prefixe}"
+            );
+        }
+        // Et rien qui ressemble à un chemin sans être dans la table.
+        let chemins: Vec<&str> = script
+            .split('\'')
+            .filter(|morceau| morceau.starts_with("/fr"))
+            .collect();
+        assert_eq!(chemins, LA_LISEUSE, "le script nomme un chemin hors table");
+    }
+
+    /// ## Les trois clauses de la règle sont dans le script
+    ///
+    /// **Ce que cette épreuve prouve, et ce qu'elle ne prouve pas.**
+    ///
+    /// `c_est_la_liseuse` fait trois choses : elle ignore la barre finale, elle
+    /// accepte le chemin exact, elle accepte le préfixe suivi d'une barre. Le
+    /// script doit faire les trois, et l'épreuve vérifie que les trois **formes
+    /// y sont écrites**.
+    ///
+    /// Elle ne les exécute pas : il n'y a pas de moteur JavaScript ici. C'est
+    /// donc une garde de forme, pas de comportement — elle attrape une clause
+    /// *supprimée*, pas une clause *fausse*. On la garde parce qu'une clause
+    /// supprimée est le mode d'échec réel : on simplifie le script un jour
+    /// où il gêne, et `/fr/lire/` cesse silencieusement d'être la liseuse.
+    ///
+    /// Le comportement, lui, est éprouvé du côté Rust — et les cas de
+    /// `epreuves_de_la_liseuse` sont ceux que le script doit reproduire.
+    ///
+    /// **L'équivalence a été mesurée le 21 septembre 2026**, et la méthode se
+    /// rejoue en trois lignes : extraire le script de la page servie, le passer
+    /// à `node`, et lui soumettre les cas des épreuves du domaine. Le
+    /// JavaScript décide comme `c_est_la_liseuse`.
+    ///
+    /// Ce n'est pas en CI, et c'est un choix : le coureur devrait lever le
+    /// serveur *et* avoir `node`, pour garder une clause de dix caractères.
+    /// La mesure est notée ici pour qu'on sache qu'elle a eu lieu et comment
+    /// la refaire — une équivalence affirmée sans avoir été mesurée une seule
+    /// fois n'est qu'une intention.
+    #[test]
+    fn le_script_reprend_les_trois_clauses_de_la_regle() {
+        let script = script_de_la_peau();
+        for (clause, ce_qu_elle_fait) in [
+            (r"replace(/\/+$/,'')", "ignorer la barre finale"),
+            ("p===L[i]", "accepter le chemin exact"),
+            (
+                "p.indexOf(L[i]+'/')===0",
+                "accepter le préfixe suivi d'une barre",
+            ),
+        ] {
+            assert!(
+                script.contains(clause),
+                "le script ne sait plus {ce_qu_elle_fait} — `{clause}` a disparu, \
+                 alors que `c_est_la_liseuse` le fait toujours"
+            );
+        }
+    }
+
+    /// Le témoin de la règle elle-même, depuis le côté qui l'emploie.
+    #[test]
+    fn la_regle_borne_bien_la_liseuse() {
+        assert!(c_est_la_liseuse("/fr/lire/bereshit/bereshit-1"));
+        assert!(!c_est_la_liseuse("/fr"));
     }
 }

@@ -82,7 +82,9 @@ pub use pied::PiedDePage;
 pub use porte::{traverser, Porte};
 pub use portrait::Portrait;
 pub use principe::Principe;
-pub use reglages_de_lecture::{fournir_preferences, preferences, ReglagesDeLecture};
+pub use reglages_de_lecture::{
+    fournir_preferences, preferences, PeauDeLaLiseuse, ReglagesDeLecture,
+};
 pub use selection_de_versets::{
     basculer, couleur_du_verset, fournir_marques, fournir_selection, marques, renvoi, selection,
     BarreDeSelection, Marques, Selection,

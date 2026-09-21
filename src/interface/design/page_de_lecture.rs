@@ -48,6 +48,15 @@ pub fn PageDeLecture(
     children: Children,
 ) -> impl IntoView {
     view! {
+        // **La peau du lecteur est montée ici**, et c'est ce qui la borne à la
+        // liseuse : ce composant est la page de corpus, les cinq qui en
+        // portent l'emploient, et aucune page d'édition ne l'emploie. La règle
+        // est donc structurelle, pas une table de chemins à tenir d'accord
+        // avec les routes — et elle suit la vue, puisqu'un montage suit la vue.
+        //
+        // La recherche la monte séparément : elle rend du corpus sans passer
+        // par ce cadre-ci.
+        <crate::interface::design::PeauDeLaLiseuse />
         <Entete />
         <Bloc>
             {(!fil.is_empty())

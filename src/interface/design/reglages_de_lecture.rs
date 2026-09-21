@@ -54,61 +54,13 @@ pub fn fournir_preferences() -> RwSignal<Preferences> {
 
         Effect::new(move |_| ecrire(preferences.get()));
 
-        // La peau suit le signal, et **le premier tour ne peint rien** :
-        // `appliquer_la_peau` a déjà posé l'attribut dans l'en-tête, avant que
-        // la page n'existe. Cet effet sert les changements *suivants* — celui
-        // du lecteur qui touche le menu.
-        Effect::new(move |_| peindre(preferences.get().theme));
+        // La peau ne se pose **pas** ici. Elle dépend du chemin autant que du
+        // signal — l'auteur l'a bornée à la liseuse le 21 septembre — et le
+        // chemin n'est lisible que sous `<Router>`, où cette fonction n'est pas
+        // encore. C'est `app::PeauDuLecteur` qui s'en charge.
     }
 
     preferences
-}
-
-/// Pose la peau sur `<html>`, et accorde la barre du navigateur.
-///
-/// ## Deux endroits, une seule valeur
-///
-/// L'attribut est écrit **deux fois** : une fois par le script de l'en-tête,
-/// avant le premier rendu, et une fois ici à chaque changement. Ce n'est pas
-/// une redondance qu'on pourrait retirer — le script ne peut pas écouter un
-/// signal qui n'existe pas encore, et un effet ne peut pas s'exécuter avant la
-/// page. Les deux écrivent la même chaîne, celle de `Theme::attribut`.
-///
-/// ## `theme-color` se lit, il ne se transcrit pas
-///
-/// La barre du navigateur sur téléphone prend la couleur de cette balise. La
-/// valeur juste est le fond du thème courant — qui vit dans `jetons.css`, donc
-/// chez l'app. La recopier ici en ferait la seule couleur du site hors de la
-/// chaîne de portage, et elle se périmerait à la première retouche.
-///
-/// On la **demande au navigateur** : l'attribut vient d'être posé, la feuille
-/// est chargée, `getComputedStyle` rend le `--ont-background` du thème en
-/// vigueur. Une seule source, et rien à tenir d'accord.
-#[cfg(feature = "hydrate")]
-fn peindre(theme: Theme) {
-    let Some(document) = web_sys::window().and_then(|f| f.document()) else {
-        return;
-    };
-    let Some(racine) = document.document_element() else {
-        return;
-    };
-    let _ = racine.set_attribute("data-theme", theme.attribut());
-
-    let fond = web_sys::window()
-        .and_then(|f| f.get_computed_style(&racine).ok().flatten())
-        .and_then(|style| style.get_property_value("--ont-background").ok())
-        .unwrap_or_default();
-    let fond = fond.trim();
-
-    // Vide quand la feuille n'est pas encore là. On ne pose rien plutôt que de
-    // poser une chaîne vide, qui ferait retomber la barre sur le blanc du
-    // navigateur — plus visible que la couleur périmée qu'on remplaçait.
-    if fond.is_empty() {
-        return;
-    }
-    if let Ok(Some(balise)) = document.query_selector("meta[name='theme-color']") {
-        let _ = balise.set_attribute("content", fond);
-    }
 }
 
 /// Les réglages de la page, ou les défauts.
@@ -169,6 +121,129 @@ fn lire() -> Option<Preferences> {
 fn ecrire(preferences: Preferences) {
     if let (Some(stockage), Ok(json)) = (stockage(), serde_json::to_string(&preferences)) {
         let _ = stockage.set_item(CLE, &json);
+    }
+}
+
+/// La peau du lecteur, **montée par les pages qui la portent**.
+///
+/// ## Pourquoi elle ne se décide pas depuis l'URL
+///
+/// La première version consultait `use_location().pathname` et comparait à une
+/// table de préfixes. **Elle a été prise en défaut avant d'être livrée.**
+///
+/// Le banc : le site chargé dans un cadre de même origine, et un lien cliqué à
+/// sa place — le seul moyen d'agir sur la page sans main sur l'écran. Réglages
+/// du lecteur : `theme: clair`. Relevé du 21 septembre 2026 :
+///
+/// ```text
+///  6 s  url=/fr  peau=—      titre=Le cosmos hébreu n'est
+/// 14 s  url=/fr  peau=—      titre=Le cosmos hébreu n'est   ← clic sur « Lire »
+/// 16 s  url=/fr  peau=clair  titre=Le cosmos hébreu n'est
+/// 20 s  url=/fr  peau=clair  titre=Le cosmos hébreu n'est
+/// ```
+///
+/// **L'accueil porte la peau de la liseuse**, et il la garde. C'est exactement
+/// le rendu que l'auteur a écarté en bornant le thème : le massif d'aubergine
+/// devient une forme violette sur de la crème, et « C'est un Temple », qui est
+/// en or, disparaît dans son fond.
+///
+/// ### Ce que le banc ne prouve pas, et qu'il ne faut pas lui faire dire
+///
+/// La cause exacte n'est **pas** établie. L'explication naturelle — le chemin
+/// du routeur change au départ d'une navigation, la vue attend ses données —
+/// est plausible et je ne peux pas la démontrer ici : sur la version corrigée,
+/// **le banc n'obtient plus aucune navigation du tout**, ni vers la liseuse ni
+/// vers une page d'édition, sur vingt secondes de relevé. Un clic synthétique
+/// dans un cadre ne pilote pas ce routeur ; il permet seulement d'observer.
+///
+/// Ce qui est établi tient en deux lignes, et suffit :
+///
+/// - avec la peinture par l'URL, l'accueil a été **vu** portant `clair` ;
+/// - avec la peinture par le montage, il ne l'est plus — et il ne peut plus
+///   l'être, puisque l'attribut ne peut pas exister sans que la page de
+///   lecture soit à l'écran.
+///
+/// La seconde propriété ne dépend d'aucune hypothèse sur le routeur, et c'est
+/// pour ça qu'on la préfère : elle est vraie par construction, pas par mesure.
+///
+/// Reste non éprouvé ici : qu'une navigation **aboutie** vers la liseuse pose
+/// bien la peau. C'est « un composant se monte, son effet s'exécute » — le même
+/// mécanisme que les trois bascules de cette feuille, et il est éprouvé par le
+/// chargement direct d'un chapitre.
+///
+/// ## Ce qui remplace la table
+///
+/// **Rien, côté navigateur.** Ce composant est monté par `PageDeLecture` et par
+/// la recherche ; il pose l'attribut en arrivant et le retire en partant. Le
+/// montage suit la vue par construction, donc la peau aussi.
+///
+/// La règle « quelles pages sont la liseuse » cesse d'être une liste de chemins
+/// qu'il faut tenir d'accord avec les routes : c'est la structure qui la dit.
+/// `LA_LISEUSE` ne sert plus qu'au script de l'en-tête, qui s'exécute avant
+/// qu'aucun composant n'existe — et là, l'URL et la vue coïncident par
+/// définition, puisque rien n'est encore rendu.
+#[component]
+pub fn PeauDeLaLiseuse() -> impl IntoView {
+    #[cfg(feature = "hydrate")]
+    {
+        let preferences = preferences();
+        Effect::new(move |_| poser_la_peau(Some(preferences.get().theme)));
+        // `on_cleanup` et non un effet qui s'annule : le démontage est le seul
+        // signal qui dise « cette page n'est plus à l'écran », et c'est
+        // exactement la question.
+        on_cleanup(|| poser_la_peau(None));
+    }
+    view! { <></> }
+}
+
+/// Écrit — ou retire — l'attribut de peau, et accorde la barre du navigateur.
+///
+/// `None` retire l'attribut plutôt que d'y poser `mystique` : le défaut de
+/// `jetons.css` est déjà mystique, donc une racine nue rend la nuit
+/// d'aubergine. Un attribut posé dirait « ce lecteur a choisi cette peau ici »,
+/// ce qui est faux.
+///
+/// ## `theme-color` se lit, il ne se transcrit pas
+///
+/// La barre du navigateur sur téléphone prend la couleur de cette balise. La
+/// valeur juste est le fond en vigueur — qui vit dans `jetons.css`, donc chez
+/// l'app. La recopier ici en ferait la seule couleur du site hors de la chaîne
+/// de portage, et elle se périmerait à la première retouche.
+///
+/// On la **demande au navigateur** : l'attribut vient d'être posé, la feuille
+/// est chargée, `getComputedStyle` rend le `--ont-background` en vigueur.
+#[cfg(feature = "hydrate")]
+fn poser_la_peau(theme: Option<Theme>) {
+    let Some(document) = web_sys::window().and_then(|f| f.document()) else {
+        return;
+    };
+    let Some(racine) = document.document_element() else {
+        return;
+    };
+
+    match theme {
+        Some(theme) => {
+            let _ = racine.set_attribute("data-theme", theme.attribut());
+        }
+        None => {
+            let _ = racine.remove_attribute("data-theme");
+        }
+    }
+
+    let fond = web_sys::window()
+        .and_then(|f| f.get_computed_style(&racine).ok().flatten())
+        .and_then(|style| style.get_property_value("--ont-background").ok())
+        .unwrap_or_default();
+    let fond = fond.trim();
+
+    // Vide quand la feuille n'est pas encore là. On ne pose rien plutôt que de
+    // poser une chaîne vide, qui ferait retomber la barre sur le blanc du
+    // navigateur — plus visible que la couleur périmée qu'on remplaçait.
+    if fond.is_empty() {
+        return;
+    }
+    if let Ok(Some(balise)) = document.query_selector("meta[name='theme-color']") {
+        let _ = balise.set_attribute("content", fond);
     }
 }
 
