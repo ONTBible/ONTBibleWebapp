@@ -2206,11 +2206,32 @@
  * de la barre, où c'est la couleur elle-même qu'on montre.
  */
 :root {
-  --surlignage-or: #E8C973;
-  --surlignage-olive: #B8C787;
-  --surlignage-ciel: #9EC7DE;
-  --surlignage-rose: #EBADAD;
-  --surlignage-violet: #C7B3DE;
+  /* **Les cinq viennent de l'app, et elles suivent le thème.**
+
+     Le site portait les cinq pastels **de jour** — ceux que l'app avait
+     choisis pour du parchemin — posés sur une nuit d'aubergine. L'app a corrigé
+     ça de son côté et le site ne le savait pas : sa garde inscrivait la dette,
+     avec son propre diagnostic, « ce sont les six couleurs à la fois, donc soit
+     l'opacité, soit un marquage qui s'ajusterait au fond réel — un chantier,
+     pas un correctif ».
+
+     Le chantier était fait ailleurs. Leur palette de nuit garde la teinte et la
+     saturation — c'est elle qui fait qu'on reconnaît « le bleu » et « le rose »
+     l'un de l'autre à travers cinq surlignages — et descend la clarté jusqu'à
+     ce que **tous** les marquages tiennent 4,6:1 sur **les deux** fonds
+     sombres, pas seulement le plus clément.
+
+     Et ils ont écarté ce que ce dépôt aurait essayé en premier : baisser
+     l'opacité. Mesuré chez eux — sur fond clair on plafonne à 2,9 même à 0,12,
+     parce que le coupable y est l'or à 3,11 *sans aucun surlignage* ; et sur
+     fond sombre il faudrait 0,12, où le surlignage ne se détache plus du fond
+     que de 1,25:1. On aurait un surlignage invisible pour sauver un mot
+     lisible.                                                                 */
+  --surlignage-or: var(--ont-surlignage-or);
+  --surlignage-olive: var(--ont-surlignage-olive);
+  --surlignage-ciel: var(--ont-surlignage-ciel);
+  --surlignage-rose: var(--ont-surlignage-rose);
+  --surlignage-violet: var(--ont-surlignage-violet);
   --surlignage-opacite: 0.38;
 }
 
