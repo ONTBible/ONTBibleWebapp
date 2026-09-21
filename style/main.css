@@ -414,6 +414,152 @@
   unicode-range: U+0590-05FF, U+FB1D-FB4F, U+200F, U+2066-2069;
 }
 
+/* ── Les six familles de lecture ───────────────────────────────────────────
+
+   Le lecteur choisit sa fonte, comme dans l'app. Trois coupes par famille, et
+   les trois comptent : sans l'italique déclarée, le navigateur **penche la
+   romane à la main** — et la translittération du niveau 3 est précisément en
+   italique. Une famille incomplète abîmerait la pièce que la liseuse existe
+   pour montrer.
+
+   Literata, EB Garamond et Jost sont déclarées plus haut : elles servaient
+   déjà. Georgia n'est déclarée nulle part — le système la fournit.          */
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Spectral-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Spectral-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Spectral-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Newsreader-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Newsreader-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Newsreader-SemiBold.woff2") format("woff2");
+}
+
+/* ── Ce que chaque choix met dans `--font-corps` ───────────────────────────
+
+   Même mécanique que les peaux — un attribut sur la racine — avec une
+   différence qui compte : la variable se redéclare **sous `.liseuse`**, pas
+   sur la racine.
+
+   C'est le même bornage que le thème, et pour la même raison : le choix du
+   lecteur vaut là où il lit, pas sur les pages qui parlent du corpus. « Le
+   pourquoi » et la page de l'auteur gardent Literata, qui est une décision de
+   l'édition (§5) — et le verset cité sur l'accueil la garde aussi, puisqu'il y
+   est une démonstration et non une lecture.
+
+   Le bornage se lit dans le sélecteur au lieu d'une table : `.liseuse` n'existe
+   que dans la liseuse, donc la règle ne peut pas déborder.
+
+   ── Les deux sélecteurs, et pourquoi il en faut deux ──────────────────────
+
+   `[data-fonte='x'] .liseuse` est une **descendance** : elle exige que la
+   classe soit *sous* l'attribut. Vrai sur la racine, faux sur une ligne du
+   menu, qui porte les deux sur le même élément — et une ligne qui dit « Jost »
+   en Literata ne dit rien.
+
+   Le défaut s'est vu sur un rendu du panneau : six lignes composées dans leur
+   propre lettre, et Jost en romane. On lit six fois ce qu'on attend, et la
+   septième passe.
+
+   ── Le repli ──────────────────────────────────────────────────────────────
+
+   Chaque pile garde un repli système de la même *classe* — une romane derrière
+   une romane, une linéale derrière une linéale : si le woff2 n'arrive pas, la
+   page reste composée dans la bonne voix au lieu de sauter d'un genre à
+   l'autre.                                                                   */
+
+[data-fonte='literata'].liseuse,
+[data-fonte='literata'] .liseuse {
+  --font-corps: "Literata", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='eb-garamond'].liseuse,
+[data-fonte='eb-garamond'] .liseuse {
+  --font-corps: "EB Garamond", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='spectral'].liseuse,
+[data-fonte='spectral'] .liseuse {
+  --font-corps: "Spectral", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='source-serif'].liseuse,
+[data-fonte='source-serif'] .liseuse {
+  --font-corps: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='newsreader'].liseuse,
+[data-fonte='newsreader'] .liseuse {
+  --font-corps: "Newsreader", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='jost'].liseuse,
+[data-fonte='jost'] .liseuse {
+  --font-corps: "Jost", "Helvetica Neue", sans-serif;
+}
+[data-fonte='georgia'].liseuse,
+[data-fonte='georgia'] .liseuse {
+  --font-corps: Georgia, "Iowan Old Style", serif;
+}
+
+
 /* ═══ La base ══════════════════════════════════════════════════════════════ */
 
 @layer base {

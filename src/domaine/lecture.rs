@@ -183,6 +183,111 @@ impl Theme {
     }
 }
 
+/// La fonte du corps — **les sept de l'app**, `ReadingFont`.
+///
+/// ## Pourquoi sept et pas une
+///
+/// Le site n'en offrait aucune, et le `CLAUDE.md` le défendait : « le site est
+/// une **édition** : sa nuit d'aubergine, son corps à 21 px et sa Literata sont
+/// des décisions, pas des défauts qu'on propose de corriger ».
+///
+/// L'auteur a tranché autrement le 21 septembre 2026 — « identique en tout
+/// point à l'app iOS, feature comprise ». Et sur ce point-ci la décision
+/// d'avant était plus fragile qu'elle n'en avait l'air : **une fonte n'est pas
+/// un goût quand on lit mal.** L'œil qui bute sur une romane à fort contraste
+/// ne bute pas sur une linéale, et c'est mesurable sur la vitesse de lecture,
+/// pas sur l'opinion.
+///
+/// Ce qui reste vrai est le **défaut** : Literata, ici comme là-bas.
+///
+/// ## Six embarquées, une du système
+///
+/// Georgia est fournie par la plateforme des deux côtés. L'app le note — « on
+/// ne contrôle pas ses fichiers » —, et un navigateur l'a aussi. Les six autres
+/// voyagent en woff2 par `scripts/fontes.sh`, **en trois coupes chacune** :
+/// Regular, Italic, SemiBold.
+///
+/// Les trois comptent, et l'app dit pourquoi : *une famille amputée de son
+/// italique se résout quand même, en pente simulée, penchée à la main par le
+/// moteur de rendu.* Chez nous c'est pire — la translittération du niveau 3
+/// **est** en italique, donc une famille incomplète abîme précisément la pièce
+/// que la liseuse existe pour montrer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Fonte {
+    /// Dessinée par TypeTogether pour Google Play Books — et déjà le corps de
+    /// l'app comme du site.
+    #[default]
+    Literata,
+    EbGaramond,
+    Spectral,
+    SourceSerif,
+    Newsreader,
+    Jost,
+    Georgia,
+}
+
+impl Fonte {
+    /// Les sept, dans l'ordre du menu de l'app.
+    pub const TOUTES: [Fonte; 7] = [
+        Fonte::Literata,
+        Fonte::EbGaramond,
+        Fonte::Spectral,
+        Fonte::SourceSerif,
+        Fonte::Newsreader,
+        Fonte::Jost,
+        Fonte::Georgia,
+    ];
+
+    /// Ce que porte `<html data-fonte="…">`, et donc le sélecteur de la feuille.
+    ///
+    /// La même chaîne sert des deux côtés du fil — elle voyage dans le JSON du
+    /// navigateur *et* dans l'attribut que lit la feuille. Deux tables
+    /// finiraient par diverger le jour d'un renommage.
+    pub fn attribut(self) -> &'static str {
+        match self {
+            Fonte::Literata => "literata",
+            Fonte::EbGaramond => "eb-garamond",
+            Fonte::Spectral => "spectral",
+            Fonte::SourceSerif => "source-serif",
+            Fonte::Newsreader => "newsreader",
+            Fonte::Jost => "jost",
+            Fonte::Georgia => "georgia",
+        }
+    }
+
+    /// Le nom dans le menu — celui de l'app, à la lettre.
+    pub fn libelle(self) -> &'static str {
+        match self {
+            Fonte::Literata => "Literata",
+            Fonte::EbGaramond => "EB Garamond",
+            Fonte::Spectral => "Spectral",
+            Fonte::SourceSerif => "Source Serif",
+            Fonte::Newsreader => "Newsreader",
+            Fonte::Jost => "Jost",
+            Fonte::Georgia => "Georgia",
+        }
+    }
+
+    /// Ce que la fonte apporte, en une ligne — **les phrases de l'app**.
+    ///
+    /// Elles sont reprises mot pour mot, et c'est délibéré : un lecteur qui
+    /// passe du téléphone au site doit retrouver les mêmes mots pour choisir la
+    /// même chose. L'app les introduit ainsi — « de quoi choisir sans être
+    /// typographe ».
+    pub fn note(self) -> &'static str {
+        match self {
+            Fonte::Literata => "Dessinée pour la lecture longue à l'écran",
+            Fonte::EbGaramond => "La lettre du livre imprimé classique",
+            Fonte::Spectral => "Ouverte et franche, tient les petites tailles",
+            Fonte::SourceSerif => "Neutre, elle s'efface derrière le texte",
+            Fonte::Newsreader => "Étroite, plus de texte par écran",
+            Fonte::Jost => "Géométrique — la fonte de l'édition imprimée",
+            Fonte::Georgia => "La fonte du système, robuste et familière",
+        }
+    }
+}
+
 /// Ce que le lecteur a choisi de voir.
 /// `serde(default)` sur chaque champ, et ce n'est pas une précaution de style :
 /// ces valeurs viennent du **stockage du navigateur**, écrit par une version
@@ -257,6 +362,8 @@ pub struct Preferences {
     /// Elle ne traverse pas `depouiller` pour autant : ce n'est pas un niveau
     /// du texte, et rien ne se retire quand elle change.
     pub theme: Theme,
+    /// La fonte du corps, choisie par le lecteur.
+    pub fonte: Fonte,
 }
 
 impl Default for Preferences {
@@ -274,6 +381,7 @@ impl Default for Preferences {
             continu: false,
             theme: Theme::Mystique,
             corps: Theme::CORPS_PAR_DEFAUT,
+            fonte: Fonte::Literata,
         }
     }
 }
@@ -304,6 +412,7 @@ impl Preferences {
             // doivent être remplis, ils n'ont pas à être choisis.
             theme: Theme::Mystique,
             corps: Theme::CORPS_PAR_DEFAUT,
+            fonte: Fonte::Literata,
         }
     }
 }
@@ -786,6 +895,87 @@ mod epreuves_du_corps {
             Theme::CORPS_MINIMUM,
             Theme::CORPS_MAXIMUM
         );
+    }
+
+    /// ## Les sept fontes sont celles de l'app, libellés et notes compris
+    ///
+    /// Relues dans `ReadingFont`, jamais recopiées. Trois choses y sont
+    /// vérifiées, et la troisième est la moins évidente :
+    ///
+    /// - **le nombre**, pour qu'une fonte ajoutée là-bas rougisse ici plutôt
+    ///   que de manquer en silence dans un menu ;
+    /// - **les libellés**, parce qu'un lecteur qui passe du téléphone au site
+    ///   cherche le même mot ;
+    /// - **les notes**, pour la même raison, et parce qu'elles ont été écrites
+    ///   pour un usage précis — « de quoi choisir sans être typographe ».
+    ///
+    /// C'est le témoin des couleurs, transposé au texte : une valeur
+    /// copropriétaire de deux parties se garde par une mesure.
+    #[test]
+    fn les_fontes_sont_celles_de_l_app() {
+        let chemin = "../ONTBibleApp/app/Packages/ONTKit/Sources/ONTKit/Reader/Reader.swift";
+        let source = std::fs::read_to_string(chemin)
+            .unwrap_or_else(|erreur| panic!("  {chemin} est illisible : {erreur}"));
+
+        // **Borner au bon type avant de relever.** Le premier jet prenait le
+        // premier `public var label` du fichier — c'était celui des cinq
+        // couleurs de surlignage, et l'épreuve a rendu « Or, Olive, Ciel, Rose,
+        // Violet ». Elle a rougi, donc elle a fait son travail ; mais un relevé
+        // qui n'est pas borné mesure ce qu'il croise, pas ce qu'il cherche.
+        let source = source
+            .split("public enum ReadingFont")
+            .nth(1)
+            .unwrap_or_else(|| panic!("  `ReadingFont` a disparu de Reader.swift"))
+            .split("\n}")
+            .next()
+            .expect("un bloc non vide rend au moins un fragment");
+
+        /// Relève les membres droits d'un `switch` de `ReadingFont`.
+        ///
+        /// Le `switch` s'écrit `case .literata: "Literata"` — une ligne par
+        /// entrée, la valeur entre guillemets. On les prend dans l'ordre, qui
+        /// est celui du menu des deux côtés.
+        fn membres(source: &str, apres: &str) -> Vec<String> {
+            source
+                .split(apres)
+                .nth(1)
+                .unwrap_or_else(|| panic!("  `{apres}` a disparu de ReadingFont"))
+                .lines()
+                .take_while(|l| !l.trim_start().starts_with('}'))
+                .filter_map(|l| l.split_once(": \""))
+                .filter_map(|(_, reste)| reste.split_once('"'))
+                .map(|(valeur, _)| valeur.to_string())
+                .collect()
+        }
+
+        let libelles = membres(&source, "public var label: String {");
+        let notes = membres(&source, "public var note: String {");
+
+        assert_eq!(
+            libelles.len(),
+            super::Fonte::TOUTES.len(),
+            "l'app offre {} fontes, le site {} — {libelles:?}",
+            libelles.len(),
+            super::Fonte::TOUTES.len()
+        );
+
+        for (i, fonte) in super::Fonte::TOUTES.into_iter().enumerate() {
+            assert_eq!(
+                fonte.libelle(),
+                libelles[i],
+                "le libellé {i} diverge : le site dit « {} », l'app « {} »",
+                fonte.libelle(),
+                libelles[i]
+            );
+            assert_eq!(
+                fonte.note(),
+                notes[i],
+                "la note de {} diverge :\n  site : {}\n  app  : {}",
+                fonte.libelle(),
+                fonte.note(),
+                notes[i]
+            );
+        }
     }
 
     /// Le défaut laisse le site **exactement** tel qu'il était.

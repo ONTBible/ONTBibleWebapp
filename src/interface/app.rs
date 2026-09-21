@@ -146,7 +146,7 @@ fn PeauAvantLePremierRendu() -> impl IntoView {
 /// seule duplication de tout ce mécanisme, et `le_script_reprend_les_trois_
 /// clauses_de_la_regle` en garde la forme.
 fn script_de_la_peau() -> String {
-    use crate::domaine::lecture::{Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{Fonte, Theme, LA_LISEUSE};
 
     let connus = Theme::TOUS
         .iter()
@@ -156,6 +156,11 @@ fn script_de_la_peau() -> String {
     let liseuse = LA_LISEUSE
         .iter()
         .map(|prefixe| format!("'{prefixe}'"))
+        .collect::<Vec<_>>()
+        .join(",");
+    let fontes = Fonte::TOUTES
+        .iter()
+        .map(|fonte| format!("'{}'", fonte.attribut()))
         .collect::<Vec<_>>()
         .join(",");
     let (bas, haut, defaut) = (
@@ -182,7 +187,9 @@ fn script_de_la_peau() -> String {
          var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
          for(var i=0;i<L.length;i++)if(p===L[i]||p.indexOf(L[i]+'/')===0)d=1;\
          if(d){{var c=[{connus}];\
-         if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);}}\
+         if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);\
+         var f=[{fontes}];\
+         if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);}}\
          }}catch(e){{}}"
     )
 }
@@ -385,6 +392,13 @@ mod epreuves_de_la_peau {
                 script.contains(&format!("'{}'", theme.attribut())),
                 "le script ignore le thème {}",
                 theme.attribut()
+            );
+        }
+        for fonte in crate::domaine::lecture::Fonte::TOUTES {
+            assert!(
+                script.contains(&format!("'{}'", fonte.attribut())),
+                "le script ignore la fonte {}",
+                fonte.attribut()
             );
         }
         for prefixe in LA_LISEUSE {

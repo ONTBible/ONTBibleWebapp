@@ -3,7 +3,7 @@ use leptos::prelude::*;
 #[cfg(feature = "hydrate")]
 use wasm_bindgen::JsCast;
 
-use crate::domaine::lecture::{Preferences, Theme};
+use crate::domaine::lecture::{Fonte, Preferences, Theme};
 
 /// Où le navigateur retient les réglages.
 ///
@@ -191,13 +191,13 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
         let preferences = preferences();
         Effect::new(move |_| {
             let reglages = preferences.get();
-            poser_la_peau(Some(reglages.theme));
+            poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
             poser_la_taille(reglages.corps);
         });
         // `on_cleanup` et non un effet qui s'annule : le démontage est le seul
         // signal qui dise « cette page n'est plus à l'écran », et c'est
         // exactement la question.
-        on_cleanup(|| poser_la_peau(None));
+        on_cleanup(|| poser_la_peau(None, None));
     }
     view! { <></> }
 }
@@ -245,7 +245,7 @@ fn poser_la_taille(corps: u8) {
 }
 
 #[cfg(feature = "hydrate")]
-fn poser_la_peau(theme: Option<Theme>) {
+fn poser_la_peau(theme: Option<Theme>, fonte: Option<Fonte>) {
     let Some(document) = web_sys::window().and_then(|f| f.document()) else {
         return;
     };
@@ -259,6 +259,17 @@ fn poser_la_peau(theme: Option<Theme>) {
         }
         None => {
             let _ = racine.remove_attribute("data-theme");
+        }
+    }
+    // La fonte suit la même règle que la peau — posée dans la liseuse, retirée
+    // en sortant. Son sélecteur est déjà borné par `.liseuse`, mais laisser
+    // l'attribut traîner dirait « ce lecteur a choisi ici », ce qui est faux.
+    match fonte {
+        Some(fonte) => {
+            let _ = racine.set_attribute("data-fonte", fonte.attribut());
+        }
+        None => {
+            let _ = racine.remove_attribute("data-fonte");
         }
     }
 
@@ -446,6 +457,15 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "Les quatre peaux de l'application, à l'identique. Mystique est née "
                         "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
                         "téléphone ; les trois autres font le chemin inverse."
+                    </p>
+
+                    <Groupe titre="Fonte">
+                        <ChoixDeFonte preferences />
+                    </Groupe>
+                    <p class=NOTE>
+                        "Les six familles sont embarquées avec le site, en trois coupes "
+                        "chacune — l'italique de la translittération est dessinée, jamais "
+                        "penchée à la main. Georgia vient de votre appareil."
                     </p>
 
                     <Groupe titre="Taille du texte">
@@ -638,6 +658,61 @@ fn ChoixDeTheme(preferences: RwSignal<Preferences>) -> impl IntoView {
 /// de l'app, et sa raison est écrite là-bas — *un lecteur atteint de
 /// kératocône monte le corps du texte très haut pour lire, et n'a aucune raison
 /// de faire enfler du même geste une barre latérale.*
+/// Le menu des fontes — **les sept de l'app**, et chacune s'écrit dans la sienne.
+///
+/// ## Une ligne qui se compose dans ce qu'elle propose
+///
+/// C'est le même principe que les pastilles de thème, appliqué à la lettre :
+/// une ligne qui dit « Spectral » en Literata ne dit rien. Chaque ligne porte
+/// donc son propre `data-fonte` **et** la classe `liseuse` — parce que c'est là
+/// que la règle vit —, et se lit dans la fonte qu'elle offre.
+///
+/// Le nom seul ne suffirait pas à choisir : « Newsreader » ne dit rien à qui
+/// n'est pas typographe. La note de l'app est donc reprise **mot pour mot** —
+/// elle a été écrite pour ça, et un lecteur qui passe du téléphone au site doit
+/// retrouver les mêmes phrases.
+#[component]
+fn ChoixDeFonte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    view! {
+        <div role="radiogroup" aria-label="Fonte" class="mt-1 flex flex-col">
+            {Fonte::TOUTES
+                .into_iter()
+                .map(|fonte| {
+                    let actif = Signal::derive(move || preferences.get().fonte == fonte);
+                    view! {
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked=move || actif.get().to_string()
+                            on:click=move |_| preferences.update(|p| p.fonte = fonte)
+                            data-fonte=fonte.attribut()
+                            class="liseuse -mx-2 flex items-baseline gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class=("text-accent", move || actif.get())
+                            class=("text-encre", move || !actif.get())
+                        >
+                            // Le nom, dans sa propre lettre. `font-corps` lit
+                            // `--font-corps`, que le `data-fonte` de ce bouton
+                            // vient de redéclarer pour son sous-arbre.
+                            <span class="font-corps text-base leading-none">{fonte.libelle()}</span>
+                            <span class="flex-1 text-sm leading-tight text-encre-douce">
+                                {fonte.note()}
+                            </span>
+                            // La coche, à la fin : elle confirme, elle n'annonce
+                            // pas. Masquée à l'oreille — `aria-checked` le dit
+                            // déjà, et le redire ferait « coché, coché ».
+                            <span
+                                aria-hidden="true"
+                                class="w-3 text-accent"
+                                class=("opacity-0", move || !actif.get())
+                            >"·"</span>
+                        </button>
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
+}
+
 #[component]
 fn TailleDuTexte(preferences: RwSignal<Preferences>) -> impl IntoView {
     let corps = Signal::derive(move || preferences.get().corps);
