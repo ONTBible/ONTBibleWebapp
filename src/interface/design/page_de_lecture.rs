@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::interface::design::{Bloc, Entete};
+use crate::interface::design::Bloc;
 
 /// Le gabarit des pages de la liseuse et du lexique.
 ///
@@ -47,6 +47,8 @@ pub fn PageDeLecture(
     chapeau: Option<Children>,
     children: Children,
 ) -> impl IntoView {
+    let chemin = leptos_router::hooks::use_location().pathname;
+
     view! {
         // **La peau du lecteur est montée ici**, et c'est ce qui la borne à la
         // liseuse : ce composant est la page de corpus, les cinq qui en
@@ -57,7 +59,18 @@ pub fn PageDeLecture(
         // La recherche la monte séparément : elle rend du corpus sans passer
         // par ce cadre-ci.
         <crate::interface::design::PeauDeLaLiseuse />
-        <Entete />
+        // **La chrome de l'app, et elle remplace celle de l'édition.**
+        //
+        // `Entete` n'est plus rendu ici : il porte la navigation d'un site —
+        // cinq entrées en capitales au-dessus de tout, qui disent « voici les
+        // pages ». La liseuse est un lieu où l'on revient, pas une page qu'on
+        // lit une fois, et sa navigation est celle de l'app.
+        <crate::interface::design::NavigationDeLaLiseuse chemin />
+        // La barre latérale est en `fixed` : elle ne pousse rien, donc le
+        // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
+        // hauteur de la barre d'onglets, sans quoi la dernière ligne du
+        // chapitre se lirait derrière elle.
+        <div class="pb-24 lg:ps-[16.5rem] lg:pb-0">
         <Bloc>
             {(!fil.is_empty())
                 .then(|| {
@@ -117,5 +130,6 @@ pub fn PageDeLecture(
             // qu'une chrome qui grandit mange la place du texte.
             <div class="liseuse">{children()}</div>
         </Bloc>
+        </div>
     }
 }

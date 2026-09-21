@@ -399,7 +399,15 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("opacity-0", selection_active)
                 class=("pointer-events-none", selection_active)
                 inert=move || selection_active().then_some("")
-                style="bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+                // **Il dégage la barre d'onglets**, qui occupe le bas depuis
+                // que la liseuse porte la chrome de l'app. Sans ce calage il
+                // se posait dessus, à cheval sur « Vous » — et c'est le bouton
+                // qu'on cherche du pouce sans regarder.
+                //
+                // `--barre-d-onglets` est déclarée par la barre elle-même, donc
+                // sa hauteur ne se recopie pas ici : elle vaut zéro au-delà de
+                // `lg`, où il n'y a plus de barre en bas.
+                style="bottom: calc(1.5rem + var(--barre-d-onglets, 0px) + env(safe-area-inset-bottom))"
             >
                 <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>
             </button>
@@ -428,7 +436,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("translate-y-0", move || ouvert.get())
                 class=("opacity-100", move || ouvert.get())
                 class=("sm:scale-100", move || ouvert.get())
-                style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+                style="padding-bottom: calc(1.5rem + var(--barre-d-onglets, 0px) + env(safe-area-inset-bottom))"
             >
                     // La poignée : c'est elle qui fait lire l'objet comme une
                     // feuille qu'on tire, et non comme une boîte qui a surgi.

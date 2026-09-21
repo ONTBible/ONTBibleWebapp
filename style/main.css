@@ -355,6 +355,49 @@
   border: 0;
 }
 
+/* ── La hauteur de la barre d'onglets ──────────────────────────────────────
+
+   Le bouton « aA » et sa feuille se posent **au-dessus** de la barre. Le
+   réflexe est d'écrire sa hauteur dans leur calage — et c'est le nombre magique
+   que le §5 a déjà payé sur `--hauteur-entete` : *un nombre magique qui décrit
+   la géométrie d'un autre élément est toujours faux quelque part.*
+
+   ── Le premier jet la déclarait sur la barre, et ça ne pouvait pas marcher ──
+
+   Une propriété personnalisée n'est visible que de l'élément qui la déclare et
+   de ses **descendants**. Le bouton est un frère de la barre, pas un enfant :
+   il n'aurait rien lu, serait retombé sur le repli, et se serait posé sur la
+   barre exactement comme avant.
+
+   ── Ce qui rend le jeton honnête ───────────────────────────────────────────
+
+   Il est sur `:root`, et **c'est la barre qui s'y conforme** — elle prend cette
+   hauteur au lieu de la dicter. Le nombre ne décrit donc plus la géométrie d'un
+   autre élément : il *est* la géométrie, et les trois pièces la lisent.
+
+   Au-delà de `lg` il retombe à zéro : la barre passe à gauche, et le bouton
+   revient au bas de l'écran sans qu'aucune requête média ne le dise.
+
+   **La limite, dite plutôt que masquée** : c'est un plancher, pas une mesure.
+   Si le lecteur monte beaucoup la taille de police de son navigateur, les
+   libellés de la barre peuvent la faire croître au-delà, et le bouton s'en
+   rapprocherait. On préfère ça à une hauteur figée qui tronquerait « Chercher ».
+*/
+
+:root {
+  --barre-d-onglets: 4.25rem;
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --barre-d-onglets: 0px;
+  }
+}
+
+.barre-d-onglets {
+  min-height: calc(var(--barre-d-onglets) + env(safe-area-inset-bottom));
+}
+
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════
 
    Sous OFL, portées depuis `ONTBibleApp/app/Resources/Fonts/` par
