@@ -6170,6 +6170,21 @@ d'un seul côté ferait exactement la divergence que le portage existe pour
 empêcher. Elle est relevée, transmise à l'app, et tenue par un cliquet à double
 sens — elle ne peut ni empirer, ni s'améliorer sans que la table le dise.
 
+**Et la retenue a payé dans l'heure.** La session macOS a refait le calcul de son
+côté, depuis un autre dépôt et une autre implémentation de la luminance :
+**3,11 / 3,32 / 3,39** contre **3,12 / 3,31 / 3,39** ici, à l'arrondi près.
+
+Puis elle a trouvé ce qu'aucun relevé fait depuis le site ne pouvait voir : **le
+jeton porte du texte dans `ONTFeatures`**, donc sur les trois plateformes à la
+fois — `ReferencePicker.swift:284` (un `Label`) et `LexiconTab.swift:91` (une
+lettre de tranche en *footnote semibold*, ~13 pt, donc pas du « grand texte » au
+sens WCAG, donc 4,5:1 exigé).
+
+> ==« Un jeton est faible » se discute ; « deux endroits nommés rendent du texte
+> à 3,1:1 » se corrige.== Une mesure sans chemin reste une opinion sur une
+> valeur. Le défaut est arrivé complet parce qu'aucun des deux dépôts ne l'a
+> réparé à moitié avant que l'autre l'ait vu.
+
 ### Et une leçon de cascade, qui resservira partout
 
 `:root` et `[data-theme='…']` ont la **même spécificité**. À égalité, c'est
