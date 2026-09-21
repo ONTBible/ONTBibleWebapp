@@ -82,7 +82,9 @@ pub use pied::PiedDePage;
 pub use porte::{traverser, Porte};
 pub use portrait::Portrait;
 pub use principe::Principe;
-pub use reglages_de_lecture::{fournir_preferences, preferences, ReglagesDeLecture};
+pub use reglages_de_lecture::{
+    fournir_preferences, preferences, PeauDeLaLiseuse, ReglagesDeLecture,
+};
 pub use selection_de_versets::{
     basculer, couleur_du_verset, fournir_marques, fournir_selection, marques, renvoi, selection,
     BarreDeSelection, Marques, Selection,
@@ -111,14 +113,69 @@ mod tests {
         (x.max(y) + 0.05) / (x.min(y) + 0.05)
     }
 
-    /// Relève un jeton `--color-<nom>: #rrggbb;` dans la feuille.
+    /// Les quatre thèmes, tels que `scripts/porter-les-jetons.py` les écrit.
     ///
-    /// Volontairement littéral : il **ne suit pas** un `color-mix` ni une
-    /// variable qui en référencerait une autre. Un jeton écrit autrement n'est
-    /// pas mesuré en silence — il fait échouer le relevé, et c'est ce qu'on
-    /// veut d'une garde.
-    fn jeton(feuille: &str, nom: &str) -> (f64, f64, f64) {
-        couleur(feuille, &format!("--color-{nom}"))
+    /// Ces gardes lisaient `style/main.css`, où les treize couleurs du site
+    /// étaient des littéraux. Elles n'y sont plus : depuis le portage du
+    /// 21 septembre 2026 elles prennent leur valeur dans `jetons.css`, quatre
+    /// fois — une par peau — et c'est `ONTColors` qui les décide.
+    ///
+    /// **La garde a refusé plutôt que de mesurer autre chose**, et c'est ce
+    /// qu'on lui demandait : son relevé exigeait un littéral hexadécimal, il a
+    /// trouvé `var(--ont-background)`, il s'est arrêté. Une garde qui aurait
+    /// « suivi » la variable aurait mesuré la palette du défaut en croyant
+    /// mesurer les quatre.
+    ///
+    /// Elle lit donc les quatre, **par le nom de rôle de l'app** — `ink` et
+    /// non `encre`. C'est une table de moins à tenir : les noms du site ne
+    /// servent qu'aux classes, et une seconde traduction ici n'aurait fait que
+    /// donner une seconde occasion de se tromper.
+    const JETONS: &str = include_str!("../../../style/jetons.css");
+
+    /// Les couleurs d'un thème, composées sur leur propre fond.
+    ///
+    /// **Les valeurs portent parfois huit chiffres**, et l'ignorer fausserait
+    /// tout : `inkSoft` vaut `#E0DBD4AB` sur `sombre`, c'est-à-dire l'encre à
+    /// 67 %. Prise pour `#E0DBD4`, elle mesurerait 13,3:1 là où le lecteur en
+    /// voit 6,5. On compose donc chaque couche sur le fond du thème avant de
+    /// mesurer — ce que fait l'écran.
+    fn palette(theme: &str) -> std::collections::HashMap<String, (f64, f64, f64)> {
+        let ouverture = format!("[data-theme='{theme}'] {{");
+        let bloc = JETONS
+            .split(&ouverture)
+            .nth(1)
+            .unwrap_or_else(|| panic!("le thème {theme} n'est pas dans style/jetons.css"))
+            .split("\n}")
+            .next()
+            .expect("un bloc non vide rend au moins un fragment");
+
+        let brut: std::collections::HashMap<&str, &str> = bloc
+            .lines()
+            .filter_map(|ligne| ligne.trim().strip_prefix("--ont-"))
+            .filter_map(|ligne| ligne.split_once(": "))
+            .map(|(role, valeur)| (role, valeur.trim_end_matches(';')))
+            .collect();
+
+        let lire = |valeur: &str| -> (f64, f64, f64, f64) {
+            let hexa = valeur.strip_prefix('#').expect("un jeton est hexadécimal");
+            let c = |i: usize| i64::from_str_radix(&hexa[i..i + 2], 16).expect("hexa") as f64;
+            let alpha = if hexa.len() == 8 { c(6) / 255.0 } else { 1.0 };
+            (c(0), c(2), c(4), alpha)
+        };
+
+        // Le fond, lui, est toujours opaque : il n'a rien sous lui.
+        let fond = lire(brut["background"]);
+        let fond = (fond.0, fond.1, fond.2);
+
+        brut.iter()
+            .map(|(role, valeur)| {
+                let (r, v, b, a) = lire(valeur);
+                // Une couche translucide se compose sur le fond de **son**
+                // thème, jamais sur celui d'un autre.
+                let m = |d: f64, s: f64| (d * a + s * (1.0 - a)).round();
+                (role.to_string(), (m(r, fond.0), m(v, fond.1), m(b, fond.2)))
+            })
+            .collect()
     }
 
     fn couleur(feuille: &str, nom: &str) -> (f64, f64, f64) {
@@ -140,11 +197,7 @@ mod tests {
         let hexa = valeur.strip_prefix('#').unwrap_or_else(|| {
             panic!("{nom} vaut « {valeur} » — la garde ne lit qu'un littéral hexadécimal")
         });
-        assert_eq!(
-            hexa.len(),
-            6,
-            "--color-{nom} doit s'écrire sur six chiffres"
-        );
+        assert_eq!(hexa.len(), 6, "{nom} doit s'écrire sur six chiffres");
         let c = |i: usize| i64::from_str_radix(&hexa[i..i + 2], 16).expect("hexadécimal") as f64;
         (c(0), c(2), c(4))
     }
@@ -192,39 +245,108 @@ mod tests {
     ///
     /// Trouvé le 30 août 2026 par la session iOS en portant la liseuse sur
     /// Mac. La règle valait pour les trois dépôts et n'était écrite dans aucun.
+    /// ## Et depuis le portage, il y a quatre palettes et non une
+    ///
+    /// `mystique` tient le plancher partout — c'est la peau de ce site, elle a
+    /// été mesurée pour ça, et elle ne doit pas bouger. Les trois autres
+    /// viennent de l'app et **ne le tiennent pas**. Relevé le 21 septembre
+    /// 2026, sur le fond de page :
+    ///
+    /// | | parchemin | clair | sombre | mystique |
+    /// |---|---|---|---|---|
+    /// | `accent` | **3,12** | **3,39** | 9,83 | 10,42 |
+    /// | `inkSoft` | **4,62** | **4,61** | 6,51 | 6,50 |
+    /// | `accentuation` | 8,11 | 8,81 | **6,16** | 6,54 |
+    /// | `shem` | 9,57 | 10,40 | **6,14** | 6,51 |
+    ///
+    /// **L'or sur du clair est le vrai sujet.** `#A6874F` sur du parchemin
+    /// donne 3,12:1 — sous AA, qui demande 4,5, et loin des 6,4 d'ici. Sur le
+    /// site il porte les titres de section en capitales espacées à 16 px,
+    /// c'est-à-dire du texte courant. Ce n'est pas une dette d'ornement.
+    ///
+    /// Elle n'est pas corrigée ici, et il faut dire pourquoi : ces valeurs
+    /// sont celles de l'app, la corriger d'un côté ferait exactement la
+    /// divergence que le portage existe pour empêcher. Elle est **relevée**,
+    /// signalée à la session iOS, et tenue par le cliquet ci-dessous.
+    ///
+    /// Le cliquet serre dans les deux sens, comme celui du surlignage : une
+    /// valeur qui s'améliore fait échouer le test aussi, pour que la dette
+    /// inscrite descende avec le défaut.
     #[test]
     fn aucune_couleur_de_texte_ne_descend_sous_le_plancher_de_la_rampe() {
-        const FEUILLE: &str = include_str!("../../../style/main.css");
         const PLANCHER: f64 = 6.4;
         const PLANCHER_SUR_SURFACE: f64 = 4.5;
+        /// Ce qu'on tolère d'écart avant de demander la mise à jour de la table.
+        const JEU: f64 = 0.05;
 
-        let nuit = jeton(FEUILLE, "nuit");
-        let surface = jeton(FEUILLE, "surface");
+        /// Les manques des palettes portées de l'app — thème, rôle, fond,
+        /// contraste mesuré. Des dettes relevées, pas des cibles.
+        const DETTES: [(&str, &str, &str, f64); 8] = [
+            ("parchemin", "accent", "background", 3.12),
+            ("parchemin", "accent", "surface", 3.31),
+            ("parchemin", "inkSoft", "background", 4.62),
+            ("clair", "accent", "background", 3.39),
+            ("clair", "accent", "surface", 3.39),
+            ("clair", "inkSoft", "background", 4.61),
+            ("sombre", "accentuation", "background", 6.16),
+            ("sombre", "shem", "background", 6.14),
+        ];
 
-        let mut fautes = Vec::new();
-        for nom in [
-            "encre",
-            "encre-vive",
-            "encre-douce",
+        const MARQUAGES: [&str; 7] = [
+            "ink",
+            "inkStrong",
+            "inkSoft",
             "accentuation",
             "accent",
-            "or",
             "shem",
-        ] {
-            let teinte = jeton(FEUILLE, nom);
-            let sur_nuit = contraste(teinte, nuit);
-            let sur_surface = contraste(teinte, surface);
-            if sur_nuit < PLANCHER {
-                fautes.push(format!(
-                    "  {nom} : {sur_nuit:.2}:1 sur la nuit, plancher {PLANCHER}"
-                ));
-            }
-            if sur_surface < PLANCHER_SUR_SURFACE {
-                fautes.push(format!(
-                    "  {nom} : {sur_surface:.2}:1 sur une surface, plancher {PLANCHER_SUR_SURFACE}"
-                ));
+            "renvoi",
+        ];
+
+        let mut fautes = Vec::new();
+        let mut vues = Vec::new();
+
+        for theme in ["parchemin", "clair", "sombre", "mystique"] {
+            let palette = palette(theme);
+            for nom in MARQUAGES {
+                let teinte = palette[nom];
+                for (fond, plancher) in
+                    [("background", PLANCHER), ("surface", PLANCHER_SUR_SURFACE)]
+                {
+                    let mesure = contraste(teinte, palette[fond]);
+                    match DETTES
+                        .iter()
+                        .find(|(t, r, f, _)| *t == theme && *r == nom && *f == fond)
+                    {
+                        // Une dette connue : elle ne doit ni empirer, ni
+                        // s'améliorer sans que la table le dise.
+                        Some((_, _, _, dette)) => {
+                            vues.push((theme, nom, fond));
+                            if (mesure - dette).abs() > JEU {
+                                fautes.push(format!(
+                                    "  {theme}/{nom} sur {fond} : {mesure:.2}:1, \
+                                     la table en inscrit {dette:.2} — mettre la table à jour"
+                                ));
+                            }
+                        }
+                        None if mesure < plancher => fautes.push(format!(
+                            "  {theme}/{nom} sur {fond} : {mesure:.2}:1, plancher {plancher}"
+                        )),
+                        None => {}
+                    }
+                }
             }
         }
+
+        // Une dette qui ne se rencontre plus est une dette payée — ou un rôle
+        // renommé. Dans les deux cas la table ment, et le silence d'une ligne
+        // morte est exactement ce qu'un cliquet ne doit pas permettre.
+        for (theme, nom, fond, _) in DETTES {
+            assert!(
+                vues.contains(&(theme, nom, fond)),
+                "la dette {theme}/{nom} sur {fond} ne correspond à rien de mesuré"
+            );
+        }
+
         assert!(
             fautes.is_empty(),
             "des couleurs de texte passent sous le plancher :\n{}",
@@ -272,10 +394,13 @@ mod tests {
         /// Ce qu'on tolère d'écart avant de demander la mise à jour de la table.
         const JEU: f64 = 0.05;
 
+        // Les rôles portent leur nom d'app depuis le portage — `ink` et non
+        // `encre`. Les valeurs, elles, n'ont pas bougé d'un centième : ce sont
+        // les mêmes couleurs, relues à leur nouvelle adresse.
         let dettes = [
-            ("encre", 4.01),
-            ("encre-vive", 5.38),
-            ("encre-douce", 2.29),
+            ("ink", 4.01),
+            ("inkStrong", 5.38),
+            ("inkSoft", 2.29),
             ("accentuation", 2.30),
             ("accent", 3.67),
             ("shem", 2.29),
@@ -292,13 +417,18 @@ mod tests {
             .parse()
             .expect("l'opacité doit être un nombre");
 
-        let fonds = [jeton(FEUILLE, "nuit"), jeton(FEUILLE, "surface")];
+        // Les dettes ci-dessus ont été relevées sur la nuit d'aubergine, et
+        // c'est elle qu'on continue de mesurer : le surlignage est un chantier
+        // à lui seul, et l'étendre aux quatre peaux le jour du portage aurait
+        // mêlé deux questions. Les trois autres viendront avec la correction.
+        let mystique = palette("mystique");
+        let fonds = [mystique["background"], mystique["surface"]];
         let surlignages = ["or", "olive", "ciel", "rose", "violet"]
             .map(|n| couleur(FEUILLE, &format!("--surlignage-{n}")));
 
         let mut ecarts = Vec::new();
         for (nom, dette) in dettes {
-            let teinte = jeton(FEUILLE, nom);
+            let teinte = mystique[nom];
             let pire = surlignages
                 .iter()
                 .flat_map(|s| {

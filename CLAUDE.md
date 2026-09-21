@@ -283,9 +283,20 @@ et Sombre : là, il fallait bien l'appeler quelque chose dans un menu.
 Le nom est le même des deux côtés et doit le rester. Côté app, c'est
 `ReadingTheme.mystique` dans `ONTKit/Reader/Reader.swift`, et la palette y est
 transposée depuis ce dépôt-ci — `ONTColors.nuit`, `nuitSurface` et `nuitEncre`
-citent les jetons ci-dessous par leur nom et leur valeur. **C'est ici la
-référence** : une teinte se retouche dans `style/main.css`, puis se reporte
-dans l'app, jamais l'inverse.
+citent les jetons ci-dessous par leur nom et leur valeur.
+
+**Le sens de la référence s'est inversé le 21 septembre 2026.** Ce paragraphe
+disait « c'est ici la référence : une teinte se retouche dans `style/main.css`,
+puis se reporte dans l'app, jamais l'inverse ». Ce n'est plus vrai — l'auteur a
+demandé une webapp identique en tout point à l'app, et les couleurs sont
+maintenant **portées depuis `ONTColors`** par `scripts/porter-les-jetons.py`
+(§8 undecies). Une teinte se retouche là-bas, et le portage la rapporte.
+
+Ce qui reste vrai est l'**origine** de mystique : il est né ici, il a été
+transposé là-bas, et c'est ce qui en fait le témoin du portage — il doit
+revenir identique, et neuf de ses jetons sont vérifiés à chaque passage. Les
+valeurs de la table ci-dessous sont donc celles de `mystique`, à jour, mais
+elles ne sont plus l'original : elles en sont le reflet.
 
 Trois essais ont été nécessaires, et les deux premiers sont instructifs. Le
 site a d'abord suivi le thème du système : chez un lecteur en mode sombre, il
@@ -1622,10 +1633,23 @@ Un intraduisible n'est pas un commentaire ajouté au texte — c'est le texte,
 qu'on a refusé de traduire. L'éteindre laisserait un trou, et la promesse de
 l'or cesserait d'être tenue selon un réglage.
 
-Ce que le site **n'emprunte pas** : taille du corps, interligne, fonte, thème.
-L'app a raison de les offrir — elle est un lecteur, et un lecteur s'adapte à qui
-le tient. Le site est une **édition** : sa nuit d'aubergine, son corps à 21 px
-et sa Literata sont des décisions, pas des défauts qu'on propose de corriger.
+Ce que le site **n'emprunte pas** : taille du corps, interligne, fonte.
+
+**Le thème, lui, est entré le 21 septembre 2026**, et ce paragraphe disait le
+contraire. Il l'argumentait ainsi : « L'app a raison de les offrir — elle est un
+lecteur, et un lecteur s'adapte à qui le tient. Le site est une **édition** : sa
+nuit d'aubergine, son corps à 21 px et sa Literata sont des décisions, pas des
+défauts qu'on propose de corriger. »
+
+L'auteur a tranché autrement : « je veux que la webapp soit identique en tout
+point à l'app iOS — icône, design system, DA, feature, tout. » Le thème est une
+feature de la liseuse ; les quatre peaux sont là, avec les noms du menu de
+l'app (§8 undecies).
+
+**Ce que la décision d'avant garde de vrai est le défaut.** Le site ouvre sur
+`mystique` là où l'app ouvre sur `parchemin` : l'édition a une peau, et le
+lecteur peut en changer. Les deux autres réglages — le corps à 21 px, la
+Literata — restent des décisions et n'ont pas de bascule.
 
 **On retire les nœuds, on ne les masque pas.** Un `display: none` aurait laissé
 « habitant , et la face » et des mots collés — le défaut déjà corrigé sur les
@@ -2863,6 +2887,264 @@ sont un **détecteur de changement** (`connus[local] != entree.empreinte`) ; le
 Tronquer le premier est sans conséquence, tronquer le second en a une. Garder
 les deux chemins séparés plutôt que de paramétrer une longueur : un
 `tronquer=True` finit par être passé à l'envers.
+
+## 8 undecies. La webapp — porter le design system de l'app
+
+**Le 21 septembre 2026, l'auteur a rouvert la liseuse en entier :**
+
+> « tu sais quoi je pense qu'on va recommencer la partie lecture de zéro, je
+> veux pas juste une section lire, je veux une section **Webapp** finalement
+> — et tu vas communiquer avec iOS pour avoir TOUT son design system. Je veux
+> que la webapp soit **identique en tout point** à l'app iOS : icône, design
+> system, DA, feature, tout. Je veux que l'user ait l'app iOS, mais en webapp. »
+
+Et la division du travail, dans le même souffle : « taffe avec **iOS** pour la
+version responsive et avec **macOS** pour la version desktop ».
+
+Ce qui suit est la **première pièce** : les couleurs. La typographie, les
+métriques, les composants, la navigation et l'icône viennent après.
+
+### On n'a pas recopié quatre-vingts couleurs — on les a demandées
+
+`ONTColors` n'est pas une table de constantes. C'est un **enum de fonctions du
+thème**, et onze de ses vingt rôles calculent : `melange(_:vers:part:)`, des
+opacités, des dérivations. Un extracteur qui aurait lu le source aurait rendu
+les neuf constantes justes et les onze autres **fausses avec l'air d'être
+bonnes** — le pire des deux.
+
+`scripts/jetons-de-l-app/` est donc un exécutable Swift qui **importe**
+`ONTDesignSystem` et interroge chaque fonction. `scripts/porter-les-jetons.py`
+le lance et écrit `style/jetons.css` : vingt rôles, quatre thèmes, plus un
+rôle déduit — quatre-vingt-quatre variables.
+
+Ce n'est **pas** une étape de CI : il demande Xcode, que les coureurs Ubuntu
+n'ont pas. La sortie est commitée et se régénère à la main quand l'app bouge.
+
+### Le témoin, et pourquoi il est le seul contrôle qui prouve quelque chose
+
+`mystique` est né dans ce dépôt et a été transposé dans l'app en août. Il doit
+donc **revenir identique** — c'est le seul cas de toute la chaîne dont les deux
+dépôts connaissent la réponse d'avance. Neuf jetons sont comparés à chaque
+passage, et ils reviennent 9/9.
+
+Le témoin est **gelé dans le script**, et ce n'est pas la transcription que ce
+script combat. Une transcription est une valeur qu'on recopie et qui doit
+suivre sa source ; celle-ci est un **point fixe** qui ne doit jamais bouger.
+La première version les relisait dans `main.css` — elle ne le peut plus, puisque
+`main.css` prend maintenant ses couleurs de `jetons.css`, c'est-à-dire de la
+sortie du script. **Un contrôle qui vérifie sa propre sortie ne peut plus
+rougir.**
+
+### Le rôle que l'app n'a pas, et le prix de le déduire
+
+Le site porte **trois** niveaux de surface — `nuit`, `surface`, `surface-haute`
+— l'app en porte **deux**. Le troisième est celui des cartes, des feuilles et
+du bouton de réglages ; huit composants s'en servent.
+
+Il se déduit d'un pas de plus dans la direction que l'app donne déjà :
+`surface` s'écarte du fond, `surface-haute` s'en écarte d'autant encore. La
+direction s'inverse d'elle-même selon le thème.
+
+**Le prix est mesuré, et il est d'un point.** Sur `mystique`, la déduction rend
+`#34171F` là où la rampe à 343° portait `#35151E` — sous le seuil de perception,
+et du même ordre que l'écart que la rampe s'accorde déjà à elle-même. On a
+préféré une règle qui vaut pour les quatre thèmes à une valeur juste pour un
+seul.
+
+### Le défaut passe en tête de la feuille, et ce n'est pas cosmétique
+
+`:root` et `[data-theme='…']` ont **la même spécificité**. À égalité, c'est
+l'ordre de la feuille qui tranche — le piège de `Bloc` et de `max-w-mesure`,
+rejoué un étage plus bas.
+
+Le bloc du défaut porte les deux sélecteurs, pour que la page se peigne sans
+JavaScript. Écrit en **dernier**, il gagnait donc contre les trois autres sur
+l'élément racine : le site restait sur sa nuit quel que soit le thème demandé.
+
+**Le défaut s'est vu exactement comme le §8 sexies l'annonce : quatre aperçus
+sortis identiques à l'octet près.** Sans cette comparaison on serait allé
+chercher la panne dans le signal, dans l'hydratation ou dans l'attribut — trois
+endroits où il n'y avait rien.
+
+### Le thème ne vaut que dans la liseuse
+
+**Arbitré par l'auteur le 21 septembre 2026, devant trois rendus de l'accueil.**
+La liseuse encaisse les quatre peaux ; l'ouverture, non.
+
+La cause est dans la rampe. `--color-aubergine` est **la marque**, donc elle ne
+suit aucun thème — une enseigne ne change pas de couleur parce que le lecteur a
+baissé la lumière. Le massif, la voûte et le portail sont dessinés avec elle.
+Sur les deux peaux sombres ils tiennent ; posés sur du parchemin, le massif
+devient une forme violette sur de la crème, et « C'est un Temple », qui est en
+or, disparaît dans son fond.
+
+Les deux autres voies ont été écartées devant lui :
+
+- **redessiner l'ouverture par thème** ferait de la nuit d'aubergine — trouvée
+  en trois essais, §5 — un thème parmi quatre ;
+- **n'offrir que les deux peaux sombres** laisserait le lecteur qui lit sur
+  parchemin ne pas le retrouver, c'est-à-dire l'écart que ce chantier ferme.
+
+**La recherche n'en est pas**, bien qu'elle rende du corpus : elle porte une
+ouverture, avec le même massif, et un bouton « Chercher » en or qui disparaît
+sur du clair. La règle n'est donc pas « les pages qui montrent du corpus » mais
+« les pages du lecteur » — et celles-là ont un fil d'Ariane, pas une ouverture.
+
+Le départage se lit d'ailleurs dans le code sans aucune table : **les cinq pages
+de la liseuse sont exactement celles qui emploient `PageDeLecture`.**
+
+#### La peau suit la vue, et non l'URL
+
+La première version consultait `use_location().pathname` et comparait à une
+table de préfixes. **Elle a été prise en défaut avant d'être livrée**, par un
+banc qui charge le site dans un cadre de même origine et clique un lien à sa
+place — le seul moyen d'agir sur la page sans main sur l'écran :
+
+```
+ 6 s  url=/fr  peau=—      titre=Le cosmos hébreu n'est
+14 s  url=/fr  peau=—      titre=Le cosmos hébreu n'est   ← clic sur « Lire »
+16 s  url=/fr  peau=clair  titre=Le cosmos hébreu n'est
+20 s  url=/fr  peau=clair  titre=Le cosmos hébreu n'est
+```
+
+L'accueil porte la peau de la liseuse, et il la garde — exactement le rendu qui
+venait d'être écarté.
+
+`PeauDeLaLiseuse` est donc **montée par `PageDeLecture`** : elle pose l'attribut
+en arrivant, le retire en partant. Un montage suit la vue par construction,
+donc l'attribut ne peut plus exister sans que la page de lecture soit à l'écran.
+
+**Et il ne faut pas faire dire au banc plus qu'il ne dit.** La cause exacte du
+défaut n'est pas établie : sur la version corrigée, il n'obtient plus aucune
+navigation du tout, ni vers la liseuse ni vers une page d'édition, sur vingt
+secondes de relevé. Un clic synthétique dans un cadre ne pilote pas ce routeur ;
+il permet seulement d'observer.
+
+Ce qui est établi suffit, et tient en deux lignes : l'accueil **a été vu**
+portant `clair` ; il ne peut plus l'être. La seconde propriété ne dépend
+d'aucune hypothèse sur le routeur — elle est vraie par construction, pas par
+mesure, et c'est pour ça qu'on la préfère.
+
+### La peau se pose avant le premier rendu
+
+Le thème vit dans `localStorage`, que le serveur ne voit pas : il rend toujours
+`mystique`. Un lecteur qui a choisi `parchemin` recevrait donc une nuit, puis du
+papier une fois le WASM hydraté — **un éclair de noir sur une page claire, à
+chaque navigation**.
+
+`app.rs::PeauAvantLePremierRendu` pose un script synchrone dans l'en-tête. Il
+bloque l'analyse du document, donc il s'exécute avant que `<body>` n'existe :
+l'attribut est là avant la première peinture. C'est le seul script en clair du
+site, et il ne fait que ça.
+
+Un cookie aurait rendu le bon thème dès le premier octet, script compris. Il a
+été écarté : il coûte une écriture d'en-tête sur des réponses que les pages ne
+composent pas, et une **seconde mémoire** à tenir d'accord avec celle qui porte
+déjà les trois autres réglages.
+
+**Les quatre noms viennent de `Theme::attribut`**, jamais d'une liste recopiée
+dans le script : un thème renommé ferait autrement retomber le lecteur sur le
+défaut sans qu'aucune erreur ne le dise.
+
+### Une pastille ne décrit pas sa peau, elle la porte
+
+Chaque pastille du sélecteur porte **son propre `data-theme`** et prend ses
+couleurs dans `var(--ont-*)`. C'est un échantillon vivant, pas une couleur
+écrite à la main qui mentirait au premier thème retouché.
+
+Le détour par `--color-*` ne marcherait pas, et c'est mécanique : **une
+propriété personnalisée se résout une fois**, sur l'élément qui la déclare, puis
+s'hérite déjà substituée. `--color-nuit` étant déclarée sur `:root`, elle vaut
+le fond de la page partout dans le document — y compris sous un `data-theme`
+différent. On vise donc `--ont-*` directement.
+
+### Les gardes de contraste ont refusé, et elles avaient raison
+
+Elles lisaient treize littéraux dans `main.css`. Ils n'y sont plus. **Elles se
+sont arrêtées** au lieu de mesurer autre chose — leur relevé exigeait un
+hexadécimal, il a trouvé `var(--ont-background)`. Une garde qui aurait « suivi »
+la variable aurait mesuré la palette du défaut en croyant mesurer les quatre.
+
+Elles lisent maintenant `jetons.css`, **par le nom de rôle de l'app** — `ink` et
+non `encre` — et sur les quatre thèmes. Et elles composent les couches
+translucides sur leur fond : `inkSoft` vaut `#E0DBD4AB` sur `sombre`, c'est-à-
+dire l'encre à 67 %. Prise pour `#E0DBD4`, elle mesurerait 13,3:1 là où le
+lecteur en voit 6,5.
+
+#### Ce qu'elles ont trouvé, et qui n'est pas réglé
+
+Le site tient **6,4:1** sur son fond de page — pas AA, qui s'arrête à 4,5 : le
+plancher du kératocône de l'auteur. `mystique` le tient partout. Les trois
+palettes portées, non. Relevé le 21 septembre 2026, sur le fond de page :
+
+| | parchemin | clair | sombre | mystique |
+|---|---|---|---|---|
+| `accent` | **3,12** | **3,39** | 9,83 | 10,42 |
+| `inkSoft` | **4,62** | **4,61** | 6,51 | 6,50 |
+| `accentuation` | 8,11 | 8,81 | **6,16** | 6,54 |
+| `shem` | 9,57 | 10,40 | **6,14** | 6,51 |
+
+**L'or sur du clair est le vrai sujet.** `#A6874F` sur du parchemin donne
+3,12:1 — sous AA, et loin des 6,4 d'ici. Sur le site il porte les titres de
+section en capitales espacées à 16 px, c'est-à-dire du texte courant. Ce n'est
+pas une dette d'ornement.
+
+Elle n'est **pas corrigée ici**, et il faut dire pourquoi : ces valeurs sont
+celles de l'app, et la corriger d'un seul côté ferait exactement la divergence
+que le portage existe pour empêcher. Elle est relevée, signalée à la session
+iOS, et tenue par un cliquet à double sens — une valeur qui s'améliore fait
+échouer le test aussi, pour que la dette inscrite descende avec le défaut.
+
+### Ce que les deux sessions voisines ont donné
+
+**iOS** (`hebrew-strong-number-conflicts`) tient le responsive :
+
+- le Dynamic Type n'est pas un réglage de confort dans cette app — l'auteur
+  monte le curseur **pour voir**. Sur le web il n'y a pas d'équivalent système
+  qui remonte : le réglage doit exister dans la page, en `rem`, jamais en `px`
+  figés sur le corps ;
+- la bonne question n'est pas « 17 pt ou 21 px » mais « le lecteur peut-il
+  agrandir, et jusqu'où la mise en page tient-elle ». **C'est un test, pas un
+  jeton** — et la décision « la mesure se hache à 34 rem », prise à une seule
+  taille, est à refaire au cran maximal ;
+- les feuilles sont le point de friction : ce qui est une `.sheet` sur iPhone
+  n'a pas d'équivalent dans un navigateur. La question à lui poser est **ce qui
+  doit rester modal**, pas comment c'est fait.
+
+**macOS** (`mac-sidebar-ipad-alignment`) tient le bureau :
+
+- `ONTPlateformes.swift` ne contient **que** des accidents de SwiftUI, par
+  construction — son en-tête pose que les vraies décisions n'y entrent pas. Un
+  seul mérite d'être transposé pour de bon : `ontSansCapitaleAutomatique`, qui
+  est un accident sur Mac mais existe vraiment sur le web mobile
+  (`autocapitalize` dans un champ de recherche) ;
+- **ne pas copier sa barre latérale.** Le Mac la dessine à la main parce qu'il
+  y a été forcé — la sélection sortait à l'accent du système, ⌘= ne changeait
+  rien, la largeur n'était pas déclarable. **Aucun des trois n'existe sur le
+  web.** iOS et iPad emploient `TabView(.sidebarAdaptable)` ; le site est plus
+  proche de l'iPad, qui n'a pas eu à contourner. Ce qu'il y a à prendre sont
+  ses **mesures**, relevées sur Craft au pixel dans `BarreLateraleONT.swift` ;
+- **le compte va en bas, épinglé, hors du défilement.** C'est la place
+  qu'Apple Music lui donne, et ce n'est pas arbitraire : le compte n'est pas une
+  destination parmi les livres, c'est **qui regarde**. Sur un corpus complet,
+  une dernière section le mettrait à soixante-dix livres de là ;
+- `readingWidth 700` borne la prose, `pageWidth 850` borne une page — listes,
+  cartes, réglages. « Une liste ne se lit pas comme une phrase : l'œil n'y court
+  pas d'un bout à l'autre, il saute d'un intitulé à sa valeur. » **La leçon
+  n'est ni l'une ni l'autre valeur : c'est qu'il en faut deux.** Le site n'en a
+  qu'une, et c'est là qu'il faut commencer.
+
+### Ce qui reste de la webapp
+
+- la **typographie** — `ONTTypography.swift`, six styles, six familles
+  embarquées dans `app/Resources/Fonts/` ;
+- les **métriques** — `ONTMetrics.swift` : pilule 999, surlignage 6, bloc 18,
+  carte 22, feuille 34 ;
+- les **composants** et la **navigation** — `RootView.swift`, les onglets
+  Qahal / Bible / Lexique / Chuqqot / Vous ;
+- l'**icône** — `app/ONT.icon`, un paquet Icon Composer ;
+- les **cinq couleurs de surlignage**, qui ne sont pas dans les vingt rôles et
+  restent littérales dans `main.css`.
 
 ## 9. Ce qui reste à trancher
 

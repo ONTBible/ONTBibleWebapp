@@ -37,6 +37,143 @@ use serde::{Deserialize, Serialize};
 
 use crate::domaine::texte::Noeud;
 
+/// La peau de la page — les quatre thèmes de la liseuse de l'app.
+///
+/// ## Le site en offrait zéro, et c'était écrit
+///
+/// Le `CLAUDE.md` disait, au §8 bis : « Ce que le site n'emprunte pas : taille
+/// du corps, interligne, fonte, **thème**. L'app a raison de les offrir — elle
+/// est un lecteur, et un lecteur s'adapte à qui le tient. Le site est une
+/// **édition** : sa nuit d'aubergine est une décision, pas un défaut qu'on
+/// propose de corriger. »
+///
+/// **L'auteur a tranché autrement le 21 septembre 2026** : « je veux que la
+/// webapp soit identique en tout point à l'app iOS — icône, design system, DA,
+/// feature, tout. Je veux que l'user ait l'app iOS, mais en webapp. » Le thème
+/// est une feature de la liseuse ; il entre.
+///
+/// Ce que la décision d'avant gardait de vrai est le **défaut** : le site
+/// ouvre sur `Mystique` là où l'app ouvre sur `Parchemin`. L'édition a une
+/// peau ; le lecteur peut en changer.
+///
+/// ## Les noms ne se traduisent pas
+///
+/// Ce sont ceux de l'app — `ReadingTheme` dans `ONTKit/Reader/Reader.swift` —
+/// et ils doivent le rester : un lecteur qui passe du téléphone au site doit
+/// retrouver les mêmes mots dans le même menu. `mystique` est d'ailleurs né
+/// ici et a été transposé là-bas ; c'est le seul des quatre dont ce dépôt soit
+/// la source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    /// Le papier de l'app — son défaut à elle, et il ne suit pas le système.
+    Parchemin,
+    /// Le blanc franc.
+    Clair,
+    /// Le gris neutre.
+    Sombre,
+    /// La nuit d'aubergine — la peau de ce site, et son défaut.
+    #[default]
+    Mystique,
+}
+
+/// Les chemins où la peau du lecteur s'applique — **la liseuse, et rien d'autre**.
+///
+/// ## Pourquoi le site n'est pas thémé en entier
+///
+/// Arbitré par l'auteur le 21 septembre 2026, devant trois rendus de l'accueil.
+/// La liseuse encaisse les quatre peaux ; l'ouverture, non.
+///
+/// La cause est dans la rampe : `--color-aubergine` est **la marque**, donc
+/// elle ne suit aucun thème — une enseigne ne change pas de couleur parce que
+/// le lecteur a baissé la lumière. Le massif, la voûte et le portail sont
+/// dessinés avec elle. Sur les deux peaux sombres ils tiennent ; posés sur du
+/// parchemin, le massif devient une forme violette et « C'est un Temple »,
+/// qui est en or, disparaît presque.
+///
+/// Les deux autres voies ont été écartées devant lui : redessiner l'ouverture
+/// par thème ferait de la nuit d'aubergine — trouvée en trois essais — un
+/// thème parmi quatre ; n'offrir que les deux peaux sombres laisserait le
+/// lecteur qui lit sur parchemin ne pas le retrouver, c'est-à-dire l'écart que
+/// ce chantier existe pour fermer.
+///
+/// **C'est la couture que la session macOS nomme de son côté** : une liseuse
+/// est un lieu où l'on revient, une page d'édition est quelque chose qu'on lit
+/// une fois. Le site a les deux natures, et elles ne se règlent pas pareil.
+/// C'est aussi ce que fait l'app, dont l'accueil n'a jamais eu de thème.
+///
+/// ## Pourquoi cette table vit dans le domaine
+///
+/// Elle a la forme d'une table de routes, et ce n'est pas là qu'on la
+/// chercherait. Mais **trois endroits en ont besoin** : le script de l'en-tête,
+/// qui pose la peau avant le premier rendu ; l'effet qui la repose à chaque
+/// navigation ; et l'épreuve qui les garde d'accord. Deux d'entre eux vivent
+/// côté navigateur.
+///
+/// Une règle pure, sans horloge ni réseau, qui compile des deux côtés et se
+/// teste sans rien monter : c'est la définition de ce qui va au domaine. La
+/// poser dans `interface::app` obligerait `design/` à connaître le routeur.
+/// ## Et la recherche n'en est pas, bien qu'elle rende du corpus
+///
+/// Elle **porte une ouverture** — `Hero`, avec le massif —, et c'est
+/// exactement ce qui ne survit pas à une peau claire : la montagne devient une
+/// forme violette sur de la crème, et le bouton « Chercher », qui est en or,
+/// disparaît dans son fond. Mesuré, pas supposé.
+///
+/// La règle que l'auteur a tranchée n'est donc pas « les pages qui montrent du
+/// corpus » mais « les pages du lecteur » — et celles-là n'ont pas d'ouverture,
+/// elles ont un fil d'Ariane. Le départage se lit d'ailleurs dans le code sans
+/// cette table : **les cinq pages de la liseuse sont exactement celles qui
+/// emploient `PageDeLecture`.**
+pub const LA_LISEUSE: [&str; 2] = ["/fr/lire", "/fr/lexique"];
+
+/// La peau du lecteur s'applique-t-elle à ce chemin ?
+///
+/// **Le préfixe seul ne suffit pas**, et c'est le seul piège de cette
+/// fonction : `/fr/lirent-ils` commence par `/fr/lire` sans être la liseuse.
+/// On exige donc le chemin exact, ou le préfixe **suivi d'une barre**.
+pub fn c_est_la_liseuse(chemin: &str) -> bool {
+    let chemin = chemin.trim_end_matches('/');
+    LA_LISEUSE
+        .iter()
+        .any(|prefixe| chemin == *prefixe || chemin.starts_with(&format!("{prefixe}/")))
+}
+
+impl Theme {
+    /// Les quatre, dans l'ordre du menu de l'app.
+    pub const TOUS: [Theme; 4] = [
+        Theme::Parchemin,
+        Theme::Clair,
+        Theme::Sombre,
+        Theme::Mystique,
+    ];
+
+    /// Ce que porte `<html data-theme="…">`, et donc le sélecteur des jetons.
+    ///
+    /// **La même chaîne sert des deux côtés du fil** : elle voyage dans le
+    /// JSON du navigateur *et* dans l'attribut que lit `jetons.css`. Deux
+    /// tables — une pour sérialiser, une pour l'attribut — finiraient par
+    /// diverger sur le jour où l'on renommerait un thème.
+    pub fn attribut(self) -> &'static str {
+        match self {
+            Theme::Parchemin => "parchemin",
+            Theme::Clair => "clair",
+            Theme::Sombre => "sombre",
+            Theme::Mystique => "mystique",
+        }
+    }
+
+    /// Le nom dans le menu — celui de l'app, capitale comprise.
+    pub fn libelle(self) -> &'static str {
+        match self {
+            Theme::Parchemin => "Parchemin",
+            Theme::Clair => "Clair",
+            Theme::Sombre => "Sombre",
+            Theme::Mystique => "Mystique",
+        }
+    }
+}
+
 /// Ce que le lecteur a choisi de voir.
 /// `serde(default)` sur chaque champ, et ce n'est pas une précaution de style :
 /// ces valeurs viennent du **stockage du navigateur**, écrit par une version
@@ -68,6 +205,16 @@ pub struct Preferences {
     /// réglage laisse le lecteur passer d'un monde à l'autre au lieu de le lui
     /// raconter.
     pub francais: bool,
+    /// La peau de la page.
+    ///
+    /// Elle vit ici, avec les niveaux du texte, parce qu'elle vit **au même
+    /// endroit chez le lecteur** : une seule clé dans le stockage du
+    /// navigateur, un seul panneau, un seul signal. C'est aussi ce que fait
+    /// l'app, dont les réglages de lecture portent son `ReadingTheme`.
+    ///
+    /// Elle ne traverse pas `depouiller` pour autant : ce n'est pas un niveau
+    /// du texte, et rien ne se retire quand elle change.
+    pub theme: Theme,
 }
 
 impl Default for Preferences {
@@ -83,6 +230,7 @@ impl Default for Preferences {
             gloses: true,
             niveau_3: true,
             continu: false,
+            theme: Theme::Mystique,
         }
     }
 }
@@ -107,6 +255,10 @@ impl Preferences {
             gloses: false,
             niveau_3: false,
             continu: false,
+            // Sans effet ici : la peau ne dépouille rien, et une citation qui
+            // part vers un aperçu de messagerie n'emporte aucune couleur.
+            // Le champ doit être rempli, il ne doit pas être choisi.
+            theme: Theme::Mystique,
         }
     }
 }
@@ -466,4 +618,61 @@ pub fn corps(noeuds: &[Noeud]) -> String {
     let mut sortie = String::new();
     aplatir(&preparer(noeuds, Preferences::nu()), &mut sortie);
     sortie
+}
+
+#[cfg(test)]
+mod epreuves_de_la_liseuse {
+    use super::c_est_la_liseuse;
+
+    #[test]
+    fn les_trois_pages_de_corpus_portent_la_peau() {
+        for chemin in [
+            "/fr/lire",
+            "/fr/lire/bereshit",
+            "/fr/lire/bereshit/bereshit-1",
+            "/fr/lexique",
+            "/fr/lexique/bara",
+        ] {
+            assert!(c_est_la_liseuse(chemin), "{chemin} est la liseuse");
+        }
+    }
+
+    #[test]
+    fn l_edition_garde_la_nuit_d_aubergine() {
+        for chemin in [
+            "/fr",
+            "/fr/le-pourquoi",
+            "/fr/l-auteur",
+            "/fr/l-app",
+            "/fr/ce-que-l-ont-n-est-pas",
+            // Elle montre du corpus, et elle garde pourtant la nuit : elle
+            // porte une ouverture, et une ouverture ne survit pas au clair.
+            "/fr/rechercher",
+            "/fr/rechercher?q=ruach",
+            "/fr/confidentialite",
+            "/fr/conditions",
+            "/",
+        ] {
+            assert!(!c_est_la_liseuse(chemin), "{chemin} est l'édition");
+        }
+    }
+
+    /// Un préfixe n'est pas une frontière.
+    ///
+    /// `/fr/lirent-ils` commence par `/fr/lire`. Aucune de ces adresses
+    /// n'existe aujourd'hui — et c'est justement pourquoi l'épreuve compte :
+    /// le jour où l'une d'elles naîtra, personne ne pensera à revenir ici.
+    #[test]
+    fn un_prefixe_ne_deborde_pas_sur_le_mot_voisin() {
+        for chemin in ["/fr/lirent-ils", "/fr/lexiquement", "/fr/lire-moi"] {
+            assert!(!c_est_la_liseuse(chemin), "{chemin} n'est pas la liseuse");
+        }
+    }
+
+    /// La barre finale ne change rien — un routeur peut la poser ou non.
+    #[test]
+    fn la_barre_finale_est_sans_effet() {
+        assert!(c_est_la_liseuse("/fr/lire/"));
+        assert!(!c_est_la_liseuse("/fr/"));
+    }
 }

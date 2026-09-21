@@ -6093,3 +6093,138 @@ un Shem — relevé dans leurs sources, pas déduit :
 **Il n'y a donc rien à porter, seulement plus de mots qui portent une cible.**
 C'est la couche des Shemot décidée le 29 août qui avait déjà fait le travail
 chez eux ; ce qui manquait était en amont, dans la jointure.
+
+## 21 septembre 2026, l'après-midi — porter un design system en l'exécutant
+
+L'auteur a demandé que la webapp soit **identique en tout point** à l'app iOS —
+design system compris. Les couleurs sont la première pièce, et la façon de les
+prendre est la seule chose de cette entrée qui vaille pour les trois dépôts.
+
+### On ne lit pas un design system, on l'interroge
+
+`ONTColors` n'est pas une table de constantes : c'est un **enum de fonctions du
+thème**, et onze de ses vingt rôles calculent — mélanges, opacités, dérivations.
+
+Un extracteur textuel aurait rendu les neuf constantes justes et les onze autres
+**fausses avec l'air d'être bonnes**. C'est le pire des deux : une valeur
+absente se voit, une valeur plausible se croit.
+
+Le site a donc posé un exécutable Swift de quarante lignes qui **importe**
+`ONTDesignSystem` et appelle chaque fonction. Quatre-vingts valeurs en une
+commande, et aucune ne traverse un message.
+
+> ==Une valeur qui voyage dans un message se périme en silence ; un chemin se
+> relit ; un code s'exécute. La semaine du 11 au 18 a coûté trois fois la
+> première façon — une terre brûlée écartée deux jours plus tôt, un `contrat`
+> annoncé à 4 pour un pipeline à 3, un contre-exemple qui n'existait qu'en
+> fixture.==
+
+### Le seul contrôle qui prouve quelque chose est celui dont on sait la réponse
+
+Le thème `mystique` est né dans le site et a été transposé dans l'app en août.
+Il doit donc **revenir identique** — et il revient 9/9.
+
+C'est le seul cas de toute la chaîne dont les deux dépôts connaissent la réponse
+d'avance. Un contrôle qui ne peut pas rougir ne prouve rien ; celui-là a une
+réponse écrite ailleurs, avant d'être posé.
+
+Et il a fallu le **geler** plutôt que le relire : la feuille du site prend
+maintenant ses couleurs de la sortie du script, donc la relire aurait fait
+vérifier au script sa propre sortie. Une transcription est une valeur qu'on
+recopie et qui doit suivre sa source ; un témoin est un **point fixe** qui ne
+doit jamais bouger. Les deux se ressemblent et ne se traitent pas pareil.
+
+### Une garde qui s'arrête vaut mieux qu'une garde qui suit
+
+Les deux gardes de contraste du site relevaient treize littéraux hexadécimaux.
+Ils sont devenus des variables. Elles ont **refusé** — leur relevé exigeait un
+littéral, il a trouvé `var(--ont-background)`.
+
+C'était la bonne réaction, et elle n'allait pas de soi : une garde qui aurait
+« suivi » la variable aurait mesuré la palette du défaut **en croyant mesurer
+les quatre**. Elle serait restée verte, sur trois palettes qu'elle n'aurait
+jamais regardées.
+
+### Ce qu'elles ont trouvé, et qui appartient à l'app
+
+Le site tient **6,4:1** sur son fond de page — pas AA, qui s'arrête à 4,5. Le
+plancher a un nom : le kératocône de l'auteur, qui diffuse la lumière et
+confond les contours proches.
+
+Les trois palettes portées ne le tiennent pas, et l'une des mesures dépasse le
+cas du site :
+
+| sur le fond de page | parchemin | clair | sombre | mystique |
+|---|---|---|---|---|
+| `accent` | **3,12** | **3,39** | 9,83 | 10,42 |
+| `inkSoft` | **4,62** | **4,61** | 6,51 | 6,50 |
+| `accentuation` | 8,11 | 8,81 | **6,16** | 6,54 |
+| `shem` | 9,57 | 10,40 | **6,14** | 6,51 |
+
+**`ONTColors.accent` sur les thèmes clairs donne 3,12:1** — sous AA. Partout où
+il porte du texte plutôt qu'un filet ou une icône, c'est un défaut
+d'accessibilité, et il ne concerne pas que le site.
+
+Le site **ne l'a pas corrigé**, et c'est la règle à retenir : corriger la valeur
+d'un seul côté ferait exactement la divergence que le portage existe pour
+empêcher. Elle est relevée, transmise à l'app, et tenue par un cliquet à double
+sens — elle ne peut ni empirer, ni s'améliorer sans que la table le dise.
+
+**Et la retenue a payé dans l'heure.** La session macOS a refait le calcul de son
+côté, depuis un autre dépôt et une autre implémentation de la luminance :
+**3,11 / 3,32 / 3,39** contre **3,12 / 3,31 / 3,39** ici, à l'arrondi près.
+
+Puis elle a trouvé ce qu'aucun relevé fait depuis le site ne pouvait voir : **le
+jeton porte du texte dans `ONTFeatures`**, donc sur les trois plateformes à la
+fois — `ReferencePicker.swift:284` (un `Label`) et `LexiconTab.swift:91` (une
+lettre de tranche en *footnote semibold*, ~13 pt, donc pas du « grand texte » au
+sens WCAG, donc 4,5:1 exigé).
+
+> ==« Un jeton est faible » se discute ; « deux endroits nommés rendent du texte
+> à 3,1:1 » se corrige.== Une mesure sans chemin reste une opinion sur une
+> valeur. Le défaut est arrivé complet parce qu'aucun des deux dépôts ne l'a
+> réparé à moitié avant que l'autre l'ait vu.
+
+### Et une leçon de cascade, qui resservira partout
+
+`:root` et `[data-theme='…']` ont la **même spécificité**. À égalité, c'est
+l'ordre de la feuille qui tranche — le piège de `Bloc` et `max-w-mesure` rejoué
+un étage plus bas.
+
+Le bloc du défaut porte les deux sélecteurs, pour que la page se peigne sans
+JavaScript. Écrit en dernier, il gagnait contre les trois autres sur l'élément
+racine.
+
+Le défaut s'est vu exactement comme le §8 sexies du site l'annonce : **quatre
+aperçus sortis identiques à l'octet près**. Sans cette comparaison, on serait
+allé chercher la panne dans le signal, l'hydratation ou l'attribut — trois
+endroits où il n'y avait rien.
+
+### Et une leçon de vérification, qui vaut pour les trois dépôts
+
+Le thème a été borné à la liseuse, et la première version le bornait **par
+l'URL**. Elle a été prise en défaut avant d'être livrée, par un banc qui charge
+le site dans un cadre de même origine et clique un lien à sa place :
+
+```
+14 s  url=/fr  peau=—      titre=Le cosmos hébreu   ← clic vers la liseuse
+16 s  url=/fr  peau=clair  titre=Le cosmos hébreu
+```
+
+La page d'accueil portait la peau de la liseuse — le rendu qui venait d'être
+écarté. La peau se pose maintenant par **montage** d'un composant que seule la
+page de lecture monte : elle suit la vue par construction.
+
+> ==Une condition qui dépend d'un état *en cours de changement* — une URL
+> pendant une navigation, une pile pendant une transition — est fausse pendant
+> l'intervalle. Faire dépendre l'affichage du **montage** plutôt que de l'état
+> supprime l'intervalle au lieu de le raccourcir.==
+
+Et la seconde moitié compte autant : **on n'a pas fait dire au banc plus qu'il
+ne dit.** La cause exacte n'est pas établie — sur la version corrigée, le banc
+n'obtient plus aucune navigation, ni vers la liseuse ni ailleurs. Un clic
+synthétique dans un cadre ne pilote pas ce routeur ; il observe.
+
+Ce qui est établi suffisait : le défaut a été **vu**, il ne peut plus survenir.
+La seconde propriété ne dépend d'aucune hypothèse sur l'outil qui a trouvé la
+première — c'est ce qui la rend préférable à une explication plausible.

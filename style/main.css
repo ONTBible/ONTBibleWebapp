@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Les couleurs de l'app, engendrées par `scripts/porter-les-jetons.py`.
+
+   Quatre thèmes — parchemin, clair, sombre, mystique — sous quatre sélecteurs
+   `[data-theme]`, plus `:root` pour celui sur lequel le site ouvre. Elles ne
+   sont pas transcrites : le script exécute `ONTColors` et lit ce qu'il rend,
+   parce que onze de ces rôles sur vingt **calculent**.
+
+   Une règle @import doit précéder toute autre règle — d'où sa place ici,
+   avant même le `@source` qui suit.                                         */
+@import "./jetons.css";
+
 /* Les gabarits sont écrits en Rust : c'est là que Tailwind doit chercher les
    classes. Sans cette ligne il ne verrait aucun gabarit et produirait une
    feuille vide — panne silencieuse, la page s'afficherait sans style.
@@ -36,88 +47,117 @@
    `#411B26`, à un point près de l'originale, ce qui vérifie la dérivation.  */
 
 @theme {
-  /* La rampe. Quatre niveaux, du fond à la marque. */
-  --color-nuit: #18090d; /* le fond de la page */
-  --color-surface: #261016; /* une carte, une porte, une ligne de liste */
-  --color-surface-haute: #35151e; /* un bandeau, ce qu'on veut détacher */
-  --color-aubergine: #421b26; /* la marque, et le haut des dégradés */
+  /* ── Les couleurs sont celles de l'app, et c'est un revirement ────────────
 
-  --color-or: #cdbe83;
+     Ce bloc portait treize valeurs en dur. Il n'en porte plus qu'une.
+
+     L'auteur a demandé le 21 septembre 2026 que la webapp soit **identique en
+     tout point** à l'app iOS. Chaque jeton de couleur est donc devenu un
+     **rôle**, qui prend sa valeur dans `jetons.css` selon le thème que porte
+     `<html>`. Les noms du site sont gardés — `nuit`, `encre`, `or`, `filet` —
+     parce que six cents classes les emploient et qu'un renommage dirait la
+     même chose avec d'autres mots.
+
+     **Rien n'a bougé à l'écran en le faisant**, et c'est ce qui le rend sûr :
+     `mystique` est né ici et a été transposé dans l'app en août, donc il en
+     revient identique. Neuf de ces treize valeurs sont vérifiées à chaque
+     portage — c'est le témoin du script, et il est le seul cas de la chaîne
+     dont les deux dépôts connaissent la réponse d'avance.
+
+     Le sens de la référence s'inverse donc, et il faut le savoir : le §5 du
+     `CLAUDE.md` disait « une teinte se retouche dans `style/main.css`, puis se
+     reporte dans l'app, jamais l'inverse ». Ce n'est plus vrai depuis ce
+     commit. **Une teinte se retouche dans `ONTColors`**, et le portage la
+     rapporte. Ce qui reste vrai est l'origine de `mystique` — il vient d'ici,
+     et le témoin l'atteste.                                                  */
+
+  /* La rampe. Trois niveaux du fond à la carte, plus la marque.
+
+     Les deux premiers sont ceux de l'app. Le troisième ne l'est pas : elle
+     n'a que deux surfaces, le site en a trois, et le script en déduit une —
+     un pas de plus dans la direction que `surface` prend déjà par rapport au
+     fond. La direction s'inverse d'elle-même selon le thème.                 */
+  --color-nuit: var(--ont-background); /* le fond de la page */
+  --color-surface: var(--ont-surface); /* une ligne de liste, une porte */
+  --color-surface-haute: var(--ont-surfaceHaute); /* une carte, une feuille */
+
+  /* La marque, et elle **ne suit aucun thème**.
+
+     C'est le seul littéral qui reste, et c'est délibéré : `#421B26` est
+     l'aubergine relevée au pixel sur le combination mark. Elle dessine la
+     montagne, le haut des dégradés, un interrupteur allumé — des pièces qui
+     disent *La Bible ONT*, pas des pièces que le lecteur lit.
+
+     Son rôle chez l'app est `brandInk`, et il ne convient pas : là-bas c'est
+     l'encre qu'on pose **sur** la marque, donc l'aubergine sur les thèmes
+     clairs et l'**or** sur les thèmes sombres. Le prendre ferait virer la
+     montagne à l'or sur `sombre`. Une enseigne ne change pas de couleur parce
+     que le lecteur a baissé la lumière.                                      */
+  --color-aubergine: #421b26;
 
   /* ── L'encre ──────────────────────────────────────────────────────────────
+
+     Trois niveaux, et ce sont ceux de l'app — `ink`, `inkStrong`, `inkSoft`.
+     Ce que la nuit d'aubergine leur demandait reste vrai et reste mesuré chez
+     elle : sur `mystique` ils valent #CFC5B9, #EDE3D6 et #9D948B, soit 11,4:1,
+     15,3:1 et 6,5:1 sur le fond.
 
      Jamais de blanc pur, et jamais un gris. Deux raisons, dans cet ordre :
 
      1. La **halation**. Sur fond sombre, un texte clair déborde optiquement
         dans le noir qui l'entoure : les lettres paraissent plus grasses,
         vibrent, et se doublent sur une dalle OLED. Descendre à 87 % de clarté
-        supprime l'essentiel de ce halo, sans rien coûter à la lisibilité —
-        11,4:1 sur le fond, bien au-delà du seuil AAA.
+        supprime l'essentiel de ce halo, sans rien coûter à la lisibilité.
 
      2. Le **parchemin**. L'encre garde la chaleur du papier de l'app plutôt
-        que de virer au gris de laboratoire. C'est le même projet.           */
-  --color-encre: #cfc5b9; /* le corps       — 11,4:1 sur le fond */
-  --color-encre-vive: #ede3d6; /* un titre       — 15,3:1 */
-  --color-encre-douce: #9d948b; /* le niveau 2    —  6,5:1 */
+        que de virer au gris de laboratoire. C'est le même projet — et depuis
+        ce portage, littéralement la même valeur.                            */
+  --color-encre: var(--ont-ink); /* le corps */
+  --color-encre-vive: var(--ont-inkStrong); /* un titre */
+  --color-encre-douce: var(--ont-inkSoft); /* le niveau 2 */
 
-  /* L'accentuation — l'aubergine remontée en clarté à teinte constante,
-     jusqu'à 6,5:1 sur le fond. C'est la valeur du thème sombre de l'app. */
-  --color-accentuation: #d87994;
+  /* L'accentuation — le `==mot==` du corpus, et tout nom propre hébreu.
+     Sur une nuit, c'est l'aubergine remontée en clarté à teinte constante
+     jusqu'à 6,5:1 ; sur du parchemin, le bordeaux #862742 de l'app. Le rôle
+     est le même des deux côtés, la valeur suit le fond.                     */
+  --color-accentuation: var(--ont-accentuation);
 
   /* Le Shem — le nom propre hébreu qui porte une fiche.
+
      Une **terre**, délibérément hors de la rampe à 343° : il lui faut se
      distinguer de l'or de l'intraduisible et du bordeaux de l'accentuation,
      et une quatrième nuance de la même teinte ne s'en distinguerait pas.
 
-     C'est la couleur de l'app — même teinte, même saturation — avec la seule
-     clarté relevée, par la méthode de l'accentuation juste au-dessus :
+     Les deux dépôts ont convergé sur #BA8C6C pour les thèmes sombres, chacun
+     depuis son propre fond et sans se recopier — le site parce que la valeur
+     d'avant, #AA7550, tombait à 4,60:1 sur une `surface`, c'est-à-dire sur le
+     fond d'un verset désigné par un lien partagé ; l'app parce qu'elle en
+     aurait fait son marquage le plus faible. Ce n'est plus une coïncidence
+     qu'il faut entretenir : c'est la même valeur, au même endroit.          */
+  --color-shem: var(--ont-shem);
 
-       #AA7550   24,7°  36,0 %  49,0 %   la valeur du thème sombre de l'app
-       #BA8C6C   24,6°  36,1 %  57,6 %   la même, remontée pour cette nuit
+  /* Le renvoi d'une chuqqah vers une autre — `((cible|libellé))`. C'est la
+     seule couche où l'app et le site coïncidaient déjà au chiffre près.
 
-     L'app la mesure sur son fond à elle, #171416, où elle tient 4,68:1. Ici,
-     4,95:1 sur la nuit et 4,60:1 sur une `surface` — sous le plancher de la
-     rampe, qui est 6,5:1. Celle-ci donne 6,5:1 et 6,0:1.
-
-     Le second fond est celui qui tranche : `surface` est le fond d'un verset
-     **désigné par un lien partagé**. La couleur de l'app échouerait donc sur
-     la page que cette couche sert précisément à partager.
-
-     Ce qui est commun entre les dépôts est la teinte et le nom de la couche,
-     pas la valeur — comme `mystique`, dont ce dépôt est la référence et l'app
-     la transposition. Ici c'est l'inverse : la teinte vient de l'app, la clarté
-     se remesure sur le fond d'arrivée.
-
-     L'app a adopté celle-ci après avoir mesuré de son côté — non pour AA, que
-     #AA7550 tenait chez elle, mais parce qu'il aurait été le marquage le plus
-     faible de ses thèmes sombres. Les deux dépôts ont donc convergé sans se
-     recopier, chacun depuis son propre fond. Ça ne contredit pas la règle :
-     elle dit que la valeur se remesure, pas qu'elle doit différer — et nos
-     fonds sombres se ressemblent, là où nos fonds clairs ne se ressemblent
-     pas. */
-  --color-shem: #ba8c6c;
-
-  /* Le renvoi d'une chuqqah vers une autre — `((cible|libellé))`.
-
-     La valeur du thème sombre de l'app est #D08C43, mesurée là-bas à 6,94:1
-     sur son fond. Ici la nuit est plus sombre : la même valeur y donne plus,
-     et rien n'oblige à la remonter. On la reprend telle quelle — c'est la
-     seule des quatre couches où l'app et le site coïncident au chiffre près.
-
-     Elle doit se distinguer du Shem (#BA8C6C, 24,6°) : celle-ci est à 31,5°,
+     Elle doit se distinguer du Shem : #D08C43 est à 31,5°, #BA8C6C à 24,6° —
      plus saturée et plus claire. ΔE mesuré entre les deux : 25, le plancher
-     que le projet s'est donné entre deux marquages. */
-  --color-renvoi: #d08c43;
+     que le projet s'est donné entre deux marquages.                         */
+  --color-renvoi: var(--ont-renvoi);
 
-  /* L'accent est l'or : sur cette nuit, il n'a pas besoin d'être assombri
-     comme il le fallait sur le parchemin. Le jeton garde son nom de **rôle**,
-     comme `ONTColors.accent` dans l'app — ce qui permettra de le décliner un
-     jour sans toucher à un seul composant. */
-  --color-accent: #cdbe83;
+  /* L'or, et l'accent. Deux noms, un seul rôle chez l'app — `accent` — et
+     c'est lui qui a raison : `or` décrit une matière, `accent` décrit un
+     emploi, et sur du parchemin l'or doit s'assombrir pour tenir le contraste
+     (#A6874F au lieu de #CDBE83). Un jeton qui s'appelle « or » et qui n'est
+     pas doré est un jeton qui ment ; on garde les deux noms le temps que les
+     classes migrent, et ils pointent la même chose.                         */
+  --color-or: var(--ont-accent);
+  --color-accent: var(--ont-accent);
 
-  /* Les filets sont dorés et non gris : sur une nuit chaude, un gris paraît
-     sale. À 18 %, le trait se voit sans découper la page. */
-  --color-filet: color-mix(in srgb, #cdbe83 18%, transparent);
+  /* Les filets. C'est `separator` chez l'app, et ce n'est pas la même recette
+     selon le thème : de l'or à 18 % sur une nuit — où un gris paraîtrait sale
+     sur une teinte chaude —, de l'encre à 10 % sur du parchemin, où c'est le
+     trait de crayon d'une page imprimée.                                     */
+  --color-filet: var(--ont-separator);
 
   /* ── Fontes ──────────────────────────────────────────────────────────────
 
