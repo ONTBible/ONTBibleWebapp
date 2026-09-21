@@ -978,6 +978,59 @@ mod epreuves_du_corps {
         }
     }
 
+    /// ## Les quatre rayons sont ceux d'`ONTRadius`
+    ///
+    /// Relus dans l'app, en points, et comparés aux jetons de la feuille, en
+    /// `rem`. La conversion est à `16 px = 1 rem` — la taille de base d'un
+    /// navigateur, que le site ne change jamais (c'est ce qui fait que le zoom
+    /// du lecteur commande, §5).
+    ///
+    /// **Le rayon de la feuille est celui qui valait l'épreuve.** Il est mesuré
+    /// et non choisi : « à 22, la carte du Mac se lisait comme une boîte de
+    /// dialogue, pas comme une feuille ». Le panneau « aA » du site était
+    /// précisément à 22.
+    #[test]
+    fn les_rayons_sont_ceux_de_l_app() {
+        let chemin =
+            "../ONTBibleApp/app/Packages/ONTDesignSystem/Sources/ONTDesignSystem/Tokens/ONTMetrics.swift";
+        let source = std::fs::read_to_string(chemin)
+            .unwrap_or_else(|erreur| panic!("  {chemin} est illisible : {erreur}"));
+        let feuille = include_str!("../../style/main.css");
+
+        for (la_bas, ici) in [
+            ("highlight", "--radius-surlignage"),
+            ("block", "--radius-bloc"),
+            ("card", "--radius-carte"),
+            ("feuille", "--radius-feuille"),
+        ] {
+            let points: f64 = source
+                .lines()
+                .find(|l| l.contains(&format!("static let {la_bas}:")))
+                .and_then(|l| l.split('=').nth(1))
+                .and_then(|v| v.trim().parse().ok())
+                .unwrap_or_else(|| panic!("  `ONTRadius.{la_bas}` est illisible"));
+
+            let rem: f64 = feuille
+                .lines()
+                .find(|l| l.trim_start().starts_with(&format!("{ici}:")))
+                .and_then(|l| l.split(':').nth(1))
+                .and_then(|v| {
+                    v.trim()
+                        .trim_end_matches(';')
+                        .trim_end_matches("rem")
+                        .parse()
+                        .ok()
+                })
+                .unwrap_or_else(|| panic!("  `{ici}` est illisible dans style/main.css"));
+
+            assert!(
+                (rem * 16.0 - points).abs() < 0.01,
+                "{ici} vaut {rem} rem soit {} px ; `ONTRadius.{la_bas}` vaut {points} pt",
+                rem * 16.0
+            );
+        }
+    }
+
     /// Le défaut laisse le site **exactement** tel qu'il était.
     ///
     /// `--lecture` vaut `corps / 19`. Au défaut il vaut 1, donc `calc(x * 1)`

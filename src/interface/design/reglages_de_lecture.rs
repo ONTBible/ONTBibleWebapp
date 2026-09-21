@@ -427,7 +427,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // pouce, et c'est de là qu'elle monte. Sur un grand écran elle
                 // se pose au-dessus du bouton, à sa largeur, et croît depuis
                 // son coin : le mouvement dit d'où elle sort.
-                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-carte border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-carte sm:border motion-reduce:transition-none"
+                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-feuille border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-feuille sm:border motion-reduce:transition-none"
                 class=("translate-y-full", move || !ouvert.get())
                 class=("opacity-0", move || !ouvert.get())
                 class=("pointer-events-none", move || !ouvert.get())
