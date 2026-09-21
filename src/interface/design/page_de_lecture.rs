@@ -106,7 +106,16 @@ pub fn PageDeLecture(
 
             {chapeau.map(|chapeau| view! { <div class="mb-14">{chapeau()}</div> })}
 
-            {children()}
+            // **La seconde échelle.** Tout ce que la liseuse contient hérite
+            // de cette taille, donc tout suit le réglage du lecteur — une
+            // glose, une fiche, un verset en lecture suivie. Au facteur 1,
+            // c'est exactement ce dont la page héritait déjà.
+            //
+            // Elle est posée **ici et pas sur le `Bloc`** : le fil d'Ariane et
+            // le titre sont de la chrome, et ils ne doivent pas enfler quand on
+            // monte le corps — c'est la règle de l'app, et sa raison est
+            // qu'une chrome qui grandit mange la place du texte.
+            <div class="liseuse">{children()}</div>
         </Bloc>
     }
 }

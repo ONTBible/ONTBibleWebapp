@@ -256,6 +256,105 @@
 
 }
 
+/* ═══ La seconde échelle — le corps de la traduction ═══════════════════════
+
+   **L'app en porte deux, et les confondre est un contresens.** Son code le dit
+   en nommant l'auteur :
+
+   > Un lecteur atteint de kératocône monte le corps du texte très haut pour
+   > lire, et n'a aucune raison de faire enfler du même geste une barre
+   > latérale qui lui mangerait la place où ce texte s'affiche.
+
+   | | l'app | le site |
+   |---|---|---|
+   | l'interface | ⌘+ / ⌘−, sept crans | le zoom du navigateur |
+   | le corps du texte | un curseur, 11 à 28 | `--lecture`, ci-dessous |
+
+   La première était déjà juste ici sans qu'on l'ait cherchée : la feuille est
+   tout entière en `rem`, donc la taille de police par défaut du navigateur et
+   son zoom commandent déjà — c'est le rôle que `@ScaledMetric` tient là-bas.
+   Ce qui manquait est la seconde.
+
+   ── Pourquoi un facteur et non une taille ─────────────────────────────────
+
+   `--lecture` vaut `corps / 19`, où 19 est le défaut du curseur de l'app. À 19
+   il vaut **exactement 1**, et `calc(x * 1)` rend `x` — donc rien ne bouge d'un
+   pixel tant que le lecteur n'a pas touché au réglage. C'est la même sûreté que
+   le portage des couleurs : le défaut est l'état d'avant, à l'identique.
+
+   Une taille absolue aurait demandé de choisir *quelle* taille, et le site en a
+   deux — la prose à 21 px, le corpus à `--text-lg`. Un facteur les emporte
+   toutes les deux sans avoir à trancher entre elles.
+
+   ── Ce qu'il ne touche pas, et c'est la moitié du sujet ───────────────────
+
+   Rien hors de la liseuse. Ni la navigation, ni le fil d'Ariane, ni la marque,
+   ni le bouton « aA » lui-même — qui doit rester atteignable quand le corps est
+   à son maximum, pas grandir avec lui.                                       */
+
+:root {
+  --lecture: 1;
+}
+
+/* Le cadre de lecture. Tout ce qu'il contient hérite de cette taille, donc
+   tout suit le réglage : la prose d'une fiche, une glose, un verset en lecture
+   suivie. Au facteur 1 c'est `--text-base`, c'est-à-dire ce dont la page
+   héritait déjà. */
+.liseuse {
+  font-size: calc(var(--text-base) * var(--lecture));
+}
+
+/* Un verset en mode d'étude, qui compose plus grand que la prose. Il portait
+   `text-lg` en dur ; il porte la même valeur, multipliée. */
+.corps-de-lecture {
+  font-size: calc(var(--text-lg) * var(--lecture));
+}
+
+/* ── Le curseur de taille ──────────────────────────────────────────────────
+
+   Un `input[type=range]` est le seul élément d'interface que ni Tailwind ni le
+   préflux ne peignent : il garde le dessin du système, bleu, avec un rail gris
+   — sur une nuit d'aubergine, c'est la seule pièce du site qui ne soit pas du
+   site.
+
+   Il se peint en deux fois, et il faut les deux : WebKit et Firefox n'exposent
+   pas les mêmes pseudo-éléments, et **une règle qui nomme les deux d'un coup
+   est ignorée en entier** par chacun des deux. Elles sont donc séparées,
+   volontairement dupliquées.
+
+   La hauteur du pouce est à 22 px et non à 16 : c'est la cible du doigt, et ce
+   réglage est cherché par quelqu'un qui ne lit pas encore confortablement.     */
+
+.curseur::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-filet);
+}
+
+.curseur::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-filet);
+}
+
+.curseur::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9.5px; /* (3 − 22) / 2, pour centrer le pouce sur le rail */
+  border-radius: 999px;
+  background: var(--color-accent);
+  border: 0;
+}
+
+.curseur::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  border: 0;
+}
+
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════
 
    Sous OFL, portées depuis `ONTBibleApp/app/Resources/Fonts/` par

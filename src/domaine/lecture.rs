@@ -140,6 +140,15 @@ pub fn c_est_la_liseuse(chemin: &str) -> bool {
 }
 
 impl Theme {
+    /// Les bornes du corps, **reprises du curseur de l'app**.
+    ///
+    /// `Slider(in: 11...28, step: 1)`, défaut 19 — écrites une fois là-bas
+    /// dans `TaillesAuClavier.corps`, pour qu'un raccourci ne puisse pas
+    /// atteindre une valeur que le curseur refuse. Même raison ici.
+    pub const CORPS_MINIMUM: u8 = 11;
+    pub const CORPS_MAXIMUM: u8 = 28;
+    pub const CORPS_PAR_DEFAUT: u8 = 19;
+
     /// Les quatre, dans l'ordre du menu de l'app.
     pub const TOUS: [Theme; 4] = [
         Theme::Parchemin,
@@ -205,6 +214,39 @@ pub struct Preferences {
     /// réglage laisse le lecteur passer d'un monde à l'autre au lieu de le lui
     /// raconter.
     pub francais: bool,
+    /// La taille du corps de la traduction, **dans l'unité de l'app**.
+    ///
+    /// ## Deux échelles, et les confondre est un contresens
+    ///
+    /// L'app en porte deux, et son code dit pourquoi en nommant l'auteur :
+    ///
+    /// > Un lecteur atteint de kératocône monte le corps du texte très haut
+    /// > pour lire, et n'a aucune raison de faire enfler du même geste une
+    /// > barre latérale qui lui mangerait la place où ce texte s'affiche.
+    ///
+    /// | | l'app | le site |
+    /// |---|---|---|
+    /// | l'interface | ⌘+ / ⌘−, sept crans de 0,85 à 1,50 | le zoom du navigateur |
+    /// | le corps du texte | un curseur, 11 à 28 | **ce champ** |
+    ///
+    /// Le site n'avait que la première, et par chance elle était déjà juste :
+    /// la feuille est tout entière en `rem`, donc le zoom et la taille de
+    /// police par défaut du navigateur commandent déjà — c'est le rôle que
+    /// `@ScaledMetric` tient chez elle. Ce qui manquait est la seconde.
+    ///
+    /// ## Pourquoi 11 à 28 et pas un pourcentage
+    ///
+    /// Ce sont **les bornes du curseur de l'app**, `Slider(in: 11...28,
+    /// step: 1)`, et son défaut est 19. Garder son unité plutôt qu'un facteur
+    /// rend les deux réglages littéralement comparables : un lecteur à 24 sur
+    /// son téléphone est à 24 ici, et la même valeur voyage dans le même
+    /// champ. Un pourcentage aurait demandé une conversion — donc un endroit
+    /// où se tromper, et un jour où les deux divergent.
+    ///
+    /// Le site n'applique pas ces points tels quels : son corps de lecture
+    /// n'est pas celui de l'app, il a été mesuré ici (§5). Ce qui voyage est
+    /// le **rapport au défaut** — 19 laisse le site exactement tel qu'il est.
+    pub corps: u8,
     /// La peau de la page.
     ///
     /// Elle vit ici, avec les niveaux du texte, parce qu'elle vit **au même
@@ -231,6 +273,7 @@ impl Default for Preferences {
             niveau_3: true,
             continu: false,
             theme: Theme::Mystique,
+            corps: Theme::CORPS_PAR_DEFAUT,
         }
     }
 }
@@ -255,10 +298,12 @@ impl Preferences {
             gloses: false,
             niveau_3: false,
             continu: false,
-            // Sans effet ici : la peau ne dépouille rien, et une citation qui
-            // part vers un aperçu de messagerie n'emporte aucune couleur.
-            // Le champ doit être rempli, il ne doit pas être choisi.
+            // Sans effet ici : ni la peau ni la taille ne dépouillent quoi
+            // que ce soit, et une citation qui part vers un aperçu de
+            // messagerie n'emporte ni couleur ni corps. Les deux champs
+            // doivent être remplis, ils n'ont pas à être choisis.
             theme: Theme::Mystique,
+            corps: Theme::CORPS_PAR_DEFAUT,
         }
     }
 }
@@ -674,5 +719,112 @@ mod epreuves_de_la_liseuse {
     fn la_barre_finale_est_sans_effet() {
         assert!(c_est_la_liseuse("/fr/lire/"));
         assert!(!c_est_la_liseuse("/fr/"));
+    }
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod epreuves_du_corps {
+    use super::Theme;
+
+    /// ## Les bornes du curseur sont celles de l'app, et c'est mesuré
+    ///
+    /// L'app les écrit une fois, dans `TaillesAuClavier.corps`, avec sa raison :
+    ///
+    /// > Les bornes du corps du texte — **les mêmes que le curseur des
+    /// > réglages**, `Slider(in: 11...28, step: 1)`. Écrites une fois ici,
+    /// > employées par les deux, pour qu'un raccourci ne puisse pas atteindre
+    /// > une valeur que le curseur refuse.
+    ///
+    /// Le site fait la même chose d'un cran plus loin : il ne les recopie pas,
+    /// il les **relit chez elle**. Le jour où l'auteur élargit son curseur, ce
+    /// test rougit ici — et l'écart se voit avant qu'un lecteur ne trouve deux
+    /// amplitudes différentes sur ses deux appareils.
+    ///
+    /// C'est la même forme que le témoin des couleurs, et pour la même raison :
+    /// **une valeur copropriétaire de deux parties se garde par une mesure**,
+    /// jamais par une transcription.
+    ///
+    /// Le défaut, lui, n'est pas dans ce fichier-là — il vit dans
+    /// `ReadingPreferences.default`. On le relève à part.
+    #[test]
+    fn les_bornes_sont_celles_du_curseur_de_l_app() {
+        let chemin = "../ONTBibleApp/app/MacSources/TaillesAuClavier.swift";
+        let source = std::fs::read_to_string(chemin).unwrap_or_else(|erreur| {
+            panic!(
+                "  {chemin} est illisible : {erreur}\n\
+                 \n\
+                 Les trois dépôts se rangent côte à côte sous `~/ONTBible/`, et\n\
+                 la CI les clone ainsi. Sans le voisin, cette garde ne peut pas\n\
+                 mesurer — et elle refuse plutôt que de se taire."
+            )
+        });
+
+        let ligne = source
+            .lines()
+            .find(|l| l.contains("static let corps"))
+            .unwrap_or_else(|| {
+                panic!(
+                    "  `static let corps` a disparu de TaillesAuClavier.swift.\n\
+                     Les bornes ont changé de nom ou de place : les relever et\n\
+                     remettre ce test d'accord avec elles."
+                )
+            });
+
+        // `static let corps: ClosedRange<Double> = 11...28`
+        let plage = ligne.split('=').nth(1).expect("une affectation").trim();
+        let (bas, haut) = plage.split_once("...").unwrap_or_else(|| {
+            panic!("  les bornes ne s'écrivent plus `bas...haut` : « {plage} »")
+        });
+
+        assert_eq!(
+            (bas.trim(), haut.trim()),
+            (
+                Theme::CORPS_MINIMUM.to_string().as_str(),
+                Theme::CORPS_MAXIMUM.to_string().as_str()
+            ),
+            "le curseur de l'app va de {bas} à {haut} ; le site dit {} à {}",
+            Theme::CORPS_MINIMUM,
+            Theme::CORPS_MAXIMUM
+        );
+    }
+
+    /// Le défaut laisse le site **exactement** tel qu'il était.
+    ///
+    /// `--lecture` vaut `corps / 19`. Au défaut il vaut 1, donc `calc(x * 1)`
+    /// rend `x` : pas un pixel ne bouge tant que le lecteur n'a pas touché au
+    /// réglage. C'est la même sûreté que le portage des couleurs, et c'est
+    /// elle qui rend le changement sans risque.
+    #[test]
+    fn le_defaut_est_neutre() {
+        let p = super::Preferences::default();
+        assert_eq!(p.corps, Theme::CORPS_PAR_DEFAUT);
+        assert!(
+            (f64::from(p.corps) / f64::from(Theme::CORPS_PAR_DEFAUT) - 1.0).abs() < f64::EPSILON
+        );
+    }
+
+    /// Le défaut de l'app, relevé chez elle aussi.
+    #[test]
+    fn le_defaut_est_celui_de_l_app() {
+        let chemin = "../ONTBibleApp/app/Packages/ONTKit/Sources/ONTKit/Reader/Reader.swift";
+        let source = std::fs::read_to_string(chemin)
+            .unwrap_or_else(|erreur| panic!("  {chemin} est illisible : {erreur}"));
+        let ligne = source
+            .lines()
+            .find(|l| l.contains("textSize: Double ="))
+            .unwrap_or_else(|| {
+                panic!("  le défaut de `textSize` a changé de forme dans Reader.swift")
+            });
+        let valeur: u8 = ligne
+            .split('=')
+            .nth(1)
+            .and_then(|v| v.trim().trim_end_matches(',').parse().ok())
+            .unwrap_or_else(|| panic!("  défaut illisible : « {ligne} »"));
+        assert_eq!(
+            valeur,
+            Theme::CORPS_PAR_DEFAUT,
+            "l'app ouvre à {valeur}, le site dit {}",
+            Theme::CORPS_PAR_DEFAUT
+        );
     }
 }

@@ -1445,6 +1445,71 @@ aperçu faux coûte plus qu'un aperçu absent :
   témoin, l'aperçu montre le style du dernier redémarrage complet et l'on
   débat d'un rendu qui n'est pas celui du code.
 
+### Construire en deux temps **en développement** tue l'hydratation
+
+**Trouvé le 21 septembre 2026, et c'est l'auteur qui l'a vu** — « je suis sur le
+serveur local et quand je tape sur les liens y a pas de redirection, c'est
+normal ? » Non.
+
+```text
+A hydration error occurred while trying to hydrate an element
+defined at src/interface/app.rs — the framework expected a marker
+node, but found this instead: [object HTMLElement]
+panicked at tachys-0.2.18/src/hydration.rs:216
+RuntimeError: Unreachable code should not be executed
+              (evaluating 'wasm.hydrate()')
+```
+
+Le WASM meurt au démarrage. **La page s'affiche quand même** — c'est le rendu du
+serveur, et il est juste — mais plus rien n'est vivant : le routeur ne prend
+aucun lien, les réglages ne commutent rien, la feuille « aA » n'apparaît pas.
+
+La cause est la **façon de lancer**, pas le code :
+
+```
+✗  cargo leptos build --frontend-only     puis, à la main,
+   cargo build --features ssr --bin ontbible
+   ./target/debug/ontbible
+
+✓  cargo leptos watch        ou  cargo leptos serve
+```
+
+Les deux moitiés doivent être construites **ensemble**. Séparées, le serveur et
+le WASM ne s'accordent plus sur les marqueurs d'hydratation, et le second refuse
+l'arbre du premier.
+
+**Le deux-temps n'est pas une erreur en soi** : `scripts/deployer.sh` le fait
+délibérément, parce que le linker d'Apple ne sait pas lier ce binaire (§8
+quater). Mais là le serveur est **croisé-compilé d'un coup** pour Linux, depuis
+la même source, par `cargo lambda`. Ce n'est pas le même geste.
+
+#### Ce que ça a coûté, et pourquoi c'est la même leçon que trois autres
+
+Le serveur fautif tenait le port 3000. **L'auteur travaillait dessus sans le
+savoir** : il a cliqué, rien n'a répondu, et il a cru que son site était cassé.
+
+Et le diagnostic a d'abord accusé le mauvais coupable — la fusion du jour, parce
+qu'elle était récente et qu'elle touchait `app.rs`. **Les deux changements ont
+été retirés un par un, et l'erreur a persisté.** C'est ce retrait qui a innocenté
+la fusion ; sans lui, on aurait « corrigé » du code sain.
+
+> ==Une panne qui apparaît juste après un changement n'est pas une panne
+> causée par ce changement. Retirer le suspect est plus court que de
+> raisonner sur lui.==
+
+Et la famille est celle des trois autres pièges de ce §7 bis : **ce qui est
+servi n'est pas ce qui est compilé.** Les empreintes qui ne changent pas, la
+feuille que le navigateur garde, l'aperçu qui charge la mauvaise feuille — et
+maintenant un WASM qui ne correspond pas à son serveur. À chaque fois on mesure
+un artefact en croyant mesurer le produit.
+
+#### Le symptôme à reconnaître
+
+La page est belle, le texte est là, un moteur l'indexerait — **et rien ne
+répond au doigt**. Ne pas chercher dans le composant : vérifier d'abord la
+console du navigateur, où l'erreur est explicite, et relancer par
+`cargo leptos watch` avant toute autre chose.
+
 ### Et le navigateur gardait quand même l'ancienne feuille
 
 **Corrigé le 16 août 2026**, et c'est le troisième piège de cette section — le
