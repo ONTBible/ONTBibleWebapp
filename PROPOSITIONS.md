@@ -56,6 +56,37 @@ information, et il se voit.
 
 ---
 
+## #156 · Porter les quatre thèmes de l'app
+
+    ouverte le   21 septembre 2026, par la session du site (w6:p1)
+    vers         main
+    état         ouverte
+
+**Pourquoi.** Première pièce de la webapp demandée le 21 septembre — « identique
+en tout point à l'app iOS ». Les couleurs, et la façon de les prendre : un
+exécutable Swift qui **importe** `ONTDesignSystem` et interroge chaque fonction,
+parce que onze des vingt rôles calculent et qu'une lecture du source en aurait
+rendu la moitié fausse avec l'air d'être bonne.
+
+**Ce que ça engage — l'app.** Deux choses, et la première est une décision qui
+n'est pas la nôtre :
+
+- ==`ONTColors.accent` sur les thèmes clairs donne 3,12:1 et 3,39:1== — sous AA,
+  qui demande 4,5, et loin des 6,4 que le site tient pour le kératocône de
+  l'auteur. Ce n'est **pas corrigé ici** : corriger d'un seul côté ferait
+  exactement la divergence que le portage empêche. Relevé, transmis, et tenu par
+  un cliquet à double sens ;
+- ==`Sources/extraire/main.swift` appelle `ONTColors` rôle par rôle.== Un rôle
+  renommé ou une signature changée casse le portage — bruyamment, ce qui est
+  voulu, mais il faut le savoir avant de renommer.
+
+**Ce que ça engage — le vault.** Rien.
+
+**Pour la relire.** Le témoin qui prouve l'extraction est `mystique` : né ici,
+transposé dans l'app, il revient 9/9. Et l'aperçu du thème par défaut est
+**identique à l'octet** à celui d'avant le portage — la peau du site n'a pas
+bougé d'un pixel.
+
 ## #155 · Déclarer son worktree, puisque rien ne le prouve
 
     ouverte le   21 septembre 2026, par la manageuse
