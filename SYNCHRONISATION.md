@@ -5258,6 +5258,321 @@ compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
 utile n'était pas dans les branches qu'on a comparées : elle était dans le
 commentaire du fichier qu'on cherchait à protéger.
 
+## 11 septembre 2026, la nuit — une CI qui ne dit pas quelle branche elle juge
+
+La chaîne `device → dev → beta-test → app-store` a été promue en entier. La
+demande ne venait pas d'Apple : elle venait du **vault**, et ce qui l'a rendue
+nécessaire ne se voyait depuis aucun des deux dépôts.
+
+### Le checkout qui choisit sa branche tout seul
+
+`eprouver.yml` du vault récupère le pipeline de l'app pour mesurer ses propres
+fiches :
+
+```yaml
+- uses: actions/checkout@…
+  with:
+    repository: ONTBible/ONTBibleApp
+    # ← pas de `ref:`
+```
+
+Sans `ref:`, `actions/checkout` prend la **branche par défaut du dépôt**. Pour
+`ONTBibleApp`, c'est `app-store` — la plus ancienne de la chaîne, celle que
+personne ne regarde entre deux revues d'Apple.
+
+Le vault croyait donc éprouver « le pipeline de l'app ». Il éprouvait une photo
+du 7 septembre.
+
+| branche | `PLAFOND_LIENS_MORTS` | lit `## Source` |
+|---|---|---|
+| `app-store` *(défaut)* | 224 | non |
+| `beta-test` | 224 | non |
+| `dev` | 0 | non |
+| `device` | 0 | oui |
+
+La PR du vault qui apporte 244 fiches `## Source` rougissait sur un plafond
+corrigé depuis des jours. **Aucun des deux dépôts ne pouvait le voir depuis chez
+lui** : le vault lisait un nombre juste calculé par un code périmé, l'app avait
+un code juste que personne n'interrogeait.
+
+### Ce qu'une ligne absente coûte de plus qu'une ligne fausse
+
+Une `ref:` fausse se corrige au premier échec — on lit le nom, on voit qu'il est
+faux. Une `ref:` **absente** ne se lit nulle part : le comportement est correct
+tant que la branche par défaut l'est, et bascule sans qu'une ligne du workflow
+ne bouge. Le défaut est dans la *configuration du dépôt*, pas dans le fichier
+qu'on relit.
+
+**Une valeur par défaut implicite est une dépendance non déclarée.** La
+promotion la satisfait aujourd'hui ; elle ne la déclare pas. Le correctif reste
+à faire côté vault — épingler la référence explicitement, **même sur
+`app-store`**.
+
+### La garde de concurrence qui ne pouvait pas garder
+
+Relevé en chemin, sur `tests.yml` de l'app :
+
+```yaml
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+Un `push` sur `device` porte `refs/heads/device` ; la `pull_request` du même
+commit porte `refs/pull/289/merge`. **Deux refs, deux groupes, aucun n'annule
+l'autre** — la garde existe, elle est écrite, elle ne peut pas s'appliquer.
+
+Mais elle n'est pas *inutile* pour autant, et c'est ce qui la sauve : les deux
+runs ne testent pas la même chose. Le `push` éprouve `device` seul, la
+`pull_request` éprouve **le résultat de la fusion**. Les fusionner en un seul
+groupe supprimerait le second, qui est le seul des deux qui réponde à la
+question posée.
+
+**Ce n'est donc pas un doublon à supprimer, c'est un nom de groupe à corriger**
+— et la distinction ne se voit qu'en lisant ce que chaque run mesure.
+
+### Le filtre qui n'a vu que la bonne nouvelle
+
+Le moniteur armé sur ces contrôles a annoncé « `tests` : pass » alors que la PR
+restait bloquée. Il filtrait les états non-*pending* : deux runs portaient le nom
+`tests`, l'un vert, l'autre encore en cours. Il a vu le vert et ignoré le reste.
+
+**Un filtre qui ne retient que les états terminaux annonce le succès du premier
+arrivé.** Le contrôle correct n'est pas « existe-t-il un vert », c'est « ne
+reste-t-il aucun *pending* ».
+
+C'est la même faute que celle qu'on venait de diagnostiquer, commise par
+l'instrument qui servait à la diagnostiquer.
+
+### Le journal a failli se faire écraser par la fin de son propre fichier
+
+La PR #243 portait l'entrée du 8 septembre et n'avait jamais pu fusionner : elle
+visait `dev`, les deux côtés ajoutaient en fin de fichier, et le conflit
+s'aggravait à chaque entrée. Reprise en #291, depuis `device`.
+
+**Le réflexe — ajouter au bout — aurait été faux.** Le journal est chronologique
+croissant ; la fin du fichier, c'était le 11. Le 8 serait arrivé après le 11, et
+se serait relu comme un journal sans en être un : on aurait lu *l'ordre des
+fusions* en croyant lire *l'ordre des jours*.
+
+Contrôlé par les titres, jamais par les lignes : 244 avant, 5 apportés, 249
+après, zéro perdu. Un compte de lignes aurait annoncé le même succès sans rien
+prouver.
+
+### Ce que la promotion ne fait pas, contrairement à ce que son nom dit
+
+`app-store` **ne soumet rien à la revue**. Vérifié dans `livraison.yml` avant d'y
+aller, parce que le nom de la branche laisse croire l'inverse :
+
+- `refs/heads/app-store` → `CANAL=appstore`, `GROUPE=` vide ;
+- « Rattacher au groupe TestFlight » : `if: groupe != ''` → sautée ;
+- job `distribuer` : `if: canal != 'appstore'` → sauté ;
+- aucun appel à `appStoreVersionSubmissions` dans le fichier.
+
+Le build monte sur App Store Connect et s'arrête. La soumission reste un geste
+de l'auteur. Le prix réel du train, c'est **trois places de quota** — et aucune
+n'avait été consommée ce jour-là.
+
+### Le site avait le même défaut, trois fois — et l'a trouvé parce qu'on l'a nommé
+
+Prévenu, le site a relevé tous les `checkout` de ses workflows :
+
+| dépôt cloné | ce que ses workflows demandaient |
+|---|---|
+| `ONTBibleApp` | `ref: dev` — explicite, dans les trois |
+| `ONTBibleTranslation` | **rien**, dans les trois |
+
+`deployer.yml`, `eprouver.yml`, `veiller.yml`. Le site construisait donc depuis
+la bonne branche du vault — mais **par chance**, via une valeur qui vit chez
+GitHub et pas dans ses fichiers. Corrigé chez eux, sans qu'aucun comportement ne
+change aujourd'hui.
+
+La nuance qu'ils relèvent vaut d'être gardée : leurs `checkout` de *notre* dépôt
+ont échappé au piège parce que quelqu'un avait écrit `ref: dev` — **pas parce
+que la règle était connue**. Sans cette ligne, le site se construisait depuis
+`app-store`, deux paliers en arrière, et aucune de leurs gardes ne pouvait le
+voir : elles mesurent toutes ce que le pipeline *produit*, jamais *lequel*.
+
+### Et la même journée leur avait déjà appris la version haute
+
+Ils ont publié un correctif qui confondait `dist/manifest.json` et
+`corpus/manifeste.json`. Il compilait, onze chemins l'éprouvaient, la CI était
+verte — et il aurait fait refuser le corpus par **toutes** les liseuses
+installées. Ce n'est pas leur relecture qui l'a arrêté, c'est la lecture de
+`CorpusUpdater.swift:87`, dans notre dépôt, où le nombre était nommé et justifié
+depuis le début.
+
+> **Un correctif éprouvé n'est pas un correctif juste — il est seulement
+> cohérent avec ce qu'on a cru.**
+
+Et la question qui l'aurait trouvé n'est pas *qu'est-ce que j'écris ?* mais
+**qui lit ce que j'écris ?** Ils modifiaient du Python ; la réponse était dans
+du Swift, chez nous, dans un dépôt qu'ils n'avaient aucune raison d'ouvrir.
+
+Ça vaut pour notre troisième manifeste, celui des sources : le jour où quelqu'un
+raisonnera sur son `schema`, la chose à ouvrir sera **le client qui le lit**, pas
+le pipeline qui l'écrit.
+
+### Un compte de titres conservé ne dit rien de leur structure
+
+La session macOS a relu la réinsertion et relevé, à raison, que
+« 244 avant, 5 apportés, 249 après, zéro perdu » **compte** les titres sans
+regarder leur **niveau** : la somme peut être exacte et la hiérarchie fausse.
+C'est la famille du jour, appliquée à l'instrument qu'on venait de se donner.
+
+Le contrôle a donc été refait avec la clé `(niveau, texte)` au lieu du texte
+seul. Résultat : aucun titre perdu, **et aucun titre déplacé de rang**.
+
+### Mais la convention qu'on invoquait pour le corriger n'existe pas
+
+La remarque venait avec un correctif — promouvoir l'entrée de `###` en `##`,
+« comme toutes les entrées datées ». Avant de l'appliquer, on l'a mesurée.
+
+| exemplaire | entrées datées en `##` | en `###` |
+|---|---|---|
+| app | 35 | **47** |
+| vault | 18 | **50** |
+| site | 12 | **46** |
+
+**La majorité est en `###`, dans les trois.** Ni chronologique — les deux
+niveaux alternent par blocs tout au long du fichier —, ni indice de provenance :
+si le niveau encodait le dépôt d'origine, les trois exemplaires ne montreraient
+pas la même répartition.
+
+Le journal n'a donc pas de convention tenue sur ce point. Aligner l'entrée sur
+une règle qui n'existe pas ne l'aurait pas rendue plus juste ; ça aurait ajouté
+une quarante-huitième exception à une règle qu'on aurait crue unanime.
+
+Elle reste en `###`, où elle est le **frère immédiat** du `###` qui la précède —
+la seule propriété hiérarchique qui se lise vraiment.
+
+> **Un correctif qui repose sur une convention se vérifie d'abord sur la
+> convention, pas sur le cas.** Sinon on répare le cas et on abîme la règle.
+
+Ce qui reste vrai de la remarque, et qui vaut plus que le correctif : la mesure
+par les titres était **exacte et insuffisante**. C'est la troisième fois de la
+journée qu'un instrument juste ne mesure pas la propriété qu'on lui prête.
+
+### Ce que ça change pour chaque dépôt
+
+**Le vault** — sa CI redevient verte, mais pour une raison qu'elle ne dit
+toujours pas. Épingler `ref:` explicitement dans `eprouver.yml`, faute de quoi
+le même silence reviendra à la prochaine bascule de branche par défaut.
+
+**Le site** — `sources/` et le contrat du manifeste (`schema`, `genere`,
+`temoins`, `livres`) atteignent une branche livrée : ce qui était compilé est
+maintenant installé. Ses trois `checkout` sans `ref:` sont **déjà corrigés**
+(leur PR #136), trouvés le soir même. Le publieur reste à écrire, et ils
+attendent d'avoir régénéré leur `dist/` pour l'écrire — écrire contre une
+forme qu'on ne peut pas faire tourner est la faute qu'ils venaient de réparer.
+
+**L'app** — corriger le `group:` de `tests.yml` pour qu'il porte le SHA plutôt
+que la ref, sans supprimer le run de `pull_request`.
+
+### La règle
+
+**Un contrôle doit nommer ce qu'il juge.** Une branche par défaut, un premier
+résultat arrivé, une fin de fichier : à chaque fois, l'instrument a pris ce qui
+se présentait pour ce qu'on lui demandait. Trois formes différentes, le même
+défaut — *mesurer un objet en croyant en mesurer un autre*, pour la neuvième
+fois de la journée.
+
+### 11 septembre 2026 — deux manifestes portent presque le même nom, et on les a confondus
+
+Le site publie `manifeste.json` sur `/corpus/`. Le pipeline écrit
+`manifest.json` dans `dist/`. **Ce ne sont pas les mêmes fichiers, et ils ne
+portent pas les mêmes nombres :**
+
+| fichier | qui l'écrit | ce qu'il porte |
+|---|---|---|
+| `dist/manifest.json` | le pipeline | `schema: 1`, `contrat: 3` |
+| `/corpus/manifeste.json` | `corpus-publie.py`, chez le site | `schema: 2` |
+
+La liseuse récupère `ontbible.com/corpus/` — **celui du site** — et compare
+**son** `schema` au sien. Le `contrat` du pipeline ne l'atteint jamais.
+
+#### Le défaut vu, le correctif faux, et ce qui a sauvé la mise
+
+La session du pipeline a signalé, à juste titre, que le `2` du site était écrit
+en dur et ne bougeait pas quand un type de nœud apparaissait. Elle a demandé de
+recopier son `contrat` à la place. C'est ce qui a été fait, et **c'était faux** :
+publier 3 aurait fait refuser le corpus **entier** par toutes les liseuses
+installées, qui comparent en égalité stricte et sont à 2.
+
+Ce qui l'a arrêté n'est pas la relecture du correctif — il compilait, onze
+chemins l'éprouvaient, et le tableau était vert. C'est **la lecture de la
+liseuse**, et une seule ligne :
+
+    CorpusUpdater.swift:87   « La version du manifeste que ce code sait lire.
+                               2 depuis 1.0.3, où l'accentuation a changé de
+                               nom sur le fil. »
+
+Le nombre était donc déjà nommé, déjà daté, déjà justifié — dans le dépôt
+d'à côté, à l'endroit exact où la question se pose. Trois sessions ont raisonné
+une heure sur ce qu'il devait valoir sans aller lire ce qu'il valait.
+
+#### La distinction qui manquait, et elle vaut bien au-delà d'ici
+
+> **Une valeur dont l'unique devoir est de *suivre* une autre se recopie.**
+> **Une valeur *copropriétaire* de deux parties se garde par une mesure.**
+
+`contrat` est de la première espèce : il suit `CONTRAT_DES_NOEUDS`, et l'écrire
+à la main est une faute. `schema` est de la seconde : il est le numéro de
+compatibilité du **fil**, tenu d'un commun accord par le script de publication
+et les deux liseuses. Il se monte délibérément, dans le même lot qu'une liseuse
+qui sait lire la nouveauté.
+
+Le défaut n'était donc pas qu'il soit écrit à la main. **C'est que personne ne
+le mesurait contre quoi que ce soit.** Le premier correctif a supprimé le
+littéral — et un littéral gardé vaut mieux qu'une recopie fausse.
+
+#### On garde sur le contenu, jamais sur l'attestation
+
+Le correctif refusait de publier quand `contrat` manquait. Il gardait une
+**déclaration**, et c'était faux deux fois : une déclaration absente se lisait
+comme un danger, une déclaration présente comme une garantie.
+
+Or ce qui met une liseuse en danger n'est pas ce que le pipeline *dit*, c'est ce
+que le corpus *contient*. La variante `Renvoi` existe déjà dans le schéma de
+`dev` **sans** le champ `contrat` : la garde sur l'attestation aurait laissé
+passer exactement le cas qu'elle prétendait couvrir.
+
+La garde regarde donc le corpus, et refuse tout type de nœud hors d'une liste
+figée **à côté** de `SCHEMA_DU_MANIFESTE` — les deux ne se déplacent que dans le
+même commit, avec la liseuse qui sait lire le type nouveau. Dix-sept types
+relevés le 11 septembre ; un `renvoi` planté est refusé quoi que déclare le
+manifeste.
+
+C'est plus long à écrire qu'un nombre recopié. C'est la seule mesure qui ne
+puisse pas mentir.
+
+#### Trois choses de forme, apprises au passage
+
+- **Ne rien trouver n'est pas trouver zéro.** Deux témoins positifs : la garde
+  refuse si elle ne lit aucun nœud, et si elle ne relève aucune liseuse. Sans
+  eux, un chemin renommé chez le pipeline ferait passer la garde en silence, et
+  son silence se lirait comme un accord.
+- **Retirer un littéral casse ceux qui le lisaient.** Une étape de CI relevait
+  le `"schema": 2` par `sed` pour le comparer à la liseuse en vente. En le
+  retirant, son relevé rendait une chaîne vide et elle **tuait le déploiement**
+  sur un désaccord qui n'avait pas eu lieu. Avant d'en retirer une, chercher qui
+  la lit.
+- **Une liseuse en avance n'est pas une panne.** C'est l'ordre voulu — le
+  lecteur d'abord, ce qu'il lit ensuite. La garde le dit et continue ; elle ne
+  refuse que devant une liseuse **en retard**, et le plafond qui compte est celui
+  de la version en vente, la seule qui soit dans des mains.
+
+#### Et un défaut bien vu ne garantit pas le correctif proposé
+
+La session du pipeline avait raison sur le mécanisme, et s'est trompée sur les
+nombres — puis est revenue le corriger d'elle-même. Elle avait annoncé
+`contrat = 4` quand `origin/device` en porte 3.
+
+Un correctif reçu d'une session voisine se mesure comme tout le reste, **y
+compris quand il vient de celle qui a vu le défaut la première**. Et la mesure
+utile n'était pas dans les branches qu'on a comparées : elle était dans le
+commentaire du fichier qu'on cherchait à protéger.
+
 ## 18 septembre 2026 — le dépôt a ses chuqqot, et on répare depuis elles
 
 **Consigne de l'auteur**, portée aux sept sessions. Ses mots :
