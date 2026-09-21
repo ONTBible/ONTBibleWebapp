@@ -85,6 +85,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <HashedStylesheet options=options.clone() id="leptos" />
 
                 <FicheStructuree />
+                <PeauAvantLePremierRendu />
 
                 <AutoReload options=options.clone() />
                 <HydrationScripts options />
@@ -95,6 +96,57 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             </body>
         </html>
     }
+}
+
+/// Pose la peau du lecteur **avant** que la page n'existe.
+///
+/// ## Pourquoi un script, et pourquoi dans l'en-tête
+///
+/// Le thème vit dans le stockage du navigateur, que le serveur ne voit pas :
+/// il rend donc toujours `mystique`, le défaut du site. Un lecteur qui a choisi
+/// `parchemin` recevrait une nuit d'aubergine, puis du papier une fois le WASM
+/// hydraté — un éclair de noir sur une page claire, sur **chaque** navigation.
+///
+/// Un script synchrone dans l'en-tête bloque l'analyse du document : il
+/// s'exécute avant que `<body>` n'existe, donc avant la première peinture.
+/// L'attribut est posé, la feuille s'applique dessus, et rien ne clignote.
+///
+/// C'est le seul script en clair de tout le site, et il ne fait que ça —
+/// quatorze lignes, aucune dépendance, aucune requête.
+///
+/// ## Un cookie aurait été l'autre voie, et on l'a écartée
+///
+/// Lu côté serveur, il rendrait le bon thème dès le premier octet, script
+/// compris. Il coûte une écriture d'en-tête sur une réponse que les pages ne
+/// composent pas, un aller-retour de plus pour le poser, et une donnée du
+/// lecteur qui voyage à chaque requête. Le reste des réglages est déjà dans
+/// `localStorage` (§8 bis) ; une seconde mémoire pour un seul champ aurait
+/// deux états à tenir d'accord.
+///
+/// ## Les quatre noms viennent du type, pas d'une liste écrite ici
+///
+/// `Theme::attribut` est la seule table. Une liste recopiée dans ce script
+/// laisserait passer un thème renommé — l'attribut ne correspondrait plus, le
+/// filtre le refuserait, et le lecteur retomberait sur le défaut sans qu'aucune
+/// erreur ne le dise.
+#[component]
+fn PeauAvantLePremierRendu() -> impl IntoView {
+    use crate::domaine::lecture::Theme;
+
+    let connus = Theme::TOUS
+        .iter()
+        .map(|theme| format!("'{}'", theme.attribut()))
+        .collect::<Vec<_>>()
+        .join(",");
+
+    // `try` sur tout : `localStorage` **lève** quand le site est bloqué —
+    // navigation privée stricte, cookies refusés — et une exception ici
+    // arrêterait l'analyse de l'en-tête. La page partirait sans sa feuille.
+    let script = format!(
+        "try{{var c=[{connus}],         t=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}').theme;         if(c.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);         }}catch(e){{}}"
+    );
+
+    view! { <script inner_html=script></script> }
 }
 
 /// Ce qu'un moteur de recherche comprend du site sans le lire.
@@ -119,6 +171,13 @@ fn FicheStructuree() -> impl IntoView {
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+
+    // **Pour tout le site, et pas pour la seule liseuse.** L'auteur a demandé
+    // le 21 septembre 2026 une webapp identique à l'app, thème compris : la
+    // peau vaut donc sur l'accueil et les pages légales autant que sur un
+    // chapitre. Les quatre pages de corpus continuent de l'appeler ; la
+    // fonction est idempotente et leur rend ce signal-ci.
+    crate::interface::design::fournir_preferences();
 
     view! {
         <Router>

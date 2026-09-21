@@ -37,6 +37,81 @@ use serde::{Deserialize, Serialize};
 
 use crate::domaine::texte::Noeud;
 
+/// La peau de la page — les quatre thèmes de la liseuse de l'app.
+///
+/// ## Le site en offrait zéro, et c'était écrit
+///
+/// Le `CLAUDE.md` disait, au §8 bis : « Ce que le site n'emprunte pas : taille
+/// du corps, interligne, fonte, **thème**. L'app a raison de les offrir — elle
+/// est un lecteur, et un lecteur s'adapte à qui le tient. Le site est une
+/// **édition** : sa nuit d'aubergine est une décision, pas un défaut qu'on
+/// propose de corriger. »
+///
+/// **L'auteur a tranché autrement le 21 septembre 2026** : « je veux que la
+/// webapp soit identique en tout point à l'app iOS — icône, design system, DA,
+/// feature, tout. Je veux que l'user ait l'app iOS, mais en webapp. » Le thème
+/// est une feature de la liseuse ; il entre.
+///
+/// Ce que la décision d'avant gardait de vrai est le **défaut** : le site
+/// ouvre sur `Mystique` là où l'app ouvre sur `Parchemin`. L'édition a une
+/// peau ; le lecteur peut en changer.
+///
+/// ## Les noms ne se traduisent pas
+///
+/// Ce sont ceux de l'app — `ReadingTheme` dans `ONTKit/Reader/Reader.swift` —
+/// et ils doivent le rester : un lecteur qui passe du téléphone au site doit
+/// retrouver les mêmes mots dans le même menu. `mystique` est d'ailleurs né
+/// ici et a été transposé là-bas ; c'est le seul des quatre dont ce dépôt soit
+/// la source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    /// Le papier de l'app — son défaut à elle, et il ne suit pas le système.
+    Parchemin,
+    /// Le blanc franc.
+    Clair,
+    /// Le gris neutre.
+    Sombre,
+    /// La nuit d'aubergine — la peau de ce site, et son défaut.
+    #[default]
+    Mystique,
+}
+
+impl Theme {
+    /// Les quatre, dans l'ordre du menu de l'app.
+    pub const TOUS: [Theme; 4] = [
+        Theme::Parchemin,
+        Theme::Clair,
+        Theme::Sombre,
+        Theme::Mystique,
+    ];
+
+    /// Ce que porte `<html data-theme="…">`, et donc le sélecteur des jetons.
+    ///
+    /// **La même chaîne sert des deux côtés du fil** : elle voyage dans le
+    /// JSON du navigateur *et* dans l'attribut que lit `jetons.css`. Deux
+    /// tables — une pour sérialiser, une pour l'attribut — finiraient par
+    /// diverger sur le jour où l'on renommerait un thème.
+    pub fn attribut(self) -> &'static str {
+        match self {
+            Theme::Parchemin => "parchemin",
+            Theme::Clair => "clair",
+            Theme::Sombre => "sombre",
+            Theme::Mystique => "mystique",
+        }
+    }
+
+    /// Le nom dans le menu — celui de l'app, capitale comprise.
+    pub fn libelle(self) -> &'static str {
+        match self {
+            Theme::Parchemin => "Parchemin",
+            Theme::Clair => "Clair",
+            Theme::Sombre => "Sombre",
+            Theme::Mystique => "Mystique",
+        }
+    }
+}
+
 /// Ce que le lecteur a choisi de voir.
 /// `serde(default)` sur chaque champ, et ce n'est pas une précaution de style :
 /// ces valeurs viennent du **stockage du navigateur**, écrit par une version
@@ -68,6 +143,16 @@ pub struct Preferences {
     /// réglage laisse le lecteur passer d'un monde à l'autre au lieu de le lui
     /// raconter.
     pub francais: bool,
+    /// La peau de la page.
+    ///
+    /// Elle vit ici, avec les niveaux du texte, parce qu'elle vit **au même
+    /// endroit chez le lecteur** : une seule clé dans le stockage du
+    /// navigateur, un seul panneau, un seul signal. C'est aussi ce que fait
+    /// l'app, dont les réglages de lecture portent son `ReadingTheme`.
+    ///
+    /// Elle ne traverse pas `depouiller` pour autant : ce n'est pas un niveau
+    /// du texte, et rien ne se retire quand elle change.
+    pub theme: Theme,
 }
 
 impl Default for Preferences {
@@ -83,6 +168,7 @@ impl Default for Preferences {
             gloses: true,
             niveau_3: true,
             continu: false,
+            theme: Theme::Mystique,
         }
     }
 }
@@ -107,6 +193,10 @@ impl Preferences {
             gloses: false,
             niveau_3: false,
             continu: false,
+            // Sans effet ici : la peau ne dépouille rien, et une citation qui
+            // part vers un aperçu de messagerie n'emporte aucune couleur.
+            // Le champ doit être rempli, il ne doit pas être choisi.
+            theme: Theme::Mystique,
         }
     }
 }

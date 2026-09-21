@@ -1,0 +1,106 @@
+/* Engendré par scripts/porter-les-jetons.py — ne pas éditer à la main.
+ *
+ * Les couleurs viennent de `ONTColors` du design system de l'app, et non
+ * d'une transcription : le script exécute leur code et lit ce qu'il rend.
+ * La moitié des rôles calculent — mélanges, opacités, dérivations —, donc
+ * une lecture du source aurait rendu la moitié des valeurs fausses.
+ *
+ * Le thème `mystique` est né dans ce dépôt et a été transposé dans l'app.
+ * Il revient donc identique, et c'est le témoin qui prouve l'extraction.
+ */
+
+:root, [data-theme='mystique'] {
+  --ont-accent: #CDBE83;
+  --ont-accentSurSurlignage: #CDBE83;
+  --ont-accentuation: #D87994;
+  --ont-avertissement: #E5B879;
+  --ont-avertissementSurface: #3F29058C;
+  --ont-background: #18090D;
+  --ont-brandInk: #CDBE83;
+  --ont-danger: #FEA79C;
+  --ont-dangerSurface: #5118148C;
+  --ont-ink: #CFC5B9;
+  --ont-inkSoft: #9D948B;
+  --ont-inkStrong: #EDE3D6;
+  --ont-onBrand: #18090D;
+  --ont-onBrandAccent: #18090D;
+  --ont-renvoi: #D08C43;
+  --ont-separator: #CDBE832E;
+  --ont-shem: #BA8C6C;
+  --ont-succes: #A9CCAC;
+  --ont-succesSurface: #1C34208C;
+  --ont-surface: #261016;
+  --ont-surfaceHaute: #34171F;
+}
+
+[data-theme='parchemin'] {
+  --ont-accent: #A6874F;
+  --ont-accentSurSurlignage: #967A48;
+  --ont-accentuation: #862742;
+  --ont-avertissement: #936619;
+  --ont-avertissementSurface: #FFE8CA;
+  --ont-background: #FAF5EB;
+  --ont-brandInk: #421B26;
+  --ont-danger: #B5473F;
+  --ont-dangerSurface: #FFE5E2;
+  --ont-ink: #29211C;
+  --ont-inkSoft: #756E68;
+  --ont-inkStrong: #29211C;
+  --ont-onBrand: #FAF5EB;
+  --ont-onBrandAccent: #CDBE83;
+  --ont-renvoi: #953D0E;
+  --ont-separator: #29211C1A;
+  --ont-shem: #603518;
+  --ont-succes: #3E6443;
+  --ont-succesSurface: #DCF3DE;
+  --ont-surface: #FFFCF6;
+  --ont-surfaceHaute: #FFFFFF;
+}
+
+[data-theme='clair'] {
+  --ont-accent: #A6874F;
+  --ont-accentSurSurlignage: #967A48;
+  --ont-accentuation: #862742;
+  --ont-avertissement: #936619;
+  --ont-avertissementSurface: #FFE8CA;
+  --ont-background: #FFFFFF;
+  --ont-brandInk: #421B26;
+  --ont-danger: #B5473F;
+  --ont-dangerSurface: #FFE5E2;
+  --ont-ink: #191919;
+  --ont-inkSoft: #757575;
+  --ont-inkStrong: #191919;
+  --ont-onBrand: #FFFFFF;
+  --ont-onBrandAccent: #CDBE83;
+  --ont-renvoi: #953D0E;
+  --ont-separator: #1919191A;
+  --ont-shem: #603518;
+  --ont-succes: #3E6443;
+  --ont-succesSurface: #DCF3DE;
+  --ont-surface: #FFFFFF;
+  --ont-surfaceHaute: #FFFFFF;
+}
+
+[data-theme='sombre'] {
+  --ont-accent: #CDBE83;
+  --ont-accentSurSurlignage: #CDBE83;
+  --ont-accentuation: #D87994;
+  --ont-avertissement: #E5B879;
+  --ont-avertissementSurface: #3F29058C;
+  --ont-background: #171417;
+  --ont-brandInk: #CDBE83;
+  --ont-danger: #FEA79C;
+  --ont-dangerSurface: #5118148C;
+  --ont-ink: #E0DBD4;
+  --ont-inkSoft: #E0DBD4AB;
+  --ont-inkStrong: #E0DBD4;
+  --ont-onBrand: #171417;
+  --ont-onBrandAccent: #171417;
+  --ont-renvoi: #D08C43;
+  --ont-separator: #E0DBD429;
+  --ont-shem: #BA8C6C;
+  --ont-succes: #A9CCAC;
+  --ont-succesSurface: #1C34208C;
+  --ont-surface: #252225;
+  --ont-surfaceHaute: #333033;
+}
