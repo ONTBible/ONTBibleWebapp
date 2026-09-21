@@ -171,10 +171,7 @@ mod tests {
                 // Une couche translucide se compose sur le fond de **son**
                 // thème, jamais sur celui d'un autre.
                 let m = |d: f64, s: f64| (d * a + s * (1.0 - a)).round();
-                (
-                    role.to_string(),
-                    (m(r, fond.0), m(v, fond.1), m(b, fond.2)),
-                )
+                (role.to_string(), (m(r, fond.0), m(v, fond.1), m(b, fond.2)))
             })
             .collect()
     }
@@ -310,10 +307,9 @@ mod tests {
             let palette = palette(theme);
             for nom in MARQUAGES {
                 let teinte = palette[nom];
-                for (fond, plancher) in [
-                    ("background", PLANCHER),
-                    ("surface", PLANCHER_SUR_SURFACE),
-                ] {
+                for (fond, plancher) in
+                    [("background", PLANCHER), ("surface", PLANCHER_SUR_SURFACE)]
+                {
                     let mesure = contraste(teinte, palette[fond]);
                     match DETTES
                         .iter()
