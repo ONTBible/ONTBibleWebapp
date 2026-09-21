@@ -5321,6 +5321,38 @@ Ce qui est interdit, c'est de rustiner ==sans être remonté==. Un correctif qui
 n'est rattaché à aucun énoncé est ==une règle orpheline==, et le projet en a
 déjà payé plusieurs.
 
+### On ne le sait qu'après — et c'est ce qui rend la consigne difficile
+
+Relevé par la session Android le jour même, et il manquait :
+
+> ==On ne sait qu'un défaut est une manifestation qu'après être remonté.==
+> Avant, il a exactement l'air d'un accident local.
+
+**Son cas.** En mesurant ce que faisait sa feuille d'un **Shem** — pour pouvoir
+seulement la *décrire* à une session voisine —, elle a vu que ses titres étaient
+==fixes en points== alors que le corps suit le réglage du lecteur. Au curseur
+haut, ==un titre passait sous son propre texte==.
+
+Deux choses en sortent, et la seconde est la plus grave :
+
+- ==le défaut ne se voyait pas au réglage par défaut== — la seule position où
+  personne n'en a besoin ;
+- il frappait ==exactement qui monte le curseur==, c'est-à-dire l'auteur.
+
+**L'énoncé contredit n'était pas une règle d'interface.** C'était que ==l'app se
+lit avec le curseur monté== — un invariant d'accessibilité, pas de typographie.
+Le titre trop petit n'en était qu'une manifestation.
+
+**D'où la conséquence de méthode, qui corrige les deux gestes sans les annuler.**
+On ne peut pas trier les défauts en « accidents » et « manifestations » avant de
+remonter : ==le tri est le résultat du remontage, pas son critère d'entrée==.
+Elle n'aurait pas trouvé en cherchant un défaut de titre ; elle l'a trouvé en
+cherchant ==d'où venait une divergence==.
+
+Donc la règle s'applique ==à tout défaut==, y compris — et surtout — à ceux qui
+ont l'air anodins. ==Le remontage n'est pas une sévérité supplémentaire, c'est
+un autre geste.==
+
 ### Le même défaut ne se reconnaît pas quand il change d'échelle
 
 Relevé par la session des langues sources, le même jour, sur elle-même :
@@ -5558,6 +5590,26 @@ qui vérifie la règle, non la première. La formulation juste est plus large :
 ==Et c'est la septième forme appliquée à sa propre correction== : le premier
 jet nommait un risque réel et manquait le principal, parce qu'il mesurait ce
 qui venait d'être nommé — `/tmp` — plutôt que ce que la situation engageait.
+
+**Et le versant positif, relevé le surlendemain sur le même terrain.** Cinq
+worktrees à démonter ; ==cinq relevés indépendants== demandés aux sessions.
+Trois se contredisaient — l'un donnait un commit déjà poussé, l'autre trois
+orphelins au lieu d'un, le troisième le compte exact.
+
+==C'est la divergence entre eux qui a sorti la trouvaille==, non le soin de
+celui qui menait l'opération : un commit détaché sur une branche que son propre
+auteur avait supprimée le matin même, sans voir qu'un worktree y pendait.
+
+> ==Un relevé à la fois aurait été vérifié une seule fois, par la même
+> personne.== C'est la raison de fond pour laquelle un lot se décide mieux
+> qu'une unité — non l'économie de gestes, mais ==le désaccord qu'il rend
+> possible==.
+
+**Et le contrôle qui tranche est le contenu, jamais l'ascendance.** Un
+==écrasement== laisse pour toujours des commits « non poussés » sur une branche
+dont le contenu est ==intégralement dans `main`==. Deux sessions ont failli
+donner une fausse alerte sur ce point exact ; la question juste est *ce que
+cette branche porte que la cible n'a pas*, et elle se pose fichier par fichier.
 
 ### Le motif de fond
 
