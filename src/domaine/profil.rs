@@ -9,10 +9,21 @@
 //!
 //! ## Ce qui n'y est pas, et pourquoi
 //!
-//! Aucune adresse, aucun identifiant de fournisseur. Le backend range les
-//! surlignages d'un lecteur de Bible sous l'article 9 du RGPD ; le profil suit
-//! la même règle — on garde ce que le lecteur écrit, rien de ce qu'on pourrait
-//! déduire.
+//! Aucun identifiant de fournisseur, et **aucune adresse déduite**. Le backend
+//! range les surlignages d'un lecteur de Bible sous l'article 9 du RGPD ; le
+//! profil suit la même règle — on garde ce que le lecteur écrit, rien de ce
+//! qu'on pourrait déduire.
+//!
+//! Depuis le 22 septembre 2026, `courriel` fait donc exception *sans* enfreindre
+//! la règle : ==c'est une adresse déclarée, pas l'adresse d'authentification==.
+//! Celle du fournisseur reste dans la session et n'entre jamais ici — « Se
+//! connecter avec Apple » permet d'ailleurs de la masquer, et le compte s'ouvre
+//! alors sous un relais que le lecteur n'a pas choisi.
+//!
+//! `courriels_consentis` porte la **date** du consentement, et `None` veut dire
+//! « pas consenti ». Un booléen à côté d'un horodatage se désynchronise ; et le
+//! RGPD demande de pouvoir *prouver* un consentement, pas seulement de le
+//! détenir — sans date, il n'y a rien à montrer.
 
 use serde::{Deserialize, Serialize};
 
@@ -30,6 +41,22 @@ pub struct Profil {
     pub nom: String,
     #[serde(default)]
     pub bio: String,
+    /// L'adresse déclarée par le lecteur, pour qu'on puisse le joindre.
+    ///
+    /// **Le site ne l'écrase pas en écrivant le reste** : `enregistrer_mon_profil`
+    /// la relit et la repasse telle quelle, comme il le fait pour le portrait.
+    /// Sans ça, modifier sa bio depuis le site effacerait l'adresse saisie sur
+    /// le téléphone — ==et rien ne le dirait==, puisque `#[serde(default)]`
+    /// rend une chaîne vide au lieu d'une erreur.
+    #[serde(default)]
+    pub courriel: String,
+    /// Quand le lecteur a accepté de recevoir des courriels, s'il l'a fait.
+    ///
+    /// Le site ne le modifie pas : ==un consentement ne s'écrase pas par effet
+    /// de bord==. Il faudrait pour cela une case dédiée, sur cette page, avec
+    /// son explication — et c'est un chantier, pas un champ.
+    #[serde(default)]
+    pub courriels_consentis: Option<i64>,
     /// Une adresse d'image, si le lecteur en a posé une **dans l'app**.
     ///
     /// Le site l'affiche et ne la change pas : téléverser une image demande un
@@ -174,6 +201,8 @@ mod tests {
             "prenom",
             "nom",
             "bio",
+            "courriel",
+            "courriels_consentis",
             "portrait",
             "updated_at",
         ] {
@@ -215,9 +244,14 @@ mod tests {
                  Deux causes, et la première est la plus fréquente :\n\
                  1. l'arbre de travail d'ONTBibleApp est **en retard** — il suit \n\
                     une branche coupée avant ce champ. `git -C ../ONTBibleApp \n\
-                    log --oneline -1 origin/main -- backend/src/domain/sync.rs` \n\
+                    log --oneline -1 origin/dev -- backend/src/domain/sync.rs` \n\
                     le dit en une ligne ;\n\
                  2. le backend l'a renommée, et le site doit suivre.\n\
+                 \n\
+                 `origin/dev` et non `origin/main` : l'app n'a plus de `main` \n\
+                 depuis le 31 août 2026, et c'est `dev` que `eprouver.yml` \n\
+                 clone. Ce conseil nommait une branche supprimée — il envoyait \n\
+                 donc chercher la cause là où il n'y a rien.\n\
                  \n\
                  La CI clone la référence à chaque fois, donc elle ne voit que \n\
                  la seconde. En local, c'est presque toujours la première."
@@ -228,6 +262,8 @@ mod tests {
             ("prenom", "String"),
             ("nom", "String"),
             ("bio", "String"),
+            ("courriel", "String"),
+            ("courriels_consentis", "Option<i64>"),
             ("portrait", "Option<String>"),
             ("updated_at", "i64"),
         ] {
