@@ -889,7 +889,10 @@ pub async fn enregistrer_mon_profil(
         .ok()
         .and_then(|m| m.profil);
     let portrait = ancien.as_ref().and_then(|p| p.portrait.clone());
-    let courriel = ancien.as_ref().map(|p| p.courriel.clone()).unwrap_or_default();
+    let courriel = ancien
+        .as_ref()
+        .map(|p| p.courriel.clone())
+        .unwrap_or_default();
     let courriels_consentis = ancien.as_ref().and_then(|p| p.courriels_consentis);
 
     let profil = crate::domaine::profil::Profil {
