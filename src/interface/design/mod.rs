@@ -43,6 +43,7 @@ mod liste_affirmations;
 mod liste_unites;
 mod marques;
 mod mention_brouillon;
+mod navigation_de_la_liseuse;
 mod occurrences;
 mod page_de_lecture;
 mod page_legale;
@@ -75,6 +76,7 @@ pub use liste_affirmations::ListeAffirmations;
 pub use liste_unites::{nom_d_unite, ListeDUnites};
 pub use marques::{Nom, Terme};
 pub use mention_brouillon::MentionBrouillon;
+pub use navigation_de_la_liseuse::NavigationDeLaLiseuse;
 pub use occurrences::Occurrences;
 pub use page_de_lecture::PageDeLecture;
 pub use page_legale::PageLegale;
@@ -440,16 +442,35 @@ mod tests {
         /// Ce qu'on tolère d'écart avant de demander la mise à jour de la table.
         const JEU: f64 = 0.05;
 
-        // Les rôles portent leur nom d'app depuis le portage — `ink` et non
-        // `encre`. Les valeurs, elles, n'ont pas bougé d'un centième : ce sont
-        // les mêmes couleurs, relues à leur nouvelle adresse.
+        // **La dette est payée, et elle ne l'a pas été ici.**
+        //
+        // Ces six valeurs étaient 4,01 · 5,38 · 2,29 · 2,30 · 3,67 · 2,29. Le
+        // site portait les cinq pastels **de jour** de l'app — choisis pour du
+        // parchemin — posés sur une nuit d'aubergine. L'app a corrigé ça de son
+        // côté, avec une palette de nuit à teinte et saturation conservées, et
+        // le site ne le savait pas.
+        //
+        // Le diagnostic inscrit ici était juste et le remède était hors de
+        // portée : « ce sont les six couleurs à la fois, donc soit l'opacité,
+        // soit un marquage qui s'ajusterait au fond réel — un chantier, pas un
+        // correctif ». Le chantier était fait ailleurs, et le portage l'a
+        // rapporté sans qu'on l'ait cherché.
+        //
+        // C'est le meilleur argument qu'on ait pour ce portage : il ne fait pas
+        // que tenir les deux d'accord, il **rapporte les corrections du
+        // voisin**. Un an de divergence, et chacun aurait réparé son côté.
+        //
+        // Ce qui reste : les trois marquages les plus faibles tiennent 4,43 à
+        // 4,46 là où l'app vise 4,6 sur ses deux fonds sombres. L'écart tient à
+        // nos `surface` qui ne sont pas les leurs. On l'inscrit plutôt que de
+        // l'arrondir — le cliquet dira si ça bouge.
         let dettes = [
-            ("ink", 4.01),
-            ("inkStrong", 5.38),
-            ("inkSoft", 2.29),
-            ("accentuation", 2.30),
-            ("accent", 3.67),
-            ("shem", 2.29),
+            ("ink", 7.77),
+            ("inkStrong", 10.42),
+            ("inkSoft", 4.43),
+            ("accentuation", 4.46),
+            ("accent", 7.10),
+            ("shem", 4.44),
         ];
 
         let opacite: f64 = FEUILLE
@@ -469,8 +490,12 @@ mod tests {
         // mêlé deux questions. Les trois autres viendront avec la correction.
         let mystique = palette("mystique");
         let fonds = [mystique["background"], mystique["surface"]];
-        let surlignages = ["or", "olive", "ciel", "rose", "violet"]
-            .map(|n| couleur(FEUILLE, &format!("--surlignage-{n}")));
+        // Les cinq viennent des jetons depuis le portage, comme le reste — et
+        // comme le reste, la garde a **refusé** de les lire dans `main.css`
+        // plutôt que de mesurer autre chose. C'est la seconde fois de la
+        // journée, et c'est la seconde fois qu'elle a raison.
+        let surlignages =
+            ["or", "olive", "ciel", "rose", "violet"].map(|n| mystique[&format!("surlignage-{n}")]);
 
         let mut ecarts = Vec::new();
         for (nom, dette) in dettes {

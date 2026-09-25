@@ -31,6 +31,11 @@
   --ont-succesSurface: #1C34208C;
   --ont-surface: #261016;
   --ont-surfaceHaute: #34171F;
+  --ont-surlignage-ciel: #295B78;
+  --ont-surlignage-olive: #4D582A;
+  --ont-surlignage-or: #695211;
+  --ont-surlignage-rose: #AB2B2B;
+  --ont-surlignage-violet: #6A4297;
 }
 
 [data-theme='parchemin'] {
@@ -55,6 +60,11 @@
   --ont-succesSurface: #DCF3DE;
   --ont-surface: #FFFCF6;
   --ont-surfaceHaute: #FFFFFF;
+  --ont-surlignage-ciel: #9EC7DE;
+  --ont-surlignage-olive: #B8C787;
+  --ont-surlignage-or: #E8C973;
+  --ont-surlignage-rose: #EBADAD;
+  --ont-surlignage-violet: #C7B2DE;
 }
 
 [data-theme='clair'] {
@@ -79,6 +89,11 @@
   --ont-succesSurface: #DCF3DE;
   --ont-surface: #FFFFFF;
   --ont-surfaceHaute: #FFFFFF;
+  --ont-surlignage-ciel: #9EC7DE;
+  --ont-surlignage-olive: #B8C787;
+  --ont-surlignage-or: #E8C973;
+  --ont-surlignage-rose: #EBADAD;
+  --ont-surlignage-violet: #C7B2DE;
 }
 
 [data-theme='sombre'] {
@@ -103,4 +118,9 @@
   --ont-succesSurface: #1C34208C;
   --ont-surface: #252225;
   --ont-surfaceHaute: #333033;
+  --ont-surlignage-ciel: #295B78;
+  --ont-surlignage-olive: #4D582A;
+  --ont-surlignage-or: #695211;
+  --ont-surlignage-rose: #AB2B2B;
+  --ont-surlignage-violet: #6A4297;
 }

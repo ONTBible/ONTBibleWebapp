@@ -35,8 +35,23 @@ let roles: [(String, (ReadingTheme) -> Color)] = [
     ("avertissementSurface", ONTColors.avertissementSurface),
 ]
 
+// Les cinq surlignages. Ils sont **fonction du thème** chez eux — c'est une
+// correction qu'ils ont faite et que le site n'avait pas : leurs pastels
+// avaient été choisis pour du parchemin, et posés sur une nuit ils enfonçaient
+// tous les marquages. Leur palette de nuit tient 4,6:1 sur les deux fonds
+// sombres, saturation conservée pour qu'on distingue encore « le bleu » du
+// « rose » à travers cinq surlignages.
+let surlignages: [(String, HighlightColor)] = [
+    ("surlignage-or", .gold), ("surlignage-olive", .olive),
+    ("surlignage-ciel", .sky), ("surlignage-rose", .rose),
+    ("surlignage-violet", .violet),
+]
+
 for (nomTheme, theme) in themes {
     for (nomRole, fonction) in roles {
         print("\(nomTheme)\t\(nomRole)\t\(hexa(fonction(theme)))")
+    }
+    for (nomRole, couleur) in surlignages {
+        print("\(nomTheme)\t\(nomRole)\t\(hexa(ONTColors.highlight(couleur, theme)))")
     }
 }

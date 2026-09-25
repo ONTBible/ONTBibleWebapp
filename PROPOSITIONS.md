@@ -56,6 +56,36 @@ information, et il se voit.
 
 ---
 
+## #158 · La webapp — typographie, fontes, navigation, icône
+
+    ouverte le   21 septembre 2026, par la session du site (w6:p1)
+    vers         main
+    état         ouverte
+
+**Pourquoi.** « Fini toute la webapp » — la suite de #156. Cinq pièces : la
+seconde échelle (le corps réglable), les sept fontes de lecture, la navigation
+de l'app dans la liseuse, les surlignages, l'icône et les rayons.
+
+**Ce que ça engage — l'app.** ==Cinq gardes relisent son code à chaque
+`cargo test`== : les bornes du curseur (`TaillesAuClavier.corps`), son défaut
+(`ReadingPreferences.default`), les sept fontes avec leurs libellés **et leurs
+notes** (`ReadingFont`), les quatre rayons (`ONTRadius`), et les 26 rôles de
+couleur. Un renommage là-bas rougit ici — bruyamment, ce qui est voulu, mais il
+faut le savoir avant de renommer.
+
+**Ce que ça engage — le vault.** Rien.
+
+**Pour la relire.** Trois choses qui ne se voient pas dans le diff :
+
+- ==au cran par défaut, l'aperçu est **identique à l'octet**== à celui d'avant.
+  Le réglage est un facteur qui vaut 1 par défaut, donc `calc(x * 1)` rend `x` ;
+- ==les surlignages paient une dette que personne ici n'a réparée==. Le site
+  portait les pastels de jour de l'app sur sa nuit ; elle avait corrigé de son
+  côté. Les trois marquages les plus faibles passent de 2,29:1 à 4,43:1 ;
+- ==deux onglets de l'app ne sont pas portés==, délibérément. Qahal et Chuqqot
+  sont des fonctionnalités, pas de la chrome — et un onglet vide est la forme
+  que ce dépôt s'interdit depuis le badge App Store.
+
 ## #156 · Porter les quatre thèmes de l'app
 
     ouverte le   21 septembre 2026, par la session du site (w6:p1)

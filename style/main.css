@@ -251,9 +251,174 @@
      tombe de 56 % à 39 % sur téléphone, et le grand écran ne bouge pas. */
   --container-marque: clamp(9.5rem, 7.53rem + 8.09vw, 14rem);
 
-  /* `ONTRadius.card` — 22 points. */
+  /* ── Les rayons, et ils viennent tous d'`ONTRadius` ──────────────────────
+
+     Le site en citait un seul, `card`. Les quatre y sont maintenant, avec les
+     mots de l'app à côté — parce qu'un rayon sans sa raison se retouche au
+     jugé, et que celui de la feuille a une raison qu'on ne devinerait pas.  */
+
+  /* `ONTRadius.highlight` — 6 points, « juste assez pour adoucir l'angle ». */
+  --radius-surlignage: 0.375rem;
+
+  /* `ONTRadius.block` — 18 points. Les blocs secondaires. */
+  --radius-bloc: 1.125rem;
+
+  /* `ONTRadius.card` — 22 points. Les cartes de premier plan. */
   --radius-carte: 1.375rem;
 
+  /* `ONTRadius.feuille` — 34 points, et le nombre est mesuré, pas choisi :
+
+     > Mesuré sur la feuille système d'iPadOS 27, qui arrondit à ~40 pt : à 22,
+     > la carte du Mac se lisait comme une boîte de dialogue, pas comme une
+     > feuille. 34 et non 40 : la carte du Mac est bordée d'air, pas d'un bord
+     > d'écran, et le plein 40 y paraissait gonflé.
+
+     Le panneau « aA » du site était à 22 — il se lisait comme une boîte de
+     dialogue, exactement le défaut que l'app décrit. */
+  --radius-feuille: 2.125rem;
+
+}
+
+/* ═══ La seconde échelle — le corps de la traduction ═══════════════════════
+
+   **L'app en porte deux, et les confondre est un contresens.** Son code le dit
+   en nommant l'auteur :
+
+   > Un lecteur atteint de kératocône monte le corps du texte très haut pour
+   > lire, et n'a aucune raison de faire enfler du même geste une barre
+   > latérale qui lui mangerait la place où ce texte s'affiche.
+
+   | | l'app | le site |
+   |---|---|---|
+   | l'interface | ⌘+ / ⌘−, sept crans | le zoom du navigateur |
+   | le corps du texte | un curseur, 11 à 28 | `--lecture`, ci-dessous |
+
+   La première était déjà juste ici sans qu'on l'ait cherchée : la feuille est
+   tout entière en `rem`, donc la taille de police par défaut du navigateur et
+   son zoom commandent déjà — c'est le rôle que `@ScaledMetric` tient là-bas.
+   Ce qui manquait est la seconde.
+
+   ── Pourquoi un facteur et non une taille ─────────────────────────────────
+
+   `--lecture` vaut `corps / 19`, où 19 est le défaut du curseur de l'app. À 19
+   il vaut **exactement 1**, et `calc(x * 1)` rend `x` — donc rien ne bouge d'un
+   pixel tant que le lecteur n'a pas touché au réglage. C'est la même sûreté que
+   le portage des couleurs : le défaut est l'état d'avant, à l'identique.
+
+   Une taille absolue aurait demandé de choisir *quelle* taille, et le site en a
+   deux — la prose à 21 px, le corpus à `--text-lg`. Un facteur les emporte
+   toutes les deux sans avoir à trancher entre elles.
+
+   ── Ce qu'il ne touche pas, et c'est la moitié du sujet ───────────────────
+
+   Rien hors de la liseuse. Ni la navigation, ni le fil d'Ariane, ni la marque,
+   ni le bouton « aA » lui-même — qui doit rester atteignable quand le corps est
+   à son maximum, pas grandir avec lui.                                       */
+
+:root {
+  --lecture: 1;
+}
+
+/* Le cadre de lecture. Tout ce qu'il contient hérite de cette taille, donc
+   tout suit le réglage : la prose d'une fiche, une glose, un verset en lecture
+   suivie. Au facteur 1 c'est `--text-base`, c'est-à-dire ce dont la page
+   héritait déjà. */
+.liseuse {
+  font-size: calc(var(--text-base) * var(--lecture));
+}
+
+/* Un verset en mode d'étude, qui compose plus grand que la prose. Il portait
+   `text-lg` en dur ; il porte la même valeur, multipliée. */
+.corps-de-lecture {
+  font-size: calc(var(--text-lg) * var(--lecture));
+}
+
+/* ── Le curseur de taille ──────────────────────────────────────────────────
+
+   Un `input[type=range]` est le seul élément d'interface que ni Tailwind ni le
+   préflux ne peignent : il garde le dessin du système, bleu, avec un rail gris
+   — sur une nuit d'aubergine, c'est la seule pièce du site qui ne soit pas du
+   site.
+
+   Il se peint en deux fois, et il faut les deux : WebKit et Firefox n'exposent
+   pas les mêmes pseudo-éléments, et **une règle qui nomme les deux d'un coup
+   est ignorée en entier** par chacun des deux. Elles sont donc séparées,
+   volontairement dupliquées.
+
+   La hauteur du pouce est à 22 px et non à 16 : c'est la cible du doigt, et ce
+   réglage est cherché par quelqu'un qui ne lit pas encore confortablement.     */
+
+.curseur::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-filet);
+}
+
+.curseur::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-filet);
+}
+
+.curseur::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9.5px; /* (3 − 22) / 2, pour centrer le pouce sur le rail */
+  border-radius: 999px;
+  background: var(--color-accent);
+  border: 0;
+}
+
+.curseur::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  border: 0;
+}
+
+/* ── La hauteur de la barre d'onglets ──────────────────────────────────────
+
+   Le bouton « aA » et sa feuille se posent **au-dessus** de la barre. Le
+   réflexe est d'écrire sa hauteur dans leur calage — et c'est le nombre magique
+   que le §5 a déjà payé sur `--hauteur-entete` : *un nombre magique qui décrit
+   la géométrie d'un autre élément est toujours faux quelque part.*
+
+   ── Le premier jet la déclarait sur la barre, et ça ne pouvait pas marcher ──
+
+   Une propriété personnalisée n'est visible que de l'élément qui la déclare et
+   de ses **descendants**. Le bouton est un frère de la barre, pas un enfant :
+   il n'aurait rien lu, serait retombé sur le repli, et se serait posé sur la
+   barre exactement comme avant.
+
+   ── Ce qui rend le jeton honnête ───────────────────────────────────────────
+
+   Il est sur `:root`, et **c'est la barre qui s'y conforme** — elle prend cette
+   hauteur au lieu de la dicter. Le nombre ne décrit donc plus la géométrie d'un
+   autre élément : il *est* la géométrie, et les trois pièces la lisent.
+
+   Au-delà de `lg` il retombe à zéro : la barre passe à gauche, et le bouton
+   revient au bas de l'écran sans qu'aucune requête média ne le dise.
+
+   **La limite, dite plutôt que masquée** : c'est un plancher, pas une mesure.
+   Si le lecteur monte beaucoup la taille de police de son navigateur, les
+   libellés de la barre peuvent la faire croître au-delà, et le bouton s'en
+   rapprocherait. On préfère ça à une hauteur figée qui tronquerait « Chercher ».
+*/
+
+:root {
+  --barre-d-onglets: 4.25rem;
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --barre-d-onglets: 0px;
+  }
+}
+
+.barre-d-onglets {
+  min-height: calc(var(--barre-d-onglets) + env(safe-area-inset-bottom));
 }
 
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════
@@ -314,6 +479,152 @@
   src: url("/fontes/EzraSIL.woff2") format("woff2");
   unicode-range: U+0590-05FF, U+FB1D-FB4F, U+200F, U+2066-2069;
 }
+
+/* ── Les six familles de lecture ───────────────────────────────────────────
+
+   Le lecteur choisit sa fonte, comme dans l'app. Trois coupes par famille, et
+   les trois comptent : sans l'italique déclarée, le navigateur **penche la
+   romane à la main** — et la translittération du niveau 3 est précisément en
+   italique. Une famille incomplète abîmerait la pièce que la liseuse existe
+   pour montrer.
+
+   Literata, EB Garamond et Jost sont déclarées plus haut : elles servaient
+   déjà. Georgia n'est déclarée nulle part — le système la fournit.          */
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Spectral-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Spectral-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Spectral-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Newsreader-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Newsreader-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Newsreader-SemiBold.woff2") format("woff2");
+}
+
+/* ── Ce que chaque choix met dans `--font-corps` ───────────────────────────
+
+   Même mécanique que les peaux — un attribut sur la racine — avec une
+   différence qui compte : la variable se redéclare **sous `.liseuse`**, pas
+   sur la racine.
+
+   C'est le même bornage que le thème, et pour la même raison : le choix du
+   lecteur vaut là où il lit, pas sur les pages qui parlent du corpus. « Le
+   pourquoi » et la page de l'auteur gardent Literata, qui est une décision de
+   l'édition (§5) — et le verset cité sur l'accueil la garde aussi, puisqu'il y
+   est une démonstration et non une lecture.
+
+   Le bornage se lit dans le sélecteur au lieu d'une table : `.liseuse` n'existe
+   que dans la liseuse, donc la règle ne peut pas déborder.
+
+   ── Les deux sélecteurs, et pourquoi il en faut deux ──────────────────────
+
+   `[data-fonte='x'] .liseuse` est une **descendance** : elle exige que la
+   classe soit *sous* l'attribut. Vrai sur la racine, faux sur une ligne du
+   menu, qui porte les deux sur le même élément — et une ligne qui dit « Jost »
+   en Literata ne dit rien.
+
+   Le défaut s'est vu sur un rendu du panneau : six lignes composées dans leur
+   propre lettre, et Jost en romane. On lit six fois ce qu'on attend, et la
+   septième passe.
+
+   ── Le repli ──────────────────────────────────────────────────────────────
+
+   Chaque pile garde un repli système de la même *classe* — une romane derrière
+   une romane, une linéale derrière une linéale : si le woff2 n'arrive pas, la
+   page reste composée dans la bonne voix au lieu de sauter d'un genre à
+   l'autre.                                                                   */
+
+[data-fonte='literata'].liseuse,
+[data-fonte='literata'] .liseuse {
+  --font-corps: "Literata", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='eb-garamond'].liseuse,
+[data-fonte='eb-garamond'] .liseuse {
+  --font-corps: "EB Garamond", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='spectral'].liseuse,
+[data-fonte='spectral'] .liseuse {
+  --font-corps: "Spectral", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='source-serif'].liseuse,
+[data-fonte='source-serif'] .liseuse {
+  --font-corps: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='newsreader'].liseuse,
+[data-fonte='newsreader'] .liseuse {
+  --font-corps: "Newsreader", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='jost'].liseuse,
+[data-fonte='jost'] .liseuse {
+  --font-corps: "Jost", "Helvetica Neue", sans-serif;
+}
+[data-fonte='georgia'].liseuse,
+[data-fonte='georgia'] .liseuse {
+  --font-corps: Georgia, "Iowan Old Style", serif;
+}
+
 
 /* ═══ La base ══════════════════════════════════════════════════════════════ */
 
@@ -1961,11 +2272,32 @@
  * de la barre, où c'est la couleur elle-même qu'on montre.
  */
 :root {
-  --surlignage-or: #E8C973;
-  --surlignage-olive: #B8C787;
-  --surlignage-ciel: #9EC7DE;
-  --surlignage-rose: #EBADAD;
-  --surlignage-violet: #C7B3DE;
+  /* **Les cinq viennent de l'app, et elles suivent le thème.**
+
+     Le site portait les cinq pastels **de jour** — ceux que l'app avait
+     choisis pour du parchemin — posés sur une nuit d'aubergine. L'app a corrigé
+     ça de son côté et le site ne le savait pas : sa garde inscrivait la dette,
+     avec son propre diagnostic, « ce sont les six couleurs à la fois, donc soit
+     l'opacité, soit un marquage qui s'ajusterait au fond réel — un chantier,
+     pas un correctif ».
+
+     Le chantier était fait ailleurs. Leur palette de nuit garde la teinte et la
+     saturation — c'est elle qui fait qu'on reconnaît « le bleu » et « le rose »
+     l'un de l'autre à travers cinq surlignages — et descend la clarté jusqu'à
+     ce que **tous** les marquages tiennent 4,6:1 sur **les deux** fonds
+     sombres, pas seulement le plus clément.
+
+     Et ils ont écarté ce que ce dépôt aurait essayé en premier : baisser
+     l'opacité. Mesuré chez eux — sur fond clair on plafonne à 2,9 même à 0,12,
+     parce que le coupable y est l'or à 3,11 *sans aucun surlignage* ; et sur
+     fond sombre il faudrait 0,12, où le surlignage ne se détache plus du fond
+     que de 1,25:1. On aurait un surlignage invisible pour sauver un mot
+     lisible.                                                                 */
+  --surlignage-or: var(--ont-surlignage-or);
+  --surlignage-olive: var(--ont-surlignage-olive);
+  --surlignage-ciel: var(--ont-surlignage-ciel);
+  --surlignage-rose: var(--ont-surlignage-rose);
+  --surlignage-violet: var(--ont-surlignage-violet);
   --surlignage-opacite: 0.38;
 }
 

@@ -131,7 +131,29 @@ def apercu() -> None:
     print(f"  {fichier.name:18} {image.width}×{image.height}  {fichier.stat().st_size // 1024} Ko")
 
 
-def poser_icone(nom: str, cote: int, part: float) -> None:
+# ── La composition de l'icône de l'app, relevée chez elle ────────────────────
+#
+# `ONTBibleApp/app/ONT.icon/icon.json` — un paquet Icon Composer. Deux nombres
+# en sortent, et ils ne se devinent pas :
+#
+#     fill.solid   display-p3:0.23945, 0.11440, 0.14897
+#     position     scale 0,04 sur une image de 17 068 px, translation −37,52 pt
+#
+# **Le fond est l'aubergine du site, au chiffre près.** Converti de Display P3
+# vers sRGB par les matrices standard, il rend exactement `#421B26` — la teinte
+# relevée au pixel sur le combination mark. Les deux dépôts y étaient déjà
+# d'accord sans le savoir.
+#
+# La montagne, non. Elle occupe **66,7 %** du côté chez elle — 17 068 × 0,04 =
+# 682,7 pt sur un cadre de 1 024 — et le site en mettait 72. Et elle est
+# **remontée** de 37,52 pt, soit 3,66 % du côté : une montagne centrée
+# géométriquement paraît basse, parce que sa masse est en bas et sa pointe en
+# haut. C'est un calage à l'œil qu'on ne retrouverait pas par le calcul.
+PART_DE_L_APP = 682.72 / 1024
+REMONTEE_DE_L_APP = 37.5175 / 1024
+
+
+def poser_icone(nom: str, cote: int, part: float, remontee: float = 0.0) -> None:
     """Une icône carrée, opaque, montagne centrée.
 
     `part` est la fraction du côté qu'occupe la montagne. Elle change selon
@@ -141,7 +163,10 @@ def poser_icone(nom: str, cote: int, part: float) -> None:
     montagne = rasterise(IMAGES / "logomark.svg", int(cote * part), OR)
     image.paste(
         montagne,
-        ((cote - montagne.width) // 2, (cote - montagne.height) // 2),
+        (
+            (cote - montagne.width) // 2,
+            (cote - montagne.height) // 2 - round(cote * remontee),
+        ),
         montagne,
     )
     fichier = IMAGES / nom
@@ -171,9 +196,9 @@ def icones() -> None:
     pour qui masque. Déclarer la première comme masquable la ferait tronquer
     partout, et c'est le défaut le plus courant des manifestes.
     """
-    poser_icone("touch-icon.png", 180, 0.72)
-    poser_icone("icone-192.png", 192, 0.72)
-    poser_icone("icone-512.png", 512, 0.72)
+    poser_icone("touch-icon.png", 180, PART_DE_L_APP, REMONTEE_DE_L_APP)
+    poser_icone("icone-192.png", 192, PART_DE_L_APP, REMONTEE_DE_L_APP)
+    poser_icone("icone-512.png", 512, PART_DE_L_APP, REMONTEE_DE_L_APP)
     poser_icone("icone-masquable-512.png", 512, 0.50)
 
 

@@ -27,21 +27,41 @@ CIBLE="$(cd "$(dirname "$0")/.." && pwd)/public/fontes"
 
 # Ce que le site emploie, et rien de plus. Une fonte qu'aucune règle CSS ne
 # nomme est un fichier que le dépôt porte pour rien.
+#
+# ## Les six familles de lecture, et pourquoi elles sont toutes là
+#
+# Depuis le 21 septembre 2026, le site offre le **choix de la fonte de
+# lecture**, comme l'app — `ReadingFont`, sept entrées dont six embarquées.
+# Georgia est la septième : le système la fournit des deux côtés, et personne
+# n'en contrôle le fichier.
+#
+# Chacune vient en **trois coupes** — Regular, Italic, SemiBold — et les trois
+# comptent. L'app le dit : *une famille amputée de son italique se résout quand
+# même, en pente simulée, penchée à la main par le moteur de rendu.* Le web
+# fait exactement pareil, et c'est pire chez nous : la translittération du
+# niveau 3 est en italique, donc une famille incomplète abîme précisément la
+# pièce que la liseuse existe pour montrer.
+#
+# EB Garamond n'est donc plus « en comparaison le temps que le corps soit
+# tranché » : elle est une des six, à demeure.
 COUPES=(
   # La voix du site — la géométrique de l'édition imprimée et du logo.
   Jost-Regular Jost-Italic Jost-SemiBold
-  # En comparaison, le temps que le corps du site soit tranché (§9). À retirer
-  # d'ici — script, `_fontes.scss`, jetons — dès que la décision est prise :
-  # une fonte que plus aucune règle ne nomme est un fichier porté pour rien.
-  EBGaramond-Regular EBGaramond-Italic EBGaramond-SemiBold
-  # La voix d'une citation de l'ONT — les fontes de l'app, à l'identique.
+  # Les six familles de lecture offertes au lecteur.
   Literata-Regular Literata-Italic Literata-SemiBold
+  EBGaramond-Regular EBGaramond-Italic EBGaramond-SemiBold
+  Spectral-Regular Spectral-Italic Spectral-SemiBold
+  SourceSerif4-Regular SourceSerif4-Italic SourceSerif4-SemiBold
+  Newsreader-Regular Newsreader-Italic Newsreader-SemiBold
+  # Le titre hébreu de la marque.
   FrankRuhlLibre-Medium
+  # L'hébreu du corpus — la seule qui positionne niqqud et te'amim.
   EzraSIL
 )
 
 LICENCES=(
   Jost-OFL.txt EBGaramond-OFL.txt Literata-OFL.txt
+  Spectral-OFL.txt SourceSerif4-OFL.txt Newsreader-OFL.txt
   FrankRuhlLibre-OFL.txt EzraSIL-Licenses.txt OFL-FAQ.txt
 )
 

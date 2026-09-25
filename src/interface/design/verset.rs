@@ -15,7 +15,7 @@ use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset as VersetDomaine};
 #[component]
 pub fn Verset(verset: VersetDomaine) -> impl IntoView {
     view! {
-        <p class="font-corps text-lg leading-loose text-pretty">
+        <p class="font-corps corps-de-lecture leading-loose text-pretty">
             <span
                 aria-hidden="true"
                 class="me-[0.35em] align-[0.55em] text-[0.62em] text-accent"

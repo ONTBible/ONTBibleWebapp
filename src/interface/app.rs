@@ -146,7 +146,7 @@ fn PeauAvantLePremierRendu() -> impl IntoView {
 /// seule duplication de tout ce mécanisme, et `le_script_reprend_les_trois_
 /// clauses_de_la_regle` en garde la forme.
 fn script_de_la_peau() -> String {
-    use crate::domaine::lecture::{Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{Fonte, Theme, LA_LISEUSE};
 
     let connus = Theme::TOUS
         .iter()
@@ -158,16 +158,38 @@ fn script_de_la_peau() -> String {
         .map(|prefixe| format!("'{prefixe}'"))
         .collect::<Vec<_>>()
         .join(",");
+    let fontes = Fonte::TOUTES
+        .iter()
+        .map(|fonte| format!("'{}'", fonte.attribut()))
+        .collect::<Vec<_>>()
+        .join(",");
+    let (bas, haut, defaut) = (
+        Theme::CORPS_MINIMUM,
+        Theme::CORPS_MAXIMUM,
+        Theme::CORPS_PAR_DEFAUT,
+    );
 
     // `try` sur tout : `localStorage` **lève** quand le site est bloqué —
     // navigation privée stricte, cookies refusés — et une exception ici
     // arrêterait l'analyse de l'en-tête. La page partirait sans sa feuille.
+    //
+    // **Les deux réglages ne se posent pas pareil, et ce n'est pas une
+    // inattention.** La peau est bornée à la liseuse : posée ailleurs, elle
+    // mettrait du parchemin sous un massif d'aubergine. La taille, elle, se
+    // pose partout — `--lecture` n'est lue que par `.liseuse`, qui n'existe
+    // que dans la liseuse. Une valeur inerte hors de son lieu n'a pas besoin
+    // d'être bornée, et la borner coûterait une seconde condition à tenir
+    // d'accord avec la première.
     format!(
-        "try{{var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
+        "try{{var o=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}'),\
+         r=document.documentElement,n=+o.corps;\
+         if(n>={bas}&&n<={haut})r.style.setProperty('--lecture',n/{defaut});\
+         var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
          for(var i=0;i<L.length;i++)if(p===L[i]||p.indexOf(L[i]+'/')===0)d=1;\
-         if(d){{var c=[{connus}],\
-         t=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}').theme;\
-         if(c.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);}}\
+         if(d){{var c=[{connus}];\
+         if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);\
+         var f=[{fontes}];\
+         if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);}}\
          }}catch(e){{}}"
     )
 }
@@ -370,6 +392,13 @@ mod epreuves_de_la_peau {
                 script.contains(&format!("'{}'", theme.attribut())),
                 "le script ignore le thème {}",
                 theme.attribut()
+            );
+        }
+        for fonte in crate::domaine::lecture::Fonte::TOUTES {
+            assert!(
+                script.contains(&format!("'{}'", fonte.attribut())),
+                "le script ignore la fonte {}",
+                fonte.attribut()
             );
         }
         for prefixe in LA_LISEUSE {

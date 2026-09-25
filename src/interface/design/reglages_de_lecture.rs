@@ -1,7 +1,9 @@
 use leptos::ev;
 use leptos::prelude::*;
+#[cfg(feature = "hydrate")]
+use wasm_bindgen::JsCast;
 
-use crate::domaine::lecture::{Preferences, Theme};
+use crate::domaine::lecture::{Fonte, Preferences, Theme};
 
 /// Où le navigateur retient les réglages.
 ///
@@ -187,11 +189,15 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
     #[cfg(feature = "hydrate")]
     {
         let preferences = preferences();
-        Effect::new(move |_| poser_la_peau(Some(preferences.get().theme)));
+        Effect::new(move |_| {
+            let reglages = preferences.get();
+            poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
+            poser_la_taille(reglages.corps);
+        });
         // `on_cleanup` et non un effet qui s'annule : le démontage est le seul
         // signal qui dise « cette page n'est plus à l'écran », et c'est
         // exactement la question.
-        on_cleanup(|| poser_la_peau(None));
+        on_cleanup(|| poser_la_peau(None, None));
     }
     view! { <></> }
 }
@@ -212,8 +218,34 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
 ///
 /// On la **demande au navigateur** : l'attribut vient d'être posé, la feuille
 /// est chargée, `getComputedStyle` rend le `--ont-background` en vigueur.
+/// Pose le facteur de la seconde échelle sur la racine.
+///
+/// `--lecture` vaut `corps / 19` — 1 au défaut, donc `calc(x * 1)` rend `x` et
+/// rien ne bouge d'un pixel tant que le lecteur n'a pas touché au réglage.
+///
+/// **Elle ne se retire pas au démontage**, contrairement à la peau. La
+/// variable n'est lue que par `.liseuse`, qui n'existe que dans la liseuse :
+/// laissée sur la racine, elle est inerte partout ailleurs. La retirer
+/// coûterait une seconde condition sans rien protéger.
 #[cfg(feature = "hydrate")]
-fn poser_la_peau(theme: Option<Theme>) {
+fn poser_la_taille(corps: u8) {
+    let Some(racine) = web_sys::window()
+        .and_then(|f| f.document())
+        .and_then(|d| d.document_element())
+    else {
+        return;
+    };
+    let Some(racine) = racine.dyn_ref::<web_sys::HtmlElement>() else {
+        return;
+    };
+    let facteur = f64::from(corps) / f64::from(Theme::CORPS_PAR_DEFAUT);
+    let _ = racine
+        .style()
+        .set_property("--lecture", &format!("{facteur}"));
+}
+
+#[cfg(feature = "hydrate")]
+fn poser_la_peau(theme: Option<Theme>, fonte: Option<Fonte>) {
     let Some(document) = web_sys::window().and_then(|f| f.document()) else {
         return;
     };
@@ -227,6 +259,17 @@ fn poser_la_peau(theme: Option<Theme>) {
         }
         None => {
             let _ = racine.remove_attribute("data-theme");
+        }
+    }
+    // La fonte suit la même règle que la peau — posée dans la liseuse, retirée
+    // en sortant. Son sélecteur est déjà borné par `.liseuse`, mais laisser
+    // l'attribut traîner dirait « ce lecteur a choisi ici », ce qui est faux.
+    match fonte {
+        Some(fonte) => {
+            let _ = racine.set_attribute("data-fonte", fonte.attribut());
+        }
+        None => {
+            let _ = racine.remove_attribute("data-fonte");
         }
     }
 
@@ -356,7 +399,15 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("opacity-0", selection_active)
                 class=("pointer-events-none", selection_active)
                 inert=move || selection_active().then_some("")
-                style="bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+                // **Il dégage la barre d'onglets**, qui occupe le bas depuis
+                // que la liseuse porte la chrome de l'app. Sans ce calage il
+                // se posait dessus, à cheval sur « Vous » — et c'est le bouton
+                // qu'on cherche du pouce sans regarder.
+                //
+                // `--barre-d-onglets` est déclarée par la barre elle-même, donc
+                // sa hauteur ne se recopie pas ici : elle vaut zéro au-delà de
+                // `lg`, où il n'y a plus de barre en bas.
+                style="bottom: calc(1.5rem + var(--barre-d-onglets, 0px) + env(safe-area-inset-bottom))"
             >
                 <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>
             </button>
@@ -376,7 +427,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // pouce, et c'est de là qu'elle monte. Sur un grand écran elle
                 // se pose au-dessus du bouton, à sa largeur, et croît depuis
                 // son coin : le mouvement dit d'où elle sort.
-                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-carte border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-carte sm:border motion-reduce:transition-none"
+                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-feuille border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-feuille sm:border motion-reduce:transition-none"
                 class=("translate-y-full", move || !ouvert.get())
                 class=("opacity-0", move || !ouvert.get())
                 class=("pointer-events-none", move || !ouvert.get())
@@ -385,7 +436,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("translate-y-0", move || ouvert.get())
                 class=("opacity-100", move || ouvert.get())
                 class=("sm:scale-100", move || ouvert.get())
-                style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+                style="padding-bottom: calc(1.5rem + var(--barre-d-onglets, 0px) + env(safe-area-inset-bottom))"
             >
                     // La poignée : c'est elle qui fait lire l'objet comme une
                     // feuille qu'on tire, et non comme une boîte qui a surgi.
@@ -414,6 +465,25 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "Les quatre peaux de l'application, à l'identique. Mystique est née "
                         "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
                         "téléphone ; les trois autres font le chemin inverse."
+                    </p>
+
+                    <Groupe titre="Fonte">
+                        <ChoixDeFonte preferences />
+                    </Groupe>
+                    <p class=NOTE>
+                        "Les six familles sont embarquées avec le site, en trois coupes "
+                        "chacune — l'italique de la translittération est dessinée, jamais "
+                        "penchée à la main. Georgia vient de votre appareil."
+                    </p>
+
+                    <Groupe titre="Taille du texte">
+                        <TailleDuTexte preferences />
+                    </Groupe>
+                    <p class=NOTE>
+                        "Elle ne touche que le texte, jamais la navigation ni ce panneau — "
+                        "une chrome qui grandit avec le corps mange la place où ce texte "
+                        "s'affiche. Le zoom du navigateur, lui, agrandit tout, et les deux "
+                        "se multiplient."
                     </p>
 
                     <Groupe titre="Disposition">
@@ -571,6 +641,123 @@ fn ChoixDeTheme(preferences: RwSignal<Preferences>) -> impl IntoView {
                     }
                 })
                 .collect_view()}
+        </div>
+    }
+}
+
+/// Le curseur de taille — **les bornes de celui de l'app**, 11 à 28.
+///
+/// ## Pourquoi un curseur et pas deux boutons
+///
+/// L'app emploie `Slider(in: 11...28, step: 1)`, et le geste compte : on
+/// cherche une taille en regardant le texte bouger, pas en comptant des
+/// appuis. Dix-huit crans au bouton, ce sont dix-sept allers-retours entre le
+/// doigt et l'œil.
+///
+/// Les deux « A » qui l'encadrent sont ceux d'iOS. Ils ne sont pas décoratifs :
+/// ils disent le **sens** du curseur sans un mot, et ils le disent à qui ne
+/// lit pas encore confortablement la page — ce qui est précisément le lecteur
+/// qui cherche ce réglage.
+///
+/// ## Ce qu'il touche
+///
+/// `--lecture`, et rien d'autre. La variable n'est lue que par `.liseuse` : ni
+/// la navigation, ni le fil d'Ariane, ni ce panneau ne bougent. C'est la règle
+/// de l'app, et sa raison est écrite là-bas — *un lecteur atteint de
+/// kératocône monte le corps du texte très haut pour lire, et n'a aucune raison
+/// de faire enfler du même geste une barre latérale.*
+/// Le menu des fontes — **les sept de l'app**, et chacune s'écrit dans la sienne.
+///
+/// ## Une ligne qui se compose dans ce qu'elle propose
+///
+/// C'est le même principe que les pastilles de thème, appliqué à la lettre :
+/// une ligne qui dit « Spectral » en Literata ne dit rien. Chaque ligne porte
+/// donc son propre `data-fonte` **et** la classe `liseuse` — parce que c'est là
+/// que la règle vit —, et se lit dans la fonte qu'elle offre.
+///
+/// Le nom seul ne suffirait pas à choisir : « Newsreader » ne dit rien à qui
+/// n'est pas typographe. La note de l'app est donc reprise **mot pour mot** —
+/// elle a été écrite pour ça, et un lecteur qui passe du téléphone au site doit
+/// retrouver les mêmes phrases.
+#[component]
+fn ChoixDeFonte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    view! {
+        <div role="radiogroup" aria-label="Fonte" class="mt-1 flex flex-col">
+            {Fonte::TOUTES
+                .into_iter()
+                .map(|fonte| {
+                    let actif = Signal::derive(move || preferences.get().fonte == fonte);
+                    view! {
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked=move || actif.get().to_string()
+                            on:click=move |_| preferences.update(|p| p.fonte = fonte)
+                            data-fonte=fonte.attribut()
+                            class="liseuse -mx-2 flex items-baseline gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class=("text-accent", move || actif.get())
+                            class=("text-encre", move || !actif.get())
+                        >
+                            // Le nom, dans sa propre lettre. `font-corps` lit
+                            // `--font-corps`, que le `data-fonte` de ce bouton
+                            // vient de redéclarer pour son sous-arbre.
+                            <span class="font-corps text-base leading-none">{fonte.libelle()}</span>
+                            <span class="flex-1 text-sm leading-tight text-encre-douce">
+                                {fonte.note()}
+                            </span>
+                            // La coche, à la fin : elle confirme, elle n'annonce
+                            // pas. Masquée à l'oreille — `aria-checked` le dit
+                            // déjà, et le redire ferait « coché, coché ».
+                            <span
+                                aria-hidden="true"
+                                class="w-3 text-accent"
+                                class=("opacity-0", move || !actif.get())
+                            >"·"</span>
+                        </button>
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
+}
+
+#[component]
+fn TailleDuTexte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    let corps = Signal::derive(move || preferences.get().corps);
+
+    view! {
+        <div class="mt-1 flex items-center gap-3">
+            // Les deux repères. `aria-hidden` : « A » et « A » à l'oreille ne
+            // disent rien, et le curseur porte déjà son nom.
+            <span aria-hidden="true" class="font-corps text-sm leading-none text-encre-douce">
+                "A"
+            </span>
+            <input
+                type="range"
+                min=Theme::CORPS_MINIMUM.to_string()
+                max=Theme::CORPS_MAXIMUM.to_string()
+                step="1"
+                aria-label="Taille du texte"
+                // La valeur **et** le texte de la valeur : un lecteur d'écran
+                // annoncerait « 19 » sans dire de quoi, là où « 19 points »
+                // situe. C'est l'unité de l'app, et elle est la même ici.
+                aria-valuetext=move || format!("{} points", corps.get())
+                prop:value=move || corps.get().to_string()
+                on:input=move |evenement| {
+                    let brut = event_target_value(&evenement);
+                    if let Ok(valeur) = brut.parse::<u8>() {
+                        // Le serrage est ici **et** dans le script de l'en-tête :
+                        // un `<input>` se pilote au clavier, et rien n'empêche
+                        // une valeur hors bornes d'arriver par un autre chemin.
+                        let valeur = valeur.clamp(Theme::CORPS_MINIMUM, Theme::CORPS_MAXIMUM);
+                        preferences.update(|p| p.corps = valeur);
+                    }
+                }
+                class="curseur h-6 flex-1 cursor-pointer appearance-none bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            />
+            <span aria-hidden="true" class="font-corps text-2xl leading-none text-encre-douce">
+                "A"
+            </span>
         </div>
     }
 }
