@@ -866,20 +866,42 @@ pub async fn enregistrer_mon_profil(
     let sync = use_context::<std::sync::Arc<dyn crate::application::ports::Synchronisation>>()
         .ok_or_else(|| ServerFnError::new("synchronisation absente du contexte"))?;
 
-    // Le portrait n'est pas touché : il vient de l'app, qui sait le poser. On
-    // relit celui qui existe pour ne pas l'effacer en écrivant le reste.
-    let portrait = sync
+    // **Trois champs que cette page ne montre pas, et qu'elle ne doit pas
+    // effacer.**
+    //
+    // Le portrait vient de l'app, qui sait le poser. L'adresse et son
+    // consentement viennent de l'app aussi, depuis le 22 septembre 2026. Les
+    // trois sont relus et repassés tels quels.
+    //
+    // ==C'est la forme de perte la plus silencieuse qui soit== : les champs
+    // portent `#[serde(default)]`, donc les omettre ne produit aucune erreur —
+    // ils repartent vides, le backend garde le plus récent, et l'écriture du
+    // site gagne. Le lecteur modifierait sa bio ici et perdrait l'adresse
+    // saisie sur son téléphone, sans qu'une ligne le dise.
+    //
+    // Et le consentement moins que tout le reste : ==un consentement ne
+    // s'écrase pas par effet de bord==. Le modifier depuis le site demanderait
+    // une case dédiée avec son explication, ce qui est un chantier et non un
+    // champ.
+    let ancien = sync
         .tirer(&session.access_token, None)
         .await
         .ok()
-        .and_then(|m| m.profil)
-        .and_then(|p| p.portrait);
+        .and_then(|m| m.profil);
+    let portrait = ancien.as_ref().and_then(|p| p.portrait.clone());
+    let courriel = ancien
+        .as_ref()
+        .map(|p| p.courriel.clone())
+        .unwrap_or_default();
+    let courriels_consentis = ancien.as_ref().and_then(|p| p.courriels_consentis);
 
     let profil = crate::domaine::profil::Profil {
         nom_dusage: nom_dusage.trim().to_string(),
         prenom: prenom.trim().to_string(),
         nom: nom.trim().to_string(),
         bio: bio.trim().to_string(),
+        courriel,
+        courriels_consentis,
         portrait,
         updated_at: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
