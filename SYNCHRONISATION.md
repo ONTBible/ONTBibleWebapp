@@ -458,7 +458,8 @@ qui vivait en fichier non suivi, dont les deux « exemplaires de réserve »
 | `ONTBibleApp-journal13` | ==non réclamé== | PR #302, commits des 13-14 |
 | `ONTBibleWebapp` | **le site** | arbre principal — leadeuse du dépôt |
 | `ONTBibleWebapp-android` | la manageuse | PR #153 |
-| `ONTBibleWebapp-worktrees` | la manageuse | PR #155 |
+| `ONTBibleWebapp-tronc` | la manageuse | l'alignement du tronc commun, PR #159 |
+| `ONTBibleWebapp-pourquoi` | la manageuse | la page « Le pourquoi », PR #161 — attend l'auteur |
 | `ONTBibleWebapp-appuilong` | ==non réclamé== | le site travaille cette branche depuis son arbre principal, pas d'ici |
 
 ==Il n'y a pas de colonne « branche », et c'est une décision.== Trois sessions
