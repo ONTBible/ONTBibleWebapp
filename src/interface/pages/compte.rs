@@ -3,7 +3,7 @@ use leptos_router::hooks::use_query_map;
 
 use crate::api::mon_compte;
 use crate::domaine::compte::Fournisseur;
-use crate::interface::design::{Bloc, Entete, Lien};
+use crate::interface::design::{EnteteDeSection, Groupe, Lien, Ligne, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// `/fr/compte` — ouvrir un compte, ou le fermer.
@@ -47,32 +47,34 @@ pub fn Compte() -> impl IntoView {
             chemin="/fr/compte"
         />
 
-        // ── Un seul bloc, et c'est la correction ──────────────────────────
+        // ── C'est un écran de la webapp, pas une page du site ─────────────
         //
-        // La page en portait **deux**, chacun sur `PageDeLecture` : or un `Bloc`
-        // fait au moins la hauteur de l'écran, contenu centré. C'est juste pour
-        // une page éditoriale, où chaque section *est* un écran — l'accueil,
-        // « Le pourquoi ». Ici il y avait six paragraphes répartis sur deux
-        // écrans entiers, donc deux trous d'un demi-écran chacun.
+        // **Elle rendait `Entete` et `Bloc`**, c'est-à-dire la chrome de
+        // l'édition : la navigation en capitales au-dessus de tout, et un
+        // conteneur qui fait au moins la hauteur de l'écran.
         //
-        // La règle qui en sort : `Bloc` sert à ce qui se lit **section par
-        // section**. Une page fonctionnelle — un compte, un formulaire — suit
-        // `PageLegale`, qui n'en prend qu'un seul.
-        <Entete />
-        <Bloc>
-            <a
-                href="/fr"
-                class="text-sm uppercase tracking-capitales text-encre-douce no-underline hover:text-encre"
-            >
-                "← Retour"
-            </a>
-
-            <h1 class="mt-6">"Votre compte"</h1>
-            <p class="mb-10 text-encre-douce">
-                "Il sert à une seule chose : retrouver vos surlignages et vos notes "
-                "d'un appareil à l'autre."
-            </p>
-
+        // Conséquence, et c'était le plus gros trou du fork : toucher « Vous »
+        // dans la barre d'onglets **sortait de la webapp**. Plus de barre,
+        // plus de barre latérale, plus de thème — le lecteur qui lisait sur
+        // parchemin recevait une nuit d'aubergine et l'en-tête d'un site
+        // vitrine. Il n'y avait pas de retour visible vers là d'où il venait,
+        // hors le bouton du navigateur.
+        //
+        // Ça ne se voyait dans aucun fichier : `COMPTE` déclare son chemin
+        // dans la navigation, et la page le rend à sa façon quatre cents
+        // lignes plus loin. `PageDeLecture` est ce qui porte la chrome et la
+        // peau — la règle du §8 undecies, « les pages de la liseuse sont
+        // exactement celles qui l'emploient » — donc s'en passer, c'est en
+        // sortir.
+        //
+        // **`liste=true`**, comme l'app : `YouTab` est une `List` de sections,
+        // pas un texte suivi. Le grand titre serré à gauche, et la liste
+        // commence.
+        //
+        // Ce que l'ancien commentaire disait reste vrai et n'a plus d'objet :
+        // deux `Bloc` faisaient deux trous d'un demi-écran. `PageDeLecture`
+        // n'en pose qu'un.
+        <PageDeLecture liste=true titre="Vous">
             <div>
                 {move || {
                     erreur()
@@ -120,7 +122,9 @@ pub fn Compte() -> impl IntoView {
                     " — l'effacement est immédiat et il est complet."
                 </p>
             </div>
-        </Bloc>
+            <LeCorpus />
+            <Credits />
+        </PageDeLecture>
     }
 }
 
@@ -678,5 +682,110 @@ fn Champ(nom: &'static str, libelle: &'static str, valeur: String) -> impl IntoV
                 class="w-full rounded-sm border border-filet bg-surface/40 px-4 py-3 text-base text-encre focus:border-accent focus:outline-none"
             />
         </label>
+    }
+}
+
+/// L'état du chantier, comme `YouTab` le donne.
+///
+/// ## Pourquoi il est ici et pas seulement sur l'accueil
+///
+/// L'accueil l'annonce à qui **découvre** le projet — c'est un argument, et il
+/// y est le cinquième bloc. Ici c'est autre chose : le lecteur qui revient veut
+/// savoir *ce qui a bougé depuis la dernière fois*. L'app le range de même,
+/// sous « Le Corpus », dans l'onglet où l'on va voir ses affaires.
+///
+/// Les nombres viennent du `manifest.json` du pipeline, figés par `build.rs` —
+/// **jamais recopiés**. Un site qui annonce trois livres quand le vault en a
+/// cinq ment sans que personne ne le remarque.
+///
+/// ## En lignes, pas en grille
+///
+/// Le site a déjà `Chiffres`, une grille de quatre cellules, et elle est juste
+/// là où elle est : sur l'accueil, elle **frappe**. Dans une liste de réglages,
+/// une grille rompt la colonne — l'app emploie des `LabeledContent`, c'est-à-
+/// dire un intitulé à gauche et sa valeur à droite. C'est ce que `Ligne` fait
+/// déjà, et c'est pour ça qu'elle a un prop `valeur`.
+#[component]
+fn LeCorpus() -> impl IntoView {
+    view! {
+        <EnteteDeSection sobre=true>"Le corpus"</EnteteDeSection>
+        <Groupe>
+            <Ligne
+                titre=Box::new(|| view! { "Livres rédigés" }.into_any())
+                valeur=Box::new(|| {
+                    view! {
+                        <span class="chiffres-tableau whitespace-nowrap">
+                            {env!("CORPUS_LIVRES_ECRITS")} " / " {env!("CORPUS_LIVRES")}
+                        </span>
+                    }
+                        .into_any()
+                })
+            />
+            <Ligne
+                titre=Box::new(|| view! { "Unités" }.into_any())
+                valeur=Box::new(|| {
+                    view! { <span class="chiffres-tableau">{env!("CORPUS_UNITES")}</span> }
+                        .into_any()
+                })
+            />
+            <Ligne
+                titre=Box::new(|| view! { "Versets" }.into_any())
+                valeur=Box::new(|| {
+                    view! { <span class="chiffres-tableau">{env!("CORPUS_VERSETS")}</span> }
+                        .into_any()
+                })
+            />
+            <Ligne
+                titre=Box::new(|| view! { "Entrées de lexique" }.into_any())
+                valeur=Box::new(|| {
+                    view! { <span class="chiffres-tableau">{env!("CORPUS_LEXIQUE")}</span> }
+                        .into_any()
+                })
+            />
+        </Groupe>
+    }
+}
+
+/// Les crédits — et ce n'est pas de la politesse.
+///
+/// ## L'OFL l'exige
+///
+/// Les six familles de lecture et les deux fontes hébraïques sont sous SIL
+/// Open Font License. Elle autorise la redistribution **à condition que la
+/// licence parte avec** — `scripts/fontes.sh` copie donc les fichiers de
+/// licence dans `public/fontes/`, et son en-tête dit pourquoi SBL Hebrew et
+/// Taamey Frank CLM n'y entrent jamais.
+///
+/// Un fichier posé à côté d'une fonte satisfait la lettre. Le nommer dans
+/// l'interface satisfait ce que la lettre protège : **on sait qui a dessiné ce
+/// qu'on lit.** L'app le fait, sous « Crédits », et le site ne le faisait nulle
+/// part.
+///
+/// ## Et la traduction porte un nom
+///
+/// « Gloire Bikouta », jamais « Sha'eliel » : c'est le nom interne au vault, et
+/// il n'en sort pas.
+#[component]
+fn Credits() -> impl IntoView {
+    view! {
+        <EnteteDeSection sobre=true>"Crédits"</EnteteDeSection>
+        <Groupe>
+            <Ligne
+                titre=Box::new(|| view! { "Traduction" }.into_any())
+                valeur=Box::new(|| view! { "Gloire Bikouta" }.into_any())
+            />
+            <Ligne
+                titre=Box::new(|| view! { "Corps du texte" }.into_any())
+                valeur=Box::new(|| view! { "Literata — OFL" }.into_any())
+            />
+            <Ligne
+                titre=Box::new(|| view! { "Titres" }.into_any())
+                valeur=Box::new(|| view! { "Jost — OFL" }.into_any())
+            />
+            <Ligne
+                titre=Box::new(|| view! { "Hébreu" }.into_any())
+                valeur=Box::new(|| view! { "Ezra SIL — OFL" }.into_any())
+            />
+        </Groupe>
     }
 }
