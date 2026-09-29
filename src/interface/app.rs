@@ -8,7 +8,7 @@ use leptos_router::{
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
     Accueil, Application, Assistance, Chuqqot, Compte, Conditions, Confidentialite, Fiche, Lexique,
-    Lire, Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Qahal, Recherche,
+    Lire, Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Qahal, Recherche, Reglages,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -357,6 +357,20 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("qahal"))
                         view=Qahal
+                        ssr=SsrMode::Async
+                    />
+
+                    // **Avant celle du livre**, comme `/fr/webapp/partie` :
+                    // les deux font trois segments, et `reglages` n'est le nom
+                    // d'aucun livre — ce sont des translittérations de
+                    // l'hébreu. Une épreuve le tient plutôt que ce commentaire.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("reglages"),
+                        )
+                        view=Reglages
                         ssr=SsrMode::Async
                     />
 

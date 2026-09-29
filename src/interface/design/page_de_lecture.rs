@@ -195,6 +195,24 @@ pub fn PageDeLecture(
 
             <h1
                 class="mt-0 text-balance"
+                // **Le titre d'unité suit le corps, comme chez l'app.**
+                //
+                // Il prenait `--text-3xl`, le palier d'édition — calibré pour
+                // le titre d'une page d'essai, où il ouvre un écran entier.
+                // Mesuré dans la page : **56,9 px contre 21 de corps, soit
+                // 2,71 fois**. `ONTTypography.display` donne **1,7**.
+                //
+                // Ce n'est pas un écart de goût : à 2,71 le titre pèse plus
+                // que les trois premières lignes du texte qu'il annonce, et le
+                // chapitre commence par son propre nom au lieu de commencer.
+                //
+                // En `calc` et non en `em` : ce titre est **hors** de
+                // `.liseuse`, parce qu'une chrome ne doit pas enfler avec le
+                // réglage du corps. Il lit donc `--lecture` lui-même, ce qui
+                // le fait suivre le curseur sans faire suivre le fil d'Ariane.
+                style:font-size=move || {
+                    (!liste).then_some("calc(var(--text-base) * var(--lecture, 1) * 1.7)")
+                }
                 class=("mb-4", !liste)
                 // Le titre d'une liste est celui de l'app : serré, à gauche, et
                 // sans l'air d'une affiche. Celui d'une lecture ne bouge pas.

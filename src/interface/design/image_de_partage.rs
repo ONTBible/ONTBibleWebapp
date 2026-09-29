@@ -80,6 +80,11 @@ pub fn ImageDePartage(
 /// Hors du rendu, et sans `cfg` : c'est de l'arithmétique, elle n'a besoin
 /// d'aucun navigateur — donc elle s'éprouve, et c'est la seule partie de cette
 /// pièce qui le peut. Le reste demande un canvas.
+// Employée par le rendu, qui n'existe que côté navigateur, et par ses deux
+// épreuves. Côté serveur elle ne sert donc à rien — mais elle **compile**, et
+// c'est ce qu'on veut : une table de paliers ne doit pas pouvoir diverger
+// entre deux cibles.
+#[cfg_attr(not(any(feature = "hydrate", test)), allow(dead_code))]
 fn palier(signes: usize) -> f64 {
     match signes {
         ..120 => 78.0,
@@ -116,7 +121,7 @@ fn rendre(texte: &str, renvoi: &str) -> bool {
 /// ce dépôt a déjà payé — le bloc App Store écrit d'avance et jamais rendu.
 #[cfg(feature = "hydrate")]
 pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasElement> {
-    use wasm_bindgen::{JsCast, JsValue};
+    use wasm_bindgen::JsCast;
 
     const COTE: f64 = 1080.0;
     const MARGE: f64 = 90.0;
@@ -152,7 +157,7 @@ pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasE
     let encre = couleur("--color-encre");
     let or = couleur("--color-or");
 
-    ctx.set_fill_style(&JsValue::from_str(&fond));
+    ctx.set_fill_style_str(&fond);
     ctx.fill_rect(0.0, 0.0, COTE, COTE);
 
     // **La composition française traverse le canvas aussi.**
@@ -169,7 +174,7 @@ pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasE
     let corps = palier(texte.chars().count());
     let interligne = corps * 1.42;
 
-    ctx.set_fill_style(&JsValue::from_str(&encre));
+    ctx.set_fill_style_str(&encre);
     ctx.set_font(&format!("{corps}px Literata, Georgia, serif"));
     ctx.set_text_baseline("alphabetic");
 
@@ -215,14 +220,14 @@ pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasE
     }
 
     // Le filet d'or, puis le renvoi et la signature sur la même ligne de base.
-    ctx.set_fill_style(&JsValue::from_str(&or));
+    ctx.set_fill_style_str(&or);
     ctx.fill_rect(MARGE, pied, largeur, 3.0);
 
     let base = pied + 34.0 + 40.0;
     ctx.set_font("40px Literata, Georgia, serif");
     let _ = ctx.fill_text(renvoi, MARGE, base);
 
-    ctx.set_fill_style(&JsValue::from_str(&encre));
+    ctx.set_fill_style_str(&encre);
     ctx.set_global_alpha(0.55);
     ctx.set_font("38px Jost, system-ui, sans-serif");
     ctx.set_text_align("right");
@@ -332,6 +337,11 @@ mod tests {
 ///   produit doit porter sa marque »*. Celui-ci écrit ce qu'il est ;
 /// - **il ne remplace rien.** La page reste entière dessous ; la carte s'ajoute
 ///   en tête. Un banc qui se substitue à la page mesure le banc.
+// Les deux props ne servent qu'au navigateur : côté serveur, le dessin n'a pas
+// lieu. Le `cfg_attr` vaut mieux qu'un préfixe `_`, qui les rendrait muettes
+// des deux côtés et ferait perdre le nom au lecteur — c'est l'idiome que
+// `selection_de_versets` emploie déjà.
+#[cfg_attr(not(feature = "hydrate"), allow(unused_variables))]
 #[cfg(debug_assertions)]
 #[component]
 pub fn BancDeLaCarte(

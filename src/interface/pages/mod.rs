@@ -29,6 +29,7 @@ mod pourquoi;
 mod prononciation;
 mod qahal;
 pub mod recherche;
+mod reglages;
 
 pub use accueil::Accueil;
 pub use application::Application;
@@ -48,3 +49,4 @@ pub use pourquoi::Pourquoi;
 pub use prononciation::Prononciation;
 pub use qahal::Qahal;
 pub use recherche::Recherche;
+pub use reglages::Reglages;

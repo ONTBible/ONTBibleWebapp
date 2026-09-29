@@ -512,103 +512,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         </button>
                     </div>
 
-                    <Groupe titre="Thème">
-                        <ChoixDeTheme preferences />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Les quatre peaux de l'application, à l'identique. Mystique est née "
-                        "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
-                        "téléphone ; les trois autres font le chemin inverse."
-                    </p>
-
-                    <Groupe titre="Fonte">
-                        <ChoixDeFonte preferences />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Les six familles sont embarquées avec le site, en trois coupes "
-                        "chacune — l'italique de la translittération est dessinée, jamais "
-                        "penchée à la main. Georgia vient de votre appareil."
-                    </p>
-
-                    // **« Corps » chez l'app**, et les deux curseurs y vont
-                    // ensemble : la taille et l'interligne se règlent l'un contre
-                    // l'autre, et les séparer ferait remonter chercher le second
-                    // après avoir touché le premier.
-                    <Groupe titre="Corps">
-                        <TailleDuTexte preferences />
-                        <InterligneDuTexte preferences />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Elle ne touche que le texte, jamais la navigation ni ce panneau — "
-                        "une chrome qui grandit avec le corps mange la place où ce texte "
-                        "s'affiche. Le zoom du navigateur, lui, agrandit tout, et les deux "
-                        "se multiplient."
-                    </p>
-
-                    <Groupe titre="Disposition">
-                        <Bascule
-                            libelle="Versets à la suite"
-                            actif=Signal::derive(move || preferences.get().continu)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.continu = v);
-                            }
-                        />
-                        <Bascule
-                            libelle="Couper les mots"
-                            actif=Signal::derive(move || preferences.get().coupure)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.coupure = v);
-                            }
-                        />
-                    </Groupe>
-                    <p class=NOTE>
-                        "À la suite, les versets coulent en prose et leurs numéros passent en "
-                        "exposant — c'est la lecture suivie. En blocs, chaque verset se tient "
-                        "seul : c'est le mode d'étude."
-                    </p>
-                    <p class=NOTE>
-                        "Couper les mots resserre la justification et supprime les lézardes "
-                        "blanches d'une colonne étroite. Éteint par défaut : la césure hache "
-                        "les mots, et qui grossit le texte pour le voir se retrouve avec plus "
-                        "de coupures, pas moins."
-                    </p>
-
-                    // **Le registre est parti**, et ce n'est pas un retrait :
-                    // il a sa carte dans « Vous ».
-                    //
-                    // L'app l'a sorti d'ici délibérément, et son commentaire
-                    // dit pourquoi : il était rangé « entre la disposition des
-                    // versets et la taille du texte », c'est-à-dire **avec la
-                    // typographie**. Or il ne change pas la façon dont le texte
-                    // se présente — il change **ce que les livres sont
-                    // appelés**, donc le corpus tel que le lecteur le
-                    // rencontre.
-                    //
-                    // Ses trois paragraphes d'explication pesaient ici plus que
-                    // tous les autres réglages réunis, sur une feuille qu'on
-                    // ouvre au milieu d'un chapitre pour éteindre une glose.
-
-
-                    <Groupe titre="Niveaux du texte">
-                        <Bascule
-                            libelle="Gloses"
-                            actif=Signal::derive(move || preferences.get().gloses)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.gloses = v);
-                            }
-                        />
-                        <Bascule
-                            libelle="Translittération et hébreu"
-                            actif=Signal::derive(move || preferences.get().niveau_3)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.niveau_3 = v);
-                            }
-                        />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Le corps de la traduction reste toujours visible. Les gloses "
-                        "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
-                    </p>
+                    <LesReglages preferences />
             </div>
         </Show>
     }
@@ -1053,5 +957,132 @@ mod contrat {
                  `debug_assert!` ne s'arme pas et que la page rend `200`."
             );
         }
+    }
+}
+/// **Les réglages eux-mêmes**, sans la feuille qui les porte.
+///
+/// ## Pourquoi ils sont séparés
+///
+/// Ils ne vivaient que dans la feuille « aA », qui n'est montée que sur un
+/// **passage**. Conséquence, et c'est un cul-de-sac que l'auteur a trouvé :
+/// depuis la Bible, le Lexique, Qahal ou Chuqqot, **aucun moyen d'y arriver**.
+/// La ligne « Réglages de lecture » de l'onglet « Vous » menait d'ailleurs à
+/// la Bible — c'est-à-dire à un écran qui n'a pas ce bouton.
+///
+/// L'app n'a pas ce trou : `YouTab` pousse `ReadingSettingsSheet` comme une
+/// **destination**, en plus de la barre d'outils du chapitre. Deux chemins,
+/// un seul écran.
+///
+/// Le site a maintenant les deux aussi — la feuille dans un chapitre, la page
+/// `/fr/webapp/reglages` ailleurs — et **un seul jeu de bascules**. Les
+/// dupliquer aurait fait deux vérités à tenir d'accord, ce que ce dépôt paie
+/// chaque fois qu'il l'a laissé arriver.
+///
+/// ## Et ils ne demandent aucun compte
+///
+/// C'était la question de l'auteur : *« est-ce que c'est parce que je ne suis
+/// pas connecté ? »* Non. Tout vit dans `localStorage`, sous `ont.lecture`,
+/// depuis toujours — le compte ne sert qu'à retrouver ses surlignages d'un
+/// appareil à l'autre. Ce qui manquait était un **chemin**, pas un droit.
+#[component]
+pub fn LesReglages(preferences: RwSignal<Preferences>) -> impl IntoView {
+    view! {
+    <Groupe titre="Thème">
+        <ChoixDeTheme preferences />
+    </Groupe>
+    <p class=NOTE>
+        "Les quatre peaux de l'application, à l'identique. Mystique est née "
+        "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
+        "téléphone ; les trois autres font le chemin inverse."
+    </p>
+
+    <Groupe titre="Fonte">
+        <ChoixDeFonte preferences />
+    </Groupe>
+    <p class=NOTE>
+        "Les six familles sont embarquées avec le site, en trois coupes "
+        "chacune — l'italique de la translittération est dessinée, jamais "
+        "penchée à la main. Georgia vient de votre appareil."
+    </p>
+
+    // **« Corps » chez l'app**, et les deux curseurs y vont
+    // ensemble : la taille et l'interligne se règlent l'un contre
+    // l'autre, et les séparer ferait remonter chercher le second
+    // après avoir touché le premier.
+    <Groupe titre="Corps">
+        <TailleDuTexte preferences />
+        <InterligneDuTexte preferences />
+    </Groupe>
+    <p class=NOTE>
+        "Elle ne touche que le texte, jamais la navigation ni ce panneau — "
+        "une chrome qui grandit avec le corps mange la place où ce texte "
+        "s'affiche. Le zoom du navigateur, lui, agrandit tout, et les deux "
+        "se multiplient."
+    </p>
+
+    <Groupe titre="Disposition">
+        <Bascule
+            libelle="Versets à la suite"
+            actif=Signal::derive(move || preferences.get().continu)
+            au_changement=move |v| {
+                preferences.update(|p| p.continu = v);
+            }
+        />
+        <Bascule
+            libelle="Couper les mots"
+            actif=Signal::derive(move || preferences.get().coupure)
+            au_changement=move |v| {
+                preferences.update(|p| p.coupure = v);
+            }
+        />
+    </Groupe>
+    <p class=NOTE>
+        "À la suite, les versets coulent en prose et leurs numéros passent en "
+        "exposant — c'est la lecture suivie. En blocs, chaque verset se tient "
+        "seul : c'est le mode d'étude."
+    </p>
+    <p class=NOTE>
+        "Couper les mots resserre la justification et supprime les lézardes "
+        "blanches d'une colonne étroite. Éteint par défaut : la césure hache "
+        "les mots, et qui grossit le texte pour le voir se retrouve avec plus "
+        "de coupures, pas moins."
+    </p>
+
+    // **Le registre est parti**, et ce n'est pas un retrait :
+    // il a sa carte dans « Vous ».
+    //
+    // L'app l'a sorti d'ici délibérément, et son commentaire
+    // dit pourquoi : il était rangé « entre la disposition des
+    // versets et la taille du texte », c'est-à-dire **avec la
+    // typographie**. Or il ne change pas la façon dont le texte
+    // se présente — il change **ce que les livres sont
+    // appelés**, donc le corpus tel que le lecteur le
+    // rencontre.
+    //
+    // Ses trois paragraphes d'explication pesaient ici plus que
+    // tous les autres réglages réunis, sur une feuille qu'on
+    // ouvre au milieu d'un chapitre pour éteindre une glose.
+
+
+    <Groupe titre="Niveaux du texte">
+        <Bascule
+            libelle="Gloses"
+            actif=Signal::derive(move || preferences.get().gloses)
+            au_changement=move |v| {
+                preferences.update(|p| p.gloses = v);
+            }
+        />
+        <Bascule
+            libelle="Translittération et hébreu"
+            actif=Signal::derive(move || preferences.get().niveau_3)
+            au_changement=move |v| {
+                preferences.update(|p| p.niveau_3 = v);
+            }
+        />
+    </Groupe>
+    <p class=NOTE>
+        "Le corps de la traduction reste toujours visible. Les gloses "
+        "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
+    </p>
     }
 }
