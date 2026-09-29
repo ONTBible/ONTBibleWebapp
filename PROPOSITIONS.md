@@ -56,7 +56,7 @@ information, et il se voit.
 
 ---
 
-## #NNN · Proposer la mesure à la page « Le pourquoi »
+## #161 · Proposer la mesure à la page « Le pourquoi »
 
     ouverte le   29 septembre 2026, par la manageuse
     vers         main
