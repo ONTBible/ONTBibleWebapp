@@ -168,6 +168,11 @@ fn script_de_la_peau() -> String {
         Theme::CORPS_MAXIMUM,
         Theme::CORPS_PAR_DEFAUT,
     );
+    let (il_bas, il_haut, il_defaut) = (
+        Theme::INTERLIGNE_MINIMUM,
+        Theme::INTERLIGNE_MAXIMUM,
+        Theme::INTERLIGNE_PAR_DEFAUT,
+    );
 
     // `try` sur tout : `localStorage` **lève** quand le site est bloqué —
     // navigation privée stricte, cookies refusés — et une exception ici
@@ -184,6 +189,10 @@ fn script_de_la_peau() -> String {
         "try{{var o=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}'),\
          r=document.documentElement,n=+o.corps;\
          if(n>={bas}&&n<={haut})r.style.setProperty('--lecture',n/{defaut});\
+         var g=+o.interligne;\
+         if(g>={il_bas}&&g<={il_haut})\
+         r.style.setProperty('--interligne',1.68+(g-{il_defaut})/10);\
+         if(o.coupure===!0)r.style.setProperty('--coupure','auto');\
          var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
          for(var i=0;i<L.length;i++)if(p===L[i]||p.indexOf(L[i]+'/')===0)d=1;\
          if(d){{var c=[{connus}];\

@@ -376,6 +376,12 @@
    `text-lg` en dur ; il porte la même valeur, multipliée. */
 .corps-de-lecture {
   font-size: calc(var(--text-lg) * var(--lecture));
+
+  /* **L'interligne du lecteur.** Au cran par défaut, `--interligne` vaut
+     exactement les 1,68 que le §5 a mesurés — donc le repli couvre le rendu du
+     serveur, qui ne connaît pas les réglages, et la valeur documentée reste
+     celle de tout le monde. */
+  line-height: var(--interligne, 1.68);
 }
 
 /* ── Le curseur de taille ──────────────────────────────────────────────────
@@ -1072,7 +1078,19 @@
   /* La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,
      une mesure étroite creuse des lézards entre les mots. */
   p {
-    hyphens: auto;
+    /* **Le lecteur décide**, et il ne le pouvait pas.
+
+       C'était `auto` en dur : la césure était allumée pour tout le monde, sans
+       moyen de l'éteindre. L'app en fait un réglage — « Couper les mots » —, et
+       sa raison vaut doublement sur un site dont l'auteur lit à 0,6/10 : *qui
+       grossit le texte pour le voir se retrouve avec plus de coupures, pas
+       moins.*
+
+       Le défaut est `manual`, comme chez elle. `manual` et non `none` : le
+       premier laisse vivre un trait d'union conditionnel qu'on poserait
+       soi-même, le second l'ignorerait aussi. On retire l'automatisme, pas la
+       possibilité.                                                          */
+    hyphens: var(--coupure, manual);
     margin-block-end: --spacing(6);
   }
 

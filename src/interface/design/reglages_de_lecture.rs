@@ -193,6 +193,8 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
             let reglages = preferences.get();
             poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
             poser_la_taille(reglages.corps);
+            poser_l_interligne(reglages.interligne);
+            poser_la_coupure(reglages.coupure);
         });
         // `on_cleanup` et non un effet qui s'annule : le démontage est le seul
         // signal qui dise « cette page n'est plus à l'écran », et c'est
@@ -228,16 +230,64 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
 /// laissée sur la racine, elle est inerte partout ailleurs. La retirer
 /// coûterait une seconde condition sans rien protéger.
 #[cfg(feature = "hydrate")]
-fn poser_la_taille(corps: u8) {
-    let Some(racine) = web_sys::window()
+/// L'interligne, en **total CSS** et non en supplément.
+///
+/// L'app compte un supplément — `.lineSpacing` s'ajoute à l'interligne naturel
+/// de la fonte —, la CSS compte la hauteur entière. Les deux ne se
+/// convertissent pas exactement, le supplément naturel de Literata n'étant pas
+/// un nombre que ce dépôt connaisse.
+///
+/// Ce qui se transpose est **le défaut et l'amplitude** : au cran 5, la valeur
+/// rendue est `1,68` — celle que le §5 a mesurée —, et chaque cran vaut un
+/// dixième. De 1,38 à 2,18, ce qui couvre l'amplitude de l'app.
+///
+/// Le défaut rend donc **exactement** ce que le site rendait avant ce réglage,
+/// et c'était la condition : un curseur dont le cran du milieu déplacerait la
+/// valeur documentée changerait la composition de tout le monde pour offrir un
+/// réglage à quelques-uns.
+#[cfg(feature = "hydrate")]
+fn poser_l_interligne(crans: u8) {
+    let Some(racine) = racine() else { return };
+    let total = 1.68 + (f64::from(crans) - f64::from(Theme::INTERLIGNE_PAR_DEFAUT)) / 10.0;
+    let _ = racine
+        .style()
+        .set_property("--interligne", &format!("{total}"));
+}
+
+/// La césure, allumée ou éteinte par le lecteur.
+///
+/// **Elle était globale**, posée sur `p` dans la feuille — donc allumée pour
+/// tout le monde, sans moyen de l'éteindre. C'est un réglage chez l'app, et sa
+/// raison vaut doublement ici : *qui grossit le texte pour le voir se retrouve
+/// avec plus de coupures, pas moins.*
+#[cfg(feature = "hydrate")]
+fn poser_la_coupure(coupe: bool) {
+    let Some(racine) = racine() else { return };
+    let _ = racine
+        .style()
+        .set_property("--coupure", if coupe { "auto" } else { "manual" });
+}
+
+/// L'élément racine, quand le navigateur est là.
+#[cfg(feature = "hydrate")]
+fn racine() -> Option<web_sys::HtmlElement> {
+    web_sys::window()
         .and_then(|f| f.document())
         .and_then(|d| d.document_element())
-    else {
-        return;
-    };
-    let Some(racine) = racine.dyn_ref::<web_sys::HtmlElement>() else {
-        return;
-    };
+        .and_then(|r| r.dyn_ref::<web_sys::HtmlElement>().cloned())
+}
+
+#[cfg(feature = "hydrate")]
+fn poser_la_taille(corps: u8) {
+    // **L'attribut `cfg` avait disparu**, et il y était : mon insertion s'est
+    // glissée entre lui et sa fonction, si bien qu'il gardait `racine()` et
+    // laissait celle-ci compiler côté serveur — où `web_sys` n'existe pas.
+    //
+    // Un attribut n'appartient pas au fichier, il appartient à l'élément qui
+    // le suit immédiatement. Insérer « avant une fonction » veut donc dire
+    // « avant ses attributs », et rien ne le rappelle à la lecture : les deux
+    // lignes se suivent sans qu'on voie laquelle porte l'autre.
+    let Some(racine) = racine() else { return };
     let facteur = f64::from(corps) / f64::from(Theme::CORPS_PAR_DEFAUT);
     let _ = racine
         .style()
@@ -480,8 +530,13 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         "penchée à la main. Georgia vient de votre appareil."
                     </p>
 
-                    <Groupe titre="Taille du texte">
+                    // **« Corps » chez l'app**, et les deux curseurs y vont
+                    // ensemble : la taille et l'interligne se règlent l'un contre
+                    // l'autre, et les séparer ferait remonter chercher le second
+                    // après avoir touché le premier.
+                    <Groupe titre="Corps">
                         <TailleDuTexte preferences />
+                        <InterligneDuTexte preferences />
                     </Groupe>
                     <p class=NOTE>
                         "Elle ne touche que le texte, jamais la navigation ni ce panneau — "
@@ -498,40 +553,41 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                                 preferences.update(|p| p.continu = v);
                             }
                         />
+                        <Bascule
+                            libelle="Couper les mots"
+                            actif=Signal::derive(move || preferences.get().coupure)
+                            au_changement=move |v| {
+                                preferences.update(|p| p.coupure = v);
+                            }
+                        />
                     </Groupe>
                     <p class=NOTE>
                         "À la suite, les versets coulent en prose et leurs numéros passent en "
                         "exposant — c'est la lecture suivie. En blocs, chaque verset se tient "
                         "seul : c'est le mode d'étude."
                     </p>
+                    <p class=NOTE>
+                        "Couper les mots resserre la justification et supprime les lézardes "
+                        "blanches d'une colonne étroite. Éteint par défaut : la césure hache "
+                        "les mots, et qui grossit le texte pour le voir se retrouve avec plus "
+                        "de coupures, pas moins."
+                    </p>
 
-                    <Groupe titre="Nom des livres">
-                        <Bascule
-                            libelle="Le français reçu"
-                            actif=Signal::derive(move || preferences.get().francais)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.francais = v);
-                            }
-                        />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Allumé, les livres portent le nom qu'on leur connaît — « Apocalypse », "
-                        "« la Loi », « Actes des Apôtres ». Éteint, ils portent ce que leur nom "
-                        "hébreu veut dire : « le machazeh de Yohanan », « la Fondation », « les "
-                        "gevurot de YHWH par ses neviim »."
-                    </p>
-                    <p class=NOTE>
-                        "L'écart entre les deux n'est pas une nuance de traduction. La torah est "
-                        "l'instruction qui vise ; le grec l'a rendue par nomos, le code qui "
-                        "contraint, et le français en a hérité « la Loi »."
-                    </p>
-                    <p class=NOTE>
-                        "Ce réglage est une béquille, et il est allumé pour qu'on puisse marcher "
-                        "avant de savoir. En l'éteignant, des mots apparaissent que vous n'avez "
-                        "peut-être jamais lus — parashah, par exemple, la division que le scribe "
-                        "hébreu traçait en laissant un blanc, mille ans avant qu'on numérote des "
-                        "chapitres. Ils sont en or : ils se touchent, et ils expliquent."
-                    </p>
+                    // **Le registre est parti**, et ce n'est pas un retrait :
+                    // il a sa carte dans « Vous ».
+                    //
+                    // L'app l'a sorti d'ici délibérément, et son commentaire
+                    // dit pourquoi : il était rangé « entre la disposition des
+                    // versets et la taille du texte », c'est-à-dire **avec la
+                    // typographie**. Or il ne change pas la façon dont le texte
+                    // se présente — il change **ce que les livres sont
+                    // appelés**, donc le corpus tel que le lecteur le
+                    // rencontre.
+                    //
+                    // Ses trois paragraphes d'explication pesaient ici plus que
+                    // tous les autres réglages réunis, sur une feuille qu'on
+                    // ouvre au milieu d'un chapitre pour éteindre une glose.
+
 
                     <Groupe titre="Niveaux du texte">
                         <Bascule
@@ -761,6 +817,61 @@ fn TailleDuTexte(preferences: RwSignal<Preferences>) -> impl IntoView {
             />
             <span aria-hidden="true" class="font-corps text-2xl leading-none text-encre-douce">
                 "A"
+            </span>
+        </div>
+    }
+}
+
+/// Le curseur d'interligne — le second de la section « Corps ».
+///
+/// ## Ses repères ne sont pas deux « A »
+///
+/// Celui de la taille en porte deux, petit et grand, et c'est lisible : la
+/// chose réglée *est* la taille d'une lettre. L'interligne ne se montre pas
+/// dans une lettre — il se montre dans **l'écart entre deux**. Les repères sont
+/// donc deux jeux de traits, serrés puis espacés, ce que l'app dessine de la
+/// même façon.
+///
+/// ## Et il compte des crans, pas des dixièmes
+///
+/// La valeur voyage en entier — neuf crans, comme le `step: 0.1` de l'app. Le
+/// texte annoncé au lecteur d'écran, lui, dit le résultat : « interligne 1,68 »
+/// situe, « cran 5 » ne dit rien.
+#[component]
+fn InterligneDuTexte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    let crans = Signal::derive(move || preferences.get().interligne);
+    let total =
+        move || 1.68 + (f64::from(crans.get()) - f64::from(Theme::INTERLIGNE_PAR_DEFAUT)) / 10.0;
+
+    view! {
+        <div class="mt-3 flex items-center gap-3">
+            <span aria-hidden="true" class="flex w-4 shrink-0 flex-col gap-[2px]">
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+            </span>
+            <input
+                type="range"
+                min=Theme::INTERLIGNE_MINIMUM.to_string()
+                max=Theme::INTERLIGNE_MAXIMUM.to_string()
+                step="1"
+                aria-label="Interligne"
+                aria-valuetext=move || format!("interligne {:.2}", total())
+                prop:value=move || crans.get().to_string()
+                on:input=move |evenement| {
+                    let brut = event_target_value(&evenement);
+                    if let Ok(valeur) = brut.parse::<u8>() {
+                        let valeur = valeur
+                            .clamp(Theme::INTERLIGNE_MINIMUM, Theme::INTERLIGNE_MAXIMUM);
+                        preferences.update(|p| p.interligne = valeur);
+                    }
+                }
+                class="curseur h-6 flex-1 cursor-pointer appearance-none bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            />
+            <span aria-hidden="true" class="flex w-4 shrink-0 flex-col gap-[5px]">
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
             </span>
         </div>
     }
