@@ -62,10 +62,26 @@ pub fn EnteteDeSection(
     view! {
         <div class="mt-8 mb-2 px-1 first:mt-0">
             <p class="m-0 font-titre text-[1.05em] font-semibold text-marque-encre">{children()}</p>
+            // **Un `div` et non un `p`, et ça a coûté l'hydratation entière.**
+            //
+            // Ce slot reçoit `sous_titre`, qui rend son propre `<p>`. Un `<p>`
+            // dans un `<p>` est invalide : l'analyseur referme le premier en
+            // rencontrant le second, donc le DOM du navigateur **ne correspond
+            // plus** au HTML que le serveur a écrit.
+            //
+            // Ce que ça donne : « the framework expected a text node »,
+            // `Unrecoverable hydration error`, le WASM meurt, et plus rien ne
+            // répond au doigt. L'auteur l'a vu comme « quand je switch de tab
+            // il se passe rien » — c'est la troisième fois de ce chantier que
+            // la panne se présente ainsi, et la troisième cause différente.
+            //
+            // Un conteneur qui reçoit un slot ne peut donc pas choisir une
+            // balise qui contraint ce qu'elle reçoit. `div` n'en contraint
+            // aucune.
             {glose
                 .map(|glose| {
                     view! {
-                        <p class="m-0 mt-0.5 text-[0.9em] text-encre-douce">{glose()}</p>
+                        <div class="mt-0.5 text-[0.9em] text-encre-douce">{glose()}</div>
                     }
                 })}
         </div>

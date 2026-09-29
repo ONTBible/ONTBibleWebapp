@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-"""Cherche, dans le site rendu, une ponctuation double qui peut tomber à la ligne.
+"""Deux choses que seul le **rendu** peut dire : une ponctuation détachable,
+et une imbrication qui tue l'hydratation.
 
 ## Pourquoi il faut vérifier sur le rendu, et pas sur les sources
 
@@ -58,6 +59,63 @@ PAGES = [
 COUPURE = re.compile(r"\S{0,30} [;:!?»]|« ")
 
 
+# ── L'imbrication qui tue l'hydratation ─────────────────────────────────────
+#
+# Un `<p>` ne peut pas en contenir un autre : l'analyseur **referme** le
+# premier en rencontrant le second. Le DOM du navigateur cesse alors de
+# correspondre au HTML que le serveur a écrit, et l'hydratation de Leptos meurt
+# — « the framework expected a text node », `Unrecoverable hydration error`.
+#
+# Ce qu'on voit alors : une page parfaite où **rien ne répond au doigt**. Le
+# rendu du serveur est juste, le texte est là, un moteur l'indexerait. Seul
+# manque tout ce qui vit.
+#
+# ## Pourquoi ça ne se voit pas en relisant
+#
+# Les deux `<p>` sont dans **deux fichiers différents** : un conteneur qui
+# enveloppe son slot dans un `<p>`, et un composant passé en slot qui en rend
+# un aussi. Chacun est irréprochable seul. C'est leur rencontre qui est
+# invalide, et rien dans une signature ne la signale.
+#
+# Trouvé le 29 septembre 2026, et l'auteur l'a décrit comme « quand je switch
+# de tab il se passe rien ».
+#
+# ## Les autres imbrications interdites de la même famille
+#
+# Un `<a>` dans un `<a>`, un `<button>` dans un `<button>`, un `<form>` dans un
+# `<form>`. Toutes se réparent silencieusement par l'analyseur, donc toutes
+# produisent la même panne.
+INTERDITES = {
+    "p": ("p", "div", "ul", "ol", "table", "section", "article", "h1", "h2", "h3"),
+    "a": ("a",),
+    "button": ("button", "a"),
+    "form": ("form",),
+}
+
+
+def imbrications(document: str) -> list[str]:
+    """Les balises qu'un analyseur refermerait, donc qui cassent l'hydratation."""
+    document = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", document, flags=re.S)
+    fautes = []
+    pile: list[str] = []
+    for balise in re.finditer(r"<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(/?)>", document):
+        fermante, nom, autofermante = balise.group(1), balise.group(2).lower(), balise.group(3)
+        if fermante:
+            if nom in pile:
+                # On dépile jusqu'à elle : les balises que le HTML autorise à
+                # laisser ouvertes ne doivent pas bloquer la pile.
+                while pile and pile.pop() != nom:
+                    pass
+            continue
+        if autofermante or nom in ("br", "hr", "img", "input", "meta", "link", "path", "source"):
+            continue
+        for parent, interdits in INTERDITES.items():
+            if nom in interdits and parent in pile:
+                fautes.append(f"<{nom}> dans <{parent}>")
+        pile.append(nom)
+    return fautes
+
+
 def texte_de(page: str) -> str:
     document = urllib.request.urlopen(SERVEUR + page).read().decode()
     # Le script d'hydratation porte du JSON sérialisé, qui n'est pas de la
@@ -70,6 +128,13 @@ def main() -> None:
     fautes = 0
     for page in PAGES:
         try:
+            document = urllib.request.urlopen(SERVEUR + page).read().decode()
+            nichees = imbrications(document)
+            if nichees:
+                fautes += len(nichees)
+                print(f"{page} — {len(nichees)} imbrication(s) qui casse(nt) l'hydratation")
+                for faute in dict.fromkeys(nichees):
+                    print(f"    {faute}")
             trouve = [m.group(0) for m in COUPURE.finditer(texte_de(page))]
         except OSError as erreur:
             print(f"  {page} — injoignable ({erreur})", file=sys.stderr)
@@ -83,10 +148,13 @@ def main() -> None:
                 print(f"    …{extrait}")
 
     if fautes:
-        print(f"\n{fautes} au total. Une espace insécable manque.", file=sys.stderr)
+        print(f"\n{fautes} au total.", file=sys.stderr)
         raise SystemExit(1)
 
-    print(f"{len(PAGES)} pages, aucune ponctuation double détachable.")
+    print(
+        f"{len(PAGES)} pages, aucune ponctuation double détachable "
+        "et aucune imbrication interdite."
+    )
 
 
 if __name__ == "__main__":
