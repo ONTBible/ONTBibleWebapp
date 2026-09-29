@@ -57,7 +57,7 @@ pub fn Assistance() -> impl IntoView {
             <p>
                 "Ce n'est pas une panne. Trois livres sur soixante-dix sont traduits, et "
                 "une unité qui n'a pas été relue le dit — c'est délibéré. Le sommaire du "
-                <Lien href="/fr/lire">"corpus"</Lien>" montre ce qui se lit aujourd'hui."
+                <Lien href="/fr/webapp">"corpus"</Lien>" montre ce qui se lit aujourd'hui."
             </p>
 
             <h2>"Un problème technique"</h2>

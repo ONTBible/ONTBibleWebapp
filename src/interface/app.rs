@@ -7,8 +7,8 @@ use leptos_router::{
 
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
-    Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
-    Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Qahal, Recherche,
+    Accueil, Application, Assistance, Chuqqot, Compte, Conditions, Confidentialite, Fiche, Lexique,
+    Lire, Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Qahal, Recherche,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -302,20 +302,20 @@ pub fn App() -> impl IntoView {
                     // convient, donc la plus précise passe avant la plus
                     // générale.
                     <Route
-                        path=(StaticSegment("fr"), StaticSegment("lire"))
+                        path=(StaticSegment("fr"), StaticSegment("webapp"))
                         view=Lire
                         ssr=SsrMode::Async
                     />
                     // **Avant celle du livre, et l'ordre compte.** Les deux
                     // font trois segments pour le routeur si on ne prend pas
-                    // garde : `/fr/lire/partie` ressemble à un livre nommé
+                    // garde : `/fr/webapp/partie` ressemble à un livre nommé
                     // « partie ». Quatre segments contre trois les sépare, et
                     // aucun identifiant de livre n'est un mot français — ce
                     // sont des translittérations de l'hébreu.
                     <Route
                         path=(
                             StaticSegment("fr"),
-                            StaticSegment("lire"),
+                            StaticSegment("webapp"),
                             StaticSegment("partie"),
                             ParamSegment("partie"),
                         )
@@ -323,7 +323,7 @@ pub fn App() -> impl IntoView {
                         ssr=SsrMode::Async
                     />
                     <Route
-                        path=(StaticSegment("fr"), StaticSegment("lire"), ParamSegment("livre"))
+                        path=(StaticSegment("fr"), StaticSegment("webapp"), ParamSegment("livre"))
                         view=Livre
                         ssr=SsrMode::Async
                     />
@@ -333,7 +333,7 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(
                             StaticSegment("fr"),
-                            StaticSegment("lire"),
+                            StaticSegment("webapp"),
                             ParamSegment("livre"),
                             ParamSegment("unite"),
                         )
@@ -351,6 +351,16 @@ pub fn App() -> impl IntoView {
                         ssr=SsrMode::Async
                     />
 
+                    // ── Les chuqqot ───────────────────────────────────────
+                    //
+                    // L'écran d'attente, comme l'app. Le jour où le vault en
+                    // valide une, c'est ici que la liste entre.
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("chuqqot"))
+                        view=Chuqqot
+                        ssr=SsrMode::Async
+                    />
+
                     // ── Le lexique ────────────────────────────────────────
                     //
                     // Ce que promet chaque mot d'or du corpus.
@@ -359,7 +369,7 @@ pub fn App() -> impl IntoView {
                         view=Lexique
                         ssr=SsrMode::Async
                     />
-                    // **Avant celle de la fiche**, comme `/fr/lire/partie`
+                    // **Avant celle de la fiche**, comme `/fr/webapp/partie`
                     // passe avant celle du livre : les deux font trois
                     // segments, et un segment statique doit être essayé avant
                     // un paramètre. Aucun lemme ne s'appelle ainsi — ce sont
@@ -472,7 +482,7 @@ mod epreuves_de_la_peau {
     /// donc une garde de forme, pas de comportement — elle attrape une clause
     /// *supprimée*, pas une clause *fausse*. On la garde parce qu'une clause
     /// supprimée est le mode d'échec réel : on simplifie le script un jour
-    /// où il gêne, et `/fr/lire/` cesse silencieusement d'être la liseuse.
+    /// où il gêne, et `/fr/webapp/` cesse silencieusement d'être la liseuse.
     ///
     /// Le comportement, lui, est éprouvé du côté Rust — et les cas de
     /// `epreuves_de_la_liseuse` sont ceux que le script doit reproduire.
@@ -509,7 +519,7 @@ mod epreuves_de_la_peau {
     /// Le témoin de la règle elle-même, depuis le côté qui l'emploie.
     #[test]
     fn la_regle_borne_bien_la_liseuse() {
-        assert!(c_est_la_liseuse("/fr/lire/bereshit/bereshit-1"));
+        assert!(c_est_la_liseuse("/fr/webapp/bereshit/bereshit-1"));
         assert!(!c_est_la_liseuse("/fr"));
     }
 }

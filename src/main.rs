@@ -131,10 +131,10 @@ async fn main() {
         // qu'elle lui demande de repartir n'a pas de sens.
         for ensemble in corpus.sommaire() {
             for entree in ensemble.livres_ecrits() {
-                chemins.push(format!("/fr/lire/{}", entree.id));
+                chemins.push(format!("/fr/webapp/{}", entree.id));
                 if let Some(ouvrage) = corpus.livre(&entree.id) {
                     for unite in ouvrage.intro.iter().chain(ouvrage.chapitres.iter()) {
-                        chemins.push(format!("/fr/lire/{}/{}", entree.id, unite.id));
+                        chemins.push(format!("/fr/webapp/{}/{}", entree.id, unite.id));
                     }
                 }
             }
@@ -338,6 +338,44 @@ async fn main() {
                 let redirections = redirections.clone();
                 async move {
                     let chemin = requete.uri().path();
+
+                    // **L'ancienne adresse de la liseuse.**
+                    //
+                    // Elle a déménagé de `/fr/lire` à `/fr/webapp` le
+                    // 29 septembre 2026. Tout ce qui pointe l'ancienne doit
+                    // continuer d'arriver — et ce n'est pas une politesse :
+                    // `/fr/lire/{livre}/{unité}?v=1-3` est **la route des
+                    // liens partagés depuis l'app** (§4), la raison d'être de
+                    // toute cette page. Un lien envoyé hier dans une
+                    // conversation doit ouvrir le passage, pas un 404.
+                    //
+                    // **Permanente, contrairement à la racine** : la cible
+                    // est définitive, et l'on *veut* que le navigateur et les
+                    // moteurs l'apprennent — un renvoi temporaire laisserait
+                    // les index pointer l'ancienne adresse indéfiniment.
+                    //
+                    // `Redirect::permanent` rend un **308**, pas un 301, et
+                    // la différence compte ici : un 301 autorise le client à
+                    // retomber en `GET`, le 308 **préserve la méthode**. Sur
+                    // une page ça ne change rien ; sur les fonctions serveur
+                    // de `/api/`, qui sont des `POST`, un 301 transformerait
+                    // l'appel en `GET` et rendrait une erreur qui ne
+                    // nommerait pas sa cause.
+                    //
+                    // La requête garde sa **chaîne de requête** : `?v=1-3`
+                    // désigne les versets, et la perdre rendrait le passage
+                    // entier là où le lien désignait trois lignes.
+                    if chemin == "/fr/lire" || chemin.starts_with("/fr/lire/") {
+                        let suffixe = &chemin["/fr/lire".len()..];
+                        let cible = match requete.uri().query() {
+                            Some(q) => format!("/fr/webapp{suffixe}?{q}"),
+                            None => format!("/fr/webapp{suffixe}"),
+                        };
+                        return axum::response::IntoResponse::into_response(
+                            axum::response::Redirect::permanent(&cible),
+                        );
+                    }
+
                     if let Some(lemme) = chemin.strip_prefix("/fr/lexique/") {
                         let decode = percent_encoding::percent_decode_str(lemme)
                             .decode_utf8_lossy()

@@ -84,3 +84,56 @@ pub fn BarreDeLecture(
         </div>
     }
 }
+
+/// Le bouton de recherche, en haut à droite d'un écran de liste.
+///
+/// ## Sa place vient de l'app, pas d'un goût
+///
+/// `BibleTab` le pose en `ONTPlacement.principale` :
+///
+/// ```swift
+/// ToolbarItem(placement: ONTPlacement.principale) {
+///     Button("Rechercher", systemImage: "magnifyingglass") { searching = true }
+/// }
+/// ```
+///
+/// **Et sur la Bible seulement.** Le Lexique n'en a pas : il a son rail de
+/// lettres et ses quatre segments, qui font le même travail sur un corpus
+/// fermé de quelques centaines d'entrées. Chercher dans une liste qu'on peut
+/// parcourir d'un pouce n'est pas le même geste que chercher dans soixante-dix
+/// livres.
+///
+/// ## Un lien, pas une feuille
+///
+/// L'app ouvre une `.ontFeuille`. Ici la recherche est une **page**, avec son
+/// adresse — `/fr/rechercher?q=…` se partage, se met en signet, et le retour
+/// du navigateur la referme. Même arbitrage que la feuille de prononciation,
+/// et pour la même raison : ce qui ne demande rien n'a pas à être modal.
+///
+/// ## Il porte le même verre que la pastille
+///
+/// Une capsule qui flotte sur le texte, et non un bouton posé dans un bandeau.
+/// C'est la matière de toute la chrome de la liseuse depuis le portage.
+#[component]
+pub fn BoutonDeRecherche() -> impl IntoView {
+    view! {
+        <A
+            href="/fr/rechercher"
+            attr:aria-label="Rechercher dans le corpus"
+            attr:class="verre pointer-events-auto flex size-9 items-center justify-center rounded-full text-encre-douce no-underline transition-transform duration-150 ease-out hover:text-encre active:scale-95 motion-reduce:transition-none"
+        >
+            <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="size-[1.1rem]"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path d="M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm5 11.5L20 20" />
+            </svg>
+        </A>
+    }
+}

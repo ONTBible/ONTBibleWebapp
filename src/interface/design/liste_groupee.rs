@@ -58,10 +58,26 @@ pub fn EnteteDeSection(
     /// La seconde ligne. Absente quand elle redirait le titre.
     #[prop(optional)]
     glose: Option<Children>,
+    /// L'étiquette d'une pile de lignes, et non le nom d'une part du corpus.
+    ///
+    /// L'app distingue les deux et ne les dessine pas pareil : « Kenesset »
+    /// est un nom qu'elle compose elle-même, en encre de marque ; « Chapitres »
+    /// est un en-tête de `Section` que le système rend, **gris et petit**. Le
+    /// premier nomme, le second range.
+    ///
+    /// La classe se calcule **en une fois** : deux `class=(…)` sur la même
+    /// propriété se départagent par l'ordre de la feuille, pas par
+    /// l'intention — le piège de `Bloc` et de `max-w-mesure`.
+    #[prop(optional)]
+    sobre: bool,
 ) -> impl IntoView {
     view! {
         <div class="mt-8 mb-2 px-1 first:mt-0">
-            <p class="m-0 font-titre text-[1.05em] font-semibold text-marque-encre">{children()}</p>
+            <p class=if sobre {
+                "m-0 font-titre text-[0.95em] text-encre-douce"
+            } else {
+                "m-0 font-titre text-[1.05em] font-semibold text-marque-encre"
+            }>{children()}</p>
             // **Un `div` et non un `p`, et ça a coûté l'hydratation entière.**
             //
             // Ce slot reçoit `sous_titre`, qui rend son propre `<p>`. Un `<p>`
@@ -138,7 +154,7 @@ pub fn Ligne(
     /// **`optional_no_strip`**, et il a fallu deux essais pour trouver
     /// pourquoi. `optional` seul *déshabille* l'`Option` : le prop devient un
     /// `String`, et son absence vaut `None`. C'est juste quand on écrit
-    /// `chemin="/fr/lire"` ; c'est faux ici, où l'appelant a déjà un
+    /// `chemin="/fr/webapp"` ; c'est faux ici, où l'appelant a déjà un
     /// `Option<String>` — « elle mène quelque part **si** le livre est écrit ».
     ///
     /// Avec `into` en plus, Rust demandait un `String: From<Option<String>>` et

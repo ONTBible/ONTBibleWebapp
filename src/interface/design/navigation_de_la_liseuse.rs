@@ -50,7 +50,7 @@
 //! porte ; la barre naît de ce franchissement, et sa venue est lisible.
 //!
 //! **Le lecteur qui arrive par un lien partagé n'a franchi aucune porte.** Il
-//! tombe directement sur `/fr/lire/{livre}/{unité}`, et c'est le cas d'usage
+//! tombe directement sur `/fr/webapp/{livre}/{unité}`, et c'est le cas d'usage
 //! qui justifie toute cette route. La barre lui apparaît donc sans qu'il ait
 //! rien franchi — et c'est acceptable, parce que pour lui elle n'*apparaît*
 //! pas : elle est là depuis le premier pixel de sa première page.
@@ -146,7 +146,7 @@ const DESTINATIONS: [Destination; 4] = [
         signe: "qahal",
     },
     Destination {
-        chemin: "/fr/lire",
+        chemin: "/fr/webapp",
         nom: "Bible",
         signe: "livre",
     },
@@ -155,12 +155,38 @@ const DESTINATIONS: [Destination; 4] = [
         nom: "Lexique",
         signe: "lexique",
     },
+    // **Chuqqot est là, et son écran dit qu'il attend.**
+    //
+    // Ce dépôt l'écartait au motif qu'« une bannière n'a que deux états
+    // justes, et allumée vers rien n'en est pas un ». L'argument tombe sur un
+    // fait qu'il fallait aller chercher : **l'app a l'onglet et montre un
+    // écran d'attente**. Ce n'est donc pas une branche qu'aucun état du site
+    // ne rend — c'est l'état d'aujourd'hui, visible et éprouvable.
     Destination {
-        chemin: "/fr/rechercher",
-        nom: "Chercher",
-        signe: "loupe",
+        chemin: "/fr/chuqqot",
+        nom: "Chuqqot",
+        signe: "strates",
     },
 ];
+
+// **La recherche n'est pas une destination, et c'est l'app qui le dit.**
+//
+// Elle était le cinquième onglet ici, dans le créneau que Chuqqot laissait
+// libre. `BibleTab` la pose ailleurs :
+//
+//     ToolbarItem(placement: ONTPlacement.principale) {
+//         Button("Rechercher", systemImage: "magnifyingglass") { … }
+//     }
+//
+// En haut à droite, **et sur la Bible seulement** — pas au Lexique, qui a son
+// propre rail de lettres et ses segments.
+//
+// L'arbitrage avait été pris dans l'autre sens ici, sur l'argument de la
+// session iOS : sa barre de navigation est une contrainte de plateforme
+// (cinq onglets, Chuqqot prend le cinquième), donc le site, qui n'a pas la
+// contrainte, pouvait garder son onglet. **L'auteur a tranché autrement** le
+// 29 septembre 2026 : « je veux la même tabbar ». Une contrainte qui produit
+// le bon dessin reste le bon dessin.
 
 /// Le tracé d'un symbole, en coordonnées de `viewBox="0 0 24 24"`.
 ///
@@ -177,6 +203,10 @@ fn signe(nom: &str) -> &'static str {
         "livre" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 12h13",
         "lexique" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4.2 11.5 2.3-6.4 2.3 6.4m-3.8-2h3",
         "loupe" => "M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm5 11.5L20 20",
+        // Les strates — `square.stack.3d.up.fill`. Des couches empilées et
+        // vues de biais : une *chuqqah* est gravée, et ce qui est gravé
+        // s'empile sans se réécrire.
+        "strates" => "M12 3 3 7.5l9 4.5 9-4.5L12 3ZM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5",
         // Deux silhouettes — `person.2.fill` chez l'app. Deux et non trois :
         // l'assemblée commence au second.
         "qahal" => "M9.5 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6 16a6 6 0 0 1 12 0M16 5.2a3 3 0 0 1 0 5.6m.8 2.4a6 6 0 0 1 3.7 5.5",
@@ -232,8 +262,8 @@ pub fn NavigationDeLaLiseuse(
 /// Vrai quand ce chemin est dans cette destination.
 ///
 /// Le préfixe suivi d'une barre, ou le chemin exact — la même règle que
-/// `c_est_la_liseuse`, et pour la même raison : `/fr/lirent-ils` commencerait
-/// par `/fr/lire`.
+/// `c_est_la_liseuse`, et pour la même raison : `/fr/webappnt-ils` commencerait
+/// par `/fr/webapp`.
 fn on_y_est(chemin: &str, destination: &str) -> bool {
     let chemin = chemin.trim_end_matches('/');
     chemin == destination || chemin.starts_with(&format!("{destination}/"))
@@ -286,7 +316,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                             view! {
                                 <A
                                     href=format!(
-                                        "/fr/lire/{}/{}?v={}",
+                                        "/fr/webapp/{}/{}?v={}",
                                         p.book_id,
                                         p.chapter_id,
                                         p.verse,
@@ -443,7 +473,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                                                 // le seul contrôle
                                                                 // qui l'attrape.
                                                                 <A
-                                                                    href=format!("/fr/lire/{id}")
+                                                                    href=format!("/fr/webapp/{id}")
                                                                     attr:class="flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
                                                                 >
                                                                     <Signe nom="feuillets" />
@@ -649,7 +679,7 @@ mod epreuves {
     fn chaque_destination_a_sa_route() {
         let app = include_str!("../app.rs");
         for destination in DESTINATIONS.iter().chain(std::iter::once(&COMPTE)) {
-            // `/fr/lire` se déclare `(StaticSegment("fr"), StaticSegment("lire"))`.
+            // `/fr/webapp` se déclare `(StaticSegment("fr"), StaticSegment("lire"))`.
             let segments: Vec<&str> = destination
                 .chemin
                 .trim_start_matches('/')
@@ -670,9 +700,9 @@ mod epreuves {
 
     #[test]
     fn un_prefixe_ne_deborde_pas() {
-        assert!(on_y_est("/fr/lire/bereshit", "/fr/lire"));
-        assert!(on_y_est("/fr/lire", "/fr/lire"));
-        assert!(!on_y_est("/fr/lirent-ils", "/fr/lire"));
-        assert!(!on_y_est("/fr/lexique", "/fr/lire"));
+        assert!(on_y_est("/fr/webapp/bereshit", "/fr/webapp"));
+        assert!(on_y_est("/fr/webapp", "/fr/webapp"));
+        assert!(!on_y_est("/fr/webappnt-ils", "/fr/webapp"));
+        assert!(!on_y_est("/fr/lexique", "/fr/webapp"));
     }
 }

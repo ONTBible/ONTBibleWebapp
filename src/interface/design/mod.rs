@@ -62,7 +62,7 @@ mod sommaire;
 mod titre_de_section;
 pub mod verset;
 
-pub use barre_de_lecture::BarreDeLecture;
+pub use barre_de_lecture::{BarreDeLecture, BoutonDeRecherche};
 pub use bloc::Bloc;
 pub use blocs::Blocs;
 pub use bouton::Bouton;

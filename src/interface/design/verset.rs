@@ -262,7 +262,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         // **Coloré, pas cliquable — et ce n'est pas un oubli.**
         //
         // Le site n'a pas de section chuqqot : son espace d'adresses va de
-        // `/fr/lire` à `/fr/lexique`, et rien entre les deux. Un
+        // `/fr/webapp` à `/fr/lexique`, et rien entre les deux. Un
         // `<a href="/fr/chuqqot/…">` mènerait à un 404 — un mot coloré qui
         // n'ouvre rien, exactement ce que le pipeline refuse en laissant une
         // translittération inerte plutôt que de l'envoyer vers une fiche
@@ -301,8 +301,8 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
                 // verset à l'arrivée. Rien à inventer : la page sait le faire
                 // depuis le premier jour, pour les liens venus de l'app.
                 let vers = match c.verset {
-                    Some(n) => format!("/fr/lire/{}/{}?v={n}", c.livre, c.unite),
-                    None => format!("/fr/lire/{}/{}", c.livre, c.unite),
+                    Some(n) => format!("/fr/webapp/{}/{}?v={n}", c.livre, c.unite),
+                    None => format!("/fr/webapp/{}/{}", c.livre, c.unite),
                 };
                 view! {
                     <a href=vers class="text-renvoi underline decoration-dotted">
@@ -866,8 +866,8 @@ mod origines {
     #[test]
     fn le_site_est_interne_et_rendu_en_chemin() {
         assert_eq!(
-            classer("https://ontbible.com/fr/lire/bereshit/bereshit-1"),
-            Destination::Interne("/fr/lire/bereshit/bereshit-1".into())
+            classer("https://ontbible.com/fr/webapp/bereshit/bereshit-1"),
+            Destination::Interne("/fr/webapp/bereshit/bereshit-1".into())
         );
         assert_eq!(
             classer("https://ontbible.com"),
@@ -950,8 +950,8 @@ mod origines {
             Destination::Interne("/fr/lexique".into())
         );
         assert_eq!(
-            classer("/fr/lire/bereshit/bereshit-1?v=1:2"),
-            Destination::Interne("/fr/lire/bereshit/bereshit-1?v=1:2".into())
+            classer("/fr/webapp/bereshit/bereshit-1?v=1:2"),
+            Destination::Interne("/fr/webapp/bereshit/bereshit-1?v=1:2".into())
         );
     }
 }

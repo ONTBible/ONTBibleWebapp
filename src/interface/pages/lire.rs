@@ -1,10 +1,12 @@
 use leptos::prelude::*;
 
 use crate::api::{ma_position, sommaire};
-use crate::interface::design::{fournir_preferences, CarteDeReprise, PageDeLecture, Sommaire};
+use crate::interface::design::{
+    fournir_preferences, BoutonDeRecherche, CarteDeReprise, PageDeLecture, Sommaire,
+};
 use crate::interface::tete::Tete;
 
-/// `/fr/lire` — le sommaire du corpus.
+/// `/fr/webapp` — le sommaire du corpus.
 ///
 /// C'est la porte de la liseuse, et la première page du site où l'on ne
 /// **dit** pas ce qu'est l'ONT : on le montre en donnant le plan entier. Trois
@@ -48,7 +50,7 @@ pub fn Lire() -> impl IntoView {
             titre="Lire le corpus hébreu et araméen"
             description="Le corpus de La Bible ONT — les soixante-dix livres du Kenesset et \
                          de la Berit Hadashah, et l'état de leur restitution."
-            chemin="/fr/lire"
+            chemin="/fr/webapp"
         />
 
         // **Ni œil-de-bœuf ni chapeau.** Ils y étaient — « Le corpus », puis
@@ -63,7 +65,15 @@ pub fn Lire() -> impl IntoView {
         // « Lire » nomme une action — juste dans une barre, insuffisant en tête
         // d'écran, où il faut dire *ce qu'on ouvre*. L'app dit « La Bible ONT »,
         // et c'est ce que le lecteur retrouve.
-        <PageDeLecture liste=true titre="La Bible ONT">
+        <PageDeLecture
+            liste=true
+            titre="La Bible ONT"
+            // **La recherche est ici, et non dans la barre d'onglets.** C'est
+            // la place que `BibleTab` lui donne — en haut à droite, et sur la
+            // Bible seulement. Arbitré par l'auteur le 29 septembre 2026 :
+            // « je veux la même tabbar ».
+            action=Box::new(|| view! { <BoutonDeRecherche /> }.into_any())
+        >
             // **Avant le corpus et détachée de lui** : ce n'est pas une
             // destination de plus, c'est un signet. L'app le range de même,
             // dans sa propre section.

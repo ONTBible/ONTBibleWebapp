@@ -122,13 +122,30 @@
 /// configuration Sign in with Apple.
 pub const APP_ID: &str = "N49VNC2G57.com.labibleont.ONT";
 
-/// Le chemin que l'app a le droit d'ouvrir.
+/// Les chemins que l'app a le droit d'ouvrir.
 ///
-/// `/fr/lire/*` **seulement**. Le reste du domaine — l'accueil, le pourquoi,
-/// les pages légales — doit rester consultable dans un navigateur : quelqu'un
-/// qui a l'app installée et qui clique sur un lien vers la page d'accueil veut
-/// voir le site, pas se faire enlever vers l'app.
-pub const CHEMINS: &str = "/fr/lire/*";
+/// **La liseuse seulement.** Le reste du domaine — l'accueil, le pourquoi, les
+/// pages légales — doit rester consultable dans un navigateur : quelqu'un qui a
+/// l'app installée et qui clique sur un lien vers la page d'accueil veut voir
+/// le site, pas se faire enlever vers l'app.
+///
+/// ## Pourquoi il y en a **deux**, et pourquoi l'ancien ne part pas
+///
+/// La liseuse a déménagé de `/fr/lire` à `/fr/webapp` le 29 septembre 2026, à
+/// la demande de l'auteur. Retirer l'ancien chemin d'ici **casserait tous les
+/// liens déjà partagés** : ils continueraient d'ouvrir le site — le serveur
+/// les redirige — mais dans le **navigateur**, et non dans l'app.
+///
+/// Et le défaut serait silencieux des deux côtés. iOS ne relit ce fichier
+/// qu'à l'installation, Apple le met en cache sur son propre CDN, et rien ne
+/// signale qu'un lien a cessé d'être universel : il s'ouvre, simplement pas
+/// là où il devait.
+///
+/// **Ils ne se périment pas tout seuls.** Un lien partagé vit dans une
+/// conversation, un signet, un message archivé ; il n'y a pas de date après
+/// laquelle on saurait qu'aucun ne circule plus. Cette liste ne se raccourcit
+/// donc que sur une décision explicite, jamais par ménage.
+pub const CHEMINS: [&str; 2] = ["/fr/webapp/*", "/fr/lire/*"];
 
 /// Le corps du fichier.
 ///
@@ -137,8 +154,16 @@ pub const CHEMINS: &str = "/fr/lire/*";
 /// ajouterait un étage d'indirection sans rien garantir de plus — le test, lui,
 /// garantit quelque chose.
 pub fn corps() -> String {
+    // Un composant par chemin. Apple les évalue dans l'ordre et s'arrête au
+    // premier qui accroche — l'ordre n'a donc pas d'importance ici, les deux
+    // motifs étant disjoints.
+    let composants = CHEMINS
+        .iter()
+        .map(|chemin| format!(r#"{{"/":"{chemin}"}}"#))
+        .collect::<Vec<_>>()
+        .join(",");
     format!(
-        r#"{{"applinks":{{"details":[{{"appIDs":["{APP_ID}"],"components":[{{"/":"{CHEMINS}"}}]}}]}}}}"#
+        r#"{{"applinks":{{"details":[{{"appIDs":["{APP_ID}"],"components":[{composants}]}}]}}}}"#
     )
 }
 
@@ -211,7 +236,7 @@ pub const EMPREINTES: &[&str] = &[
 ///   web non vérifié ne propose même plus de sélecteur : il part droit au
 ///   navigateur, sans que rien ne dise pourquoi.
 /// * **Il n'y a pas de champ de chemins.** `handle_all_urls` accorde le domaine
-///   entier, là où Apple laisse restreindre à `/fr/lire/*`. C'est le filtre
+///   entier, là où Apple laisse restreindre à `/fr/webapp/*`. C'est le filtre
 ///   d'intention de l'app qui borne, côté Android — donc la borne vit là-bas,
 ///   et ce fichier ne peut pas la reproduire.
 pub fn assetlinks() -> String {
@@ -242,7 +267,26 @@ mod tests {
 
         let details = &valeur["applinks"]["details"][0];
         assert_eq!(details["appIDs"][0], APP_ID);
-        assert_eq!(details["components"][0]["/"], CHEMINS);
+        for (rang, chemin) in CHEMINS.iter().enumerate() {
+            assert_eq!(
+                details["components"][rang]["/"], *chemin,
+                "le composant {rang} doit déclarer {chemin}"
+            );
+        }
+        assert!(
+            details["components"][CHEMINS.len()].is_null(),
+            "un composant de plus que la table : le fichier et `CHEMINS` ont divergé"
+        );
+
+        // **L'ancien chemin reste déclaré.** Le retirer casserait en silence
+        // tous les liens partagés avant le 29 septembre 2026 — ils
+        // s'ouvriraient dans le navigateur au lieu de l'app, sans qu'aucune
+        // erreur ne le dise.
+        assert!(
+            CHEMINS.contains(&"/fr/lire/*"),
+            "`/fr/lire/*` a disparu : les liens déjà partagés cesseraient \
+             d'ouvrir l'app, et rien ne le signalerait"
+        );
     }
 
     /// Le fichier doit rester d'accord avec le backend de l'app, qui le sert
@@ -264,9 +308,25 @@ mod tests {
             source.contains(APP_ID),
             "l'identifiant d'app a changé dans le backend sans changer ici"
         );
+        // **On vérifie l'ancien chemin, pas la liste entière.**
+        //
+        // Depuis le déménagement du 29 septembre 2026, le site en déclare
+        // deux et le backend un seul. Exiger l'égalité ferait rougir cette
+        // épreuve **chez nous** pour un travail qui se fait **là-bas** — et
+        // une garde qui accuse le mauvais dépôt est une garde qu'on désarme.
+        //
+        // Ce qui est un invariant, en revanche, et le restera : les deux
+        // doivent garder `/fr/lire/*`. Le jour où il disparaît d'un côté,
+        // tous les liens partagés avant le déménagement cessent d'ouvrir
+        // l'app — en silence, iOS ne relisant ce fichier qu'à l'installation.
+        //
+        // L'ajout de `/fr/webapp/*` côté backend est demandé à la session qui
+        // tient l'app ; tant qu'il manque, un lien **neuf** ouvre le site dans
+        // le navigateur au lieu de l'app.
         assert!(
-            source.contains(CHEMINS),
-            "les chemins associés ont changé dans le backend sans changer ici"
+            source.contains("/fr/lire/*"),
+            "`/fr/lire/*` a disparu du backend : les liens partagés avant le \
+             29 septembre 2026 n'ouvrent plus l'app, et rien ne le signale"
         );
     }
 

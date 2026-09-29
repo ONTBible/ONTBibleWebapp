@@ -3,7 +3,7 @@
 //! Un lien partagé depuis l'app ressemble à ceci :
 //!
 //! ```text
-//! /fr/lire/bereshit/bereshit-1?v=1-3
+//! /fr/webapp/bereshit/bereshit-1?v=1-3
 //! ```
 //!
 //! Le paramètre dit **ce que la personne a partagé** : elle n'a pas envoyé un
@@ -349,7 +349,7 @@ mod tests {
             vec![7, 2, 1, 3, 7],
         ] {
             println!(
-                "  {:?} → https://ontbible.com/fr/lire/bereshit/bereshit-1?v={}  ({})",
+                "  {:?} → https://ontbible.com/fr/webapp/bereshit/bereshit-1?v={}  ({})",
                 cas,
                 parametre(&cas),
                 libelle(&cas)

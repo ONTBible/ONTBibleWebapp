@@ -14,6 +14,7 @@ mod assistance;
 pub mod application;
 #[allow(dead_code)]
 mod auteur;
+mod chuqqot;
 pub mod compte;
 mod conditions;
 pub mod confidentialite;
@@ -32,6 +33,7 @@ pub mod recherche;
 pub use accueil::Accueil;
 pub use application::Application;
 pub use assistance::Assistance;
+pub use chuqqot::Chuqqot;
 pub use compte::Compte;
 pub use conditions::Conditions;
 pub use confidentialite::Confidentialite;

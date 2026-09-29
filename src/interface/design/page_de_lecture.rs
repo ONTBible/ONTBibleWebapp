@@ -70,6 +70,17 @@ pub fn PageDeLecture(
     /// du texte.
     #[prop(optional)]
     barre: Option<Children>,
+    /// Ce qui se pose **en haut à droite** d'un écran de liste.
+    ///
+    /// C'est la place de `ONTPlacement.principale` chez l'app — le bouton de
+    /// recherche de la Bible, et rien d'autre aujourd'hui. Un seul objet : une
+    /// barre d'outils qui en porte trois cesse d'être une barre d'outils.
+    ///
+    /// **Distinct de `barre`**, qui appartient à un écran de *lecture* et
+    /// porte sa pastille. Les deux ne coexistent jamais : une liste n'a pas de
+    /// renvoi à afficher.
+    #[prop(optional)]
+    action: Option<Children>,
 ) -> impl IntoView {
     let chemin = leptos_router::hooks::use_location().pathname;
     // Relevé avant que `barre` ne soit consommée par le rendu — `Children` est
@@ -99,12 +110,12 @@ pub fn PageDeLecture(
         // L'app ouvre au lancement. L'équivalent du lancement, ici, est
         // d'arriver sur la Bible — pas d'atterrir sur un verset.
         //
-        // Un lien partagé depuis l'app mène à `/fr/lire/{livre}/{unité}?v=1-3`,
+        // Un lien partagé depuis l'app mène à `/fr/webapp/{livre}/{unité}?v=1-3`,
         // et c'est **la raison d'être de cette route** (§4). Couvrir ce verset
         // cinq secondes et demie parce que le lecteur découvre le site serait
         // exactement l'inverse du service rendu : il n'a pas demandé le site,
         // il a demandé un verset.
-        {(chemin.get_untracked().trim_end_matches('/') == "/fr/lire")
+        {(chemin.get_untracked().trim_end_matches('/') == "/fr/webapp")
             .then(|| view! { <crate::interface::design::Ouverture /> })}
         <crate::interface::design::PeauDeLaLiseuse />
         // **La chrome de l'app, et elle remplace celle de l'édition.**
@@ -121,6 +132,22 @@ pub fn PageDeLecture(
         <div class="pb-24 lg:ps-[16.5rem] lg:pb-0">
         <Bloc page=liste>
             {barre.map(|barre| barre())}
+
+            // **L'action seule, alignée à droite**, et `sticky` comme la barre
+            // d'un écran de lecture : sur un sommaire de soixante-dix livres,
+            // un bouton qui défile avec le titre n'est plus atteignable au
+            // trentième.
+            //
+            // `pointer-events-none` sur la rangée : sans ça, la largeur vide à
+            // gauche du bouton prendrait les clics sur toute la colonne, et la
+            // première ligne de la liste deviendrait inatteignable.
+            {action.map(|action| {
+                view! {
+                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
+                        {action()}
+                    </div>
+                }
+            })}
 
             // Le fil **cède la place** à la pastille quand il y en a une.
             {(!fil.is_empty() && !barre_posee)

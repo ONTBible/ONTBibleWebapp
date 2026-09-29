@@ -36,7 +36,7 @@ pub fn PiedDePage() -> impl IntoView {
                     aria-label="Le corpus et l'application"
                     class="flex flex-wrap justify-center gap-x-6 gap-y-2 uppercase tracking-capitales text-encre"
                 >
-                    <a href="/fr/lire" class=LIEN>"Lire"</a>
+                    <a href="/fr/webapp" class=LIEN>"Webapp"</a>
                     <a href="/fr/lexique" class=LIEN>"Lexique"</a>
                     <a href="/fr/rechercher" class=LIEN>"Rechercher"</a>
                     <a href="/fr/l-app" class=LIEN>"L'app"</a>

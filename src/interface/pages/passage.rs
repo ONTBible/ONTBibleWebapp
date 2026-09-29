@@ -9,7 +9,7 @@ use crate::interface::design::{
 };
 use crate::interface::tete::Tete;
 
-/// `/fr/lire/{livre}/{unité}` — un passage.
+/// `/fr/webapp/{livre}/{unité}` — un passage.
 ///
 /// ## La route la plus sensible du site
 ///
@@ -196,7 +196,7 @@ pub fn Passage() -> impl IntoView {
                         } else {
                             format!("{} · {rang}", p.livre_titre)
                         };
-                        let chemin_du_livre = format!("/fr/lire/{}", p.livre_id);
+                        let chemin_du_livre = format!("/fr/webapp/{}", p.livre_id);
 
                         // **Le pont de navigation, et il en manquait les deux
                         // tiers.**
@@ -262,14 +262,14 @@ pub fn Passage() -> impl IntoView {
                             <Tete
                                 titre=titre_indexable(&chapitre, &p.livre_francais, &en_avant)
                                 description=description
-                                chemin=format!("/fr/lire/{}/{}", p.livre_id, chapitre.id)
+                                chemin=format!("/fr/webapp/{}/{}", p.livre_id, chapitre.id)
                             />
 
                             <PageDeLecture
                                 fil=vec![
-                                    ("/fr/lire".to_string(), "Lire".to_string()),
+                                    ("/fr/webapp".to_string(), "Bible".to_string()),
                                     (
-                                        format!("/fr/lire/{}", p.livre_id),
+                                        format!("/fr/webapp/{}", p.livre_id),
                                         p.livre_titre.clone(),
                                     ),
                                 ]
@@ -320,7 +320,7 @@ pub fn Passage() -> impl IntoView {
                                     livre=livre_pour_renvoi
                                     chapitre=rang
                                     chemin=format!(
-                                        "/fr/lire/{}/{}",
+                                        "/fr/webapp/{}/{}",
                                         p.livre_id,
                                         chapitre_id,
                                     )
@@ -565,12 +565,12 @@ fn Absent() -> impl IntoView {
         <Tete
             titre="Passage introuvable"
             description="Ce passage n'a pas encore été restitué."
-            chemin="/fr/lire"
+            chemin="/fr/webapp"
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
+            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
             rappel="Le corpus"
             titre="Ce passage n'est pas encore là"
         >

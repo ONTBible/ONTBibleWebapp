@@ -6,7 +6,7 @@ use crate::domaine::corpus::{Ensemble, Section};
 use crate::interface::design::{fournir_preferences, PageDeLecture, SommaireDUnePartie};
 use crate::interface::tete::Tete;
 
-/// `/fr/lire/partie/{id}` — les livres d'une section.
+/// `/fr/webapp/partie/{id}` — les livres d'une section.
 ///
 /// ## L'étage que le site n'avait pas
 ///
@@ -104,12 +104,12 @@ fn Vue(ensemble: Ensemble, section: Section) -> impl IntoView {
                 "{francais} — les {total} livres de cette partie du corpus de La Bible ONT, \
                  et l'état de leur restitution.",
             )
-            chemin=format!("/fr/lire/partie/{}", section.id)
+            chemin=format!("/fr/webapp/partie/{}", section.id)
         />
 
         <PageDeLecture
             liste=true
-            fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
+            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
             titre=titre.clone()
             chapeau=Box::new(move || {
                 view! {
@@ -140,13 +140,13 @@ fn Introuvable() -> impl IntoView {
         <Tete
             titre="Partie introuvable"
             description="Cette partie du corpus n'existe pas."
-            chemin="/fr/lire"
+            chemin="/fr/webapp"
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
             liste=true
-            fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
+            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
             titre="Cette partie n'existe pas"
         >
             <p class="text-encre-douce text-pretty">

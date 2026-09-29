@@ -33,7 +33,7 @@ use crate::domaine::surlignage::Position;
 #[component]
 pub fn CarteDeReprise(position: Position) -> impl IntoView {
     let chemin = format!(
-        "/fr/lire/{}/{}?v={}",
+        "/fr/webapp/{}/{}?v={}",
         position.book_id, position.chapter_id, position.verse
     );
     let ou = format!("{}:{}", position.chapter_title, position.verse);

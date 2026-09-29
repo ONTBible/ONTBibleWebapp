@@ -1240,7 +1240,7 @@ pub fn Pourquoi() -> impl IntoView {
             </p>
 
             <div class="mt-12 flex flex-wrap gap-4">
-                <Lien href="/fr/lire">"Entrer dans le corpus"</Lien>
+                <Lien href="/fr/webapp">"Entrer dans le corpus"</Lien>
                 <Lien href="/fr/ce-que-l-ont-n-est-pas">"Ce que l'ONT n'est pas"</Lien>
             </div>
         </Bloc>
@@ -1279,7 +1279,7 @@ fn citer(
                         view! {
                             <Citation
                                 renvoi=renvoi
-                                chemin=format!("/fr/lire/{livre}/{unite}")
+                                chemin=format!("/fr/webapp/{livre}/{unite}")
                                 versets=v
                             />
                         }

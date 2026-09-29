@@ -100,6 +100,6 @@ mod tests {
         let verset = VersetDuJour::new(&HorlogeFigee(0), &v)
             .aujourd_hui()
             .unwrap();
-        assert_eq!(verset.chemin(), "/fr/lire/bereshit/bereshit-1?v=1");
+        assert_eq!(verset.chemin(), "/fr/webapp/bereshit/bereshit-1?v=1");
     }
 }

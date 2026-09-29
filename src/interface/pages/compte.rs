@@ -147,7 +147,7 @@ fn Ouvert() -> impl IntoView {
                             <p class="mb-6">
                                 "Vous lisiez "
                                 <Lien href=format!(
-                                    "/fr/lire/{}/{}",
+                                    "/fr/webapp/{}/{}",
                                     p.book_id,
                                     p.chapter_id,
                                 )>{p.chapter_title.clone()}</Lien>
@@ -408,7 +408,7 @@ fn UnVerset(v: crate::api::VersetSurligne) -> impl IntoView {
     let teinte = crate::domaine::surlignage::Couleur::depuis_cle(&v.couleur)
         .map(|c| c.teinte())
         .unwrap_or("#E8C973");
-    let chemin = format!("/fr/lire/{}/{}?v={}", v.livre_id, v.unite_id, v.verset);
+    let chemin = format!("/fr/webapp/{}/{}?v={}", v.livre_id, v.unite_id, v.verset);
 
     view! {
         <li class="mb-6 border-s-2 ps-4" style=format!("border-color: {teinte}")>

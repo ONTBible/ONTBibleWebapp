@@ -5,7 +5,7 @@ use crate::api::livre;
 use crate::interface::design::{fournir_preferences, ListeDUnites, PageDeLecture};
 use crate::interface::tete::Tete;
 
-/// `/fr/lire/{livre}` — les unités d'un livre.
+/// `/fr/webapp/{livre}` — les unités d'un livre.
 ///
 /// L'étage qui manquait entre le sommaire et le texte. Sans lui, la liseuse
 /// n'aurait que deux états : le plan des soixante-dix livres, et un chapitre
@@ -73,12 +73,12 @@ pub fn Livre() -> impl IntoView {
                                     format!("{} ({})", livre.titre, livre.francais)
                                 }
                                 description=description
-                                chemin=format!("/fr/lire/{}", livre.id)
+                                chemin=format!("/fr/webapp/{}", livre.id)
                             />
 
                             <PageDeLecture
                                 liste=true
-                                fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
+                                fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
                                 // **Pas de rappel.** Il portait « Genèse » en
                                 // capitales espacées au-dessus du titre —
                                 // l'appareil d'une page d'édition. L'app met le
@@ -153,12 +153,12 @@ fn Absent() -> impl IntoView {
         <Tete
             titre="Livre introuvable"
             description="Ce livre n'a pas encore été restitué."
-            chemin="/fr/lire"
+            chemin="/fr/webapp"
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
+            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
             rappel="Le corpus"
             titre="Ce livre n'est pas encore là"
         >

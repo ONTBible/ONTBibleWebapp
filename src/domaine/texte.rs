@@ -130,7 +130,7 @@ pub enum Noeud {
     /// ## Il ne mène nulle part, et c'est délibéré
     ///
     /// Le site n'a pas de section chuqqot : son espace d'adresses va de
-    /// `/fr/lire` à `/fr/lexique`, et rien entre les deux. Fabriquer un
+    /// `/fr/webapp` à `/fr/lexique`, et rien entre les deux. Fabriquer un
     /// `<a href="/fr/chuqqot/…">` donnerait un lien vers un 404 — un mot
     /// coloré qui n'ouvre rien, exactement le défaut que le pipeline refuse
     /// partout ailleurs en laissant une translittération inerte plutôt que de

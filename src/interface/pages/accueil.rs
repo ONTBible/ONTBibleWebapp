@@ -148,7 +148,7 @@ pub fn Accueil() -> impl IntoView {
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
             </p>
             <p class="mt-8">
-                <Bouton href="/fr/lire" principal=true>"Entrer dans le corpus"</Bouton>
+                <Bouton href="/fr/webapp" principal=true>"Entrer dans le corpus"</Bouton>
             </p>
         </Bloc>
 

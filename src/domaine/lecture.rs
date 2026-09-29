@@ -125,12 +125,12 @@ pub enum Theme {
 /// elles ont un fil d'Ariane. Le départage se lit d'ailleurs dans le code sans
 /// cette table : **les cinq pages de la liseuse sont exactement celles qui
 /// emploient `PageDeLecture`.**
-pub const LA_LISEUSE: [&str; 2] = ["/fr/lire", "/fr/lexique"];
+pub const LA_LISEUSE: [&str; 2] = ["/fr/webapp", "/fr/lexique"];
 
 /// La peau du lecteur s'applique-t-elle à ce chemin ?
 ///
 /// **Le préfixe seul ne suffit pas**, et c'est le seul piège de cette
-/// fonction : `/fr/lirent-ils` commence par `/fr/lire` sans être la liseuse.
+/// fonction : `/fr/webappnt-ils` commence par `/fr/webapp` sans être la liseuse.
 /// On exige donc le chemin exact, ou le préfixe **suivi d'une barre**.
 pub fn c_est_la_liseuse(chemin: &str) -> bool {
     let chemin = chemin.trim_end_matches('/');
@@ -781,9 +781,9 @@ mod epreuves_de_la_liseuse {
     #[test]
     fn les_trois_pages_de_corpus_portent_la_peau() {
         for chemin in [
-            "/fr/lire",
-            "/fr/lire/bereshit",
-            "/fr/lire/bereshit/bereshit-1",
+            "/fr/webapp",
+            "/fr/webapp/bereshit",
+            "/fr/webapp/bereshit/bereshit-1",
             "/fr/lexique",
             "/fr/lexique/bara",
         ] {
@@ -813,12 +813,12 @@ mod epreuves_de_la_liseuse {
 
     /// Un préfixe n'est pas une frontière.
     ///
-    /// `/fr/lirent-ils` commence par `/fr/lire`. Aucune de ces adresses
+    /// `/fr/webappnt-ils` commence par `/fr/webapp`. Aucune de ces adresses
     /// n'existe aujourd'hui — et c'est justement pourquoi l'épreuve compte :
     /// le jour où l'une d'elles naîtra, personne ne pensera à revenir ici.
     #[test]
     fn un_prefixe_ne_deborde_pas_sur_le_mot_voisin() {
-        for chemin in ["/fr/lirent-ils", "/fr/lexiquement", "/fr/lire-moi"] {
+        for chemin in ["/fr/webappnt-ils", "/fr/lexiquement", "/fr/webapp-moi"] {
             assert!(!c_est_la_liseuse(chemin), "{chemin} n'est pas la liseuse");
         }
     }
@@ -826,7 +826,7 @@ mod epreuves_de_la_liseuse {
     /// La barre finale ne change rien — un routeur peut la poser ou non.
     #[test]
     fn la_barre_finale_est_sans_effet() {
-        assert!(c_est_la_liseuse("/fr/lire/"));
+        assert!(c_est_la_liseuse("/fr/webapp/"));
         assert!(!c_est_la_liseuse("/fr/"));
     }
 }

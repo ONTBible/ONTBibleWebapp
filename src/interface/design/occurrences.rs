@@ -43,12 +43,12 @@ pub fn Occurrences(occurrences: Vec<Occurrence>) -> impl IntoView {
                         let chemin = match occurrence.verset {
                             Some(numero) => {
                                 format!(
-                                    "/fr/lire/{}/{}?v={numero}#v{numero}",
+                                    "/fr/webapp/{}/{}?v={numero}#v{numero}",
                                     occurrence.livre,
                                     occurrence.chapitre,
                                 )
                             }
-                            None => format!("/fr/lire/{}/{}", occurrence.livre, occurrence.chapitre),
+                            None => format!("/fr/webapp/{}/{}", occurrence.livre, occurrence.chapitre),
                         };
                         // Le renvoi lisible se compose depuis l'identifiant de
                         // chapitre, qui porte déjà le livre — « bereshit-10 »

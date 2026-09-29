@@ -189,7 +189,7 @@ pub async fn passage(livre: String, unite: String) -> Result<Option<PassageDto>,
         indice
             .and_then(|i| ordre.get(i))
             .map(|c: &&crate::domaine::corpus::Chapitre| VoisinDto {
-                chemin: format!("/fr/lire/{livre}/{}", c.id),
+                chemin: format!("/fr/webapp/{livre}/{}", c.id),
                 titre: c.titre.clone(),
                 numero: c.numero,
             })

@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use crate::api::UniteDto;
 use crate::interface::design::reglages_de_lecture::preferences;
 use crate::interface::design::Terme;
-use crate::interface::design::{Groupe, Ligne, Pastille};
+use crate::interface::design::{EnteteDeSection, Groupe, Ligne, Pastille};
 
 /// Les unités d'un livre.
 ///
@@ -42,6 +42,18 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
         // bordée sur sa propre ligne — elle y pesait autant que le titre, alors
         // qu'elle dit une réserve. Chez l'app, elle est petite, grise, et
         // **dans** la ligne.
+        // **L'en-tête du groupe**, que l'app pose au-dessus de sa carte —
+        // `Section(french ? "Chapitres" : "Parashiot")` dans `BibleTab`.
+        //
+        // Il est **sobre** et non en encre de marque : chez elle c'est un
+        // en-tête de `Section` que le système compose, gris et petit, là où
+        // « Kenesset » est un nom de corpus qu'elle dessine elle-même. Les
+        // deux ne disent pas la même chose — l'un nomme une part du corpus,
+        // l'autre étiquette une pile de lignes.
+        {
+            let entete = nom_des_unites();
+            view! { <EnteteDeSection sobre=true>{move || entete.get()}</EnteteDeSection> }
+        }
         <Groupe>
             {unites
                 .into_iter()
@@ -52,7 +64,7 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
                     let nom = libelle(&unite);
                     view! {
                         <Ligne
-                            chemin=Some(format!("/fr/lire/{livre}/{}", unite.id))
+                            chemin=Some(format!("/fr/webapp/{livre}/{}", unite.id))
                             titre=Box::new(move || nom.into_any())
                             sous_titre=Box::new(move || {
                                 reference
@@ -175,6 +187,28 @@ fn libelle(unite: &UniteDto) -> impl IntoView {
 /// produire d'un écran à l'autre, en plus grand.
 const MOT_RECU: &str = "Chapitre";
 const MOT_ONT: &str = "Parashah";
+
+/// Les mêmes au pluriel, pour l'en-tête du groupe.
+///
+/// **Celui de l'ONT n'est pas régulier**, et c'est le vault qui le fixe au
+/// §2.5 : le pluriel de *parashah* prend la marque hébraïque `-ot`, pas le `s`
+/// français. Écrire « Parashahs » franciserait un intraduisible — exactement
+/// ce que le réglage cherche à défaire. `LibelleDUnite.pluriel` dit la même
+/// chose côté app, avec le même commentaire.
+const PLURIEL_RECU: &str = "Chapitres";
+const PLURIEL_ONT: &str = "Parashiot";
+
+/// L'en-tête du groupe des unités — « Chapitres » ou « Parashiot ».
+pub fn nom_des_unites() -> Signal<String> {
+    let prefs = preferences();
+    Signal::derive(move || {
+        if prefs.get().francais {
+            PLURIEL_RECU.to_string()
+        } else {
+            PLURIEL_ONT.to_string()
+        }
+    })
+}
 
 /// Le nom d'une unité **en texte**, dans le registre choisi.
 ///

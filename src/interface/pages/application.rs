@@ -172,7 +172,7 @@ pub fn Application() -> impl IntoView {
             </p>
             <p class="text-encre-douce text-pretty">
                 "Ce qui manquera : la lecture hors ligne, le widget et les notifications du "
-                "verset du jour. Le reste y est — "<Lien href="/fr/lire">"le corpus entier"</Lien>
+                "verset du jour. Le reste y est — "<Lien href="/fr/webapp">"le corpus entier"</Lien>
                 ", les trois niveaux, et les mêmes réglages de lecture."
             </p>
         </Bloc>
@@ -578,7 +578,7 @@ fn Beta(
                 // le moment où l'on se demande ce qu'une app fait de ce qu'on
                 // lui confie.
                 <p class="mt-10 text-[0.95em] text-encre-douce text-pretty">
-                    "Sans rien installer, "<Lien href="/fr/lire">"le corpus se lit ici même"</Lien>
+                    "Sans rien installer, "<Lien href="/fr/webapp">"le corpus se lit ici même"</Lien>
                     " — les mêmes textes, les mêmes trois niveaux, "
                     <Lien href="/fr/lexique">"le même lexique"</Lien>". "
                     <Lien href="/fr/confidentialite">"La confidentialité"</Lien>" dit ce que "

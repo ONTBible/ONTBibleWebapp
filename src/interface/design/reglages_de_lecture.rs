@@ -826,7 +826,7 @@ fn Bascule(
 ///
 /// ## Pourquoi une garde de plus, alors qu'il y a déjà un `debug_assert!`
 ///
-/// Le `debug_assert!` de [`preferences`] a trouvé la panne de `/fr/lire` — mais
+/// Le `debug_assert!` de [`preferences`] a trouvé la panne de `/fr/webapp` — mais
 /// seulement parce qu'un humain a ouvert la page en développement. Il ne s'arme
 /// **pas en `--release`**, et la CI construit en release : elle appelait cette
 /// route, recevait `200`, et l'annonçait saine. La page l'était ; le réglage,

@@ -146,7 +146,7 @@ pub fn Entete() -> impl IntoView {
                 // corpus. Tant qu'ils manquaient, la liseuse existait sans
                 // qu'aucun lien n'y mène — on y arrivait en tapant une adresse,
                 // ou par le renvoi du verset du jour. Ce n'était pas un chemin.
-                <A href="/fr/lire" attr:class=LIEN>"Lire"</A>
+                <A href="/fr/webapp" attr:class=LIEN>"Webapp"</A>
                 <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>

@@ -181,9 +181,9 @@ fn UneTrouvaille(t: crate::api::TrouvailleDto) -> impl IntoView {
         format!("{} : {}", t.unite_titre, t.verset)
     };
     let chemin = if t.verset == 0 {
-        format!("/fr/lire/{}/{}", t.livre_id, t.unite_id)
+        format!("/fr/webapp/{}/{}", t.livre_id, t.unite_id)
     } else {
-        format!("/fr/lire/{}/{}?v={}", t.livre_id, t.unite_id, t.verset)
+        format!("/fr/webapp/{}/{}?v={}", t.livre_id, t.unite_id, t.verset)
     };
 
     view! {

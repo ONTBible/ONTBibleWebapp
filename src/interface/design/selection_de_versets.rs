@@ -172,7 +172,7 @@ pub fn BarreDeSelection(
     livre: String,
     /// Le rang de l'unité. Zéro pour une introduction, qui n'en porte pas.
     chapitre: u32,
-    /// Le chemin de la page, sans paramètre — « /fr/lire/bereshit/bereshit-1 ».
+    /// Le chemin de la page, sans paramètre — « /fr/webapp/bereshit/bereshit-1 ».
     #[prop(into)]
     chemin: String,
     /// Le texte de chaque verset, par numéro. Sert à ce qu'on copie.

@@ -28,13 +28,14 @@ pub const ORIGINE: &str = "https://ontbible.com";
 pub const PAGES: &[&str] = &[
     "/fr",
     "/fr/qahal",
-    "/fr/lire",
+    "/fr/webapp",
     "/fr/lexique",
     // La feuille de prononciation. Elle répond à une **question**, ce que
     // « Lexique » ne fait pas : « comment prononcer chokhmah », « le kh en
     // hébreu ». C'est exactement la longue traîne du §8 octies, et elle
     // n'était atteignable que par la carte du lexique.
     "/fr/lexique/prononciation",
+    "/fr/chuqqot",
     "/fr/rechercher",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",
@@ -85,7 +86,7 @@ pub const PAGES: &[&str] = &[
 ///
 /// Elle ne remplace pas les **liens universels** — voir
 /// [`crate::interface::association`]. Ceux-là ouvrent l'app *directement*, sans
-/// bandeau, sur les seuls chemins `/fr/lire/*`. La bannière, elle, s'adresse
+/// bandeau, sur les seuls chemins `/fr/webapp/*`. La bannière, elle, s'adresse
 /// surtout à qui n'a pas encore l'app : c'est le chemin d'acquisition, pas
 /// celui du lien partagé.
 ///
