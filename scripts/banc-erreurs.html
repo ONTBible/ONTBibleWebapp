@@ -1,0 +1,83 @@
+<!doctype html><meta charset="utf-8">
+<title>Banc — erreurs du navigateur</title>
+<style>
+ body{background:#18090D;color:#CFC5B9;font:16px/1.5 -apple-system,system-ui;margin:0;padding:12px}
+ h1{font-size:15px;color:#D87994;margin:0 0 8px}
+ pre{white-space:pre-wrap;word-break:break-word;font-size:13px;margin:0 0 8px;
+     background:#261016;padding:8px;border-radius:8px}
+ iframe{width:100%;height:220px;border:1px solid #35151E;border-radius:8px}
+</style>
+<h1>BANC — ce n'est pas le site</h1>
+<!--
+  Le banc des erreurs du navigateur.
+
+  ## Pourquoi il existe
+
+  Une panique du WASM ne laisse **aucune trace** ailleurs : le serveur ne la
+  voit pas, la page reste affichée et juste, et seule l'interactivité meurt. On
+  la cherche alors dans le composant qu'on vient d'écrire, où il n'y a rien.
+
+  C'est la troisième fois que ce dépôt paie cette panne, avec trois causes
+  différentes — une construction en deux temps, un `<p>` dans un `<p>`, et un
+  signal lu après sa destruction. Les trois se présentaient de la même façon :
+  « quand je switch de tab il se passe rien ».
+
+  ## Comment s'en servir
+
+      cp scripts/banc-erreurs.html target/site/
+      ATTENTE=34 ./scripts/sim.sh /banc-erreurs.html
+
+  Il charge le site dans un cadre de même origine, y accroche `error`,
+  `unhandledrejection` et `console.error`, puis clique dix liens de la barre.
+  Chaque clic est suivi de l'URL obtenue : un `clic →` sans `url=` qui suit est
+  une navigation morte.
+
+  ## Ce qu'il ne fait pas
+
+  Il ne **pilote** pas le routeur : il clique de vrais liens du document, ce
+  qui marche, là où un `pushState` synthétique ne réveillerait rien. Et il ne
+  mesure que ce qui remonte à `window` — une erreur avalée par un `catch` lui
+  échappe.
+
+  Il porte son étiquette en rouge, et c'est la règle du §7 bis : *un outil qui
+  imite le produit doit porter sa marque.* Un banc précédent a coûté dix
+  secondes de vidéo d'un défaut qui n'existait pas.
+-->
+<pre id="j">…</pre>
+<iframe id="f" src="/fr/webapp"></iframe>
+<script>
+const j = document.getElementById('j'), f = document.getElementById('f');
+const lignes = [];
+function dire(t){ lignes.push(t); j.textContent = lignes.join('\n'); }
+
+// Les erreurs de l'iframe remontent ici quand il est de même origine.
+f.addEventListener('load', () => {
+  const w = f.contentWindow;
+  try {
+    w.addEventListener('error', e =>
+      dire('ERREUR ' + (e.message || e.error) + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')));
+    w.addEventListener('unhandledrejection', e => dire('REJET ' + e.reason));
+    const c = w.console, orig = c.error.bind(c);
+    c.error = (...a) => { dire('console.error ' + a.map(String).join(' ')); orig(...a); };
+  } catch (e) { dire('inaccessible : ' + e); }
+});
+
+// On navigue à la main dans l'iframe, par le routeur : `history.pushState`
+// seul ne réveille pas Leptos, mais changer `location` le fait comme un lien.
+const routes = ['/fr/webapp','/fr/lexique','/fr/qahal','/fr/chuqqot','/fr/compte',
+                '/fr/webapp','/fr/lexique','/fr/webapp/bereshit','/fr/webapp','/fr/lexique'];
+let i = 0;
+setInterval(() => {
+  if (i >= routes.length) return;
+  const r = routes[i++];
+  try {
+    const w = f.contentWindow;
+    const lien = w.document.querySelector('a[href="' + r + '"]');
+    if (lien) { lien.click(); dire('clic → ' + r); }
+    else { dire('pas de lien vers ' + r + ' (url=' + w.location.pathname + ')'); }
+    setTimeout(() => {
+      try { dire('  … url=' + f.contentWindow.location.pathname); } catch(e){}
+    }, 900);
+  } catch (e) { dire('clic impossible : ' + e); }
+}, 1800);
+</script>

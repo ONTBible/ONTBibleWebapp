@@ -40,7 +40,7 @@ mod entete;
 mod exergue;
 mod hero;
 mod image;
-mod image_de_partage;
+pub mod image_de_partage;
 mod legende_niveaux;
 mod lien;
 mod liste_affirmations;

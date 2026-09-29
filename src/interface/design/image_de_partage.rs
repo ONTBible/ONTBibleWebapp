@@ -97,27 +97,46 @@ fn palier(signes: usize) -> f64 {
 /// plutôt que de ne rien faire : une action qui échoue en silence se réessaie.
 #[cfg(feature = "hydrate")]
 fn rendre(texte: &str, renvoi: &str) -> bool {
+    let Some(toile) = composer(texte, renvoi) else {
+        return false;
+    };
+    telecharger(&toile, renvoi)
+}
+
+/// Compose la carte sur une toile, et la rend.
+///
+/// **Séparée du téléchargement**, et ce n'est pas du découpage pour le plaisir.
+/// Un téléchargement ne se regarde pas : il faut un clic, un navigateur, et il
+/// finit dans un dossier. La composition, elle, se **pose à l'écran** — et
+/// c'est la seule façon de voir cette carte sans la cliquer.
+///
+/// C'est ce qui a permis de la vérifier : `?carte` sur un passage la monte dans
+/// la page, en développement seulement, et le simulateur la photographie. Sans
+/// cette coupure, la pièce serait partie « compilée mais jamais vue », ce que
+/// ce dépôt a déjà payé — le bloc App Store écrit d'avance et jamais rendu.
+#[cfg(feature = "hydrate")]
+pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasElement> {
     use wasm_bindgen::{JsCast, JsValue};
 
     const COTE: f64 = 1080.0;
     const MARGE: f64 = 90.0;
 
     let Some(document) = web_sys::window().and_then(|f| f.document()) else {
-        return false;
+        return None;
     };
     let Ok(toile) = document.create_element("canvas") else {
-        return false;
+        return None;
     };
     let Ok(toile) = toile.dyn_into::<web_sys::HtmlCanvasElement>() else {
-        return false;
+        return None;
     };
     toile.set_width(COTE as u32);
     toile.set_height(COTE as u32);
     let Ok(Some(ctx)) = toile.get_context("2d") else {
-        return false;
+        return None;
     };
     let Ok(ctx) = ctx.dyn_into::<web_sys::CanvasRenderingContext2d>() else {
-        return false;
+        return None;
     };
 
     // Les couleurs du thème **courant**, lues sur la racine.
@@ -192,7 +211,17 @@ fn rendre(texte: &str, renvoi: &str) -> bool {
     ctx.set_text_align("right");
     let _ = ctx.fill_text("La Bible ONT", COTE - MARGE, base);
 
-    // Le téléchargement : une ancre `download` sur l'URL de données.
+    Some(toile)
+}
+
+/// Propose la toile au téléchargement.
+#[cfg(feature = "hydrate")]
+fn telecharger(toile: &web_sys::HtmlCanvasElement, renvoi: &str) -> bool {
+    use wasm_bindgen::JsCast;
+
+    let Some(document) = web_sys::window().and_then(|f| f.document()) else {
+        return false;
+    };
     let Ok(donnees) = toile.to_data_url_with_type("image/png") else {
         return false;
     };
@@ -255,5 +284,59 @@ mod tests {
             assert!(taille <= precedent, "le corps remonte à {signes} signes");
             precedent = taille;
         }
+    }
+}
+
+/// **Le banc**, et il porte sa marque.
+///
+/// `?carte` sur un passage monte la carte dans la page au lieu de la
+/// télécharger. C'est le seul moyen de la **regarder** : un téléchargement
+/// demande un clic, un navigateur, et finit dans un dossier — rien de tout ça
+/// n'entre dans une capture.
+///
+/// ## Trois gardes, et la troisième est la leçon du dépôt
+///
+/// - **`debug_assertions` seulement.** En production, la fonction n'existe
+///   pas : un banc qui peut s'allumer sur un site en ligne finit allumé ;
+/// - **une étiquette visible.** Le §5 le dit d'un banc précédent qui a coûté
+///   dix minutes de vidéo d'un défaut inexistant : *« un outil qui imite le
+///   produit doit porter sa marque »*. Celui-ci écrit ce qu'il est ;
+/// - **il ne remplace rien.** La page reste entière dessous ; la carte s'ajoute
+///   en tête. Un banc qui se substitue à la page mesure le banc.
+#[cfg(all(debug_assertions, feature = "hydrate"))]
+#[component]
+pub fn BancDeLaCarte(
+    #[prop(into)] texte: Signal<String>,
+    #[prop(into)] renvoi: Signal<String>,
+) -> impl IntoView {
+    use leptos_router::hooks::use_query_map;
+
+    let demande = use_query_map();
+    let voulu = move || demande.read().get("carte").is_some();
+    let hote = NodeRef::<leptos::html::Div>::new();
+
+    Effect::new(move |_| {
+        if !voulu() {
+            return;
+        }
+        let Some(hote) = hote.get() else { return };
+        let Some(toile) = composer(&texte.get(), &renvoi.get()) else {
+            return;
+        };
+        // La toile fait 1080 ; on la montre à la largeur disponible.
+        let _ = toile.set_attribute("style", "width:100%;height:auto;display:block");
+        hote.set_inner_html("");
+        let _ = hote.append_child(&toile);
+    });
+
+    view! {
+        <Show when=voulu>
+            <div class="mb-8 rounded-bloc border border-accentuation/50 p-2">
+                <p class="m-0 mb-2 text-sm uppercase tracking-capitales text-accentuation">
+                    "Banc — la carte de partage, telle qu'elle sortirait"
+                </p>
+                <div node_ref=hote></div>
+            </div>
+        </Show>
     }
 }

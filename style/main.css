@@ -375,7 +375,23 @@
 /* Un verset en mode d'étude, qui compose plus grand que la prose. Il portait
    `text-lg` en dur ; il porte la même valeur, multipliée. */
 .corps-de-lecture {
-  font-size: calc(var(--text-lg) * var(--lecture));
+  /* **Le corps, et non le palier au-dessus.**
+
+     Il composait à `--text-lg`, soit un cran de plus que les 21 px que le §5
+     mesure et défend. C'était le dernier écart de densité avec l'app, qui
+     compose son corpus **au corps** : mes versets tenaient donc trois lignes
+     là où les siens en tenaient quatre.
+
+     Le §5 dit « il a demandé plus grand deux fois : ne pas redescendre sans
+     qu'il le demande », et cette ligne a attendu qu'il le demande — elle lui a
+     été posée deux fois avant de bouger. Elle ne redescend d'ailleurs pas
+     **sous** ce qu'il a demandé : elle y atterrit exactement. 21 px est la
+     valeur du §5 ; `--text-lg` était un supplément que personne n'avait
+     décidé.
+
+     Et le lecteur a le curseur : la plage 11–28 part de là, au lieu de partir
+     d'un cran plus haut.                                                   */
+  font-size: calc(var(--text-base) * var(--lecture));
 
   /* **L'interligne du lecteur.** Au cran par défaut, `--interligne` vaut
      exactement les 1,68 que le §5 a mesurés — donc le repli couvre le rendu du

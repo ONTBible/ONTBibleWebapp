@@ -124,7 +124,7 @@ pub fn PageDeLecture(
         // cinq entrées en capitales au-dessus de tout, qui disent « voici les
         // pages ». La liseuse est un lieu où l'on revient, pas une page qu'on
         // lit une fois, et sa navigation est celle de l'app.
-        <crate::interface::design::NavigationDeLaLiseuse chemin />
+        <crate::interface::design::NavigationDeLaLiseuse />
         // La barre latérale est en `fixed` : elle ne pousse rien, donc le
         // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
         // hauteur de la barre d'onglets, sans quoi la dernière ligne du

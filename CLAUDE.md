@@ -3365,8 +3365,17 @@ dans son **en-tête**, parce que les deux ne répondent pas à la même question
 une liste dit *lequel*, un en-tête dit *lequel c'est*. « Chapitre 3 » est un
 rang, et un rang seul ne nomme rien une fois qu'on est dedans.
 
-**Ce qui n'a pas bougé** : le verset compose à `--text-lg` quand l'app compose
-au corps. Le §5 interdit de redescendre sans que l'auteur le demande.
+**Et le corps a fini par bouger — le 29 septembre 2026, sur sa demande.** Le
+verset composait à `--text-lg`, un cran au-dessus des 21 px que le §5 mesure.
+C'était le dernier écart de densité avec l'app, qui compose son corpus **au
+corps** : les versets d'ici tenaient trois lignes là où les siens en tenaient
+quatre.
+
+La règle du §5 — *« il a demandé plus grand deux fois : ne pas redescendre sans
+qu'il le demande »* — a été tenue : la question lui a été posée deux fois, et la
+ligne n'a bougé qu'après. Elle ne redescend pas **sous** ce qu'il a demandé,
+elle y atterrit : 21 px est sa valeur, et `--text-lg` était un supplément que
+personne n'avait décidé.
 
 ### La feuille de prononciation — le 29 septembre 2026
 
@@ -3671,8 +3680,6 @@ canvas, donc un navigateur.
   Le pipeline émet déjà `dist/chuqqot.json` ; il n'y a pas de code à écrire
   d'avance, et il ne **faut** pas en écrire : une branche qu'aucun état du site
   ne rend n'est pas du code testé (§8 quinquies) ;
-- la **taille du corps** — le verset compose à `--text-lg`, l'app au corps.
-  C'est le dernier écart de densité, et il appartient à l'auteur (§5) ;
 - la part **communautaire** du Qahal — elle demande un serveur, et l'app ne
   l'a pas non plus ;
 - l'**action Image** de l'app, qui rend un carré de 1080 px ;

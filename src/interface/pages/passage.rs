@@ -198,6 +198,19 @@ pub fn Passage() -> impl IntoView {
                         };
                         let chemin_du_livre = format!("/fr/webapp/{}", p.livre_id);
 
+                        // Relevé **avant** le rendu : le `view!` consomme le
+                        // chapitre, et le banc en a besoin.
+                        #[cfg(all(debug_assertions, feature = "hydrate"))]
+                        let banc = (
+                            chapitre
+                                .versets()
+                                .take(3)
+                                .map(|v| v.corps())
+                                .collect::<Vec<_>>()
+                                .join(" "),
+                            format!("{} 1-3", chapitre.titre),
+                        );
+
                         // **Le pont de navigation, et il en manquait les deux
                         // tiers.**
                         //
@@ -309,7 +322,38 @@ pub fn Passage() -> impl IntoView {
                                             chemin=chemin_du_livre
                                             pastille=pastille
                                         >
-                                            <ReglagesDeLecture preferences />
+                                            // **Le banc de la carte de partage**, en
+                                // développement seulement.
+                                //
+                                // Il est **au niveau de la page** et non dans
+                                // la barre de sélection, où il avait le défaut
+                                // de ce qu'il mesure : cette barre n'apparaît
+                                // qu'après un clic, donc un banc posé dedans
+                                // demande la main qu'on n'a pas.
+                                //
+                                // Il compose sur les trois premiers versets, ce
+                                // qui donne un passage de longueur crédible —
+                                // un verset seul tomberait toujours dans le
+                                // premier palier de taille, et on ne verrait
+                                // jamais les quatre autres.
+                                {
+                                    #[cfg(all(debug_assertions, feature = "hydrate"))]
+                                    {
+                                        let (apercu, ou) = banc;
+                                        view! {
+                                            <crate::interface::design::image_de_partage::BancDeLaCarte
+                                                texte=apercu
+                                                renvoi=ou
+                                            />
+                                        }
+                                            .into_any()
+                                    }
+                                    #[cfg(not(all(debug_assertions, feature = "hydrate")))]
+                                    {
+                                        ().into_any()
+                                    }
+                                }
+                                <ReglagesDeLecture preferences />
                                         </BarreDeLecture>
                                     }
                                         .into_any()

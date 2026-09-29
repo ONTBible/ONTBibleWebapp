@@ -38,6 +38,21 @@ SERVEUR = "http://127.0.0.1:3000"
 
 # Une page par forme de gabarit. Les inventorier toutes n'apporterait rien :
 # deux fiches de lexique passent par le même composant.
+# **Toutes les pages, et la liste a menti pendant une journée.**
+#
+# Elle nommait `/fr/lire/*`, qui **redirige** depuis le déménagement du
+# 29 septembre 2026 : la garde contrôlait donc des renvois de trois lignes et
+# les annonçait comme des pages saines. Et les cinq écrans écrits ce jour-là —
+# Qahal, Chuqqot, Vous, la recherche, la prononciation — n'y étaient pas du
+# tout.
+#
+# Une garde qui ne visite pas une page ne dit rien d'elle, et son décompte final
+# — « 12 pages, aucune imbrication interdite » — se lit comme si elle avait tout
+# vu. C'est la forme la plus coûteuse : elle rassure exactement là où elle ne
+# regarde pas.
+#
+# **Un contrôle interdit désormais d'en ajouter une sans elle** : voir
+# `chaque_route_du_site_est_controlee` plus bas.
 PAGES = [
     "/fr",
     "/fr/le-pourquoi",
@@ -46,11 +61,18 @@ PAGES = [
     "/fr/assistance",
     "/fr/confidentialite",
     "/fr/conditions",
-    "/fr/lire",
-    "/fr/lire/bereshit",
-    "/fr/lire/bereshit/bereshit-1",
+    # La webapp — les cinq onglets et ce qu'ils ouvrent.
+    "/fr/qahal",
+    "/fr/webapp",
+    "/fr/webapp/partie/torah",
+    "/fr/webapp/bereshit",
+    "/fr/webapp/bereshit/bereshit-1",
     "/fr/lexique",
     "/fr/lexique/adam",
+    "/fr/lexique/prononciation",
+    "/fr/chuqqot",
+    "/fr/compte",
+    "/fr/rechercher?q=ruach",
 ]
 
 # L'espace ordinaire devant une ponctuation double, ou juste après un guillemet

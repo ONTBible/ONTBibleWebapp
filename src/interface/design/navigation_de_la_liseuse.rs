@@ -239,14 +239,10 @@ fn Signe(
 /// par une requête média. Deux composants auraient deux listes à tenir
 /// d'accord — et c'est la forme de défaut que ce dépôt a payée le plus souvent.
 #[component]
-pub fn NavigationDeLaLiseuse(
-    /// Le chemin courant, pour désigner la destination où l'on est.
-    #[prop(into)]
-    chemin: Signal<String>,
-) -> impl IntoView {
+pub fn NavigationDeLaLiseuse() -> impl IntoView {
     view! {
-        <BarreLaterale chemin />
-        <BarreDOnglets chemin />
+        <BarreLaterale />
+        <BarreDOnglets />
     }
 }
 
@@ -268,7 +264,28 @@ fn on_y_est(chemin: &str, destination: &str) -> bool {
 /// tronquerait « Toledot Adam ve-Chavah » au cran suivant — le défaut que le
 /// Mac a payé et corrigé.
 #[component]
-fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
+fn BarreLaterale() -> impl IntoView {
+    // **Le chemin se lit ici, il ne se reçoit pas.**
+    //
+    // Il arrivait en prop, depuis `PageDeLecture`. Avec `#[prop(into)]`, la
+    // conversion crée un signal **possédé par la portée de l'appelant** — donc
+    // par la page. À la navigation, la page est détruite, et les closures
+    // d'attribut de la barre le relisent : panic, WASM mort, plus un onglet ne
+    // répond.
+    //
+    // C'est ce que l'auteur a vu — « au bout d'un moment la nav de la tabbar se
+    // fige » —, et « au bout d'un moment » voulait dire *à la quatrième
+    // navigation*. Le banc l'a nommé en une ligne : *« you tried to access a
+    // reactive value … but it has already been disposed »*, défini à
+    // `into_reactive_value.rs:17`.
+    //
+    // `use_location()` rend le mémo du **routeur**, qui vit aussi longtemps que
+    // l'application. Rien n'est créé, donc rien ne peut être détruit.
+    //
+    // > Un signal traverse mal une frontière de composant quand les deux n'ont
+    // > pas la même durée de vie. La barre survit aux pages ; son chemin doit
+    // > venir de ce qui survit aussi.
+    let chemin = leptos_router::hooks::use_location().pathname;
     // **Deux ressources et non une.** Le plan est le même pour tout le monde
     // et se met en cache au bord ; la position appartient au lecteur et ne
     // doit jamais y entrer. Les fondre rendrait le plan incachable pour gagner
@@ -333,7 +350,32 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                     .iter()
                     .map(|destination| {
                         let ici = destination.chemin;
-                        let actif = Signal::derive(move || on_y_est(&chemin.get(), ici));
+                        // **Pas de `Signal::derive` ici**, et ça a coûté la
+                        // navigation entière.
+                        //
+                        // Il en portait un, créé **dans la boucle de rendu** :
+                        // il appartenait donc à la portée réactive du moment.
+                        // À la navigation, cette portée est détruite — et les
+                        // closures d'attribut, elles, sont réévaluées. Elles
+                        // lisaient alors un signal disposé :
+                        //
+                        //     panicked at reactive_graph/traits.rs:394
+                        //     you tried to access a reactive value … but it
+                        //     has already been disposed
+                        //     RuntimeError: Unreachable code should not be
+                        //     executed
+                        //
+                        // Le WASM meurt, et **plus aucun onglet ne répond**.
+                        // C'est ce que l'auteur a vu — « au bout d'un moment
+                        // la nav de la tabbar se fige » — et « au bout d'un
+                        // moment » veut dire *à la quatrième navigation*.
+                        //
+                        // `chemin` vient du routeur et vit aussi longtemps que
+                        // l'application : le relire directement dans chaque
+                        // closure ne crée rien qui puisse être détruit. Un
+                        // signal intermédiaire n'économisait qu'un appel de
+                        // fonction sur une comparaison de chaînes.
+                        let actif = move || on_y_est(&chemin.get(), ici);
                         view! {
                             <li>
                                 // **La capsule choisie est en accent, pas en
@@ -352,12 +394,12 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                 // capsule qui ne se peint jamais.
                                 <A
                                     href=destination.chemin
-                                    attr:aria-current=move || actif.get().then_some("page")
+                                    attr:aria-current=move || actif().then_some("page")
                                     attr:class=move || {
                                         let base = "flex items-center gap-3 rounded-full px-3 py-2 \
                                                     font-titre text-sm \
                                                     no-underline transition-colors";
-                                        if actif.get() {
+                                        if actif() {
                                             format!("{base} bg-accent/15 ring-1 ring-accent/30 text-accent")
                                         } else {
                                             format!("{base} text-encre-douce hover:bg-accent/8 hover:text-encre")
@@ -537,7 +579,28 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
 /// Sans lui, la capsule se pose sur la barre d'accueil d'un iPhone, où le
 /// geste de retour prend le toucher en premier.
 #[component]
-fn BarreDOnglets(chemin: Signal<String>) -> impl IntoView {
+fn BarreDOnglets() -> impl IntoView {
+    // **Le chemin se lit ici, il ne se reçoit pas.**
+    //
+    // Il arrivait en prop, depuis `PageDeLecture`. Avec `#[prop(into)]`, la
+    // conversion crée un signal **possédé par la portée de l'appelant** — donc
+    // par la page. À la navigation, la page est détruite, et les closures
+    // d'attribut de la barre le relisent : panic, WASM mort, plus un onglet ne
+    // répond.
+    //
+    // C'est ce que l'auteur a vu — « au bout d'un moment la nav de la tabbar se
+    // fige » —, et « au bout d'un moment » voulait dire *à la quatrième
+    // navigation*. Le banc l'a nommé en une ligne : *« you tried to access a
+    // reactive value … but it has already been disposed »*, défini à
+    // `into_reactive_value.rs:17`.
+    //
+    // `use_location()` rend le mémo du **routeur**, qui vit aussi longtemps que
+    // l'application. Rien n'est créé, donc rien ne peut être détruit.
+    //
+    // > Un signal traverse mal une frontière de composant quand les deux n'ont
+    // > pas la même durée de vie. La barre survit aux pages ; son chemin doit
+    // > venir de ce qui survit aussi.
+    let chemin = leptos_router::hooks::use_location().pathname;
     view! {
         <nav
             aria-label="La liseuse"
@@ -550,12 +613,16 @@ fn BarreDOnglets(chemin: Signal<String>) -> impl IntoView {
                     .chain(std::iter::once(&COMPTE))
                     .map(|destination| {
                         let ici = destination.chemin;
-                        let actif = Signal::derive(move || on_y_est(&chemin.get(), ici));
+                        // Même raison qu'en barre latérale, quatre cents lignes
+                        // plus haut : rien de réactif ne se crée dans une
+                        // boucle de rendu, sans quoi la navigation le détruit
+                        // et les attributs le relisent.
+                        let actif = move || on_y_est(&chemin.get(), ici);
                         view! {
                             <li class="flex-1">
                                 <A
                                     href=destination.chemin
-                                    attr:aria-current=move || actif.get().then_some("page")
+                                    attr:aria-current=move || actif().then_some("page")
                                     // Le libellé est **sous** le symbole et en
                                     // très petit, comme chez l'app : un symbole
                                     // seul se devine mal, un libellé seul prend
@@ -581,7 +648,7 @@ fn BarreDOnglets(chemin: Signal<String>) -> impl IntoView {
                                         let base = "onglet flex flex-col items-center gap-1 \
                                                     rounded-full px-1 py-1.5 font-titre \
                                                     text-[0.72rem] leading-none no-underline";
-                                        if actif.get() {
+                                        if actif() {
                                             format!("{base} bg-encre/10 text-marque-encre")
                                         } else {
                                             format!("{base} text-encre-douce")
