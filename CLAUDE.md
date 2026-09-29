@@ -3465,6 +3465,206 @@ vraiment se dit sans rien perdre : la lecture ne demande aucun compte.
 C'est le §8 quinquies pris à l'envers — **une contrainte qu'on se transmet
 entre sessions doit être datée ou revérifiée**.
 
+### La webapp a son adresse, et la barre a ses cinq onglets
+
+**Le 29 septembre 2026, l'auteur a resserré la demande** : « je veux un fork de
+l'app pour la webapp », « je veux la même tabbar », « je ne veux plus voir
+/fr/lire, je veux /fr/webapp, même dans la nav du site ».
+
+#### L'adresse a bougé, et rien de ce qui pointait l'ancienne n'est tombé
+
+`/fr/lire` → `/fr/webapp`. C'était la seule partie risquée :
+`/fr/lire/{livre}/{unité}?v=1-3` est **la route des liens partagés depuis
+l'app** (§4). Deux garde-fous, et il fallait les deux.
+
+Une **redirection permanente** couvre `/fr/lire` et tout ce qui est dessous,
+chaîne de requête comprise — perdre `?v=1-3` rendrait le passage entier là où
+le lien désignait trois lignes. Elle rend un **308** et non un 301 : le premier
+préserve la méthode, le second autorise le client à retomber en `GET`, ce qui
+casserait les fonctions serveur de `/api/`, qui sont des `POST`.
+
+Le fichier d'**association d'app** déclare désormais **deux** chemins. Retirer
+l'ancien casserait tous les liens partagés jusqu'ici — ils ouvriraient le site
+dans le **navigateur** au lieu de l'app, et le défaut serait silencieux des deux
+côtés : iOS ne relit ce fichier qu'à l'installation, Apple le met en cache sur
+son propre CDN.
+
+> **Ils ne se périment pas tout seuls.** Un lien partagé vit dans une
+> conversation, un signet, un message archivé ; il n'y a pas de date après
+> laquelle on saurait qu'aucun ne circule plus. Cette liste ne se raccourcit
+> que sur une décision, jamais par ménage.
+
+**Mesuré, et ça a corrigé la session iOS** : c'est **le site** qui sert ce
+fichier depuis la bascule des domaines du 13 août — `via: CloudFront`, et
+`/llms.txt` répond sur le même hôte. Elle croyait que son backend le servait,
+donc que la mise en ligne attendait une revue Apple. Elle n'attend que la fusion
+d'ici.
+
+#### La barre porte les cinq de l'app
+
+**La recherche n'est plus un onglet** : elle est un bouton de barre, en haut à
+droite, et **sur la Bible seulement** — la place que `BibleTab` lui donne.
+L'arbitrage avait été pris dans l'autre sens, sur un argument de la session iOS :
+sa barre est une contrainte de plateforme — cinq onglets, Chuqqot prend le
+cinquième —, donc le site, qui n'a pas la contrainte, pouvait garder le sien.
+L'auteur a tranché autrement, et *une contrainte qui produit le bon dessin reste
+le bon dessin*.
+
+**Chuqqot ouvre, avec son écran d'attente.** Ce dépôt l'écartait au motif
+qu'« une bannière n'a que deux états justes ». L'argument tombe sur un fait :
+**l'app a l'onglet et montre un écran d'attente**. Ce n'est donc pas une branche
+qu'aucun état du site ne rend.
+
+Son texte dit **pourquoi** l'écran est vide, et l'app avait payé le défaut que
+le site allait refaire : son premier état disait « ils ne sont pas encore
+écrits » alors que sept l'étaient. *« Le défaut n'était pas l'écran vide, c'était
+l'écran qui mentait. »* Il ne compte pas les chuqqot en attente — « quatorze sont
+écrites » se périmerait à la première validation.
+
+#### Trois écrans sortaient de la webapp
+
+Et c'est le défaut que rien ne montre : une destination déclare son chemin dans
+la navigation, et la page le rend à sa façon quatre cents lignes plus loin.
+
+| | ce qu'elle rendait | ce qu'un toucher donnait |
+|---|---|---|
+| **Vous** | `Entete` + `Bloc` | plus de barre, plus de thème, l'en-tête du site vitrine |
+| **Rechercher** | un `Hero` plein écran | la même chose, et **causé par la correction du matin** |
+
+La règle du §8 undecies n'a pas bougé et c'est elle qui tranche : **les pages de
+la liseuse sont exactement celles qui emploient `PageDeLecture`.** Le thème les
+suit alors par construction, sans table de chemins à tenir d'accord.
+
+Le §8 undecies excluait d'ailleurs la recherche du thème, *« elle porte une
+ouverture, et un bouton Chercher en or qui disparaît sur du clair »*. L'argument
+était juste et il est devenu faux le jour où l'on y est arrivé depuis
+l'intérieur de la liseuse.
+
+#### « Vous » refait sur les sections de `YouTab`
+
+Le fond n'était pas un fork, seulement la coquille.
+
+- **les boutons de connexion** étaient cerclés en capitales espacées — la forme
+  réservée à une *seconde* voie, pour l'action principale de l'écran. Aplat de
+  marque, pleine largeur, empilés ;
+- **l'échec s'ajoute à l'explication, il ne la remplace pas.** L'app a payé
+  cher : son message effaçait la seule phrase qui dit que le compte est
+  facultatif, et un examinateur de l'App Store a cru l'app cassée le 19 août
+  2026. Le site avait la même forme sous un autre nom — erreur en tête de page,
+  phrase qui rassure quatre écrans plus bas ;
+- **le registre entre**, et c'est le plus gros manque. L'app l'a sorti des
+  réglages de lecture *délibérément* : il y était rangé « entre la disposition
+  des versets et la taille du texte », c'est-à-dire avec la typographie, alors
+  qu'il change **ce que les livres sont appelés**. Il garde sa place dans la
+  feuille « aA » ; il a sa carte là où l'on décide ;
+- **« Le corpus » et « Crédits »** — et les crédits ne sont pas de la politesse :
+  les fontes sont sous OFL, qui veut que la licence parte avec. Un fichier posé à
+  côté d'une fonte satisfait la lettre ; le nommer dans l'interface satisfait ce
+  que la lettre protège.
+
+#### Les deux réglages de lecture qui manquaient
+
+**Couper les mots.** Le site posait `hyphens: auto` en dur : allumée pour tout
+le monde, sans moyen de l'éteindre. C'est un réglage chez l'app, et sa raison
+vaut doublement ici — *« la césure hache les mots, et qui grossit le texte pour
+le voir se retrouve avec plus de coupures, pas moins »*. `manual` plutôt que
+`none` : on retire l'automatisme, pas la possibilité.
+
+**L'interligne.** L'app compte un **supplément** (`.lineSpacing` s'ajoute à
+l'interligne naturel de la fonte), la CSS compte un **total**. Les deux ne se
+convertissent pas. Ce qui se transpose est le **défaut et l'amplitude** : au
+cran 5, la valeur rendue est exactement **1,68** — celle du §5 —, et chaque cran
+vaut un dixième, de 1,38 à 2,18.
+
+C'était la condition : *un curseur dont le cran du milieu déplacerait la valeur
+documentée changerait la composition de tout le monde pour offrir un réglage à
+quelques-uns.*
+
+En **dixièmes entiers** et non en flottant : `Preferences` reste `Eq`, la
+sérialisation est exacte — `0.7` peut revenir de `localStorage` en
+`0.7000000000000001` —, et deux réglages identiques se reconnaissent.
+
+### Les symboles — Phosphor, parce que les SF ne peuvent pas venir
+
+**Demandé par l'auteur le 29 septembre 2026**, puis cherché à sa demande.
+
+Les SF Symbols sont hors de portée, et la raison n'est pas technique : leur
+licence les réserve aux logiciels **tournant sur les plateformes Apple**. Un
+site web n'en est pas un, quel que soit l'appareil qui l'ouvre.
+
+Iconoir, Remix, Lucide, Heroicons, Tabler, Feather sont tous libres et tous **en
+contour seul**. **Phosphor** (MIT, sans attribution exigée) est la seule qui
+porte **le plein et le contour sur la même silhouette** — ce dont la barre
+d'onglets a besoin, l'app employant `book.closed.fill`, `person.2.fill`,
+`square.stack.3d.up.fill`. Elle dessine en **aplats** et non en traits, comme
+les SF.
+
+`scripts/porter-les-symboles.py` les tire et engendre `symboles.rs`. Il **ne
+choisit pas** les correspondances : elles sont dans une table, avec le nom du
+symbole de l'app en regard, pour que le choix se **relise** au lieu de se
+deviner.
+
+Une garde a servi tout de suite : `stack-fill` porte **trois** tracés, une
+feuille par strate. La première version collait le premier — une seule feuille,
+c'est-à-dire un symbole *plausible et faux*, celui qu'on ne regarde pas deux
+fois.
+
+**Et le plein va sur les cinq, pas seulement sur l'actif.** Le réflexe était de
+le réserver à l'onglet courant. Mis côte à côte avec l'app, c'est faux : elle
+emploie `.fill` partout et ne distingue l'actif que par sa capsule. Ça se tient,
+et le site le tenait déjà sans le savoir — *« ici c'est le fond qui tient le rôle
+du semi-gras »*. Une capsule n'est pas une couleur, c'est une forme.
+
+#### Les trois marques de connexion viennent d'Ionicons
+
+Même script, grille 512, monochromes. L'app portait trois provenances pour trois
+boutons — `apple.logo`, un `g.circle.fill` qui **n'est pas** le G de Google, et
+trois chevrons pour GitHub.
+
+**Google demande son mark en quatre couleurs**, et aucune variante monochrome
+officielle n'existe — mesuré côté app, cinq sources du kit essayées. C'est donc
+un écart **connu**, et il coûte moins ici : un site n'est relu par personne.
+
+**Asymétrie voulue, tranchée par l'auteur** : l'app garde `apple.logo` des SF,
+qui est le mark sanctionné sur une plateforme Apple ; le site prend les trois
+chez Ionicons, n'ayant pas accès au premier. C'est là que la ressemblance au
+pixel s'arrête, et c'est juste — le bouton Apple d'une app et celui d'un site
+n'ont pas à être le même objet.
+
+### L'image de partage — ce que ce dépôt disait impossible
+
+`selection_de_versets.rs` écrivait : *« Image, qui rend un carré de 1080 px,
+demande un rendu que le navigateur ne fait pas gratuitement »*. C'est faux, et
+la phrase avait le tort d'**avoir l'air d'une mesure** : personne ne l'a
+rouverte pendant des semaines.
+
+Un `<canvas>` compose et `toBlob` rend un PNG — quatre drapeaux `web-sys`,
+aucune bibliothèque, aucune requête. Ce qui aurait coûté, ce sont les fontes, et
+elles sont déjà là.
+
+Les mesures viennent de `ONTVerseCard` : côté 1080, marge 90, filet d'or de 3,
+renvoi à 40, signature à 38, interligne à 0,42 du corps, et les cinq paliers de
+taille **grossiers volontairement** — *« une taille calculée au caractère près
+donnerait des images qui ne se ressemblent pas d'un partage à l'autre »*.
+
+Elle montre **le corps seul**, ni gloses ni hébreu, et c'est le meilleur
+argument de tout ce portage : *l'appareil critique appartient à la liseuse, où
+il est consultable et attribué. Sorti de là, il devient une affirmation sans
+recours.* D'où le renvoi et le nom de la traduction sur la carte — une image qui
+circule doit dire d'où elle vient.
+
+`TextMetrics` est le drapeau le moins évident et le plus nécessaire : `fillText`
+ne va pas à la ligne, donc le pliage se fait à la main en mesurant mot à mot.
+
+**Ce qui s'éprouve et ce qui ne s'éprouve pas** : les paliers sortent du rendu et
+sont tenus par deux épreuves — les bornes de l'app, exclusives, et la
+**monotonie**, qui se vérifie sans connaître les valeurs. Le reste demande un
+canvas, donc un navigateur.
+
+> **Une phrase qui écarte quelque chose doit dire ce qui la rendrait fausse.**
+> « Le navigateur ne le fait pas » ne se vérifie nulle part ; « il faut quatre
+> drapeaux `web-sys` » se vérifie en une compilation.
+
 ### Ce qui reste de la webapp
 
 - **Chuqqot** — l'onglet suit le jour où le vault écrit sa première chuqqah.
@@ -3476,9 +3676,13 @@ entre sessions doit être datée ou revérifiée**.
 - la part **communautaire** du Qahal — elle demande un serveur, et l'app ne
   l'a pas non plus ;
 - l'**action Image** de l'app, qui rend un carré de 1080 px ;
-- la **recherche est un onglet** ici, un bouton de barre là-bas. Le site a un
-  créneau libre tant que Chuqqot n'est pas là, et une recherche est une
-  destination de plein droit sur un site. À retrancher si Chuqqot arrive.
+- l'**écran de réglages** de « Vous » renvoie à la Bible, où la feuille « aA »
+  s'ouvre. Le site n'a pas d'écran de réglages à lui, et lui en fabriquer un
+  ferait une seconde copie des mêmes bascules ;
+- « **Options de partage** » de l'app n'a pas d'équivalent : elle règle l'action
+  *Image*, qui existe désormais mais sans réglage ;
+- l'**image de partage n'a pas été cliquée** — la compilation la couvre des deux
+  côtés, les paliers sont éprouvés, le reste demande un navigateur.
 
 ## 9. Ce qui reste à trancher
 
