@@ -375,49 +375,71 @@ pub fn Pourquoi() -> impl IntoView {
                 <i>"sans jamais éteindre les autres"</i>
                 "."
             </p>
-            <p>
-                "C'est très exactement ce que le français ne sait pas faire. "
-                <Terme lemme="ruach">"Ruach"</Terme>
-                " est souffle, vent et esprit — non pas tour à tour selon le passage, mais "
-                "les trois "
-                <i>"ensemble"</i>
-                ", indissociablement. Quand le texte dit que le "
-                <Terme lemme="ruach">"Ruach"</Terme>
-                " d'"
-                <Terme lemme="ʾelohim">"Elohim"</Terme>
-                " couvait la face des eaux, il dit un vent qui souffle et une présence qui "
-                "agit, dans le même mot et sans les distinguer. Le traducteur doit choisir. "
-                "Choisir, ici, c'est amputer."
-            </p>
-            <p>
-                "Et le mécanisme de ces champs est dans la structure même de la langue\u{202f}: "
-                "la "
-                <b>"racine"</b>
-                ". Trois consonnes portent un domaine, et tout ce qui en dérive y participe. "
-                "De "
-                <i>"k-b-d"</i>
-                ", être lourd, viennent la "
-                <Terme lemme="kavod">"kavod"</Terme>
-                " — le poids d'une réalité dans l'ordre — et "
-                <i>"kaved"</i>
-                ", le foie, l'organe lourd du corps. Un lecteur hébreu entend la parenté en "
-                "lisant. Le français lit «\u{202f}gloire\u{202f}» et «\u{202f}foie\u{202f}» "
-                "et n'entend rien du tout, parce que le lien n'est pas une curiosité "
-                "d'étymologiste\u{202f}: il est vivant, actif à chaque emploi."
-            </p>
-            <p>
-                "Jusqu'aux lettres, qui ne sont pas de purs signes de son. Chacune porte un "
-                "nom qui est un mot, et une forme qui vient du dessin de la chose\u{202f}: "
-                <i>"aleph"</i>
-                " le bœuf, "
-                <i>"beth"</i>
-                " la maison, "
-                <i>"yod"</i>
-                " la main, "
-                <i>"ayin"</i>
-                " l'œil. Une langue dont les éléments les plus petits portent déjà du sens ne "
-                "peut pas fonctionner comme une langue dont les lettres n'en portent aucun."
-            </p>
+              <p>
+                  "C'est très exactement ce que le français ne sait pas faire. "
+                  <Terme lemme="ruach">"Ruach"</Terme>
+                  " est souffle, vent, esprit. Le français doit choisir avant d'écrire\u{202f}; "
+                  "l'hébreu n'y est pas obligé. Et quand le texte dit que le "
+                  <Terme lemme="ruach">"Ruach"</Terme>
+                  " d'"
+                  <Terme lemme="ʾelohim">"Elohim"</Terme>
+                  " couvait la face des eaux, rien dans le verset ne tranche — ni la grammaire, "
+                  "ni la scène. L'ambiguïté est portée par le texte\u{202f}: le traducteur qui "
+                  "la lève ajoute une décision que l'auteur n'a pas prise."
+              </p>
+              <p>
+                  "Le mécanisme de ces champs est en partie dans la "
+                  <b>"racine"</b>
+                  "\u{202f}: trois consonnes, et une famille de mots qui en dérive. De "
+                  <i>"k-b-d"</i>
+                  ", être lourd, viennent la "
+                  <Terme lemme="kavod">"kavod"</Terme>
+                  " — le poids d'une réalité dans l'ordre — et "
+                  <i>"kaved"</i>
+                  ", le foie, l'organe lourd du corps. Mais la racine explique une parenté\u{202f}; "
+                  "elle ne la démontre pas. Le "
+                  <i>"travail"</i>
+                  " français vient d'un instrument de torture, et plus personne ne l'entend. "
+                  "Ce qui décide, c'est l'usage — et quand l'usage contredit la racine, "
+                  "c'est l'usage qui gagne."
+              </p>
+              <p>
+                  "C'est pourquoi l'ONT compte avant d'affirmer. Là où le français n'a qu'un "
+                  "mot, l'hébreu en a souvent trois, et le relevé le montre\u{202f}: "
+                  <Terme lemme="ʾeretz">"ʾeretz"</Terme>
+                  " le domaine où l'on tient, "
+                  <Terme lemme="ʾadamah">"ʾadamah"</Terme>
+                  " le sol qu'on travaille, "
+                  <Terme lemme="tevel">"tevel"</Terme>
+                  " l'étendue qui porte des vivants — trois mots que «\u{202f}terre\u{202f}» "
+                  "écrase en un. Trois encore pour la royauté, et la grammaire les sépare avant "
+                  "le sens\u{202f}: on compte une "
+                  <Terme lemme="mamlakhah">"mamlakhah"</Terme>
+                  " en villes, une "
+                  <Terme lemme="malkhut">"malkhut"</Terme>
+                  " en années, et une "
+                  <Terme lemme="melukhah">"melukhah"</Terme>
+                  " ne se compte pas — distinction relevée sur deux cent trente-deux emplois. "
+                  "Une seule racine, enfin, pour "
+                  <Terme lemme="ʿanav">"ʿanav"</Terme>
+                  ", celui qui se courbe, et "
+                  <Terme lemme="ʿani">"ʿani"</Terme>
+                  ", celui qu'on a courbé, là où le français sépare une vertu d'une condition."
+              </p>
+              <p>
+                  "Et la mesure se laisse contredire — c'est à cela qu'on la reconnaît. "
+                  <i>"Lechem"</i>
+                  " le pain et "
+                  <i>"milchamah"</i>
+                  " la guerre partagent une racine, et l'objection classique veut qu'on n'en "
+                  "tire rien. Le témoin range pourtant les deux verbes sous un seul numéro, et "
+                  "sur les six fois où celui-ci veut dire «\u{202f}manger\u{202f}», cinq sont "
+                  "des repas de danger\u{202f}: le pain de la méchanceté, la table d'un "
+                  "gouverneur qu'on aborde un couteau à la gorge, les mets des hommes "
+                  "d'iniquité. Pour manger ordinairement, l'hébreu a un autre mot, et il "
+                  "l'emploie huit cent douze fois. Ce n'est pas une preuve\u{202f}; c'est ce "
+                  "que le compte donne, et il ne dit ni plus ni moins."
+              </p>
             <p>
                 "On comprend alors pourquoi l'ONT ne peut pas tenir sur une seule ligne. "
                 "Traduire un champ par une case est ce que fait toute traduction, et c'est "

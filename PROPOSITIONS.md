@@ -56,6 +56,42 @@ information, et il se voit.
 
 ---
 
+## #NNN · Proposer la mesure à la page « Le pourquoi »
+
+    ouverte le   29 septembre 2026, par la manageuse
+    vers         main
+    état         ouverte — ==et elle attend l'auteur, non une relecture==
+
+**Pourquoi.** Une lecture sans mémoire du site, demandée par l'auteur, a
+reproché à cette page le **sophisme de la racine** — la formule *« le lien est
+vivant, actif à chaque emploi »* est la forme manuelle de l'erreur que James
+Barr a nommée en 1961. Mesuré : la page dit « vérifier » deux fois et ne dit
+==jamais== « mesurer » ni « compter », quand une fiche montre ses occurrences
+onze fois. ==La page plaide la moitié faible du projet et tait la moitié forte.==
+
+**Ce que ça engage.** Rien de technique — aucune donnée, aucun contrat. Mais
+c'est **la prose d'auteur sur les fondations du projet**, donc rien ne se
+fusionne sans son mot. Quatre mots deviennent touchables : `ʾeretz`, `ʾadamah`,
+`tevel`, `ʿanav`, `ʿani`, `malkhut`, `mamlakhah`, `melukhah` — ==les vingt-huit
+mots d'or de la page ont été vérifiés, tous ont une fiche==.
+
+**Pour la relire.** Trois paragraphes sont remplacés par quatre :
+
+    ruach « les trois ensemble, indissociablement »  → l'ambiguïté que le VERSET porte
+    la racine « active à chaque emploi »             → la racine explique, l'usage décide
+    les lettres (aleph le bœuf)                      → RETIRÉ, et remplacé par le relevé
+    (nouveau)                                        → lechem / milchamah
+
+==Le paragraphe des lettres est retiré parce qu'il est réfutable en une
+phrase== : notre A descend du même aleph, et le grec aussi. Ce qui distingue
+l'hébreu est d'avoir gardé les **noms** — un fait de nomenclature, pas de
+fonctionnement.
+
+Le quatrième est la démonstration ==sur le terrain de l'objection== : l'exemple
+canonique de Barr, mesuré, ne tient pas. Un seul numéro pour les deux verbes,
+cinq des six emplois de « manger » dans des repas de danger, et 812 emplois du
+verbe ordinaire en regard de 6.
+
 ## #156 · Porter les quatre thèmes de l'app
 
     ouverte le   21 septembre 2026, par la session du site (w6:p1)
