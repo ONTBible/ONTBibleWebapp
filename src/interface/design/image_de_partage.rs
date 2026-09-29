@@ -254,9 +254,86 @@ fn telecharger(toile: &web_sys::HtmlCanvasElement, renvoi: &str) -> bool {
         return false;
     };
     lien.set_href(&donnees);
-    lien.set_download(&format!("{}.png", renvoi.replace([' ', ':'], "-")));
+    lien.set_download(&nom_de_fichier(renvoi));
     lien.click();
     true
+}
+
+/// Le nom sous lequel le fichier atterrit chez le lecteur.
+///
+/// ## L'app n'en a pas, et c'est pour ça que celui-ci n'avait pas été pensé
+///
+/// Côté app, `ActionTile("Image")` passe un `UIImage` à la feuille de partage :
+/// **iOS nomme le fichier lui-même**, et aucune ligne de Swift n'en décide.
+/// Un téléchargement de navigateur, lui, *doit* porter un nom — c'est donc une
+/// décision propre au web, qu'aucun portage ne pouvait rapporter, et qui
+/// s'était prise par défaut dans un `replace` écrit au fil de la plume.
+///
+/// ## Ce qu'elle produisait, et pourquoi c'était faux
+///
+/// « Bereshit 3:1-3 » devenait **`Bereshit-3-1-3.png`** : un seul séparateur
+/// pour trois rôles — l'espace du livre, le deux-points du verset, le tiret de
+/// la plage. La structure du renvoi disparaît, et le lecteur qui retrouve ce
+/// fichier six mois plus tard ne sait plus s'il tient *Bereshit 3, versets 1 à
+/// 3* ou *Bereshit 3:1, verset 3*.
+///
+/// C'est la faute de `chiffres.rs` rejouée : une forme juste dans son contexte
+/// — un identifiant sans espace — employée là où c'est la lisibilité qui
+/// compte.
+///
+/// ## Ce qu'elle produit, et ce qu'elle refuse
+///
+/// Seul le deux-points est remplacé, par le **`v` des renvois abrégés** ; les
+/// espaces restent, car un nom de fichier en porte sans difficulté sur les
+/// trois systèmes, et ce sont eux qui gardent les mots séparés.
+///
+/// ```text
+/// Bereshit 3:1-3        →  Bereshit 3 v1-3.png
+/// Bereshit 3:1-3, 7     →  Bereshit 3 v1-3, 7.png
+/// Bereshit 3            →  Bereshit 3.png
+/// ```
+///
+/// Le reste du filtrage ne porte pas sur l'élégance mais sur ce qui **casse** :
+/// `/` termine un chemin sous Unix, et Windows refuse en plus
+/// `\ : * ? " < > |`. Aucun ne peut sortir de `renvoi` aujourd'hui — les
+/// identifiants de livres sont des translittérations — mais un livre nommé
+/// « Sefar Daniyy'el / Bel » n'est pas absurde, et un nom de fichier tronqué à
+/// la barre oblique donne un téléchargement dans un dossier qui n'existe pas.
+/// Le filtre est donc écrit contre la classe, pas contre les cas connus.
+///
+/// ## Hors de `cfg(hydrate)`, et c'est la raison de l'`allow`
+///
+/// Elle n'est appelée que par `telecharger`, qui n'existe que côté navigateur —
+/// donc en SSR elle ne sert à personne, et `rustc` a raison de le dire. On la
+/// garde là quand même, parce que **c'est la seule façon d'éprouver cette
+/// décision** : la CI compile et teste avec `ssr`, et une fonction rangée sous
+/// `cfg(hydrate)` n'y serait jamais exécutée. C'est un décideur pur, il se
+/// mesure sans navigateur, et le silence de l'avertissement est le prix de
+/// cette mesure — pas un oubli.
+#[allow(dead_code)]
+fn nom_de_fichier(renvoi: &str) -> String {
+    let lisible: String = renvoi
+        .replace(':', " v")
+        .chars()
+        // Les séparateurs de chemin et les caractères que Windows refuse.
+        // **Le deux-points n'y est pas**, et il ne faut pas l'y remettre : le
+        // `replace` ci-dessus l'a déjà consommé, donc ce bras serait
+        // inatteignable — et un bras mort dans une liste de caractères
+        // interdits est exactement ce qui fait croire qu'un cas est couvert.
+        .map(|c| match c {
+            '/' | '\\' | '*' | '?' | '"' | '<' | '>' | '|' => '-',
+            // Aucun ne peut venir du corpus. Ils sont rendus à l'espace et non
+            // au tiret : un caractère invisible remplacé par un signe visible
+            // ferait apparaître une ponctuation que le renvoi ne porte pas.
+            c if c.is_control() => ' ',
+            c => c,
+        })
+        .collect();
+    // Un renvoi sans versets finit par « Bereshit 3 » : le `replace` n'a rien
+    // trouvé, donc rien à resserrer. Mais « Bereshit 3: » — un cas que rien
+    // n'interdit si la sélection se vide entre le calcul et le clic — donnerait
+    // « Bereshit 3 v ». On resserre.
+    format!("{}.png", lisible.trim().trim_end_matches(" v").trim())
 }
 
 #[cfg(not(feature = "hydrate"))]
@@ -275,6 +352,52 @@ mod tests {
     /// caractère, et le défaut ne se verrait que sur un passage dont la
     /// longueur tombe pile sur une borne — c'est-à-dire jamais, jusqu'au jour
     /// où si.
+    /// Le nom de fichier garde la **structure** du renvoi.
+    ///
+    /// La version d'avant écrasait l'espace, le deux-points et le tiret de
+    /// plage sur un seul signe : « Bereshit 3:1-3 » sortait
+    /// `Bereshit-3-1-3.png`, où plus rien ne dit ce qui est un chapitre et ce
+    /// qui est un verset. Cette épreuve porte les trois formes que
+    /// `selection::libelle` peut produire, donc les trois qui arrivent ici.
+    #[test]
+    fn le_nom_de_fichier_garde_la_structure_du_renvoi() {
+        for (renvoi, attendu) in [
+            ("Bereshit 3:1-3", "Bereshit 3 v1-3.png"),
+            ("Bereshit 3:1-3, 7", "Bereshit 3 v1-3, 7.png"),
+            ("Bereshit 3:7", "Bereshit 3 v7.png"),
+            // Une sélection vide : `renvoi` se tait sur les versets, et le nom
+            // ne doit pas inventer un « v » sans numéro.
+            ("Bereshit 3", "Bereshit 3.png"),
+            // Le cas limite qu'aucun clic ne produit aujourd'hui, mais que
+            // rien n'interdit si la sélection se vide entre le calcul du
+            // renvoi et le clic : le « v » orphelin se retire.
+            ("Bereshit 3:", "Bereshit 3.png"),
+        ] {
+            assert_eq!(super::nom_de_fichier(renvoi), attendu, "pour « {renvoi} »");
+        }
+    }
+
+    /// Aucun nom ne peut porter un séparateur de chemin.
+    ///
+    /// **La garde est écrite contre la classe, pas contre les cas connus.**
+    /// Aucun identifiant de livre ne porte de barre oblique aujourd'hui — ce
+    /// sont des translittérations de l'hébreu —, et c'est précisément pourquoi
+    /// personne ne le vérifierait le jour où un titre composé en porterait
+    /// une. Un nom tronqué à la barre oblique donne un téléchargement dans un
+    /// dossier qui n'existe pas, et le navigateur ne dit rien.
+    #[test]
+    fn aucun_nom_de_fichier_ne_porte_de_separateur_de_chemin() {
+        let nom = super::nom_de_fichier("Sefar Daniyy'el / Bel 3:1-3");
+        assert_eq!(nom, "Sefar Daniyy'el - Bel 3 v1-3.png");
+        for interdit in ['/', '\\', ':', '*', '?', '"', '<', '>', '|'] {
+            let mesure = super::nom_de_fichier(&format!("Livre{interdit}X 1:1"));
+            assert!(
+                !mesure.contains(interdit),
+                "« {interdit} » a survécu dans « {mesure} »"
+            );
+        }
+    }
+
     #[test]
     fn les_paliers_sont_ceux_de_l_app() {
         for (signes, attendu) in [

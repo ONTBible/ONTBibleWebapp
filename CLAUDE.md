@@ -2840,7 +2840,9 @@ tout allait bien.
 - la **position de lecture** — le backend la porte, le site ne la suit pas
   encore. C'est dans `SyncDuBackend::pousser` qu'elle entrera, où la clé est
   aujourd'hui omise plutôt que mise à `null` ;
-- l'action **Image** de l'app, qui rend un carré de 1080 px.
+- l'action **Image** est faite — `design/image_de_partage.rs`, un carré de
+  1080 px composé sur un `<canvas>`. Ce qui reste d'elle est plus bas, au
+  §8 undecies : le clic n'a jamais été déclenché par une main.
 
 ## 8 decies. Trois contrats arrêtés, et rien de construit — le 11 septembre 2026
 
@@ -3742,14 +3744,73 @@ d'une chaîne.*
   ne rend n'est pas du code testé (§8 quinquies) ;
 - la part **communautaire** du Qahal — elle demande un serveur, et l'app ne
   l'a pas non plus ;
-- l'**action Image** de l'app, qui rend un carré de 1080 px ;
 - l'**écran de réglages** de « Vous » renvoie à la Bible, où la feuille « aA »
   s'ouvre. Le site n'a pas d'écran de réglages à lui, et lui en fabriquer un
   ferait une seconde copie des mêmes bascules ;
 - « **Options de partage** » de l'app n'a pas d'équivalent : elle règle l'action
   *Image*, qui existe désormais mais sans réglage ;
-- l'**image de partage n'a pas été cliquée** — la compilation la couvre des deux
-  côtés, les paliers sont éprouvés, le reste demande un navigateur.
+- l'**image de partage n'a pas été cliquée** — et le 29 septembre 2026 cet écart
+  a été réduit à ce qu'un navigateur seul peut encore dire.
+
+  Ce qui est éprouvé sans lui : la composition, au banc `?carte` ; les cinq
+  paliers de taille, contre `ONTShareImage.size` ; et le **nom du fichier**, qui
+  ne l'était pas.
+
+  Ce qui restait de `telecharger` après ça tient en deux causes d'échec, toutes
+  deux **écartées par mesure et non par confiance** : `to_data_url` refuse une
+  toile trop grande — celle-ci fait 1 080², soit 1,17 Mpx contre les 16,8 que
+  Safari accepte — et il refuse une toile *contaminée* par une image d'origine
+  croisée : `composer` ne contient aucun `draw_image`, mesuré, donc la
+  contamination est impossible et non improbable. La troisième — l'absence de
+  contexte 2D — est la seule qui reste, et le bouton la **dit** au lieu de ne
+  rien faire.
+
+  ==Ce qu'un navigateur dirait encore n'est donc pas « est-ce que ça marche »,
+  c'est « à quoi ça ressemble dans le dossier de téléchargements ».== C'est un
+  jugement, pas une mesure, et il appartient à l'auteur.
+
+### Le nom du fichier, et l'écart qu'aucun portage ne pouvait rapporter
+
+L'app ne nomme **aucun** fichier : `ActionTile("Image")` passe un `UIImage` à la
+feuille de partage, et iOS s'en charge. Un téléchargement de navigateur, lui,
+*doit* porter un nom — c'est donc une décision propre au web, qu'on ne trouve en
+lisant le Swift ni écrite ni absente, mais **hors sujet**.
+
+Elle s'était donc prise par défaut, dans un `replace` écrit au fil de la plume :
+« Bereshit 3:1-3 » devenait `Bereshit-3-1-3.png`, où **un seul signe portait
+trois rôles** — l'espace du livre, le deux-points du verset, le tiret de la
+plage. Le lecteur qui retrouve ce fichier ne sait plus s'il tient *Bereshit 3,
+versets 1 à 3* ou *Bereshit 3:1, verset 3*.
+
+C'est la faute de `chiffres.rs` rejouée un étage plus bas : une forme juste dans
+son contexte — un identifiant sans espace — employée là où c'est la lisibilité
+qui compte. Le nom est `Bereshit 3 v1-3.png` désormais : le deux-points devient
+le **`v` des renvois abrégés**, les espaces restent — un nom de fichier en porte
+sans difficulté sur les trois systèmes, et ce sont eux qui gardent les mots
+séparés.
+
+Et le filtrage est écrit **contre la classe** : `/` termine un chemin sous Unix,
+Windows refuse en plus `\ : * ? " < > |`. Aucun ne peut sortir d'un renvoi
+aujourd'hui — les identifiants de livres sont des translittérations de l'hébreu
+—, et c'est précisément pourquoi personne ne le vérifierait le jour où un titre
+composé en porterait un. Un nom tronqué à la barre oblique donne un
+téléchargement dans un dossier qui n'existe pas, et le navigateur ne dit rien.
+
+Deux détails de forme, chacun payé par une épreuve qu'on a fait rougir :
+
+- **le deux-points n'est pas dans la liste des interdits**, et il ne faut pas
+  l'y remettre : le `replace` l'a déjà consommé, donc ce bras serait
+  inatteignable. Un bras mort dans une liste de caractères interdits est
+  exactement ce qui fait croire qu'un cas est couvert ;
+- **les caractères de contrôle vont à l'espace, pas au tiret.** Un caractère
+  invisible remplacé par un signe visible ferait apparaître une ponctuation que
+  le renvoi ne porte pas.
+
+La fonction vit **hors de `cfg(hydrate)`**, avec un `allow(dead_code)` que son
+commentaire justifie : la CI compile et teste avec `ssr`, donc une fonction
+rangée sous `cfg(hydrate)` n'y serait **jamais exécutée**. C'est un décideur
+pur, il se mesure sans navigateur, et le silence de l'avertissement est le prix
+de cette mesure.
 
 ## 9. Ce qui reste à trancher
 
