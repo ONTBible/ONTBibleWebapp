@@ -427,18 +427,20 @@ pub fn Pourquoi() -> impl IntoView {
                   ", celui qu'on a courbé, là où le français sépare une vertu d'une condition."
               </p>
               <p>
-                  "Et la mesure se laisse contredire — c'est à cela qu'on la reconnaît. "
+                  "Et la mesure ne conclut pas à notre place. "
                   <i>"Lechem"</i>
                   " le pain et "
                   <i>"milchamah"</i>
-                  " la guerre partagent une racine, et l'objection classique veut qu'on n'en "
-                  "tire rien. Le témoin range pourtant les deux verbes sous un seul numéro, et "
-                  "sur les six fois où celui-ci veut dire «\u{202f}manger\u{202f}», cinq sont "
-                  "des repas de danger\u{202f}: le pain de la méchanceté, la table d'un "
-                  "gouverneur qu'on aborde un couteau à la gorge, les mets des hommes "
-                  "d'iniquité. Pour manger ordinairement, l'hébreu a un autre mot, et il "
-                  "l'emploie huit cent douze fois. Ce n'est pas une preuve\u{202f}; c'est ce "
-                  "que le compte donne, et il ne dit ni plus ni moins."
+                  " la guerre partagent une racine — le genre de rapprochement dont on fait "
+                  "des sermons. Le compte donne ceci\u{202f}: le témoin range les deux verbes "
+                  "sous un seul numéro, et sur les six fois où celui-ci veut dire "
+                  "«\u{202f}manger\u{202f}», cinq sont des repas de danger — le pain de la "
+                  "méchanceté, la table d'un gouverneur qu'on aborde un couteau à la gorge. "
+                  "Pour manger ordinairement, l'hébreu a un autre mot, et il l'emploie huit "
+                  "cent douze fois. C'est tout ce que le compte donne, et l'ONT s'arrête "
+                  "là\u{202f}: une racine ne décide pas d'un sens, seul l'usage le fait. La "
+                  "règle est écrite dans nos conventions avant d'être invoquée ici, et elle "
+                  "nous interdit d'aller plus loin que ce qu'on vient de lire."
               </p>
             <p>
                 "On comprend alors pourquoi l'ONT ne peut pas tenir sur une seule ligne. "
