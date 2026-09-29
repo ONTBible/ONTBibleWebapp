@@ -58,8 +58,23 @@ pub fn PageDeLecture(
     /// découvre pas.
     #[prop(optional)]
     liste: bool,
+    /// La barre du haut d'un écran de lecture — la pastille et « aA ».
+    ///
+    /// **Elle prend la place du fil**, elle ne s'y ajoute pas : les deux
+    /// disent « tu es dans Bereshit, au 3 », et les empiler donnerait deux
+    /// appareils de navigation pour un écran. Les écrans de liste gardent le
+    /// fil, n'ayant pas de pastille.
+    ///
+    /// Elle est rendue **hors de `.liseuse`**, comme le titre : c'est de la
+    /// chrome, et une chrome qui enfle avec le réglage du corps mange la place
+    /// du texte.
+    #[prop(optional)]
+    barre: Option<Children>,
 ) -> impl IntoView {
     let chemin = leptos_router::hooks::use_location().pathname;
+    // Relevé avant que `barre` ne soit consommée par le rendu — `Children` est
+    // une `FnOnce`, donc l'appeler la prend.
+    let barre_posee = barre.is_some();
 
     view! {
         // **La peau du lecteur est montée ici**, et c'est ce qui la borne à la
@@ -105,7 +120,10 @@ pub fn PageDeLecture(
         // chapitre se lirait derrière elle.
         <div class="pb-24 lg:ps-[16.5rem] lg:pb-0">
         <Bloc>
-            {(!fil.is_empty())
+            {barre.map(|barre| barre())}
+
+            // Le fil **cède la place** à la pastille quand il y en a une.
+            {(!fil.is_empty() && !barre_posee)
                 .then(|| {
                     view! {
                         <nav

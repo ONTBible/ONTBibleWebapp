@@ -15,7 +15,21 @@ use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset as VersetDomaine};
 #[component]
 pub fn Verset(verset: VersetDomaine) -> impl IntoView {
     view! {
-        <p class="font-corps corps-de-lecture leading-loose text-pretty">
+        // **L'interligne est celui du site, et il l'était déjà sur le papier.**
+        //
+        // Ce paragraphe portait `leading-loose` — 2 —, là où le §5 mesure 1,68
+        // et dit pourquoi : *plus le corps grandit, moins il a besoin d'air
+        // proportionnel pour que l'œil retrouve la ligne suivante.* Le verset
+        // compose à `--text-lg`, donc **au-dessus** du corps : il en demandait
+        // moins, pas plus.
+        //
+        // La lecture suivie avait déjà été corrigée pour cette raison exacte,
+        // et le mode d'étude était resté — si bien que le site était plus aéré
+        // là où il prétend serrer.
+        //
+        // Ce qui sépare deux versets en mode d'étude est leur **marge**, pas
+        // l'air entre leurs lignes.
+        <p class="font-corps corps-de-lecture text-pretty">
             <span
                 aria-hidden="true"
                 class="me-[0.35em] align-[0.55em] text-[0.62em] text-accent"

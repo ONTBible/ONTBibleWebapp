@@ -292,15 +292,28 @@ fn poser_la_peau(theme: Option<Theme>, fonte: Option<Fonte>) {
 
 /// Les réglages de lecture — un bouton qui suit, et une feuille qui monte.
 ///
-/// ## Pourquoi il flotte
+/// ## Le bouton est dans la barre du haut, et il y a été **déplacé**
 ///
-/// Une première version posait le panneau **en haut du chapitre**. Ça ne tenait
-/// pas : un chapitre fait jusqu'à quarante-six versets, et l'on décide
-/// d'éteindre les gloses au milieu de la lecture, pas avant de l'avoir
-/// commencée. Un réglage qu'il faut remonter chercher n'en est plus un.
+/// Ce paragraphe disait « il flotte en bas », et l'argument tenait : un
+/// chapitre fait jusqu'à quarante-six versets, on éteint les gloses au milieu
+/// de la lecture, et un réglage qu'il faut remonter chercher n'en est plus un.
 ///
-/// Le bouton reste donc à portée, en bas, et la feuille monte par-dessus le
-/// texte — comme la feuille « aA » de l'app, et pour la même raison.
+/// Il y a été repris pour deux raisons, et la seconde annule la première.
+///
+/// D'abord l'app : `ChapterView` pose « aA » en `ONTPlacement.principale`,
+/// c'est-à-dire **en haut à droite**. Le site le mettait en bas en croyant
+/// copier l'app ; il copiait un geste, pas une place.
+///
+/// Ensuite la place elle-même : le bas n'est plus libre. La barre d'onglets
+/// l'occupe depuis que la liseuse porte la chrome de l'app — il a fallu
+/// dégager le bouton par-dessus elle, puis l'effacer pendant une sélection
+/// parce qu'il chevauchait la barre de partage. Deux rustines pour tenir une
+/// place que trois objets se disputaient.
+///
+/// Ce que l'argument d'origine demandait vraiment n'est pas « en bas », c'est
+/// **toujours atteignable**. La barre du haut est `sticky` : elle suit le
+/// lecteur au quarante-sixième verset comme au premier. La feuille, elle,
+/// monte toujours par-dessus le texte.
 ///
 /// ## Il porte les réglages de l'app, et rien d'autre
 ///
@@ -378,19 +391,19 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // `active:scale-95` : le bouton s'enfonce sous le doigt. C'est
                 // le seul retour tactile qu'un navigateur laisse donner, et son
                 // absence fait douter que le clic ait été pris.
-                class="halo se-poser fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-[transform,border-color,box-shadow,opacity] duration-200 ease-out hover:border-or/60 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
-                // Il s'efface pendant une sélection, et les deux raisons
-                // comptent.
+                class="verre se-poser flex size-9 items-center justify-center rounded-full text-accent transition-[transform,opacity] duration-200 ease-out active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+                // Il s'efface pendant une sélection, et il n'en reste
+                // qu'une raison sur deux.
                 //
-                // La première est mécanique : la barre de sélection occupe
-                // toute la largeur en bas, ce bouton est à `1.5rem` du bas à
-                // droite — **ils se chevauchent**. Vu au simulateur, pas déduit
-                // du code : les deux valeurs sont dans deux fichiers qu'on
-                // n'ouvre pas ensemble.
+                // La mécanique est tombée avec le déplacement : le bouton
+                // n'est plus dans le coin qu'occupe la barre de sélection, ils
+                // ne peuvent plus se chevaucher.
                 //
-                // La seconde est de propos : on ne règle pas sa typographie
-                // pendant qu'on choisit des versets à partager. Laisser les
-                // deux à l'écran ferait deux actions principales, donc aucune.
+                // Celle de propos tient seule, et elle suffit : on ne règle pas
+                // sa typographie pendant qu'on choisit des versets à partager.
+                // Laisser les deux à l'écran ferait deux actions principales,
+                // donc aucune. L'app dit la même chose autrement — toute sa
+                // barre d'outils est sous `if actif`.
                 //
                 // `inert` en plus de l'opacité : un bouton transparent reste
                 // cliquable et tabulable — c'est la même règle que pour la
@@ -399,17 +412,8 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("opacity-0", selection_active)
                 class=("pointer-events-none", selection_active)
                 inert=move || selection_active().then_some("")
-                // **Il dégage la barre d'onglets**, qui occupe le bas depuis
-                // que la liseuse porte la chrome de l'app. Sans ce calage il
-                // se posait dessus, à cheval sur « Vous » — et c'est le bouton
-                // qu'on cherche du pouce sans regarder.
-                //
-                // `--barre-d-onglets` est déclarée par la barre elle-même, donc
-                // sa hauteur ne se recopie pas ici : elle vaut zéro au-delà de
-                // `lg`, où il n'y a plus de barre en bas.
-                style="bottom: calc(1.5rem + var(--barre-d-onglets, 0px) + env(safe-area-inset-bottom))"
             >
-                <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>
+                <span aria-hidden="true" class="font-titre text-base leading-none">"aA"</span>
             </button>
 
             <div
@@ -427,11 +431,11 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // pouce, et c'est de là qu'elle monte. Sur un grand écran elle
                 // se pose au-dessus du bouton, à sa largeur, et croît depuis
                 // son coin : le mouvement dit d'où elle sort.
-                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-feuille border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-feuille sm:border motion-reduce:transition-none"
+                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-feuille border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:bottom-auto sm:end-6 sm:top-16 sm:w-96 sm:origin-top-right sm:rounded-feuille sm:border motion-reduce:transition-none"
                 class=("translate-y-full", move || !ouvert.get())
                 class=("opacity-0", move || !ouvert.get())
                 class=("pointer-events-none", move || !ouvert.get())
-                class=("sm:translate-y-2", move || !ouvert.get())
+                class=("sm:-translate-y-2", move || !ouvert.get())
                 class=("sm:scale-95", move || !ouvert.get())
                 class=("translate-y-0", move || ouvert.get())
                 class=("opacity-100", move || ouvert.get())

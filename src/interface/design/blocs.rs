@@ -357,7 +357,33 @@ fn rendre_bloc(
         // c'est elle que suit un lecteur d'écran pour parcourir la page.
         BlocDeTexte::Titre { niveau, noeuds } => {
             let contenu = rendre(&preparer(&noeuds, p));
-            let classe = "mt-16 mb-6 text-encre-vive first:mt-0";
+            // **Les métriques de l'intertitre sont celles de l'app**, relevées
+            // dans `ONTTypography.heading` — et elles sont beaucoup plus
+            // serrées que ce que le site posait.
+            //
+            // | | app | site, avant |
+            // |---|---|---|
+            // | taille | corps **× 1,25** | l'échelle de l'édition |
+            // | fonte | Jost SemiBold | celle du corps, héritée |
+            // | couleur | **`brandInk`** | `inkStrong` |
+            //
+            // Le site prenait son `h2` d'édition, c'est-à-dire un palier
+            // calculé pour ouvrir une section de page d'essai. Dans un
+            // chapitre, un intertitre ne **commence** rien : il découpe. L'app
+            // le dit — *« ce sont eux qui font d'un chapitre une suite de
+            // scènes plutôt qu'un mur »* — et un mur ne se découpe pas avec
+            // des titres d'affiche.
+            //
+            // `1.25em` et non une valeur du barème : l'unité se mesure sur la
+            // taille **héritée**, donc sur `.liseuse`, donc sur le réglage du
+            // lecteur. Le rapport de l'app se tient alors à tous les crans,
+            // sans que rien ne le recalcule.
+            //
+            // La couleur est la **marque**, et ce n'est pas un détail de
+            // teinte : elle vaut l'aubergine sur les peaux claires et l'or sur
+            // les sombres — l'app a mesuré qu'un bordeaux posé en dur y tombait
+            // à 1,23:1. `--color-marque-encre` porte déjà le jeton porté.
+            let classe = "mt-14 mb-5 font-titre text-[1.25em] font-semibold leading-snug text-marque-encre first:mt-0";
             match niveau {
                 0..=2 => view! { <h2 class=classe>{contenu}</h2> }.into_any(),
                 3 => view! { <h3 class=classe>{contenu}</h3> }.into_any(),

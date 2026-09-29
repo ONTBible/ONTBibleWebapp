@@ -24,6 +24,7 @@
 //! page : deux finissent toujours par diverger sur un espacement, et personne
 //! ne sait plus laquelle fait foi.
 
+mod barre_de_lecture;
 mod bloc;
 mod blocs;
 mod bouton;
@@ -59,6 +60,7 @@ mod sommaire;
 mod titre_de_section;
 pub mod verset;
 
+pub use barre_de_lecture::BarreDeLecture;
 pub use bloc::Bloc;
 pub use blocs::Blocs;
 pub use bouton::Bouton;

@@ -41,7 +41,21 @@ pub fn Livre() -> impl IntoView {
                             livre.versets,
                         );
                         let hebreu = livre.hebreu.clone();
-                        let francais = livre.francais.clone();
+                        // **Le second nom, et il manquait.**
+                        //
+                        // Le commentaire du chapeau, deux écrans plus bas,
+                        // promet « le second nom sous le titre, petit, avec le
+                        // nom hébreu ». Il n'y était pas : la valeur était
+                        // relevée, puis jamais posée — un `unused_variable` que
+                        // rien d'autre ne signalait, la page s'affichant très
+                        // bien sans.
+                        //
+                        // Même garde que la balise de titre : un livre dont le
+                        // nom ONT contient déjà son nom français — ou qui n'en
+                        // a pas — ne le redit pas.
+                        let francais = (!livre.francais.is_empty()
+                            && !livre.titre.contains(&livre.francais))
+                            .then(|| livre.francais.clone());
                         let unites = livre.unites.len();
                         let versets = livre.versets;
                         view! {
@@ -89,6 +103,14 @@ pub fn Livre() -> impl IntoView {
                                 chapeau=Box::new(move || {
                                     view! {
                                         <p class="m-0 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                            {francais
+                                                .map(|francais| {
+                                                    view! {
+                                                        <span class="italic text-encre-douce">
+                                                            {francais}
+                                                        </span>
+                                                    }
+                                                })}
                                             <span
                                                 dir="rtl"
                                                 lang="he"

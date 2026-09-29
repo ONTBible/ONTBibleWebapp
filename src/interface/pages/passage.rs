@@ -4,8 +4,8 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use crate::api::passage;
 use crate::domaine::selection;
 use crate::interface::design::{
-    fournir_marques, fournir_preferences, fournir_selection, nom_d_unite, BarreDeSelection, Blocs,
-    MentionBrouillon, PageDeLecture, ReglagesDeLecture,
+    fournir_marques, fournir_preferences, fournir_selection, nom_d_unite, BarreDeLecture,
+    BarreDeSelection, Blocs, MentionBrouillon, PageDeLecture, ReglagesDeLecture,
 };
 use crate::interface::tete::Tete;
 
@@ -149,11 +149,6 @@ pub fn Passage() -> impl IntoView {
                     Ok(Some(p)) => {
                         let chapitre = p.chapitre;
                         let brouillon = chapitre.statut.est_provisoire();
-                        let reference = chapitre
-                            .sous_titre
-                            .as_ref()
-                            .and_then(|s| s.reference.clone());
-
                         // La description d'aperçu est le **texte** des versets
                         // désignés quand le lien en désigne : c'est ce que la
                         // personne a partagé, et c'est donc ce qu'une messagerie
@@ -183,19 +178,82 @@ pub fn Passage() -> impl IntoView {
                         let rang = chapitre.numero;
                         let chapitre_id = chapitre.id.clone();
 
-                        let renvoi = reference.clone();
-                        let livre_titre = p.livre_titre.clone();
+                        // **La pastille de renvoi, composée comme l'app la
+                        // compose** — `ChapterView::pastille` : le titre du
+                        // livre, un point médian, et le **rang nu**.
+                        //
+                        // Nu, et c'est une correction que l'app a déjà payée :
+                        // sa pastille disait « Bereshit · Parashah 1 », deux
+                        // fois plus long pour une information que le lecteur a
+                        // lui-même réglée — et la place manquant, iOS tronquait
+                        // le texte à *rien*. Le rang, lui, change à chaque
+                        // unité.
+                        //
+                        // Une introduction n'a pas de rang : elle garde son
+                        // titre, comme le `guard chapter.n > 0` de l'app.
+                        let pastille = if rang == 0 {
+                            chapitre.titre.clone()
+                        } else {
+                            format!("{} · {rang}", p.livre_titre)
+                        };
+                        let chemin_du_livre = format!("/fr/lire/{}", p.livre_id);
+
+                        // **Le pont de navigation, et il en manquait les deux
+                        // tiers.**
+                        //
+                        // `ChapterView::header` en pose trois pièces sur une
+                        // ligne : le nom **français** en italique, le nom
+                        // **hébreu**, et le renvoi reçu en chiffres de chasse
+                        // fixe. Le site n'en portait qu'une, et il l'avait
+                        // fausse — il écrivait « Bereshit 1:1 — 2:3 », c'est-à-
+                        // dire la désignation ONT, que le titre juste au-dessus
+                        // venait de donner. Le commentaire de l'app dit
+                        // exactement ce qu'il ne faut pas faire : *« le nom
+                        // français et le renvoi biblique, jamais la
+                        // désignation principale »* (§2.6 du vault).
+                        //
+                        // Ce pont sert à **retrouver un passage qu'on connaît
+                        // sous un autre nom**. Le redire sous le nom qu'on
+                        // vient de lire ne le construit pas.
+                        let sous_titre = chapitre.sous_titre.clone();
                         let chapeau = Box::new(move || {
                             view! {
-                                {renvoi
-                                    .map(|r| {
+                                {sous_titre
+                                    .map(|st| {
                                         view! {
-                                            <p class="chiffres-tableau mb-4 text-encre-douce">
-                                                {livre_titre} " " {r}
+                                            <p class="mb-5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-encre-douce">
+                                                <span class="italic">{st.francais}</span>
+                                                // L'hébreu s'isole : sans
+                                                // `dir`, le renvoi latin qui le
+                                                // suit se réordonne autour de
+                                                // lui. Sur un `span` en ligne,
+                                                // et non sur le bloc — sinon
+                                                // toute la ligne s'aligne à
+                                                // droite (§8 bis).
+                                                <span
+                                                    dir="rtl"
+                                                    lang="he"
+                                                    class="font-hebreu not-italic"
+                                                >
+                                                    {st.hebreu}
+                                                </span>
+                                                {st
+                                                    .reference
+                                                    .map(|r| {
+                                                        view! {
+                                                            <span class="chiffres-tableau">{r}</span>
+                                                        }
+                                                    })}
                                             </p>
                                         }
                                     })}
                                 {brouillon.then(|| view! { <MentionBrouillon /> })}
+                                // **Le filet d'or**, que l'app pose sous son
+                                // en-tête — `GoldRule()`, juste après le
+                                // sous-titre et avant le premier bloc. C'est
+                                // lui qui fait de ces trois lignes un en-tête
+                                // et non le début du texte.
+                                <hr class="mt-6 border-0 border-t border-accent/40" />
                             }
                                 .into_any()
                         });
@@ -215,21 +273,48 @@ pub fn Passage() -> impl IntoView {
                                         p.livre_titre.clone(),
                                     ),
                                 ]
-                                // Le nom **dans le registre du lecteur**, et non
-                                // le nom ONT brut. Sans ça, on touche
-                                // « Chapitre 2 » au sommaire et l'on arrive sur
-                                // une page intitulée « Bereshit 2 » : deux
-                                // écrans, un seul calcul, l'autre oublié.
+                                // **Le nom de l'unité, et non son rang dans le
+                                // registre du lecteur.** Ce prop portait
+                                // `nom_d_unite` — « Chapitre 3 » —, et
+                                // l'argument était l'accord avec le sommaire :
+                                // *on touche « Chapitre 2 » au sommaire, on ne
+                                // doit pas arriver sur « Bereshit 2 ».*
                                 //
-                                // La balise `<title>` ci-dessus garde le nom
-                                // ONT, elle : rendue par le serveur, qui ne
-                                // connaît pas les préférences, et employée pour
-                                // le référencement et le partage — deux usages
-                                // où un nom stable vaut mieux qu'un nom juste.
-                                titre=nom_d_unite(chapitre.titre.clone(), chapitre.numero)
+                                // **L'app tranche l'inverse, et elle le tranche
+                                // deux fois.** Sa liste emploie bien le
+                                // registre — `stub.label(french:)` dans
+                                // `BibleTab` — mais son en-tête de lecture pose
+                                // `chapter.title` tel quel. Les deux écrans ne
+                                // disent donc pas la même chose **parce qu'ils
+                                // ne répondent pas à la même question** : une
+                                // liste dit *lequel*, un en-tête dit *lequel
+                                // c'est*. « Chapitre 3 » est un rang, et un
+                                // rang seul ne nomme rien une fois qu'on est
+                                // dedans — le livre a disparu de l'écran.
+                                //
+                                // La pastille le répète juste au-dessus, et
+                                // l'app le répète aussi : c'est la redite d'une
+                                // adresse, celle qu'on relit sans la lire.
+                                //
+                                // La balise `<title>` portait déjà le nom ONT,
+                                // et les deux concordent enfin.
+                                titre=chapitre.titre.clone()
                                 chapeau=chapeau
+                                // La barre du haut de l'app : la pastille à
+                                // gauche, « aA » à droite. Elle prend la place
+                                // du fil, que `PageDeLecture` tait alors.
+                                barre=Box::new(move || {
+                                    view! {
+                                        <BarreDeLecture
+                                            chemin=chemin_du_livre
+                                            pastille=pastille
+                                        >
+                                            <ReglagesDeLecture preferences />
+                                        </BarreDeLecture>
+                                    }
+                                        .into_any()
+                                })
                             >
-                                <ReglagesDeLecture preferences />
                                 <BarreDeSelection
                                     selection=choix
                                     livre=livre_pour_renvoi
