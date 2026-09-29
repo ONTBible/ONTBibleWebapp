@@ -2,7 +2,8 @@ use leptos::prelude::*;
 
 use crate::api::UniteDto;
 use crate::interface::design::reglages_de_lecture::preferences;
-use crate::interface::design::{MentionBrouillon, Terme};
+use crate::interface::design::Terme;
+use crate::interface::design::{Groupe, Ligne, Pastille};
 
 /// Les unités d'un livre.
 ///
@@ -36,43 +37,52 @@ use crate::interface::design::{MentionBrouillon, Terme};
 #[component]
 pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
     view! {
-        <ul class="m-0 list-none p-0">
+        // **Le gabarit de l'app, depuis le 29 septembre 2026.** Les unités
+        // vivaient à plat, avec la mention « brouillon » en pastille dorée
+        // bordée sur sa propre ligne — elle y pesait autant que le titre, alors
+        // qu'elle dit une réserve. Chez l'app, elle est petite, grise, et
+        // **dans** la ligne.
+        <Groupe>
             {unites
                 .into_iter()
                 .map(|unite| {
+                    let reference = unite.reference.clone();
+                    let versets = unite.versets;
+                    let brouillon = unite.brouillon;
+                    let nom = libelle(&unite);
                     view! {
-                        <li class="border-b border-filet/40 last:border-0">
-                            <a
-                                href=format!("/fr/lire/{livre}/{}", unite.id)
-                                class="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 py-4 no-underline"
-                            >
-                                {libelle(&unite)}
-
-                                {unite
-                                    .reference
+                        <Ligne
+                            chemin=Some(format!("/fr/lire/{livre}/{}", unite.id))
+                            titre=Box::new(move || nom.into_any())
+                            sous_titre=Box::new(move || {
+                                reference
                                     .map(|reference| {
                                         view! {
-                                            <span class="chiffres-tableau text-[0.86em] text-encre-douce">
-                                                {reference}
-                                            </span>
+                                            <span class="chiffres-tableau">{reference}</span>
                                         }
-                                    })}
-
-                                // Le compte de versets pousse le reste à
-                                // gauche et se pose au bout de la ligne.
-                                <span class="chiffres-tableau ms-auto text-[0.8em] text-encre-douce">
-                                    {unite.versets} " v."
-                                </span>
-
-                                {unite
-                                    .brouillon
-                                    .then(|| view! { <MentionBrouillon breve=true /> })}
-                            </a>
-                        </li>
+                                    })
+                                    .into_any()
+                            })
+                            // **La pastille de l'app, pas celle du site.**
+                            // `MentionBrouillon` est dorée et bordée : elle
+                            // pesait autant que le titre de la ligne, alors
+                            // qu'elle dit une réserve. Chez l'app elle est
+                            // petite et grise, et elle s'efface derrière ce
+                            // qu'elle qualifie.
+                            pastille=Box::new(move || {
+                                brouillon
+                                    .then(|| view! { <Pastille>"brouillon"</Pastille> })
+                                    .into_any()
+                            })
+                            valeur=Box::new(move || {
+                                view! { <span class="chiffres-tableau">{versets} " v."</span> }
+                                    .into_any()
+                            })
+                        />
                     }
                 })
                 .collect_view()}
-        </ul>
+        </Groupe>
     }
 }
 
@@ -88,21 +98,37 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
 ///
 /// Une introduction — rang zéro — garde son titre : elle n'a pas de rang à
 /// afficher, et « Chapitre 0 » ne voudrait rien dire.
+/// ## L'or a quitté le titre de ligne le 29 septembre 2026
+///
+/// « Chapitre 7 » s'écrivait en or. C'était la convention du site — l'or dit ce
+/// qui se touche — et elle avait un sens tant que rien d'autre ne le disait.
+///
+/// Dans une liste de l'app, **le chevron le dit**, et le titre reste en encre.
+/// Garder les deux fait crier une liste entière : soixante lignes d'or, où
+/// l'or ne distingue plus rien puisqu'il est partout. C'est la règle du §5 sur
+/// les liens — *rendre le trait à toutes les ancres soulignerait aussi les
+/// intraduisibles, et un chapitre entier se retrouverait souligné mot après
+/// mot* — appliquée un étage plus haut.
+///
+/// **`Parashah` garde le sien**, et c'est justement la différence : lui n'est
+/// pas or parce qu'il se touche, il est or parce que c'est un **intraduisible**
+/// et qu'il ouvre sa fiche. Une fois le titre en encre, cet or redevient
+/// lisible comme ce qu'il est.
 fn libelle(unite: &UniteDto) -> impl IntoView {
     let titre = unite.titre.clone();
     let n = unite.numero;
     let prefs = preferences();
     move || {
         if n == 0 {
-            return view! { <span class="text-accent">{titre.clone()}</span> }.into_any();
+            return view! { <span class="text-encre-vive">{titre.clone()}</span> }.into_any();
         }
         if prefs.get().francais {
-            return view! { <span class="text-accent">{MOT_RECU}" "{n}</span> }.into_any();
+            return view! { <span class="text-encre-vive">{MOT_RECU}" "{n}</span> }.into_any();
         }
         view! {
-            <span>
+            <span class="text-encre-vive">
                 <Terme lemme="parashah">{MOT_ONT}</Terme>
-                <span class="text-accent">" " {n}</span>
+                " " {n}
             </span>
         }
         .into_any()

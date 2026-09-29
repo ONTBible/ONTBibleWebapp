@@ -63,26 +63,42 @@ pub fn Livre() -> impl IntoView {
                             />
 
                             <PageDeLecture
+                                liste=true
                                 fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
-                                rappel=francais
+                                // **Pas de rappel.** Il portait « Genèse » en
+                                // capitales espacées au-dessus du titre —
+                                // l'appareil d'une page d'édition. L'app met le
+                                // second nom **sous** le titre, petit, avec le
+                                // nom hébreu : c'est ce que fait le chapeau.
+                                //
+                                // Le fil d'Ariane reste : il tient la place du
+                                // « ‹ » de l'app, qui est une pile native que
+                                // le web n'a pas.
                                 titre=livre.titre.clone()
+                                // **Le chapeau tient sur une ligne**, comme
+                                // chez l'app. Il portait le nom hébreu en corps
+                                // 2xl sur sa propre ligne, puis le compte sur
+                                // une seconde : trois lignes de titre avant la
+                                // première entrée de la liste.
+                                //
+                                // L'app met le second nom sous le titre, petit,
+                                // et rien d'autre. Le compte d'unités et de
+                                // versets reste — c'est une mesure du chantier,
+                                // et elle n'existe pas chez elle — mais il
+                                // rejoint la même ligne que l'hébreu.
                                 chapeau=Box::new(move || {
                                     view! {
-                                        // Même raison que sur une fiche : en
-                                        // ligne, pour que le nom hébreu reste
-                                        // sous le titre au lieu de partir au
-                                        // bord de l'écran.
-                                        <p class="mb-4">
+                                        <p class="m-0 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                                             <span
                                                 dir="rtl"
                                                 lang="he"
-                                                class="font-hebreu text-2xl text-encre-douce"
+                                                class="font-hebreu text-[1.05em] text-encre-douce"
                                             >
                                                 {hebreu}
                                             </span>
-                                        </p>
-                                        <p class="chiffres-tableau text-sm text-encre-douce">
-                                            {unites} " unités · " {versets} " versets"
+                                            <span class="chiffres-tableau text-sm text-encre-douce">
+                                                {unites} " unités · " {versets} " versets"
+                                            </span>
                                         </p>
                                     }
                                         .into_any()

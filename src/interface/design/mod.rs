@@ -40,6 +40,7 @@ mod image;
 mod legende_niveaux;
 mod lien;
 mod liste_affirmations;
+mod liste_groupee;
 mod liste_unites;
 mod marques;
 mod mention_brouillon;
@@ -73,6 +74,7 @@ pub use image::image;
 pub use legende_niveaux::LegendeNiveaux;
 pub use lien::Lien;
 pub use liste_affirmations::ListeAffirmations;
+pub use liste_groupee::{EnteteDeSection, Groupe, Ligne, Pastille, TitreDeListe};
 pub use liste_unites::{nom_d_unite, ListeDUnites};
 pub use marques::{Nom, Terme};
 pub use mention_brouillon::MentionBrouillon;
@@ -91,7 +93,7 @@ pub use selection_de_versets::{
     basculer, couleur_du_verset, fournir_marques, fournir_selection, marques, renvoi, selection,
     BarreDeSelection, Marques, Selection,
 };
-pub use sommaire::Sommaire;
+pub use sommaire::{Sommaire, SommaireDUnePartie};
 pub use titre_de_section::TitreDeSection;
 pub use verset::Verset;
 

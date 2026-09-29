@@ -46,6 +46,18 @@ pub fn PageDeLecture(
     #[prop(optional)]
     chapeau: Option<Children>,
     children: Children,
+    /// **Un écran de liste, et non de lecture.**
+    ///
+    /// L'app a deux registres d'écran, et ils ne se composent pas pareil : une
+    /// **liste** s'ouvre sur un grand titre serré à gauche ; une **lecture**
+    /// s'ouvre sur un titre d'unité, avec son rappel et son chapeau.
+    ///
+    /// Le site les confondait — le sommaire portait un œil-de-bœuf, un titre
+    /// d'affiche et un paragraphe d'introduction, c'est-à-dire l'appareil d'une
+    /// page d'édition. Une liste ne s'introduit pas : on y revient, on ne la
+    /// découvre pas.
+    #[prop(optional)]
+    liste: bool,
 ) -> impl IntoView {
     let chemin = leptos_router::hooks::use_location().pathname;
 
@@ -115,7 +127,17 @@ pub fn PageDeLecture(
                     }
                 })}
 
-            <h1 class="mt-0 mb-4 text-balance">{move || titre.get()}</h1>
+            <h1
+                class="mt-0 text-balance"
+                class=("mb-4", !liste)
+                // Le titre d'une liste est celui de l'app : serré, à gauche, et
+                // sans l'air d'une affiche. Celui d'une lecture ne bouge pas.
+                class=("mb-6", liste)
+                class=("text-2xl", liste)
+                class=("leading-none", liste)
+            >
+                {move || titre.get()}
+            </h1>
 
             {chapeau.map(|chapeau| view! { <div class="mb-14">{chapeau()}</div> })}
 

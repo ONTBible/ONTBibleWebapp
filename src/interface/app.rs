@@ -8,7 +8,7 @@ use leptos_router::{
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
     Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
-    Livre, Negations, Passage, Pourquoi, Recherche,
+    Livre, Negations, Partie, Passage, Pourquoi, Recherche,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -301,6 +301,22 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("lire"))
                         view=Lire
+                        ssr=SsrMode::Async
+                    />
+                    // **Avant celle du livre, et l'ordre compte.** Les deux
+                    // font trois segments pour le routeur si on ne prend pas
+                    // garde : `/fr/lire/partie` ressemble à un livre nommé
+                    // « partie ». Quatre segments contre trois les sépare, et
+                    // aucun identifiant de livre n'est un mot français — ce
+                    // sont des translittérations de l'hébreu.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("lire"),
+                            StaticSegment("partie"),
+                            ParamSegment("partie"),
+                        )
+                        view=Partie
                         ssr=SsrMode::Async
                     />
                     <Route

@@ -153,6 +153,13 @@
   --color-or: var(--ont-accent);
   --color-accent: var(--ont-accent);
 
+  /* L'encre de la marque — `brandInk`. Ce n'est pas l'accent, et le
+     distinguer compte : sur un thème clair elle vaut l'aubergine `#421B26`,
+     sur un thème sombre elle vaut l'or. C'est l'encre des en-têtes de section
+     chez l'app, et le site les peignait en accent — donc en or sur du
+     parchemin, où ils se confondaient avec les mots d'or du corpus. */
+  --color-marque-encre: var(--ont-brandInk);
+
   /* Les filets. C'est `separator` chez l'app, et ce n'est pas la même recette
      selon le thème : de l'or à 18 % sur une nuit — où un gris paraîtrait sale
      sur une teinte chaude —, de l'encre à 10 % sur du parchemin, où c'est le
@@ -415,6 +422,19 @@
   :root {
     --barre-d-onglets: 0px;
   }
+}
+
+/* La carte d'une liste groupée.
+
+   Sur `parchemin`, `surface` et `background` ne diffèrent que de cinq valeurs
+   — l'app les distingue par une **ombre**, pas par la couleur. Sans elle, la
+   carte ne se détache pas et la liste redevient des bandes posées sur la page,
+   c'est-à-dire ce qu'on venait de quitter.
+
+   Très basse et très diffuse : ce qu'on veut n'est pas un relief mais le
+   soupçon d'un bord.                                                        */
+.carte-de-liste {
+  box-shadow: 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 2px 8px -4px rgb(0 0 0 / 0.08);
 }
 
 .barre-d-onglets {

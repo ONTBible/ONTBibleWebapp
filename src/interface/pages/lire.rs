@@ -41,19 +41,19 @@ pub fn Lire() -> impl IntoView {
             chemin="/fr/lire"
         />
 
-        <PageDeLecture
-            rappel="Le corpus"
-            titre="Lire"
-            chapeau=Box::new(|| {
-                view! {
-                    <p class="text-encre-douce text-pretty">
-                        "Le plan entier, et ce qui en est traduit. Les titres en or se lisent ; \
-                         les autres attendent leur tour."
-                    </p>
-                }
-                    .into_any()
-            })
-        >
+        // **Ni œil-de-bœuf ni chapeau.** Ils y étaient — « Le corpus », puis
+        // « Le plan entier, et ce qui en est traduit » — et ils faisaient de ce
+        // sommaire une page d'édition. L'app ouvre sa Bible sur un titre et
+        // rien d'autre : une liste ne s'introduit pas, on y revient.
+        //
+        // Ce que le chapeau disait n'est pas perdu : « les titres se lisent,
+        // les autres attendent » est maintenant dit par la **forme** — une
+        // ligne sans chevron ne se touche pas.
+        // **Le titre est celui de l'app**, pas le mot de la navigation.
+        // « Lire » nomme une action — juste dans une barre, insuffisant en tête
+        // d'écran, où il faut dire *ce qu'on ouvre*. L'app dit « La Bible ONT »,
+        // et c'est ce que le lecteur retrouve.
+        <PageDeLecture liste=true titre="La Bible ONT">
             <Suspense fallback=|| ()>
                 {move || Suspend::new(async move {
                     match plan.await {
