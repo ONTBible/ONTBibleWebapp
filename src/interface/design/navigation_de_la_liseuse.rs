@@ -1,5 +1,25 @@
 //! La navigation de la liseuse — la chrome de l'app, portée.
 //!
+//! ## La barre ne parle pas en capitales, et elle le disait déjà à moitié
+//!
+//! Les capitales espacées sont la voix **du site** — les œils-de-bœuf, les
+//! titres de section, le fil d'Ariane. La barre d'onglets en était déjà
+//! sortie, avec son argument : *« l'app écrit “Bible”, “Lexique”, et c'est ce
+//! qu'un lecteur reconnaît d'un appareil à l'autre »*, plus le coût de lecture
+//! d'une capitale espacée dans une barre qu'on lit du coin de l'œil.
+//!
+//! **La barre latérale, elle, était restée en capitales.** Même liste, même
+//! fichier, deux casses — et ce n'était pas une décision, c'était un reste.
+//! Relevé par la session macOS sur une capture, pas dans le code : les deux
+//! classes vivent à quatre cents lignes l'une de l'autre.
+//!
+//! L'app a d'ailleurs tranché **deux fois**, et la seconde coûte : le style
+//! `sidebar` de macOS compose ses en-têtes en capitales, et
+//! `BarreLateraleONT.swift` pose `.textCase(nil)` **pour l'en désactiver** —
+//! son commentaire dit pourquoi, *« c'était un vrai écart avec l'iPad, où
+//! l'en-tête lit “Kenesset” et non “KENESSET” »*. Le web n'avait pas à lutter
+//! pour l'obtenir ; il n'a pas non plus de raison d'y renoncer.
+//!
 //! ## Deux formes pour un même objet, et c'est l'app qui les donne
 //!
 //! Sur iPhone, une **barre d'onglets en bas** ; sur iPad et Mac, une **barre
@@ -271,11 +291,11 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                         p.chapter_id,
                                         p.verse,
                                     )
-                                    attr:class="mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm uppercase tracking-capitales text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
+                                    attr:class="mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
                                 >
                                     <Signe nom="signet" />
                                     <span class="flex-1 truncate">"Reprendre"</span>
-                                    <span class="chiffres-tableau text-[0.7rem] normal-case tracking-normal opacity-70">
+                                    <span class="chiffres-tableau text-[0.7rem] opacity-70">
                                         {ou}
                                     </span>
                                 </A>
@@ -314,7 +334,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                     attr:aria-current=move || actif.get().then_some("page")
                                     attr:class=move || {
                                         let base = "flex items-center gap-3 rounded-full px-3 py-2 \
-                                                    font-titre text-sm uppercase tracking-capitales \
+                                                    font-titre text-sm \
                                                     no-underline transition-colors";
                                         if actif.get() {
                                             format!("{base} bg-accent/15 ring-1 ring-accent/30 text-accent")
@@ -371,7 +391,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                             // au corps de ses lignes, il cessait
                                             // d'être un en-tête — « Kenesset » se
                                             // lisait comme un livre de plus.
-                                            <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full px-3 py-1.5 font-titre text-[0.68rem] uppercase tracking-capitales text-encre-douce/70 transition-colors hover:text-encre-douce marker:content-['']">
+                                            <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full px-3 py-1.5 font-titre text-[0.72rem] text-encre-douce/70 transition-colors hover:text-encre-douce marker:content-['']">
                                                 <span class="flex-1 truncate">{ensemble.titre}</span>
                                                 // Le témoin est **toujours
                                                 // visible**, comme sur l'iPad —
@@ -457,7 +477,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
             <div class="border-t border-filet/60 pt-4 mt-4">
                 <A
                     href="/fr/compte"
-                    attr:class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm uppercase tracking-capitales text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"
+                    attr:class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"
                 >
                     <Signe nom="compte" />
                     "Vous"
