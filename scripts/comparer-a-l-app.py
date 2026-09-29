@@ -63,10 +63,53 @@ class Refus(Exception):
     """Un refus délibéré — pas une panne."""
 
 
+def feuille_nue() -> None:
+    """Dépose `ontbible.css` à côté de sa copie empreintée.
+
+    `apercu.py` refuse si les deux diffèrent — c'est son témoin de péremption,
+    et il a raison : `cargo leptos watch` régénère la fraîche sans l'empreintée,
+    et l'aperçu montrerait alors le style du dernier redémarrage complet.
+
+    Mais après un `cargo leptos serve`, c'est l'inverse : seule l'empreintée
+    existe, et le témoin refuse faute de pouvoir comparer. On dépose donc la
+    copie — dans **ce sens-là**, elle ne peut pas mentir, puisqu'elle est faite
+    depuis le fichier que la page référence.
+    """
+    pkg = RACINE / "target" / "site" / "pkg"
+    empreintees = [f for f in pkg.glob("ontbible.*.css")]
+    if len(empreintees) == 1:
+        (pkg / "ontbible.css").write_bytes(empreintees[0].read_bytes())
+
+
+def sans_ouverture(chemin: str) -> str:
+    """Sert la page avec l'ouverture déjà vue, et rend son adresse locale.
+
+    L'ouverture couvre l'écran cinq secondes et demie, et aucun de nos deux
+    outils de capture ne sait attendre. Une comparaison qui la photographie
+    compare une animation à une liste.
+
+    On pose donc la classe que le script de l'en-tête poserait si la session
+    l'avait déjà vue — c'est-à-dire l'état de tout lecteur sauf au premier
+    instant de sa première visite. La page est déposée dans `target/site/`, que
+    le serveur de développement sert à la racine.
+    """
+    import re
+    import urllib.request
+
+    document = urllib.request.urlopen(SERVEUR + chemin).read().decode()
+    document = document.replace('<html lang="fr">', '<html lang="fr" class="deja-entre">', 1)
+    # Le nom ne porte que des lettres et des tirets : un `%2F` échappé s'y
+    # redécoderait en barre à la requête suivante, et le serveur chercherait un
+    # dossier qui n'existe pas. Mesuré — un 404 sans rapport avec la page.
+    nom = "banc-" + re.sub(r"[^a-z0-9]+", "-", chemin.strip("/").lower()).strip("-") + ".html"
+    (RACINE / "target" / "site" / nom).write_text(document)
+    return "/" + nom
+
+
 def rendre_au_simulateur(chemin: str, sortie: pathlib.Path) -> None:
     """Le site sur un vrai Safari, à la largeur d'un téléphone."""
     rendu = subprocess.run(
-        ["./scripts/sim.sh", chemin, str(sortie)],
+        ["./scripts/sim.sh", sans_ouverture(chemin), str(sortie)],
         cwd=RACINE,
         capture_output=True,
         text=True,
@@ -84,7 +127,7 @@ def rendre_au_large(chemin: str, sortie: pathlib.Path) -> None:
     dossier = sortie.parent / "large"
     dossier.mkdir(parents=True, exist_ok=True)
     rendu = subprocess.run(
-        ["./scripts/apercu.py", str(dossier), f"vue={chemin}"],
+        ["./scripts/apercu.py", str(dossier), f"vue={sans_ouverture(chemin)}"],
         cwd=RACINE,
         capture_output=True,
         text=True,
@@ -142,6 +185,7 @@ def main() -> None:
 
     travail = pathlib.Path("/tmp/ont-comparaisons")
     travail.mkdir(parents=True, exist_ok=True)
+    feuille_nue()
 
     paires = []
     for argument in sys.argv[2:]:

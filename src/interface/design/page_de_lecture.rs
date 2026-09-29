@@ -79,7 +79,18 @@ pub fn PageDeLecture(
         //
         // Elle ne retarde rien : `fixed` par-dessus, la page est rendue,
         // lisible et indexable dessous pendant qu'elle joue.
-        <crate::interface::design::Ouverture />
+        // **Seulement à l'entrée de la liseuse**, jamais sur un passage.
+        //
+        // L'app ouvre au lancement. L'équivalent du lancement, ici, est
+        // d'arriver sur la Bible — pas d'atterrir sur un verset.
+        //
+        // Un lien partagé depuis l'app mène à `/fr/lire/{livre}/{unité}?v=1-3`,
+        // et c'est **la raison d'être de cette route** (§4). Couvrir ce verset
+        // cinq secondes et demie parce que le lecteur découvre le site serait
+        // exactement l'inverse du service rendu : il n'a pas demandé le site,
+        // il a demandé un verset.
+        {(chemin.get_untracked().trim_end_matches('/') == "/fr/lire")
+            .then(|| view! { <crate::interface::design::Ouverture /> })}
         <crate::interface::design::PeauDeLaLiseuse />
         // **La chrome de l'app, et elle remplace celle de l'édition.**
         //

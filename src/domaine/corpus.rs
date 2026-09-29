@@ -254,6 +254,21 @@ pub struct Entree {
     pub rendu: String,
     /// Les formes attestées, quand elles diffèrent du lemme.
     pub formes: Vec<String>,
+    /// Vrai quand le corpus **marque** ce mot — `**mot**`, rendu en or.
+    ///
+    /// C'est le `tagged` du pipeline, et il sépare les deux espèces que le
+    /// lexique réunit : cent cinq mots laissés debout dans le texte, et
+    /// cinquante-cinq **traduits dans le corps** mais dont le rendu est fixé
+    /// une fois pour toutes.
+    ///
+    /// Le site le jetait. Il n'en avait pas l'usage tant que son lexique était
+    /// une liste ; il en a un depuis qu'il offre les segments de l'app —
+    /// « Intraduisibles », « Vocabulaire fixé », « Tout », « Shemot ».
+    ///
+    /// **Faux sur un Shem**, qui n'est ni l'un ni l'autre : un nom propre n'est
+    /// pas un mot qu'on a renoncé à traduire, c'est un mot qui n'en demande
+    /// pas.
+    pub marque: bool,
     /// Vrai quand la fiche nomme un **Shem** — un porteur — et non un
     /// intraduisible.
     ///

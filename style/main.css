@@ -539,6 +539,19 @@
    composées par le GPU, mais elles portent sur une pastille de quatre-vingts
    pixels : la règle du §5 vise une scène qui couvre l'écran, pas ça.       */
 
+/* Le segment choisi — même ressort que l'onglet, même raison. */
+.segment {
+  transition:
+    background-color var(--ressort-duree) var(--ressort),
+    color var(--ressort-duree) var(--ressort);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment {
+    transition: none;
+  }
+}
+
 .onglet {
   transition:
     background-color var(--ressort-vif-duree) var(--ressort-vif),

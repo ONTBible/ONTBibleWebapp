@@ -243,6 +243,12 @@ pub struct ResumeDto {
     pub titre: String,
     pub hebreu: String,
     pub rendu: String,
+    /// Vrai quand le corpus **marque** ce mot — `**mot**`, rendu en or.
+    ///
+    /// Elle voyage jusqu'à l'index parce que le lexique y offre les segments de
+    /// l'app : « Intraduisibles » sont les marqués, « Vocabulaire fixé » les
+    /// autres. Sans ce champ, les deux segments montreraient la même liste.
+    pub marque: bool,
     /// L'espèce de l'entrée — un nom propre, ou un intraduisible.
     ///
     /// Elle voyage jusqu'à l'index parce que **la teinte en dépend**, et que la
@@ -264,6 +270,7 @@ pub async fn lexique() -> Result<Vec<ResumeDto>, ServerFnError> {
             titre: e.titre.clone(),
             hebreu: e.hebreu.clone(),
             rendu: e.rendu.clone(),
+            marque: e.marque,
             est_un_nom: e.est_un_nom,
         })
         .collect())

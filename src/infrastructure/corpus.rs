@@ -265,6 +265,9 @@ fn entree_de_shem(source: pipeline::ShemEntry) -> Entree {
         hebreu: String::new(),
         rendu: String::new(),
         formes: Vec::new(),
+        // Un nom propre n'est pas un mot qu'on a renoncé à traduire : c'est un
+        // mot qui n'en demande pas. Il n'est donc d'aucun des deux segments.
+        marque: false,
         est_un_nom: true,
         definition: blocs(source.definition),
     }
@@ -277,6 +280,7 @@ fn entree(source: pipeline::GlossaryEntry) -> Entree {
         hebreu: source.hebrew.unwrap_or_default(),
         rendu: source.rendering.unwrap_or_default(),
         formes: source.forms,
+        marque: source.tagged,
         est_un_nom: false,
         definition: blocs(source.definition.unwrap_or_default()),
     }
