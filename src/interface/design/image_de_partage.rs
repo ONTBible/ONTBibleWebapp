@@ -68,6 +68,28 @@ pub fn ImageDePartage(
     }
 }
 
+/// Le corps du texte, selon la longueur du passage.
+///
+/// **Les cinq paliers de l'app**, aux bornes près — `ONTShareImage.size`. Ils
+/// sont grossiers volontairement, et son commentaire dit pourquoi : *« une
+/// taille calculée au caractère près donnerait des images qui ne se
+/// ressemblent pas d'un partage à l'autre »*.
+///
+/// Sans eux, cinq versets débordent du carré et l'image part tronquée.
+///
+/// Hors du rendu, et sans `cfg` : c'est de l'arithmétique, elle n'a besoin
+/// d'aucun navigateur — donc elle s'éprouve, et c'est la seule partie de cette
+/// pièce qui le peut. Le reste demande un canvas.
+fn palier(signes: usize) -> f64 {
+    match signes {
+        ..120 => 78.0,
+        ..260 => 62.0,
+        ..460 => 50.0,
+        ..760 => 40.0,
+        _ => 32.0,
+    }
+}
+
 /// Compose la carte et la propose au téléchargement.
 ///
 /// Rend `false` quand le navigateur ne donne pas de contexte 2D — ce qui
@@ -114,14 +136,7 @@ fn rendre(texte: &str, renvoi: &str) -> bool {
     ctx.set_fill_style(&JsValue::from_str(&fond));
     ctx.fill_rect(0.0, 0.0, COTE, COTE);
 
-    // Les cinq paliers de l'app, à la valeur près.
-    let corps = match texte.chars().count() {
-        0..=119 => 78.0,
-        120..=259 => 62.0,
-        260..=459 => 50.0,
-        460..=759 => 40.0,
-        _ => 32.0,
-    };
+    let corps = palier(texte.chars().count());
     let interligne = corps * 1.42;
 
     ctx.set_fill_style(&JsValue::from_str(&encre));
@@ -196,4 +211,49 @@ fn rendre(texte: &str, renvoi: &str) -> bool {
 #[cfg(not(feature = "hydrate"))]
 fn rendre(_texte: &str, _renvoi: &str) -> bool {
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::palier;
+
+    /// ## Les bornes sont celles de l'app, et une borne se trompe d'un
+    ///
+    /// `ONTShareImage.size` s'écrit en `case ..<120`, c'est-à-dire **exclusif**.
+    /// Un `0..=119` rend la même chose ; un `0..=120` décale tout d'un
+    /// caractère, et le défaut ne se verrait que sur un passage dont la
+    /// longueur tombe pile sur une borne — c'est-à-dire jamais, jusqu'au jour
+    /// où si.
+    #[test]
+    fn les_paliers_sont_ceux_de_l_app() {
+        for (signes, attendu) in [
+            (0, 78.0),
+            (119, 78.0),
+            (120, 62.0),
+            (259, 62.0),
+            (260, 50.0),
+            (459, 50.0),
+            (460, 40.0),
+            (759, 40.0),
+            (760, 32.0),
+            (5000, 32.0),
+        ] {
+            assert_eq!(palier(signes), attendu, "à {signes} signes");
+        }
+    }
+
+    /// Le corps **décroît**, il ne remonte jamais.
+    ///
+    /// Une table écrite à la main peut s'inverser sans qu'on le voie — c'est
+    /// arrivé à l'échelle typographique du §5, dont deux paliers se
+    /// croisaient. La propriété se vérifie sans connaître les valeurs.
+    #[test]
+    fn un_passage_plus_long_ne_grossit_jamais() {
+        let mut precedent = f64::INFINITY;
+        for signes in 0..1000 {
+            let taille = palier(signes);
+            assert!(taille <= precedent, "le corps remonte à {signes} signes");
+            precedent = taille;
+        }
+    }
 }
