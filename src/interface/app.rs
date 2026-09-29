@@ -331,6 +331,20 @@ pub fn App() -> impl IntoView {
                         view=Partie
                         ssr=SsrMode::Async
                     />
+                    // **Avant celle du livre**, comme `/fr/webapp/partie` :
+                    // les deux font trois segments, et `reglages` n'est le nom
+                    // d'aucun livre — ce sont des translittérations de
+                    // l'hébreu. Une épreuve le tient plutôt que ce commentaire.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("reglages"),
+                        )
+                        view=Reglages
+                        ssr=SsrMode::Async
+                    />
+
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("webapp"), ParamSegment("livre"))
                         view=Livre
@@ -357,20 +371,6 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("qahal"))
                         view=Qahal
-                        ssr=SsrMode::Async
-                    />
-
-                    // **Avant celle du livre**, comme `/fr/webapp/partie` :
-                    // les deux font trois segments, et `reglages` n'est le nom
-                    // d'aucun livre — ce sont des translittérations de
-                    // l'hébreu. Une épreuve le tient plutôt que ce commentaire.
-                    <Route
-                        path=(
-                            StaticSegment("fr"),
-                            StaticSegment("webapp"),
-                            StaticSegment("reglages"),
-                        )
-                        view=Reglages
                         ssr=SsrMode::Async
                     />
 
@@ -461,6 +461,45 @@ mod epreuves_de_la_peau {
     /// attrape est l'inverse : un thème ou un préfixe **retiré** des tables
     /// alors que le script continuerait de le nommer — ce qui arriverait si
     /// quelqu'un figeait la chaîne un jour où le `format!` gênerait.
+    /// ## Une route statique passe avant la route à paramètre, ou elle ne
+    /// passe jamais
+    ///
+    /// `/fr/webapp/{livre}` capte **tout** ce qui a trois segments. Une route
+    /// statique déclarée après elle n'est donc jamais atteinte — et la panne
+    /// ne dit pas son nom : le lecteur reçoit « Ce livre n'est pas encore
+    /// là », c'est-à-dire une réponse **plausible**, celle qu'on ne soupçonne
+    /// pas d'être une erreur de routage.
+    ///
+    /// C'est arrivé le 29 septembre 2026 à `/fr/webapp/reglages`, écrite au
+    /// bon endroit dans le fichier mais après la route du livre. L'auteur l'a
+    /// vue en cherchant ses réglages ; aucune épreuve ne pouvait la voir,
+    /// `chaque_destination_a_sa_route` ne contrôlant que les cinq onglets.
+    ///
+    /// Le commentaire de `/fr/webapp/partie` annonçait déjà le piège. Un
+    /// commentaire qui annonce un piège ne l'évite pas — il le documente au
+    /// suivant, qui tombera dedans quand même.
+    #[test]
+    fn les_routes_statiques_precedent_celle_du_livre() {
+        let source = include_str!("app.rs");
+        let livre = source
+            .find(r#"StaticSegment("webapp"), ParamSegment("livre")"#)
+            .or_else(|| source.find("ParamSegment(\"livre\")"))
+            .expect("la route du livre doit exister");
+
+        for segment in ["partie", "reglages"] {
+            let statique = source
+                .find(&format!("StaticSegment(\"{segment}\")"))
+                .unwrap_or_else(|| panic!("aucune route ne déclare `{segment}`"));
+            assert!(
+                statique < livre,
+                "`/fr/webapp/{segment}` est déclarée **après** `/fr/webapp/{{livre}}`, \
+                 qui capte tout ce qui a trois segments. Elle ne sera jamais \
+                 atteinte, et le lecteur recevra « Ce livre n'est pas encore là » \
+                 — une réponse plausible, donc une panne qu'on ne soupçonne pas."
+            );
+        }
+    }
+
     #[test]
     fn le_script_porte_exactement_les_deux_tables() {
         let script = script_de_la_peau();
