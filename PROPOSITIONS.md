@@ -103,11 +103,38 @@ conventions du projet avant d'être invoquée ici==.
 refuse les catégories extérieures se dérobe à la discussion. Une page qui
 publie une mesure **et** refuse d'en conclure montre le contraire.
 
-**Le comparatif sémitique n'est pas dans la page, et c'est délibéré.** Les
-langues sources ne tiennent que cinq témoins — hébreu, deux grecs, guèze,
-latin — et ==ni ougaritique ni arabe==. L'hypothèse du « presser ensemble » est
-donc ==non mesurée==, et elle a une rivale : `malḥama` viendrait de la chair,
-non du contact. Rien de tout cela ne paraît devant un lecteur.
+**Le comparatif sémitique n'est pas dans la page, et ce n'est plus par
+ignorance.** Il a été ouvert le 29 septembre : les langues sources ne tiennent
+que cinq témoins — hébreu, deux grecs, guèze, latin —, ==ni ougaritique ni
+arabe==, et **Lane** a donc été ouvert pour l'arabe.
+
+==Résultat mesuré, et il coupe des deux côtés :==
+
+- le groupe **« souder, refermer, entrelacer »** est réel et central chez Lane —
+  *closed up the hole thereof with a patch*, *the consolidating of wounds*, et
+  surtout `لَحْمَةٌ`, ==la trame du tissu==, ce qui s'entrelace avec la chaîne.
+  L'hypothèse du « presser ensemble » n'est donc pas farfelue ;
+- mais la seule dérivation que Lane énonce pour `ملحمة` ==passe par la chair==,
+  dans un emploi anatomique, sans un mot de guerre. ==Sur le point précis où
+  l'hypothèse avait besoin d'un appui, il donne la lecture rivale.==
+
+**Et la source est lacunaire, ce qui a été mesuré plutôt que supposé.** Lane
+meurt en 1876 à la 21ᵉ lettre ; ل est la 23ᵉ, donc cette racine tombe dans la
+partie posthume compilée sur des notes. Comparaison faite sur la même copie :
+`لحم` fait **1 582 caractères**, `حرب` — écrite par Lane — en fait **13 330**.
+==Huit fois plus mince==, et faite de renvois.
+
+==Donc son silence sur le sens de bataille ne prouve rien== : `malḥama` = mêlée
+est massivement attesté ailleurs. *Une absence dans ce qu'on voit n'est pas une
+absence* — la règle est au `CLAUDE.md` de la machine, et elle s'applique ici.
+
+==La datation reste ouverte, et l'instrument était mal décrit== : Lane cite des
+**autorités** — Jawharī, Farrāʾ, Fīrūzābādī, Zabīdī — et non des attestations
+datées. Ce sont les dates des lexicographes, pas celles des emplois. Trancher
+demanderait le *Lisān al-ʿArab* lu directement.
+
+==Ce que la page gagne est donc de se taire en connaissance de cause==, et non
+par défaut de mesure. Rien de tout cela ne paraît devant un lecteur.
 
 ## #156 · Porter les quatre thèmes de l'app
 
