@@ -30,9 +30,15 @@
 //! Aucun routeur du web ne dit « ceci est un empilement » : il n'a qu'une pile
 //! plate et chronologique. On compare donc les segments :
 //!
-//!     /fr/webapp            →  /fr/webapp/bereshit    on descend
-//!     /fr/webapp/bereshit   →  /fr/webapp             on remonte
-//!     /fr/webapp            →  /fr/lexique            on change d'onglet
+//! ```text
+//! /fr/webapp            →  /fr/webapp/bereshit    on descend
+//! /fr/webapp/bereshit   →  /fr/webapp             on remonte
+//! /fr/webapp            →  /fr/lexique            on change d'onglet
+//! ```
+//!
+//! *(Clôturé, et il le faut : un bloc indenté dans une doc est un **essai**
+//! que `cargo test` compile. Celui-ci portait des flèches, donc « unknown
+//! start of token ». Une prose qui ressemble à du code en devient.)*
 //!
 //! **Le changement d'onglet n'est ni l'un ni l'autre**, et il ne doit pas
 //! l'être : iOS y fait un fondu, pas un glissement. Glisser entre deux onglets

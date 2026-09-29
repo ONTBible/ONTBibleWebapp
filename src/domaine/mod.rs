@@ -13,6 +13,7 @@
 pub mod compte;
 pub mod corpus;
 pub mod lecture;
+pub mod nombres;
 pub mod profil;
 pub mod recherche;
 pub mod selection;

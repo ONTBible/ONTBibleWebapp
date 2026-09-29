@@ -152,9 +152,16 @@ pub fn Recherche() -> impl IntoView {
                     if liste.is_empty() {
                         return view! {
                             <p class="text-encre-douce">
-                                "Rien pour « " {mot} " ». Le corpus compte trois livres sur \
-                                 soixante-dix : ce mot est peut-être dans un livre qui n'est \
-                                 pas encore traduit."
+                                "Rien pour « " {mot} " ». Le corpus compte "
+                                {crate::domaine::nombres::en_lettres(
+                                    env!("CORPUS_LIVRES_ECRITS").parse().unwrap_or(0),
+                                )}
+                                " livres sur "
+                                {crate::domaine::nombres::en_lettres(
+                                    env!("CORPUS_LIVRES").parse().unwrap_or(0),
+                                )}
+                                " : ce mot est peut-être dans un livre qui n'est pas \
+                                 encore traduit."
                             </p>
                         }
                             .into_any();

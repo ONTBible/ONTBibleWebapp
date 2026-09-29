@@ -163,8 +163,22 @@ fn Absent() -> impl IntoView {
             titre="Ce livre n'est pas encore là"
         >
             <p class="text-encre-douce text-pretty">
-                "Soixante-sept des soixante-dix livres attendent leur restitution. \
-                 Le sommaire dit lesquels se lisent aujourd'hui."
+                // **Le reste à traduire se calcule**, il ne s'écrit pas.
+                //
+                // Il disait « soixante-sept des soixante-dix », c'est-à-dire
+                // 70 − 3, quand le vault en porte cinq. Le même écart que
+                // l'accueil, sur une page qu'on n'atteint qu'en cherchant un
+                // livre absent — donc au moment précis où l'on compte.
+                {crate::domaine::nombres::en_lettres_capitale(
+                    env!("CORPUS_LIVRES").parse::<u32>().unwrap_or(0)
+                        - env!("CORPUS_LIVRES_ECRITS").parse::<u32>().unwrap_or(0),
+                )}
+                " des "
+                {crate::domaine::nombres::en_lettres(
+                    env!("CORPUS_LIVRES").parse().unwrap_or(0),
+                )}
+                " livres attendent leur restitution. Le sommaire dit lesquels se lisent \
+                 aujourd'hui."
             </p>
         </PageDeLecture>
     }

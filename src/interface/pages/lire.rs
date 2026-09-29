@@ -48,8 +48,15 @@ pub fn Lire() -> impl IntoView {
             // Même règle qu'au lexique : « Lire » nomme une action dans une
             // navigation, il ne nomme pas un contenu pour un moteur.
             titre="Lire le corpus hébreu et araméen"
-            description="Le corpus de La Bible ONT — les soixante-dix livres du Kenesset et \
-                         de la Berit Hadashah, et l'état de leur restitution."
+            // Le total aussi vient du pipeline : le plan du corpus se
+            // remanie, et une description qui l'écrit à la main mentirait au
+            // premier remaniement — dans un résultat de recherche, là où
+            // personne ne la relit.
+            description=format!(
+                "Le corpus de La Bible ONT — les {} livres du Kenesset et de la Berit \
+                 Hadashah, et l'état de leur restitution.",
+                crate::domaine::nombres::en_lettres(env!("CORPUS_LIVRES").parse().unwrap_or(0)),
+            )
             chemin="/fr/webapp"
         />
 

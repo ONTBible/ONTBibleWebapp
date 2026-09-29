@@ -55,7 +55,15 @@ pub fn Assistance() -> impl IntoView {
 
             <h2>"Une unité manque, ou porte « brouillon »"</h2>
             <p>
-                "Ce n'est pas une panne. Trois livres sur soixante-dix sont traduits, et "
+                "Ce n'est pas une panne. "
+                {crate::domaine::nombres::en_lettres_capitale(
+                    env!("CORPUS_LIVRES_ECRITS").parse().unwrap_or(0),
+                )}
+                " livres sur "
+                {crate::domaine::nombres::en_lettres(
+                    env!("CORPUS_LIVRES").parse().unwrap_or(0),
+                )}
+                " sont traduits, et "
                 "une unité qui n'a pas été relue le dit — c'est délibéré. Le sommaire du "
                 <Lien href="/fr/webapp">"corpus"</Lien>" montre ce qui se lit aujourd'hui."
             </p>
