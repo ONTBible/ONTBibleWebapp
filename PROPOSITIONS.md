@@ -31,6 +31,28 @@ plus, pas de fusion supplémentaire à attendre.
 C'est la différence avec la déclaration d'un worktree, qui coûte un aller-retour
 parce qu'elle ne s'attache à aucun travail en cours.
 
+### Et un contrôle qui lit `main` ne peut pas voir une PR ouverte
+
+**Conséquence directe de la ligne au-dessus, et elle a produit un faux positif
+le 29 septembre 2026.** Le contrôle du registre a relevé « #158 — ouverte,
+aucune entrée » ; l'entrée existait, **sur la branche de #158**, comme ce
+fichier le prescrit.
+
+    sur main             l'entrée n'existe pas encore
+    sur la branche       elle est là, et elle voyage avec la PR
+
+Il n'y a donc **rien à corriger** : la propriété qui rend l'entrée gratuite est
+exactement celle qui la rend invisible depuis `main`. Ce qui se corrige est le
+==côté où le contrôle regarde== : une PR ouverte se relit sur sa propre tête,
+jamais sur la base.
+
+> ==Un contrôle qui mesure la base d'une proposition mesure le monde d'avant
+> elle.== Il ne se trompe pas sur le fait, il se trompe sur l'instant.
+
+Et l'écart inverse reste vrai et utile : une entrée qui dit « ouverte » alors
+que la PR est fusionnée se date. Celui-là, `main` le voit — c'est le seul
+endroit d'où il se voie.
+
 ## La forme
 
     ## #NNN · le titre
@@ -90,7 +112,7 @@ faut le savoir avant de renommer.
 
     ouverte le   21 septembre 2026, par la session du site (w6:p1)
     vers         main
-    état         ouverte
+    état         fusionnée le 21 septembre 2026
 
 **Pourquoi.** Première pièce de la webapp demandée le 21 septembre — « identique
 en tout point à l'app iOS ». Les couleurs, et la façon de les prendre : un
