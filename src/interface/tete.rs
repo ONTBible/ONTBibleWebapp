@@ -27,6 +27,7 @@ pub const ORIGINE: &str = "https://ontbible.com";
 /// non plus : sa route est retirée jusqu'à sa relecture.
 pub const PAGES: &[&str] = &[
     "/fr",
+    "/fr/qahal",
     "/fr/lire",
     "/fr/lexique",
     // La feuille de prononciation. Elle répond à une **question**, ce que

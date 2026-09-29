@@ -8,7 +8,7 @@ use leptos_router::{
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
     Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
-    Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Recherche,
+    Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Qahal, Recherche,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -338,6 +338,16 @@ pub fn App() -> impl IntoView {
                             ParamSegment("unite"),
                         )
                         view=Passage
+                        ssr=SsrMode::Async
+                    />
+
+                    // ── Le Qahal ──────────────────────────────────────────
+                    //
+                    // L'assemblée des lecteurs, par symétrie avec la Kenesset,
+                    // qui est l'assemblée des textes.
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("qahal"))
+                        view=Qahal
                         ssr=SsrMode::Async
                     />
 

@@ -35,15 +35,28 @@
 //! rien franchi — et c'est acceptable, parce que pour lui elle n'*apparaît*
 //! pas : elle est là depuis le premier pixel de sa première page.
 //!
-//! ## Trois destinations, et deux absences assumées
+//! ## Quatre destinations, et une absence qui tient
 //!
 //! L'app en porte cinq — Qahal, Bible, Lexique, Chuqqot, Vous — plus
-//! « Reprendre » en barre latérale. Le site n'a de pages que pour trois.
+//! « Reprendre » en barre latérale.
 //!
-//! **Qahal et Chuqqot ne sont pas de la chrome à porter, ce sont des
-//! fonctionnalités à écrire.** Les poser en onglets vides ferait exactement ce
-//! que ce dépôt s'interdit depuis le badge App Store : *une bannière n'a que
-//! deux états justes, et « allumée vers rien » n'en est pas un.*
+//! Ce paragraphe écartait **Qahal et Chuqqot** ensemble, comme « des
+//! fonctionnalités à écrire, et non de la chrome à porter ». C'était juste
+//! pour l'une et faux pour l'autre, et le partage se mesure en ouvrant
+//! `dist/` plutôt qu'en raisonnant :
+//!
+//! - **Qahal** n'attend rien. L'app le dit elle-même — *« structure posée,
+//!   sans serveur »* : le verset du jour, que le site porte déjà et par la
+//!   même fonction de la date, plus l'annonce de ce qui vient. Tout ce qui
+//!   suppose d'autres lecteurs y est **annoncé sans être simulé** ;
+//! - **Chuqqot** attend le vault. `dist/chuqqot.json` est bien émis, et ses
+//!   `entries` sont vides. L'onglet serait donc exactement ce que ce dépôt
+//!   s'interdit depuis le badge App Store : *une bannière n'a que deux états
+//!   justes, et « allumée vers rien » n'en est pas un.*
+//!
+//! La leçon est celle du §8 quinquies, prise à l'envers : on s'était
+//! transmis une contrainte sans la redater. Deux minutes dans `dist/`
+//! l'auraient tranchée.
 //!
 //! **« Reprendre » y est**, en barre latérale comme chez l'app — et ce
 //! paragraphe disait le contraire, au motif que « le site ne suit pas encore
@@ -89,7 +102,15 @@ struct Destination {
 /// Dans l'ordre de l'app : ce qui se lit à gauche, ce qui vous appartient à
 /// droite. Le compte n'y figure pas — il est **épinglé en bas**, hors du
 /// défilement, et `Compte` le rend à part.
-const DESTINATIONS: [Destination; 3] = [
+const DESTINATIONS: [Destination; 4] = [
+    // **Le Qahal ouvre**, comme chez l'app. L'ordre n'est pas alphabétique et
+    // n'est pas une préférence : la Kenesset est le rassemblement des textes,
+    // le Qahal celui des lecteurs, et c'est par le second qu'on arrive.
+    Destination {
+        chemin: "/fr/qahal",
+        nom: "Qahal",
+        signe: "qahal",
+    },
     Destination {
         chemin: "/fr/lire",
         nom: "Bible",
@@ -122,6 +143,9 @@ fn signe(nom: &str) -> &'static str {
         "livre" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 12h13",
         "lexique" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4.2 11.5 2.3-6.4 2.3 6.4m-3.8-2h3",
         "loupe" => "M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm5 11.5L20 20",
+        // Deux silhouettes — `person.2.fill` chez l'app. Deux et non trois :
+        // l'assemblée commence au second.
+        "qahal" => "M9.5 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6 16a6 6 0 0 1 12 0M16 5.2a3 3 0 0 1 0 5.6m.8 2.4a6 6 0 0 1 3.7 5.5",
         // Le signet de « Reprendre » — `bookmark.fill` chez l'app. Un signet
         // et non une flèche : en barre latérale il tient un rang de ligne, où
         // une flèche se lirait comme un bouton d'action.

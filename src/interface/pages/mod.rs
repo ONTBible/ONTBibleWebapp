@@ -26,6 +26,7 @@ mod partie;
 mod passage;
 mod pourquoi;
 mod prononciation;
+mod qahal;
 pub mod recherche;
 
 pub use accueil::Accueil;
@@ -43,4 +44,5 @@ pub use partie::Partie;
 pub use passage::Passage;
 pub use pourquoi::Pourquoi;
 pub use prononciation::Prononciation;
+pub use qahal::Qahal;
 pub use recherche::Recherche;
