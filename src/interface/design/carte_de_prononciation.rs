@@ -37,7 +37,7 @@ pub fn CarteDePrononciation() -> impl IntoView {
     view! {
         <A
             href="/fr/lexique/prononciation"
-            attr:class="mb-8 flex min-h-[4.75rem] items-center gap-4 rounded-bloc bg-marque-encre px-5 py-4 text-sur-marque-accent no-underline transition-transform duration-150 ease-out hover:-translate-y-px active:scale-[0.98] motion-reduce:transition-none"
+            attr:class="presse survol survol--souleve mb-8 flex min-h-[4.75rem] items-center gap-4 rounded-bloc bg-marque-encre px-5 py-4 text-sur-marque-accent no-underline"
         >
             <span class="flex-1">
                 <span class="block font-titre text-base font-semibold leading-snug">

@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>Banc — le thème</title>
+<style>body{background:#18090D;color:#CFC5B9;font:15px/1.6 -apple-system;margin:0;padding:12px}
+h1{font-size:14px;color:#D87994;margin:0 0 8px}pre{white-space:pre-wrap;font-size:12px;background:#261016;padding:8px;border-radius:8px}
+iframe{width:100%;height:180px;border:1px solid #35151E}</style>
+<h1>BANC — ce n'est pas le site</h1>
+<!--
+  Le banc de la peau.
+
+  Il pose un thème dans `localStorage`, charge la webapp, clique cinq liens, et
+  écrit après chacun l'attribut `data-theme` **et** la couleur de fond calculée.
+
+      cp scripts/banc-theme.html target/site/
+      ATTENTE=30 ./scripts/sim.sh /banc-theme.html
+
+  Il existe parce que la peau se perdait à la première navigation, et que rien
+  ne le disait : la page reste juste, seule sa couleur est celle du défaut.
+
+      url=/fr/webapp   data-theme=parchemin   fond=250,245,235
+      url=/fr/lexique  data-theme=—           fond=24,9,13
+
+  Les deux colonnes comptent. L'attribut seul ne prouve rien — il peut être
+  posé sans que la feuille l'ait suivi ; le fond calculé, lui, est ce que le
+  lecteur voit.
+-->
+<pre id="j">…</pre>
+<iframe id="f" src="/fr/webapp"></iframe>
+<script>
+const j=document.getElementById('j'),f=document.getElementById('f'),L=[];
+const dire=t=>{L.push(t);j.textContent=L.join('\n')};
+// On pose un thème clair **avant** que le cadre ne charge sa page.
+try{ localStorage.setItem('ont.lecture', JSON.stringify({theme:'parchemin'})); }catch(e){}
+f.addEventListener('load',()=>setTimeout(()=>{
+ const w=f.contentWindow,d=w.document;
+ const etat=()=>{
+   const r=d.documentElement, cs=w.getComputedStyle(r);
+   return 'url='+(w.location.pathname+'').padEnd(24)+
+          ' data-theme='+(r.getAttribute('data-theme')||'—').padEnd(10)+
+          ' fond='+w.getComputedStyle(d.body).backgroundColor;
+ };
+ dire(etat());
+ const routes=['/fr/lexique','/fr/webapp','/fr/qahal','/fr/webapp/reglages','/fr/webapp'];
+ let i=0;
+ const pas=()=>{
+   if(i>=routes.length) return;
+   const r=routes[i++], a=d.querySelector('a[href="'+r+'"]');
+   if(a){a.click(); setTimeout(()=>{dire(etat()); pas();},900);}
+   else {dire('pas de lien vers '+r); pas();}
+ };
+ setTimeout(pas,600);
+},1800));
+</script>

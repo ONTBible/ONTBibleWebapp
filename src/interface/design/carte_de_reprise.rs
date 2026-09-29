@@ -41,7 +41,7 @@ pub fn CarteDeReprise(position: Position) -> impl IntoView {
     view! {
         <A
             href=chemin
-            attr:class="carte-de-liste mb-8 flex items-center gap-4 rounded-bloc bg-surface px-5 py-4 no-underline transition-transform duration-150 ease-out hover:-translate-y-px active:scale-[0.99] motion-reduce:transition-none"
+            attr:class="presse survol survol--souleve carte-de-liste mb-8 flex items-center gap-4 rounded-bloc bg-surface px-5 py-4 no-underline"
         >
             <span class="flex-1">
                 <span class="block font-titre text-base font-medium text-encre">"Reprendre"</span>

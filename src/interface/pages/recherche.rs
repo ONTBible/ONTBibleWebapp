@@ -128,7 +128,7 @@ pub fn Recherche() -> impl IntoView {
                     </div>
                     <button
                         type="submit"
-                        class="verre shrink-0 rounded-full px-5 py-1.5 font-titre text-sm text-accent transition-transform duration-150 ease-out active:scale-95 motion-reduce:transition-none"
+                        class="presse verre shrink-0 rounded-full px-5 py-1.5 font-titre text-sm text-accent"
                     >
                         "Chercher"
                     </button>

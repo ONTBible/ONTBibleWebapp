@@ -55,7 +55,7 @@ pub fn BarreDeLecture(
         <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-8 flex items-center justify-between gap-3 py-2">
             <A
                 href=chemin
-                attr:class="verre pointer-events-auto flex max-w-[70%] items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-encre no-underline transition-transform duration-150 ease-out active:scale-95 motion-reduce:transition-none"
+                attr:class="presse verre pointer-events-auto flex max-w-[70%] items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-encre no-underline"
                 attr:aria-label=move || {
                     format!("Aller à un autre passage — actuellement {}", pastille.get())
                 }
@@ -120,7 +120,7 @@ pub fn BoutonDeRecherche() -> impl IntoView {
         <A
             href="/fr/rechercher"
             attr:aria-label="Rechercher dans le corpus"
-            attr:class="verre pointer-events-auto flex size-9 items-center justify-center rounded-full text-encre-douce no-underline transition-transform duration-150 ease-out hover:text-encre active:scale-95 motion-reduce:transition-none"
+            attr:class="presse verre pointer-events-auto flex size-9 items-center justify-center rounded-full text-encre-douce no-underline hover:text-encre"
         >
             <svg
                 aria-hidden="true"

@@ -242,7 +242,11 @@ pub fn Ligne(
     };
 
     view! {
-        <li class="ps-4">
+        // Le voile de survol est sur la **rangée**, pas sur le lien : le lien
+        // ne couvre que le texte et son chevron, alors que c'est la rangée
+        // entière qui se touche. Sans levée — une ligne pleine largeur qui se
+        // soulève d'un centième tremble.
+        <li class="survol ps-4">
             {match chemin {
                 Some(chemin) => {
                     view! {
@@ -260,9 +264,20 @@ pub fn Ligne(
                         // demandant une webapp « en CSR/SPA ». Elle l'est déjà
                         // — Leptos navigue côté client une fois hydraté —, et
                         // c'étaient mes liens qui s'en excluaient.
+                        // **Le survol et la pression, comme chez l'app.**
+                        //
+                        // `presse--ligne` et non `presse` : une ligne de liste
+                        // occupe toute la largeur, et trois pour cent d'échelle
+                        // y seraient une embardée. L'app lui donne son propre
+                        // nom pour cette raison — `.ontLigne`, 0,985.
+                        //
+                        // Le voile de survol se pose sur la **ligne**, pas sur
+                        // ce lien : le `<A>` ne couvre que le texte et son
+                        // chevron, alors que c'est la rangée entière qui est la
+                        // cible. Voir le `<li>` qui l'enveloppe.
                         <A
                             href=chemin
-                            attr:class="flex items-center gap-3 text-encre no-underline transition-colors hover:text-encre-vive"
+                            attr:class="presse presse--ligne flex items-center gap-3 text-encre no-underline"
                         >
                             {dedans()}
                             <Chevron />

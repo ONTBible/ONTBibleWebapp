@@ -227,7 +227,7 @@ fn Ferme() -> impl IntoView {
                             // servies avant le routeur, qui rendrait son 404.
                             rel="external"
                             href=format!("/fr/compte/aller/{}", f.cle())
-                            class="flex items-center justify-center gap-3 rounded-full bg-marque-encre px-6 py-3.5 text-center font-titre text-sur-marque-accent no-underline transition-transform duration-150 ease-out hover:-translate-y-px active:scale-[0.99] motion-reduce:transition-none"
+                            class="presse survol survol--souleve flex items-center justify-center gap-3 rounded-full bg-marque-encre px-6 py-3.5 text-center font-titre text-sur-marque-accent no-underline"
                         >
                             // **La marque, en monochrome.** L'app portait trois
                             // provenances pour trois boutons — `apple.logo`,

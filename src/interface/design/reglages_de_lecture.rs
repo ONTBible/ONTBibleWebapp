@@ -189,6 +189,34 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
     #[cfg(feature = "hydrate")]
     {
         let preferences = preferences();
+
+        // **Un compteur, et non un simple pose/retire.**
+        //
+        // La première version posait l'attribut à l'arrivée et le retirait au
+        // démontage. Elle marchait au chargement et **mourait à la première
+        // navigation** : le lecteur choisissait parchemin, touchait « Lexique »,
+        // et retombait sur la nuit d'aubergine.
+        //
+        // La cause est un ordre qu'on ne choisit pas. En passant d'une page de
+        // la liseuse à une autre, Leptos **monte la nouvelle avant de nettoyer
+        // l'ancienne** : l'effet de la nouvelle posait la peau, puis le
+        // nettoyage de l'ancienne l'effaçait. Le dernier mot revenait à la page
+        // qu'on venait de quitter.
+        //
+        // Mesuré au banc, pas déduit :
+        //
+        //     url=/fr/webapp   data-theme=parchemin   fond=250,245,235
+        //     url=/fr/lexique  data-theme=—           fond=24,9,13
+        //
+        // Le compteur répond à la vraie question — *« reste-t-il une page de
+        // liseuse à l'écran ? »* — là où le démontage ne répondait qu'à
+        // *« celle-ci est-elle partie ? »*. Entre deux pages de la liseuse il
+        // ne retombe jamais à zéro, donc l'attribut ne clignote pas ; en
+        // sortant vers l'édition il y retombe, et la peau s'en va.
+        //
+        // C'est aussi ce qui rend le réglage **vivant partout** : l'effet suit
+        // `preferences`, et la page des réglages en est une comme les autres.
+        MONTEES.with(|n| n.set(n.get() + 1));
         Effect::new(move |_| {
             let reglages = preferences.get();
             poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
@@ -196,12 +224,32 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
             poser_l_interligne(reglages.interligne);
             poser_la_coupure(reglages.coupure);
         });
-        // `on_cleanup` et non un effet qui s'annule : le démontage est le seul
-        // signal qui dise « cette page n'est plus à l'écran », et c'est
-        // exactement la question.
-        on_cleanup(|| poser_la_peau(None, None));
+        on_cleanup(|| {
+            MONTEES.with(|n| {
+                let reste = n.get().saturating_sub(1);
+                n.set(reste);
+                if reste == 0 {
+                    poser_la_peau(None, None);
+                }
+            });
+        });
     }
     view! { <></> }
+}
+
+/// Combien de pages de liseuse sont à l'écran.
+///
+/// **Une seule à la fois en régime établi**, deux le temps d'une navigation —
+/// et c'est ce chevauchement qui compte : il est la seule raison d'être de ce
+/// compteur.
+///
+/// `thread_local` et non un contexte : le WASM du navigateur est
+/// mono-thread, et un contexte imposerait à chaque page de le fournir, donc
+/// d'y penser. Ce nombre ne décrit pas un arbre de composants, il décrit
+/// l'état de `<html>` — qui est unique par construction.
+#[cfg(feature = "hydrate")]
+thread_local! {
+    static MONTEES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 /// Écrit — ou retire — l'attribut de peau, et accorde la barre du navigateur.
@@ -441,7 +489,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // `active:scale-95` : le bouton s'enfonce sous le doigt. C'est
                 // le seul retour tactile qu'un navigateur laisse donner, et son
                 // absence fait douter que le clic ait été pris.
-                class="verre se-poser flex size-9 items-center justify-center rounded-full text-accent transition-[transform,opacity] duration-200 ease-out active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+                class="presse verre se-poser flex size-9 items-center justify-center rounded-full text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 // Il s'efface pendant une sélection, et il n'en reste
                 // qu'une raison sur deux.
                 //

@@ -568,6 +568,92 @@
   }
 }
 
+/* ═══ Ce qui se presse s'enfonce, ce qui se survole se teinte ═══════════════
+
+   ## D'où ça vient
+
+   `ONTInteraction.swift`, et son en-tête raconte pourquoi il existe : le
+   3 septembre 2026, il n'y avait **aucun état de pression** dans l'app du Mac
+   — vingt-quatre boutons « plain », et un clic qui ne répondait rien entre
+   l'enfoncement et l'action. L'auteur, qui est designer, a demandé la
+   micro-animation *partout*, « limite trop ».
+
+   Le site avait le même défaut sous une autre forme : chaque pièce portait son
+   propre `active:scale-95` ou son `hover:-translate-y-px`, choisis un par un.
+   Trois échelles différentes coexistaient, et rien ne disait laquelle était la
+   règle.
+
+   ## Les deux valeurs viennent de là-bas, pas de l'œil
+
+       pression    échelle 0,97   opacité 0,82   ressort vif
+       ligne large échelle 0,985                 — 3 % seraient une embardée
+       survol      voile d'encre à 7 %           levée 1,012 si « soulevé »
+
+   ## Pourquoi `:has(:active)` et pas seulement `:active`
+
+   Un `<A>` du routeur porte souvent son contenu dans un enfant ; le survol et
+   la pression doivent se lire sur l'objet entier, pas sur le mot qu'on a
+   touché. `:active` seul laisserait une ligne dont seul le libellé s'enfonce.
+
+   ## Le survol ne vaut que là où il y a un curseur
+
+   `@media (hover: hover)` : sur un écran tactile, `:hover` **colle** après le
+   toucher — l'élément reste teinté jusqu'au toucher suivant, ce qui se lit
+   comme une sélection qu'on n'a pas faite. C'est le défaut le plus courant
+   d'un site porté depuis un bureau.                                        */
+
+.presse,
+.survol {
+  transition:
+    transform var(--ressort-vif-duree) var(--ressort-vif),
+    opacity var(--ressort-vif-duree) var(--ressort-vif),
+    background-color var(--ressort-vif-duree) var(--ressort-vif);
+}
+
+.presse:active,
+.presse:has(:active) {
+  transform: scale(0.97);
+  opacity: 0.82;
+}
+
+/* Une ligne large bouge moins : à sa taille, trois pour cent seraient une
+   embardée. C'est `ONTPresse(echelle: 0.985)`, et l'app lui donne son propre
+   nom — `.ontLigne`. */
+.presse--ligne:active,
+.presse--ligne:has(:active) {
+  transform: scale(0.985);
+  opacity: 0.82;
+}
+
+@media (hover: hover) {
+  .survol:hover {
+    background-color: color-mix(in srgb, var(--color-encre) 7%, transparent);
+  }
+
+  /* La levée, pour ce qui est une **carte** ou une case. Pas pour une longue
+     ligne, qu'un centième ferait trembler sur toute sa largeur. */
+  .survol--souleve:hover {
+    transform: scale(1.012);
+  }
+}
+
+/* Le mouvement est un réglage système, pas un goût : il déclenche des
+   vertiges chez une partie des lecteurs. */
+@media (prefers-reduced-motion: reduce) {
+  .presse,
+  .survol {
+    transition: none;
+  }
+
+  .presse:active,
+  .presse:has(:active),
+  .presse--ligne:active,
+  .presse--ligne:has(:active),
+  .survol--souleve:hover {
+    transform: none;
+  }
+}
+
 /* ── La bascule d'un onglet ────────────────────────────────────────────────
 
    Ce qu'iOS fait, et qu'on ne voit qu'en le perdant : la capsule ne *paraît*

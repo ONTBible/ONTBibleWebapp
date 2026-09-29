@@ -329,7 +329,7 @@ fn BarreLaterale() -> impl IntoView {
                                         p.chapter_id,
                                         p.verse,
                                     )
-                                    attr:class="mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
+                                    attr:class="presse presse--ligne survol mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:text-encre"
                                 >
                                     <Signe nom="signet" plein=true />
                                     <span class="flex-1 truncate">"Reprendre"</span>
@@ -396,13 +396,18 @@ fn BarreLaterale() -> impl IntoView {
                                     href=destination.chemin
                                     attr:aria-current=move || actif().then_some("page")
                                     attr:class=move || {
-                                        let base = "flex items-center gap-3 rounded-full px-3 py-2 \
-                                                    font-titre text-sm \
-                                                    no-underline transition-colors";
+                                        // `presse--ligne` et non `presse` :
+                                        // une ligne pleine largeur qui cède de
+                                        // trois pour cent est une embardée.
+                                        // C'est `ONTPresse(echelle: 0.985)`,
+                                        // que l'app nomme `.ontLigne`.
+                                        let base = "presse presse--ligne survol flex items-center \
+                                                    gap-3 rounded-full px-3 py-2 font-titre text-sm \
+                                                    no-underline";
                                         if actif() {
                                             format!("{base} bg-accent/15 ring-1 ring-accent/30 text-accent")
                                         } else {
-                                            format!("{base} text-encre-douce hover:bg-accent/8 hover:text-encre")
+                                            format!("{base} text-encre-douce hover:text-encre")
                                         }
                                     }
                                 >
@@ -454,7 +459,7 @@ fn BarreLaterale() -> impl IntoView {
                                             // au corps de ses lignes, il cessait
                                             // d'être un en-tête — « Kenesset » se
                                             // lisait comme un livre de plus.
-                                            <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full px-3 py-1.5 font-titre text-[0.72rem] text-encre-douce/70 transition-colors hover:text-encre-douce marker:content-['']">
+                                            <summary class="survol flex cursor-pointer list-none items-center gap-2 rounded-full px-3 py-1.5 font-titre text-[0.72rem] text-encre-douce/70 hover:text-encre-douce marker:content-['']">
                                                 <span class="flex-1 truncate">{ensemble.titre}</span>
                                                 // Le témoin est **toujours
                                                 // visible**, comme sur l'iPad —
@@ -507,7 +512,7 @@ fn BarreLaterale() -> impl IntoView {
                                                                 // qui l'attrape.
                                                                 <A
                                                                     href=format!("/fr/webapp/{id}")
-                                                                    attr:class="flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
+                                                                    attr:class="presse presse--ligne survol flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline hover:text-encre"
                                                                 >
                                                                     <Signe nom="feuillets" />
                                                                     <span class="truncate">{titre}</span>
@@ -540,7 +545,7 @@ fn BarreLaterale() -> impl IntoView {
             <div class="border-t border-filet/60 pt-4 mt-4">
                 <A
                     href="/fr/compte"
-                    attr:class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"
+                    attr:class="presse presse--ligne survol flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:border-or/50 hover:text-encre"
                 >
                     <Signe nom="compte" plein=true />
                     "Vous"
