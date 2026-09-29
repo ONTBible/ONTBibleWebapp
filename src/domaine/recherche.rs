@@ -41,10 +41,21 @@ impl Portee {
         }
     }
 
+    /// Ce qu'on lit sur le segment.
+    ///
+    /// **Un mot, pas une phrase.** Ils lisaient « Dans le texte » et « Dans les
+    /// gloses » — justes, et trop longs : les trois segments passaient sur deux
+    /// lignes sur un téléphone, ce qui n'est plus un contrôle segmenté mais
+    /// trois boutons empilés. Un segmenté dit *ce qu'on choisit*, pas une
+    /// phrase complète ; la question — « où chercher » — est portée par leur
+    /// rangée, pas répétée dans chacun.
+    ///
+    /// C'est la règle des segments du lexique, qui disent « Intraduisibles »,
+    /// « Vocabulaire fixé », « Tout », « Shemot ».
     pub fn libelle(self) -> &'static str {
         match self {
-            Self::Corps => "Dans le texte",
-            Self::Gloses => "Dans les gloses",
+            Self::Corps => "Texte",
+            Self::Gloses => "Gloses",
             Self::Partout => "Partout",
         }
     }

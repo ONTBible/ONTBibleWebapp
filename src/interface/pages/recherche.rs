@@ -95,8 +95,17 @@ pub fn Recherche() -> impl IntoView {
                 // lexique : quatre choix exclusifs sur une rangée, et la
                 // capsule dit lequel tient. C'étaient des pastilles cerclées,
                 // qui se lisaient comme quatre boutons indépendants.
-                <div class="mt-4 flex flex-wrap items-center gap-3">
-                    <div class="flex flex-wrap gap-2">
+                // **Une seule rangée**, segments à gauche et bouton à droite.
+                // `flex-wrap` les laissait passer à la ligne, et un segmenté
+                // qui se replie cesse d'en être un — on y lit alors trois
+                // boutons empilés, dont rien ne dit qu'ils s'excluent.
+                <div class="mt-3 flex items-center gap-3">
+                    // **Largeur au contenu**, et non trois parts égales : à parts
+                    // égales, le plus long — « Partout » — décide pour les
+                    // trois et se tronque quand même, ce qui donne « Part… »
+                    // sur l'option qui est le **défaut**. Un segmenté dont
+                    // l'option courante est illisible ne dit plus où l'on est.
+                    <div class="flex shrink-0 rounded-full border border-filet/60 bg-surface/60 p-1">
                         {Portee::toutes()
                             .into_iter()
                             .map(|p| {
@@ -109,7 +118,7 @@ pub fn Recherche() -> impl IntoView {
                                             checked=move || ou() == p
                                             class="peer sr-only"
                                         />
-                                        <span class="segment block rounded-full px-3.5 py-1.5 text-sm text-encre-douce peer-checked:bg-encre/10 peer-checked:text-marque-encre peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
+                                        <span class="segment block rounded-full px-3.5 py-1.5 text-center text-sm text-encre-douce peer-checked:bg-encre/10 peer-checked:text-marque-encre peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
                                             {p.libelle()}
                                         </span>
                                     </label>
@@ -119,7 +128,7 @@ pub fn Recherche() -> impl IntoView {
                     </div>
                     <button
                         type="submit"
-                        class="verre ms-auto rounded-full px-5 py-1.5 font-titre text-sm text-accent transition-transform duration-150 ease-out active:scale-95 motion-reduce:transition-none"
+                        class="verre shrink-0 rounded-full px-5 py-1.5 font-titre text-sm text-accent transition-transform duration-150 ease-out active:scale-95 motion-reduce:transition-none"
                     >
                         "Chercher"
                     </button>
