@@ -6298,3 +6298,71 @@ Deux fois dans la journée, sur deux dépôts de problème différents :
 > celui auquel l'élément se conforme, pas celui qui décrit l'élément d'à
 > côté.== Un nombre qui décrit la géométrie d'un autre élément est toujours
 > faux quelque part — c'est la leçon de `--hauteur-entete`, reprise du bon côté.
+
+## 29 septembre 2026 — le site prend une dépendance de plus, et une absence se mesure
+
+L'écran de lecture de la webapp a été aligné sur celui de l'app, et deux choses
+en sortent qui ne se voient pas depuis un seul dépôt.
+
+### `dist/prononciation.json` est devenu une dépendance de compilation du site
+
+Le site l'embarque par `include_str!`, comme `corpus.json`, `glossary.json`,
+`shemot.json` et `occurrences.json`. **S'il disparaît ou change de forme, le
+site ne compile plus** — pas une page qui manque, une compilation qui échoue.
+
+C'est le comportement voulu, et c'est le même arbitrage que pour les quatre
+autres : mieux vaut une compilation qui rougit qu'un dossier de données absent
+à l'exécution. Mais il faut le savoir avant de le retirer du pipeline.
+
+La forme, elle, est tenue par `pipeline::PrononciationFile`, que les deux
+dépôts partagent — donc un renommage de champ se voit à la compilation des
+deux côtés, et non à l'affichage d'un seul.
+
+### `dist/chuqqot.json` est émis, et ses `entries` sont vides
+
+Relevé, pas déduit : le fichier existe, son tableau est de longueur zéro. Le
+pipeline fait donc son travail, et c'est le **vault** qui n'a encore écrit
+aucune chuqqah.
+
+Conséquence pour les trois : l'onglet Chuqqot existe dans l'app et pas sur le
+site, et ce n'est pas un retard de portage. Le jour où le vault en écrit une,
+c'est le site qui doit suivre — pas l'inverse.
+
+### Une contrainte transmise entre sessions doit être datée ou revérifiée
+
+Le `CLAUDE.md` du site écartait **Qahal et Chuqqot ensemble**, « des
+fonctionnalités à écrire, et non de la chrome à porter ». C'était juste pour
+l'une et faux pour l'autre : Qahal n'attend rien — l'app le dit elle-même,
+« structure posée, sans serveur », et le site porte déjà le verset du jour par
+la même fonction de la date.
+
+Deux minutes dans `dist/` tranchaient, et personne ne les avait passées parce
+que la phrase était écrite. C'est le défaut du portail GitHub de l'OAuth,
+rejoué chez nous : une contrainte de plateforme qu'on se transmet entre
+sessions se relit sans qu'on la remette en cause.
+
+> ==Une phrase qui **écarte** quelque chose doit dire ce qui la rendrait
+> fausse.== « Ce sont des fonctionnalités, pas de la chrome » ne se vérifie
+> nulle part ; « `dist/chuqqot.json` a zéro entrée » se vérifie en une
+> commande.
+
+Le même défaut, la même journée, sur le même fichier : « le site ne suit pas
+encore la position de lecture » était vrai à l'écriture du §8 nonies et faux
+depuis que le compte existe. `retenir_la_position` est appelée à chaque
+ouverture d'unité, et la page du compte affichait déjà le résultat.
+
+### Et une leçon de portage, qui vaut pour les trois
+
+Deux commentaires de l'app disaient **ne pas copier** une pièce, et les deux
+portaient sur le dessin, pas sur le contenu :
+
+- la session macOS : *« ne pas copier sa barre latérale »*, parce que le Mac la
+  dessine à la main pour contourner trois défauts d'AppKit. Mais son propre
+  code dit que l'iPad montre **le même corpus** — *« Sur l'iPad il est toujours
+  visible »*. Ce qu'il ne fallait pas copier était le contournement ;
+- `ONTPlatformes.swift` : *« que des accidents de SwiftUI »*. Un seul méritait
+  le voyage, et il avait été nommé.
+
+> ==Un « ne copie pas ça » nomme une **cause**, pas une pièce. Relire la cause
+> avant d'obéir : quand elle n'existe pas chez soi, la pièce, elle, peut
+> valoir.==

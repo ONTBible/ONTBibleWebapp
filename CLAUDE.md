@@ -3328,13 +3328,157 @@ Les quatre rayons d'`ONTRadius` sont des jetons. Celui de la feuille valait
 l'épreuve : *« à 22, la carte du Mac se lisait comme une boîte de dialogue, pas
 comme une feuille »* — et le panneau « aA » du site était à 22.
 
+### L'écran de lecture, porté le 29 septembre 2026
+
+Il composait encore comme une page d'édition. Cinq écarts, tous relevés dans
+`ChapterView.swift` et `ONTTypography.swift`, jamais à l'œil.
+
+| | l'app | le site, avant |
+|---|---|---|
+| interligne du verset | celui du corps | `leading-loose`, soit **2** |
+| barre du haut | pastille de renvoi + « aA », en verre | fil d'Ariane + « aA » flottant en bas |
+| en-tête d'unité | français *italique* · hébreu · renvoi, puis **filet d'or** | le renvoi seul, sous le nom ONT |
+| titre d'unité | `chapter.title` — « Bereshit 3 » | le registre — « Chapitre 3 » |
+| intertitre | corps **× 1,25**, Jost SemiBold, **`brandInk`** | le palier d'édition, `inkStrong` |
+
+**L'interligne était une contradiction du site avec lui-même** : le §5 mesure
+1,68 et dit pourquoi — *plus le corps grandit, moins il a besoin d'air
+proportionnel*. Le verset compose **au-dessus** du corps, il en demandait donc
+moins. La lecture suivie avait déjà été corrigée pour cette raison exacte ; le
+mode d'étude était resté.
+
+**La barre est deux capsules qui flottent, pas un bandeau.** C'est le dessin
+d'iOS 26, et il se lit dans le Swift plutôt que sur une capture : `.ontVerre(dans:
+Capsule())` est posé sur la pastille elle-même. La pastille est une **porte**,
+comme chez l'app — un lien vers la liste des unités là où elle ouvre un
+sélecteur modal.
+
+**« aA » a remonté.** Le site le posait en bas *en croyant copier l'app*, qui
+le met en `ONTPlacement.principale`, c'est-à-dire en haut à droite. Le bas
+n'était d'ailleurs plus libre depuis la barre d'onglets : deux rustines
+tenaient une place que trois objets se disputaient. L'argument d'origine ne
+demandait pas « en bas » mais « toujours atteignable » — la barre est `sticky`.
+
+**Le titre d'unité est un revirement**, et sa raison est structurelle : l'app
+emploie le registre dans sa **liste** (`stub.label(french:)`) et `chapter.title`
+dans son **en-tête**, parce que les deux ne répondent pas à la même question —
+une liste dit *lequel*, un en-tête dit *lequel c'est*. « Chapitre 3 » est un
+rang, et un rang seul ne nomme rien une fois qu'on est dedans.
+
+**Ce qui n'a pas bougé** : le verset compose à `--text-lg` quand l'app compose
+au corps. Le §5 interdit de redescendre sans que l'auteur le demande.
+
+### La feuille de prononciation — le 29 septembre 2026
+
+`dist/prononciation.json` était émis depuis le même pipeline et
+`pipeline::PrononciationFile` décrivait déjà sa forme ; le site n'avait ni la
+feuille ni le pavé qui l'ouvre.
+
+**Rien n'est composé ici** : le titre et les blocs viennent de
+`lexique/prononciation.md`. C'est la règle de l'app, mot pour mot — écrire ici
+une explication de la prononciation en ferait une seconde source, qui
+divergerait du vault à la première correction. Et ils arrivent en **blocs**,
+donc l'or, la terre brûlée et les liens vers les fiches viennent sans rendu.
+
+**Une page, là où l'app a une feuille**, et c'est la seule chose qui change.
+Une `.sheet` est modale, sans adresse ; une page se partage, se met en signet,
+s'indexe, et le retour du navigateur la referme. La question de la session iOS
+était la bonne — *ce qui doit rester modal* — et celle-ci ne demande rien.
+
+Le pavé porte l'**aplat de marque**, `brandInk` avec `onBrandAccent` dessus :
+le seul autre emploi de l'aplat est le bouton de connexion, et les deux disent
+« ceci n'est pas du corpus, c'est l'app qui te parle ». D'où
+`--color-sur-marque-accent`, qui **ne se déduit pas** de `marque-encre` : la
+paire s'inverse selon le thème — aubergine sur or, ou or sur nuit.
+
+Il est en **Jost**, pas dans la fonte de lecture : l'app a mesuré que sa fonte
+d'affichage, faite pour un titre d'une ligne, disloque ce libellé dès qu'il se
+replie — au premier cran d'agrandissement.
+
+### La double mesure — `readingWidth` contre `pageWidth`
+
+La session macOS l'avait désignée comme le point de départ, et la leçon n'est
+ni l'une ni l'autre valeur : **il en faut deux**. *« Une liste ne se lit pas
+comme une phrase : l'œil n'y court pas d'un bout à l'autre, il saute d'un
+intitulé à sa valeur. »* Le site n'en avait qu'une, et un sommaire de soixante-
+dix livres composait sur la mesure d'un verset — compteur à trois centimètres
+de son titre.
+
+`--container-page: 46rem`, et c'est le **rapport** de l'app qui est repris, pas
+sa valeur : notre mesure vaut 38 rem parce que le corps vaut 21 px (§5), et
+reporter 850 pt casserait ce lien. `--container-large` garde le sien — la
+comparaison de l'accueil, où deux colonnes de prose tiennent côte à côte.
+
+`Bloc` calcule désormais sa classe **en une fois** : à trois prétendants sur
+`max-width`, deux peuvent être vrais ensemble, et c'est encore l'ordre de la
+feuille qui trancherait. Le piège que son propre commentaire raconte.
+
+### La barre latérale porte le corpus, et « Reprendre » y est
+
+**Le corpus n'était pas un contournement du Mac.** La session macOS déconseille
+de copier sa barre, et elle a raison sur le **dessin** : ses trois
+contournements — sélection à l'accent du système, ⌘= sans effet, largeur
+indéclarable — n'existent pas sur le web. Mais son propre commentaire dit que
+l'iPad montre la même chose : *« Sur l'iPad il est toujours visible »*.
+
+Un rayon par corpus **peuplé** — jamais un en-tête suivi de rien, qui
+annoncerait un rayon vide. Le pli passe par `<details>`, réponse du web à
+`Section(isExpanded:)` : sans JavaScript, au clavier, et il porte son témoin.
+Le Mac a dû dessiner le sien parce que le style `sidebar` n'en affiche aucun.
+
+Le corpus défile ; le compte reste épinglé dessous, et c'est maintenant qu'il y
+a de quoi défiler que cette place se justifie visiblement.
+
+**« Reprendre » existait déjà, à un composant près.** Le module de navigation
+écrivait qu'il manquait parce que « le site ne suit pas encore la position de
+lecture ». Il la suit : `retenir_la_position` est appelée à l'ouverture de
+chaque unité depuis que le compte existe, et `ma_position` la relit — la page
+du compte l'affichait même. C'était vrai à l'écriture du §8 nonies, et c'est
+resté écrit après avoir cessé de l'être.
+
+Ce n'est pas une destination de plus : l'app le dit d'un mot — *« les trois
+suivantes sont des lieux ; celle-ci est un signet »* — et c'est ce qui lui vaut
+sa carte, avant le corpus et détachée de lui. Elle se **tait** sans compte :
+lire sans compte est le cas normal du site, et « connectez-vous pour reprendre »
+ferait de la lecture une chose qu'on mérite.
+
+### Qahal est ouvert, Chuqqot reste fermé — et le partage se mesure
+
+Ce dépôt écartait les deux ensemble, « des fonctionnalités à écrire et non de
+la chrome à porter ». Juste pour l'une, faux pour l'autre — et deux minutes
+dans `dist/` le tranchaient.
+
+- **Qahal** n'attend rien. L'app le dit : *« structure posée, sans serveur »* —
+  le verset du jour, que le site porte déjà et par la même fonction de la date,
+  plus l'annonce de ce qui vient. Tout ce qui suppose d'autres lecteurs y est
+  **annoncé sans être simulé**, « un faux fil d'activité donnant une idée
+  fausse de ce qui existe ». Il ouvre la barre, comme chez elle : la Kenesset
+  est le rassemblement des textes, le Qahal celui des lecteurs ;
+- **Chuqqot** attend le vault. `dist/chuqqot.json` est bien émis, et ses
+  `entries` sont **vides**.
+
+Une phrase de l'app a été refaite plutôt que reprise : elle clôt son annonce
+par « la lecture fonctionne entièrement hors ligne », ce qui est faux ici — le
+site n'a délibérément pas de *service worker* (§8 quinquies). Ce qu'elle promet
+vraiment se dit sans rien perdre : la lecture ne demande aucun compte.
+
+C'est le §8 quinquies pris à l'envers — **une contrainte qu'on se transmet
+entre sessions doit être datée ou revérifiée**.
+
 ### Ce qui reste de la webapp
 
-- **Qahal** et **Chuqqot** — deux onglets de l'app dont le site n'a aucune page.
-  Ce sont des fonctionnalités, pas de la chrome ;
-- **Reprendre** — la position de lecture, que le backend porte déjà (§8 nonies) ;
+- **Chuqqot** — l'onglet suit le jour où le vault écrit sa première chuqqah.
+  Le pipeline émet déjà `dist/chuqqot.json` ; il n'y a pas de code à écrire
+  d'avance, et il ne **faut** pas en écrire : une branche qu'aucun état du site
+  ne rend n'est pas du code testé (§8 quinquies) ;
+- la **taille du corps** — le verset compose à `--text-lg`, l'app au corps.
+  C'est le dernier écart de densité, et il appartient à l'auteur (§5) ;
+- la part **communautaire** du Qahal — elle demande un serveur, et l'app ne
+  l'a pas non plus ;
 - l'**action Image** de l'app, qui rend un carré de 1080 px ;
-- les **composants** restants — segments, rail de lettres, survol des termes.
+- la **recherche est un onglet** ici, un bouton de barre là-bas. Le site a un
+  créneau libre tant que Chuqqot n'est pas là, et une recherche est une
+  destination de plein droit sur un site. À retrancher si Chuqqot arrive.
 
 ## 9. Ce qui reste à trancher
 
