@@ -6524,3 +6524,72 @@ Les autres partagent nos prémisses, donc nos angles morts.
 
 Et la garde ajoute ce qu'aucune lecture ne donne : elle ne se fatigue pas, et
 elle ne relit pas deux fois la même page.
+
+## 29 septembre 2026, le soir — l'ordre de deux fusions, et pourquoi il n'est pas symétrique
+
+Le pipeline tient un tableau des **fichiers émis et des liseuses qui les
+lisent**, et il ne se contente pas de le déclarer : il **inspecte le source des
+consommateurs**. Une ligne qui dit « ontbible.com le lit » et un source du site
+qui ne nomme nulle part le fichier font échouer l'étape « Le corpus » — dans la
+CI du site, pas dans celle de l'app.
+
+C'est un très bon contrôle, et il a rendu ceci, mot pour mot :
+
+```text
+échec : 1 écart(s) entre ce que `dist/` porte et ce que les liseuses lisent :
+  · `prononciation.json` : ontbible.com est déclarée le lire,
+    et **son source ne le nomme nulle part**
+```
+
+### La fenêtre faisait quatre heures, et personne ne l'avait vue venir
+
+Mesuré sur `origin/dev` et sur l'historique du site, pas déduit :
+
+    dev~1   22 sept.        (Liseuse::Site, Lecture::Lacune("la feuille de
+                             prononciation n'a pas de page sur le site"))
+    dev     29 sept. 13 h 18 (Liseuse::Site, Lecture::Lit)   ← promotion #340
+    site    29 sept. 12 h 56  api.rs nomme le fichier — branche non fusionnée
+
+La déclaration n'a donc **pas** précédé la chose déclarée, et c'est la première
+chose à écarter parce que c'en a exactement l'air. Elle a vécu dix-huit jours en
+`Lacune` — une dette nommée, qui ne rougit pas — puis elle est passée à `Lit` le
+jour même où le lecteur existait. **L'ordre était juste ; ce qui a manqué est
+quatre heures.**
+
+Entre 13 h 18 et la fusion du lecteur, **toute PR partie de `main` hérite le
+rouge**, sans toucher au corpus ni au pipeline. Celle de la manageuse l'a pris en
+ne changeant qu'une page de prose.
+
+### L'invariant : la tolérance n'est pas symétrique, donc l'ordre est forcé
+
+    fusionner le lecteur, PUIS promouvoir   →  aucune fenêtre rouge
+    promouvoir, PUIS fusionner le lecteur   →  toutes les PR rouges entre les deux
+
+`Lecture::Lacune` **tolère** un lecteur qui existe déjà — il n'y a pas de garde
+qui reproche à un site de lire un fichier qu'on le dit ne pas lire. `Lecture::Lit`
+**ne tolère pas** un lecteur qui n'existe pas encore : c'est son seul travail.
+
+> ==Quand deux dépôts portent les deux moitiés d'un même changement, l'ordre des
+> deux fusions se déduit de laquelle des deux gardes est tolérante.== Ce n'est
+> pas une question de qui est prêt le premier.
+
+Et la conséquence pratique, pour les trois dépôts : **une promotion qui allume un
+`Lit` se coordonne avec la fusion qu'elle rend nécessaire**, ou elle se fait
+après elle. Le prix d'un mauvais ordre n'est pas payé par celui qui promeut : il
+est payé par toutes les sessions qui ouvrent une PR pendant la fenêtre, et
+aucune ne peut savoir pourquoi sans lire un log qui parle d'un autre dépôt.
+
+### Ce qui a permis de le trancher, et qui n'était pas la lecture du code
+
+J'avais **écarté** le mécanisme quand la manageuse l'a proposé : « Le corpus »
+exécute le pipeline dans `ONTBibleApp`, donc le contenu de `src/` du site ne peut
+pas en changer le résultat. C'était faux, et le raisonnement avait l'air solide —
+il ignorait simplement qu'un pipeline puisse lire ses consommateurs.
+
+C'est le log d'une PR **qui n'est pas la mienne** qui l'a tranché. Deux branches
+clonant le même `dev` à quatre minutes d'écart, l'une verte à cette étape et
+l'autre rouge : la différence ne pouvait venir que du dépôt du site.
+
+> ==Deux exécutions qui ne diffèrent que par une variable désignent cette
+> variable.== C'est le seul raisonnement qui ait servi ici, et il n'a demandé
+> aucune connaissance du pipeline.
