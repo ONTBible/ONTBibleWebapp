@@ -160,6 +160,11 @@ fn signe(nom: &str) -> &'static str {
         // Deux silhouettes — `person.2.fill` chez l'app. Deux et non trois :
         // l'assemblée commence au second.
         "qahal" => "M9.5 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6 16a6 6 0 0 1 12 0M16 5.2a3 3 0 0 1 0 5.6m.8 2.4a6 6 0 0 1 3.7 5.5",
+        // Le livre d'un rayon — `book.pages` chez l'app. Des feuillets, pas
+        // une couverture : la destination « Bible » porte déjà le volume
+        // fermé, et deux livres identiques à deux niveaux d'indentation ne
+        // diraient plus lequel est le rayon et lequel est l'ouvrage.
+        "feuillets" => "M12 6.5C10.5 5 8.5 4.5 5 4.5v13c3.5 0 5.5.5 7 2 1.5-1.5 3.5-2 7-2v-13c-3.5 0-5.5.5-7 2Zm0 0v15",
         // Le signet de « Reprendre » — `bookmark.fill` chez l'app. Un signet
         // et non une flèche : en barre latérale il tient un rang de ligne, où
         // une flèche se lirait comme un bouton d'action.
@@ -391,11 +396,38 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                                     .map(|(id, titre)| {
                                                         view! {
                                                             <li>
+                                                                // **L'icône tient
+                                                                // l'aplomb**, et ce
+                                                                // n'est pas qu'un
+                                                                // ornement porté de
+                                                                // l'app.
+                                                                //
+                                                                // Sans elle, le titre
+                                                                // d'un livre commence
+                                                                // là où commence
+                                                                // l'**icône** des
+                                                                // destinations, donc
+                                                                // à gauche de leurs
+                                                                // libellés : un
+                                                                // sous-niveau
+                                                                // paraissait moins
+                                                                // en retrait que son
+                                                                // rayon. Relevé en
+                                                                // regardant les bords
+                                                                // l'un sous l'autre
+                                                                // sur une capture —
+                                                                // rien dans le code
+                                                                // ne le dit, et la
+                                                                // session macOS avait
+                                                                // prévenu que c'est
+                                                                // le seul contrôle
+                                                                // qui l'attrape.
                                                                 <A
                                                                     href=format!("/fr/lire/{id}")
-                                                                    attr:class="block truncate rounded-full py-1.5 ps-3 pe-3 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
+                                                                    attr:class="flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
                                                                 >
-                                                                    {titre}
+                                                                    <Signe nom="feuillets" />
+                                                                    <span class="truncate">{titre}</span>
                                                                 </A>
                                                             </li>
                                                         }
