@@ -87,10 +87,27 @@ phrase== : notre A descend du même aleph, et le grec aussi. Ce qui distingue
 l'hébreu est d'avoir gardé les **noms** — un fait de nomenclature, pas de
 fonctionnement.
 
-Le quatrième est la démonstration ==sur le terrain de l'objection== : l'exemple
-canonique de Barr, mesuré, ne tient pas. Un seul numéro pour les deux verbes,
-cinq des six emplois de « manger » dans des repas de danger, et 812 emplois du
-verbe ordinaire en regard de 6.
+Le quatrième a été refait après une objection des langues sources, et
+==l'objection porte== : *« réfuter l'exemple de Barr ne réfute pas Barr »*. Sa
+thèse n'est pas que ces deux mots soient étrangers — c'est que ==l'étymologie ne
+détermine pas le sens synchronique==. Gagner sur l'illustration ferait croire
+qu'on a gagné sur l'argument, et inviterait une contre-attaque d'arabiste.
+
+Le paragraphe ne marque donc plus un point : il ==démontre la retenue==. Il
+donne ce que le compte donne — un seul numéro, cinq des six emplois de
+« manger » dans des repas de danger, 812 emplois du verbe ordinaire contre 6 —
+puis il s'arrête, en rappelant que ==la règle qui l'y oblige est écrite dans les
+conventions du projet avant d'être invoquée ici==.
+
+==C'est aussi la réponse à l'autre reproche de l'audit== — qu'une méthode qui
+refuse les catégories extérieures se dérobe à la discussion. Une page qui
+publie une mesure **et** refuse d'en conclure montre le contraire.
+
+**Le comparatif sémitique n'est pas dans la page, et c'est délibéré.** Les
+langues sources ne tiennent que cinq témoins — hébreu, deux grecs, guèze,
+latin — et ==ni ougaritique ni arabe==. L'hypothèse du « presser ensemble » est
+donc ==non mesurée==, et elle a une rivale : `malḥama` viendrait de la chair,
+non du contact. Rien de tout cela ne paraît devant un lecteur.
 
 ## #156 · Porter les quatre thèmes de l'app
 
