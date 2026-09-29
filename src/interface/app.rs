@@ -239,6 +239,7 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Router>
+            <crate::interface::design::SuiviDuSens />
             // Le segment de langue est délibéré (§4) : il épargne une migration
             // le jour d'une édition anglaise, et il ne coûte que trois
             // caractères. C'est `main.rs` qui envoie « / » vers « /fr ».

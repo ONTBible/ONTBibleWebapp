@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::api::verset_du_jour;
-use crate::interface::design::{fournir_preferences, CarteVersetDuJour, PageDeLecture};
+use crate::interface::design::{fournir_preferences, CarteDuJour, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// `/fr/qahal` — l'assemblée.
@@ -60,7 +60,7 @@ pub fn Qahal() -> impl IntoView {
                 <Suspense fallback=|| ()>
                     {move || Suspend::new(async move {
                         match verset.await {
-                            Ok(Some(v)) => view! { <CarteVersetDuJour verset=v /> }.into_any(),
+                            Ok(Some(v)) => view! { <CarteDuJour verset=v /> }.into_any(),
                             _ => ().into_any(),
                         }
                     })}
@@ -77,30 +77,51 @@ pub fn Qahal() -> impl IntoView {
 fn AVenir() -> impl IntoView {
     // Les trois de l'app, avec ses libellés : un lecteur qui passe du téléphone
     // au site doit retrouver les mêmes mots pour les mêmes choses.
+    // Les trois de l'app, avec ses libellés **et ses symboles** : un lecteur
+    // qui passe du téléphone au site doit retrouver les mêmes mots pour les
+    // mêmes choses, et les mêmes signes.
     let entrees = [
-        ("Ce que le Qahal a retenu", "les versets les plus repris"),
-        ("Échanges", "commenter un passage"),
-        ("Parcours", "lire le corpus à plusieurs"),
+        (
+            "retenu",
+            "Ce que le Qahal a retenu",
+            "les versets les plus repris",
+        ),
+        ("echanges", "Échanges", "commenter un passage"),
+        ("feuillets", "Parcours", "lire le corpus à plusieurs"),
     ];
 
     view! {
-        <section class="mt-10 rounded-bloc border border-filet bg-surface px-6 py-6">
-            <h2 class="m-0 mb-5 text-sm uppercase tracking-capitales text-encre-douce">
+        <section class="mt-8 rounded-bloc bg-encre/[0.04] px-5 py-5">
+            // **Une carte discrète**, pas une liste nue : `QuietBlock` chez
+            // l'app. Ce qui est annoncé doit se lire comme un bloc à part de
+            // ce qui existe, sinon on le touche.
+            <h2 class="m-0 mb-4 text-[0.78em] uppercase tracking-[0.08em] text-encre-douce">
                 "À venir"
             </h2>
             <ul class="m-0 flex list-none flex-col gap-4 p-0">
                 {entrees
                     .into_iter()
-                    .map(|(titre, note)| {
+                    .map(|(signe, titre, note)| {
                         view! {
                             <li class="flex gap-3">
-                                // Un point d'or plutôt qu'un symbole : trois
-                                // signes différents feraient croire à trois
-                                // destinations, or aucune n'existe encore.
+                                // **Un signe par entrée**, comme l'app — et en
+                                // accent : ce sont les trois seuls objets de
+                                // cet écran qui n'existent pas encore, et
+                                // l'or dit qu'ils sont promis.
+                                //
+                                // Ils étaient trois points identiques, au motif
+                                // que « trois signes différents feraient croire
+                                // à trois destinations ». C'était mal viser :
+                                // ce qui ferait croire à une destination est le
+                                // **chevron**, qu'aucune ne porte.
                                 <span
                                     aria-hidden="true"
-                                    class="mt-2 size-1.5 shrink-0 rounded-full bg-accent"
-                                ></span>
+                                    class="mt-0.5 shrink-0 text-accent"
+                                >
+                                    <svg viewBox="0 0 256 256" fill="currentColor" class="size-5">
+                                        <path d=crate::interface::design::symboles::trace(signe, false) />
+                                    </svg>
+                                </span>
                                 <span>
                                     <span class="block text-encre-douce">{titre}</span>
                                     <span class="block text-sm text-encre-douce/70">{note}</span>
@@ -114,9 +135,8 @@ fn AVenir() -> impl IntoView {
             // ici.** Le site n'a délibérément pas de *service worker* (§8
             // quinquies) : la lecture demande le réseau. Ce qu'elle ne demande
             // pas, c'est un compte — et c'est ce qui se dit à sa place, parce
-            // que c'est la même promesse : rien de ce qui compte n'attend
-            // qu'on s'inscrive.
-            <p class="mt-6 mb-0 text-sm text-encre-douce/70">
+            // que c'est la même promesse.
+            <p class="note-courte mt-5 mb-0 text-sm text-encre-douce/70">
                 "Ces fonctions demandent un serveur. La lecture, elle, ne demande aucun compte."
             </p>
         </section>

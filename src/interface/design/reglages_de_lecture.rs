@@ -237,16 +237,20 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
     view! { <></> }
 }
 
-/// Combien de pages de liseuse sont à l'écran.
-///
-/// **Une seule à la fois en régime établi**, deux le temps d'une navigation —
-/// et c'est ce chevauchement qui compte : il est la seule raison d'être de ce
-/// compteur.
-///
-/// `thread_local` et non un contexte : le WASM du navigateur est
-/// mono-thread, et un contexte imposerait à chaque page de le fournir, donc
-/// d'y penser. Ce nombre ne décrit pas un arbre de composants, il décrit
-/// l'état de `<html>` — qui est unique par construction.
+// Combien de pages de liseuse sont à l'écran.
+//
+// **En commentaire simple et non en doc** : `thread_local!` est une macro, et
+// un `///` posé devant ne se rattache à rien — le compilateur le signale comme
+// « unused doc comment », et le texte disparaît de la documentation.
+//
+// **Une seule à la fois en régime établi**, deux le temps d'une navigation —
+// et c'est ce chevauchement qui compte : il est la seule raison d'être de ce
+// compteur.
+//
+// `thread_local` et non un contexte : le WASM du navigateur est mono-thread,
+// et un contexte imposerait à chaque page de le fournir, donc d'y penser. Ce
+// nombre ne décrit pas un arbre de composants, il décrit l'état de `<html>` —
+// qui est unique par construction.
 #[cfg(feature = "hydrate")]
 thread_local! {
     static MONTEES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };

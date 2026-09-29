@@ -57,6 +57,9 @@ SYMBOLES = {
     "feuillets": ("book-open", "book.pages"),
     "onde": ("waveform", "waveform"),
     "taille": ("text-aa", "textformat.size"),
+    # Les trois du pavé « À venir » du Qahal.
+    "retenu": ("heart-straight", "heart.text.square"),
+    "echanges": ("chats-circle", "bubble.left.and.text.bubble.right"),
 }
 
 # Les marques des boutons de connexion — Ionicons, MIT, grille 512.

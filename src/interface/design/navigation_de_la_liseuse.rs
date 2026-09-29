@@ -286,6 +286,9 @@ fn BarreLaterale() -> impl IntoView {
     // > pas la même durée de vie. La barre survit aux pages ; son chemin doit
     // > venir de ce qui survit aussi.
     let chemin = leptos_router::hooks::use_location().pathname;
+    // Chaque navigation dépose la place courante sous son onglet.
+    #[cfg(feature = "hydrate")]
+    Effect::new(move |_| retenir_la_place(&chemin.get()));
     // **Deux ressources et non une.** Le plan est le même pour tout le monde
     // et se met en cache au bord ; la position appartient au lecteur et ne
     // doit jamais y entrer. Les fondre rendrait le plan incachable pour gagner
@@ -329,7 +332,7 @@ fn BarreLaterale() -> impl IntoView {
                                         p.chapter_id,
                                         p.verse,
                                     )
-                                    attr:class="presse presse--ligne survol mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:text-encre"
+                                    attr:class="presse--ligne survol mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:text-encre"
                                 >
                                     <Signe nom="signet" plein=true />
                                     <span class="flex-1 truncate">"Reprendre"</span>
@@ -393,7 +396,18 @@ fn BarreLaterale() -> impl IntoView {
                                 // produisent aucune erreur, seulement une
                                 // capsule qui ne se peint jamais.
                                 <A
-                                    href=destination.chemin
+                                    // **La place retenue, pas la racine.**
+                                    // Un onglet qu'on retrouve doit rendre ce
+                                    // qu'on y avait laissé — c'est ce que fait
+                                    // une `NavigationStack` par onglet, et
+                                    // c'est la moitié qu'un navigateur laisse
+                                    // reproduire.
+                                    //
+                                    // Lue à chaque rendu, donc à chaque
+                                    // navigation : une valeur figée au montage
+                                    // renverrait à la place d'il y a trois
+                                    // écrans.
+                                    href=move || place_retenue(ici)
                                     attr:aria-current=move || actif().then_some("page")
                                     attr:class=move || {
                                         // `presse--ligne` et non `presse` :
@@ -401,7 +415,7 @@ fn BarreLaterale() -> impl IntoView {
                                         // trois pour cent est une embardée.
                                         // C'est `ONTPresse(echelle: 0.985)`,
                                         // que l'app nomme `.ontLigne`.
-                                        let base = "presse presse--ligne survol flex items-center \
+                                        let base = "presse--ligne survol flex items-center \
                                                     gap-3 rounded-full px-3 py-2 font-titre text-sm \
                                                     no-underline";
                                         if actif() {
@@ -512,7 +526,7 @@ fn BarreLaterale() -> impl IntoView {
                                                                 // qui l'attrape.
                                                                 <A
                                                                     href=format!("/fr/webapp/{id}")
-                                                                    attr:class="presse presse--ligne survol flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline hover:text-encre"
+                                                                    attr:class="presse--ligne survol flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline hover:text-encre"
                                                                 >
                                                                     <Signe nom="feuillets" />
                                                                     <span class="truncate">{titre}</span>
@@ -545,7 +559,7 @@ fn BarreLaterale() -> impl IntoView {
             <div class="border-t border-filet/60 pt-4 mt-4">
                 <A
                     href="/fr/compte"
-                    attr:class="presse presse--ligne survol flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:border-or/50 hover:text-encre"
+                    attr:class="presse--ligne survol flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:border-or/50 hover:text-encre"
                 >
                     <Signe nom="compte" plein=true />
                     "Vous"
@@ -553,6 +567,65 @@ fn BarreLaterale() -> impl IntoView {
             </div>
         </nav>
     }
+}
+
+/// **Où l'on en était dans chaque onglet.**
+///
+/// ## Ce qu'un navigateur n'a pas
+///
+/// iOS donne une `NavigationStack` **par onglet** : on descend Bible → Bereshit
+/// → chapitre, on passe au Lexique, on revient à la Bible — et l'on est encore
+/// dans le chapitre. Un navigateur n'a qu'**une** pile, partagée, et un onglet
+/// y ramène toujours à sa racine.
+///
+/// On ne peut pas lui rendre de vraies piles, et il ne faut pas essayer :
+/// rejouer une pile par-dessus celle du navigateur ferait deux histoires, dont
+/// le bouton « précédent » ne saurait plus laquelle dérouler.
+///
+/// ## Ce qui se reproduit, et c'est la moitié qui compte
+///
+/// **Revenir où l'on était.** L'onglet mène au dernier chemin visité sous lui,
+/// pas à sa racine — c'est le comportement qu'on remarque, et son absence est
+/// ce que l'auteur a senti en demandant « des stacks par tab ».
+///
+/// Ce qu'on ne reproduit pas, et il faut le dire : le « précédent » du
+/// navigateur reste **chronologique**, il ne remonte pas la pile de l'onglet
+/// courant. Sur iOS ce geste est un chevron dans la barre ; ici c'est le fil
+/// d'Ariane et la pastille de renvoi, qui remontent bien l'arborescence.
+///
+/// ## `sessionStorage` et non `localStorage`
+///
+/// Une position dans un onglet vaut pour **une session de lecture**. Retrouver
+/// au réveil le chapitre où l'on était il y a trois jours serait du « Reprendre »
+/// — qui existe, qui est explicite, et qui passe par le compte.
+#[cfg(feature = "hydrate")]
+fn retenir_la_place(chemin: &str) {
+    let Some(racine) = DESTINATIONS
+        .iter()
+        .map(|d| d.chemin)
+        .find(|racine| on_y_est(chemin, racine))
+    else {
+        return;
+    };
+    if let Some(magasin) = web_sys::window().and_then(|f| f.session_storage().ok().flatten()) {
+        let _ = magasin.set_item(&format!("ont.onglet.{racine}"), chemin);
+    }
+}
+
+/// Le dernier chemin visité sous cet onglet, ou sa racine.
+#[cfg(feature = "hydrate")]
+fn place_retenue(racine: &str) -> String {
+    web_sys::window()
+        .and_then(|f| f.session_storage().ok().flatten())
+        .and_then(|m| m.get_item(&format!("ont.onglet.{racine}")).ok().flatten())
+        .filter(|chemin| chemin.starts_with(racine))
+        .unwrap_or_else(|| racine.to_string())
+}
+
+/// Côté serveur, un onglet mène à sa racine : il n'y a pas de session.
+#[cfg(not(feature = "hydrate"))]
+fn place_retenue(racine: &str) -> String {
+    racine.to_string()
 }
 
 /// La barre d'onglets — en dessous de `lg`.
@@ -606,6 +679,9 @@ fn BarreDOnglets() -> impl IntoView {
     // > pas la même durée de vie. La barre survit aux pages ; son chemin doit
     // > venir de ce qui survit aussi.
     let chemin = leptos_router::hooks::use_location().pathname;
+    // Chaque navigation dépose la place courante sous son onglet.
+    #[cfg(feature = "hydrate")]
+    Effect::new(move |_| retenir_la_place(&chemin.get()));
     view! {
         <nav
             aria-label="La liseuse"
@@ -626,7 +702,18 @@ fn BarreDOnglets() -> impl IntoView {
                         view! {
                             <li class="flex-1">
                                 <A
-                                    href=destination.chemin
+                                    // **La place retenue, pas la racine.**
+                                    // Un onglet qu'on retrouve doit rendre ce
+                                    // qu'on y avait laissé — c'est ce que fait
+                                    // une `NavigationStack` par onglet, et
+                                    // c'est la moitié qu'un navigateur laisse
+                                    // reproduire.
+                                    //
+                                    // Lue à chaque rendu, donc à chaque
+                                    // navigation : une valeur figée au montage
+                                    // renverrait à la place d'il y a trois
+                                    // écrans.
+                                    href=move || place_retenue(ici)
                                     attr:aria-current=move || actif().then_some("page")
                                     // Le libellé est **sous** le symbole et en
                                     // très petit, comme chez l'app : un symbole

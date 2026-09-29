@@ -129,7 +129,16 @@ pub fn PageDeLecture(
         // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
         // hauteur de la barre d'onglets, sans quoi la dernière ligne du
         // chapitre se lirait derrière elle.
-        <div class="pb-24 lg:ps-[16.5rem] lg:pb-0">
+        // **Le sens de la navigation porte sur l'écran entier**, pas sur ses
+        // pièces : un empilement déplace la page, une cascade la remplit. Les
+        // deux se composent — le titre et le corps gardent leur arrivée en
+        // rang à l'intérieur de l'écran qui glisse.
+        <div class=move || {
+            format!(
+                "pb-24 lg:ps-[16.5rem] lg:pb-0 {}",
+                crate::interface::design::sens().get().classe(),
+            )
+        }>
         <Bloc page=liste>
             {barre.map(|barre| barre())}
 
@@ -193,8 +202,18 @@ pub fn PageDeLecture(
                     }
                 })}
 
+            // **L'arrivée en cascade**, comme `ONTApparition`.
+            //
+            // Le titre part au rang 0, le chapeau au 1, le corps au 2 : trois
+            // objets qui se suivent d'un souffle. *Sans mouvement d'entrée, un
+            // écran apparaît ; avec, il arrive.*
+            //
+            // Le rang est porté par une propriété et non par une classe : une
+            // classe par rang ferait douze classes dans la feuille pour ce que
+            // `calc` fait en une ligne.
             <h1
-                class="mt-0 text-balance"
+                class="arrivee mt-0 text-balance"
+                style:--rang="0"
                 // **Le titre d'unité suit le corps, comme chez l'app.**
                 //
                 // Il prenait `--text-3xl`, le palier d'édition — calibré pour
@@ -223,7 +242,7 @@ pub fn PageDeLecture(
                 {move || titre.get()}
             </h1>
 
-            {chapeau.map(|chapeau| view! { <div class="mb-14">{chapeau()}</div> })}
+            {chapeau.map(|chapeau| view! { <div class="arrivee mb-14" style:--rang="1">{chapeau()}</div> })}
 
             // **La seconde échelle.** Tout ce que la liseuse contient hérite
             // de cette taille, donc tout suit le réglage du lecteur — une
@@ -234,7 +253,7 @@ pub fn PageDeLecture(
             // le titre sont de la chrome, et ils ne doivent pas enfler quand on
             // monte le corps — c'est la règle de l'app, et sa raison est
             // qu'une chrome qui grandit mange la place du texte.
-            <div class="liseuse">{children()}</div>
+            <div class="arrivee liseuse" style:--rang="2">{children()}</div>
         </Bloc>
         </div>
     }

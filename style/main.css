@@ -546,6 +546,22 @@
    Sans elle, un fond coloré passe derrière en gris de brouillard.           */
 
 .verre {
+  /* **Le verre est la pièce la plus chère du défilement.**
+
+     `backdrop-filter` rééchantillonne tout ce qui passe derrière, à chaque
+     image. Sur une barre fixe ou collante, c'est *à chaque image du
+     défilement* — et la zone rééchantillonnée est celle que le compositeur
+     croit nécessaire, pas celle de la barre.
+
+     `contain: paint` la borne à sa propre boîte. Aucun changement à l'écran :
+     la barre ne peint déjà rien au-delà. C'est la même correction que le
+     portique du seuil, où l'étalement d'une ombre faisait réserver une couche
+     de plusieurs dizaines de milliers de pixels de côté.
+
+     C'est ce qui sépare un défilement qui « colle au doigt » d'un défilement
+     qui traîne d'une image ou deux : iOS Safari donne la physique du système —
+     une page ne peut pas en ajouter, seulement cesser de la gêner. */
+  contain: paint;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
@@ -565,6 +581,134 @@
 @supports not (backdrop-filter: blur(1px)) {
   .verre {
     background-color: var(--color-surface);
+  }
+}
+
+/* ═══ Les interactions d'une app, et pas davantage ═════════════════════════
+
+   Dans une app iOS, on ne sélectionne pas le texte à la main : on touche un
+   verset, et la barre propose ce qu'on peut en faire. Le site laissait faire
+   les deux — et les deux se gênent, puisque le glissement qui sélectionne est
+   aussi celui qui fait défiler.
+
+   Trois déclarations, et chacune retire un geste de navigateur :
+
+   - `user-select: none` — plus de sélection à la souris ni de curseur en I.
+     Ce qu'on veut copier passe par le geste de l'app : toucher le verset, puis
+     « Copier ». C'est plus étroit, et c'est **le même geste des deux côtés** ;
+   - `-webkit-touch-callout: none` — plus de loupe ni de menu long-toucher sur
+     iOS. C'était le plus visible : un appui maintenu sur un verset ouvrait le
+     menu du système par-dessus la barre de sélection de l'app ;
+   - `-webkit-tap-highlight-color: transparent` — plus de voile gris au
+     toucher. Il double l'enfoncement qu'on vient de dessiner, en moins beau et
+     en retard d'une image.
+
+   **Les champs restent sélectionnables**, et il le faut : on corrige une
+   recherche mal tapée en y revenant, et un profil ne se remplit pas sans
+   pouvoir effacer un mot.                                                  */
+
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ═══ L'arrivée en cascade ══════════════════════════════════════════════════
+
+   `ONTApparition` : l'élément part **huit points plus bas**, transparent, et
+   remonte au ressort `pop`, décalé par son rang. Son commentaire dit tout :
+   *sans mouvement d'entrée, un écran **apparaît** ; avec, il **arrive**.*
+
+   Le site ne l'avait nulle part. Les onglets se remplaçaient d'un coup, ce qui
+   se lit comme un rechargement — exactement ce que la webapp n'est pas.
+
+   ## Le rang se donne en CSS, pas en Rust
+
+   `--rang` sur l'élément, lu par le délai. Une liste de soixante-dix livres
+   n'a pas à compter jusqu'à soixante-dix : la borne est à douze, comme chez
+   l'app. Au-delà, l'œil ne suit plus la cascade — il voit un écran qui met du
+   temps à se remplir.
+
+   ## Et elle ne rejoue pas à chaque bascule d'onglet
+
+   Elle est portée par une **animation**, donc elle se joue au montage de
+   l'élément et pas davantage. Un onglet qu'on retrouve ne la rejoue que s'il a
+   été démonté — ce qui est le cas ici, chaque page se montant à neuf.       */
+
+.arrivee {
+  animation: arrivee var(--pop-duree) var(--pop) both;
+  animation-delay: calc(min(var(--rang, 0), var(--cascade-borne)) * var(--cascade-pas));
+}
+
+/* L'empilement et le dépilement — la transition d'une `NavigationStack`.
+
+   L'écran qui **arrive** glisse depuis le côté d'où il vient. Celui qui part,
+   non : Leptos l'a démonté avant que le suivant ne se monte, et le garder
+   demanderait deux arbres vivants — deux pages de corpus, deux hydratations,
+   un `Suspense` qui ne sait plus lequel il suspend. L'œil suit ce qui entre,
+   et c'est la moitié qui porte le sens.
+
+   Le glissement est **court** — 22 % de la largeur — et non pleine page : à
+   pleine page il devient un carrousel, et l'on attend la fin au lieu de lire.
+   C'est le même arbitrage que la caméra du portail, qui arrive à 1 au lieu de
+   dépasser.                                                                */
+.empile {
+  animation: empile var(--ressort-duree) var(--ressort) both;
+}
+
+.depile {
+  animation: depile var(--ressort-duree) var(--ressort) both;
+}
+
+@keyframes empile {
+  from {
+    opacity: 0;
+    transform: translateX(22%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes depile {
+  from {
+    opacity: 0;
+    transform: translateX(-18%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes arrivee {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Le mouvement d'entrée est celui qui gêne le plus : il part tout seul, sans
+   qu'on l'ait demandé. */
+@media (prefers-reduced-motion: reduce) {
+  .arrivee,
+  .empile,
+  .depile {
+    animation: none;
   }
 }
 
@@ -603,6 +747,7 @@
    d'un site porté depuis un bureau.                                        */
 
 .presse,
+.presse--ligne,
 .survol {
   transition:
     transform var(--ressort-vif-duree) var(--ressort-vif),
@@ -618,7 +763,14 @@
 
 /* Une ligne large bouge moins : à sa taille, trois pour cent seraient une
    embardée. C'est `ONTPresse(echelle: 0.985)`, et l'app lui donne son propre
-   nom — `.ontLigne`. */
+   nom — `.ontLigne`.
+
+   **Elle s'emploie seule, jamais avec `.presse`.** Les deux écrivent
+   `transform` : posées ensemble, elles se départagent par l'ordre de la
+   feuille et non par l'intention — le piège de `Bloc` et de `max-w-mesure`,
+   rejoué. Ça « marchait », `.presse--ligne` étant écrite après ; ça aurait
+   cessé de marcher le jour où l'on réordonne ce fichier, sans que rien ne le
+   dise. */
 .presse--ligne:active,
 .presse--ligne:has(:active) {
   transform: scale(0.985);

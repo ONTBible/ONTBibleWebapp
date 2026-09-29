@@ -277,7 +277,7 @@ pub fn Ligne(
                         // cible. Voir le `<li>` qui l'enveloppe.
                         <A
                             href=chemin
-                            attr:class="presse presse--ligne flex items-center gap-3 text-encre no-underline"
+                            attr:class="presse--ligne flex items-center gap-3 text-encre no-underline"
                         >
                             {dedans()}
                             <Chevron />
