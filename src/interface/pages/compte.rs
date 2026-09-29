@@ -227,9 +227,37 @@ fn Ferme() -> impl IntoView {
                             // servies avant le routeur, qui rendrait son 404.
                             rel="external"
                             href=format!("/fr/compte/aller/{}", f.cle())
-                            class="block rounded-full bg-marque-encre px-6 py-3.5 text-center font-titre text-sur-marque-accent no-underline transition-transform duration-150 ease-out hover:-translate-y-px active:scale-[0.99] motion-reduce:transition-none"
+                            class="flex items-center justify-center gap-3 rounded-full bg-marque-encre px-6 py-3.5 text-center font-titre text-sur-marque-accent no-underline transition-transform duration-150 ease-out hover:-translate-y-px active:scale-[0.99] motion-reduce:transition-none"
                         >
-                            "Continuer avec " {f.nom()}
+                            // **La marque, en monochrome.** L'app portait trois
+                            // provenances pour trois boutons — `apple.logo`,
+                            // un `g.circle.fill` qui n'est pas le G de Google,
+                            // et trois chevrons pour GitHub. Trois graisses,
+                            // trois grilles.
+                            //
+                            // L'auteur a tranché pour Ionicons, monochrome, le
+                            // 29 septembre 2026 : les trois prennent alors la
+                            // teinte de leur bouton au lieu d'y poser la leur.
+                            //
+                            // **Google demande son mark en quatre couleurs**,
+                            // et aucune variante monochrome officielle
+                            // n'existe — mesuré côté app, cinq sources du kit
+                            // essayées. C'est donc un écart connu, pas un
+                            // oubli ; et il coûte moins ici, un site n'étant
+                            // relu par personne. Ce qu'on garde est que les
+                            // deux écrans se ressemblent.
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 512 512"
+                                fill="currentColor"
+                                class="size-[1.15em] shrink-0"
+                            >
+                                <path d=crate::interface::design::symboles::trace(
+                                    &format!("marque-{}", f.cle()),
+                                    false,
+                                ) />
+                            </svg>
+                            <span>"Continuer avec " {f.nom()}</span>
                         </a>
                     }
                 })

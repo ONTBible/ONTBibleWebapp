@@ -42,6 +42,7 @@ import re
 import urllib.request
 
 BASE = "https://raw.githubusercontent.com/phosphor-icons/core/main"
+IONIC = "https://raw.githubusercontent.com/ionic-team/ionicons/main/src/svg"
 RACINE = pathlib.Path(__file__).resolve().parent.parent
 
 # nom chez nous → (nom Phosphor, le symbole de l'app qu'il remplace)
@@ -57,6 +58,25 @@ SYMBOLES = {
     "onde": ("waveform", "waveform"),
     "taille": ("text-aa", "textformat.size"),
 }
+
+# Les marques des boutons de connexion — Ionicons, MIT, grille 512.
+#
+# **Pas Phosphor** : elle n'a pas de logos de marques, et c'est normal — une
+# famille d'icônes d'interface n'a pas à porter les marques d'autrui.
+#
+# Le choix vient de l'app, arbitré par l'auteur le 29 septembre 2026 : elle
+# portait trois provenances pour trois boutons — `apple.logo`, `g.circle.fill`
+# (un G générique d'Apple, pas celui de Google) et trois chevrons `</>` pour
+# GitHub. Trois graisses, trois grilles.
+#
+# **La réserve est levée et il faut dire comment.** Google exige son mark tel
+# qu'il le fournit, en quatre couleurs ; la session iOS a mesuré qu'aucune
+# variante monochrome officielle n'existe. L'auteur a vu les deux et demandé le
+# monochrome, pour que les trois marques prennent la teinte de leur bouton au
+# lieu d'y poser la leur. C'est une décision prise en connaissant l'écart, pas
+# un oubli — et le calcul est plus simple ici que chez elle : un site n'est
+# relu par personne.
+MARQUES = ("apple", "google", "github")
 
 # Ceux dont on a besoin **aussi** en plein — la barre d'onglets et la barre
 # latérale, où l'actif se dit par le remplissage.
@@ -101,6 +121,22 @@ def main() -> None:
             lignes.append(f'        ("{chez_nous}", true) => "{plein}",\n')
         print(f"  {chez_nous:11} ← {chez_eux:18} ({sf})")
 
+    for marque in MARQUES:
+        url = f"{IONIC}/logo-{marque}.svg"
+        with urllib.request.urlopen(url, timeout=20) as reponse:
+            svg = reponse.read().decode()
+        chemins = re.findall(r'<path[^>]*\bd="([^"]+)"', svg)
+        if not chemins:
+            raise SystemExit(f"{url} ne porte aucun tracé")
+        # Ionicons dessine sur 512, Phosphor sur 256. On ne convertit pas : le
+        # rendu porte la grille dans son `viewBox`, et deux familles n'ont
+        # aucune raison de partager une échelle.
+        if 'viewBox="0 0 512 512"' not in svg:
+            raise SystemExit(f"{url} n'est pas sur la grille 512")
+        lignes.append(f'        // logo-{marque}  ←  ionicons (MIT)\n')
+        lignes.append(f'        ("marque-{marque}", false) => "{" ".join(chemins)}",\n')
+        print(f"  marque-{marque:8} ← ionicons/logo-{marque}")
+
     sortie = RACINE / "src" / "interface" / "design" / "symboles.rs"
     sortie.write_text(
         '//! Les symboles de l\'interface — **engendré, ne pas modifier à la main**.\n'
@@ -114,6 +150,10 @@ def main() -> None:
         "//!\n"
         "//! Grille **256 × 256** et tracés en **aplat**, comme les SF Symbols — et non\n"
         "//! en traits, comme les silhouettes que ce module dessinait à la main.\n"
+        "//!\n"
+        "//! **Sauf les trois marques**, qui viennent d'Ionicons (MIT) et vivent sur une\n"
+        "//! grille de 512. Elles ne sont pas converties : le rendu porte sa grille dans\n"
+        "//! son `viewBox`, et deux familles n'ont aucune raison de partager une échelle.\n"
         "\n"
         "/// Le tracé d'un symbole, plein ou en contour.\n"
         "///\n"
@@ -132,10 +172,14 @@ def main() -> None:
     )
     print(f"→ {sortie.relative_to(RACINE)}")
 
-    licence = RACINE / "public" / "fontes" / "Phosphor-MIT.txt"
-    with urllib.request.urlopen(f"{BASE}/LICENSE", timeout=20) as reponse:
-        licence.write_bytes(reponse.read())
-    print(f"→ {licence.relative_to(RACINE)}")
+    for nom, url in (
+        ("Phosphor-MIT.txt", f"{BASE}/LICENSE"),
+        ("Ionicons-MIT.txt", "https://raw.githubusercontent.com/ionic-team/ionicons/main/LICENSE"),
+    ):
+        licence = RACINE / "public" / "fontes" / nom
+        with urllib.request.urlopen(url, timeout=20) as reponse:
+            licence.write_bytes(reponse.read())
+        print(f"→ {licence.relative_to(RACINE)}")
 
 
 if __name__ == "__main__":

@@ -313,6 +313,22 @@ pub fn BarreDeSelection(
                         efface_apres=true
                         selection
                     />
+                    // **L'image**, que ce module disait impossible.
+                    //
+                    // Son propre commentaire écrivait « Image demande un rendu
+                    // que le navigateur ne fait pas gratuitement ». Un
+                    // `<canvas>` le fait, sans bibliothèque et sans requête :
+                    // la phrase avait le tort d'avoir l'air d'une mesure.
+                    //
+                    // Le texte est celui du partage — donc **le corps seul**,
+                    // déjà dépouillé de ses niveaux. C'est la règle de l'app et
+                    // c'est la meilleure raison de tout ce portage : sorti de
+                    // la liseuse, l'appareil critique devient une affirmation
+                    // sans recours.
+                    <crate::interface::design::ImageDePartage
+                        texte=Signal::derive(move || texte_partage())
+                        renvoi=Signal::derive(move || renvoi_courant())
+                    />
                     <ActionDePartage
                         texte=Callback::new(move |()| texte_partage())
                         lien=Callback::new(move |()| adresse())
