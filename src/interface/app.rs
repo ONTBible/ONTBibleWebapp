@@ -332,20 +332,6 @@ pub fn App() -> impl IntoView {
                         view=Partie
                         ssr=SsrMode::Async
                     />
-                    // **Avant celle du livre**, comme `/fr/webapp/partie` :
-                    // les deux font trois segments, et `reglages` n'est le nom
-                    // d'aucun livre — ce sont des translittérations de
-                    // l'hébreu. Une épreuve le tient plutôt que ce commentaire.
-                    <Route
-                        path=(
-                            StaticSegment("fr"),
-                            StaticSegment("webapp"),
-                            StaticSegment("reglages"),
-                        )
-                        view=Reglages
-                        ssr=SsrMode::Async
-                    />
-
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("webapp"), ParamSegment("livre"))
                         view=Livre
@@ -362,6 +348,18 @@ pub fn App() -> impl IntoView {
                             ParamSegment("unite"),
                         )
                         view=Passage
+                        ssr=SsrMode::Async
+                    />
+
+                    // Les réglages de lecture — sous « Vous », dont ils sont
+                    // une destination chez l'app.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("compte"),
+                            StaticSegment("lecture"),
+                        )
+                        view=Reglages
                         ssr=SsrMode::Async
                     />
 
@@ -415,7 +413,21 @@ pub fn App() -> impl IntoView {
                     />
                 </Routes>
             </main>
-            <PiedDePage />
+            // **Le pied appartient à l'édition, pas à la webapp.**
+            //
+            // Il n'avait aucune condition et se posait donc sous la liseuse —
+            // « La Bible ONT / Webapp · Lexique » sous la barre d'onglets, ce
+            // qu'aucune app ne fait. `Entete` avait été retiré en ne le rendant
+            // pas dans `PageDeLecture` ; le pied, lui, est rendu ici, donc
+            // partout.
+            //
+            // La condition est le **compteur de la peau**, pas une table de
+            // chemins : c'est la même question — *reste-t-il une page de
+            // liseuse à l'écran ?* — et deux tables à tenir d'accord finissent
+            // toujours par diverger.
+            <Show when=move || crate::interface::design::dans_la_liseuse().get() == 0>
+                <PiedDePage />
+            </Show>
         </Router>
     }
 }
@@ -487,7 +499,11 @@ mod epreuves_de_la_peau {
             .or_else(|| source.find("ParamSegment(\"livre\")"))
             .expect("la route du livre doit exister");
 
-        for segment in ["partie", "reglages"] {
+        // `reglages` est sorti de cette liste : il vit sous `/fr/compte`,
+        // où aucune route à paramètre ne le capte. Le garder ici aurait fait
+        // une garde qui vérifie une contrainte disparue — et celles-là passent
+        // au vert pour de mauvaises raisons.
+        for segment in ["partie"] {
             let statique = source
                 .find(&format!("StaticSegment(\"{segment}\")"))
                 .unwrap_or_else(|| panic!("aucune route ne déclare `{segment}`"));

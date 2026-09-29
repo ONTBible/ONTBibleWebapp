@@ -64,7 +64,7 @@ PAGES = [
     # La webapp — les cinq onglets et ce qu'ils ouvrent.
     "/fr/qahal",
     "/fr/webapp",
-    "/fr/webapp/reglages",
+    "/fr/compte/lecture",
     "/fr/webapp/partie/torah",
     "/fr/webapp/bereshit",
     "/fr/webapp/bereshit/bereshit-1",

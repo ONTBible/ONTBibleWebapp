@@ -47,6 +47,22 @@ pub fn Bloc(
     /// calcul se fait donc en amont, en une fois.
     #[prop(optional)]
     page: bool,
+    /// **Sans la voûte ni le filet** — un écran d'app, pas une section de page.
+    ///
+    /// La voûte est l'éclairage de l'**édition** : une lueur d'aubergine en
+    /// haut, la nuit qui reprend vers le bas, de sorte que la lumière semble
+    /// venir d'au-dessus du texte. Elle est dessinée avec `--color-aubergine`,
+    /// qui est **la marque** et ne suit donc aucun thème.
+    ///
+    /// Posée sur parchemin, elle devient une brume rose derrière le texte —
+    /// c'est ce que l'auteur a vu, et c'est le défaut que le §8 undecies avait
+    /// déjà relevé sur le massif de l'accueil, mot pour mot : *« posés sur du
+    /// parchemin, le massif devient une forme violette sur de la crème »*.
+    ///
+    /// Le filet part avec : il dit « nouvelle section » dans une page qui en
+    /// enchaîne plusieurs. Un écran de webapp n'en a qu'une.
+    #[prop(optional)]
+    nu: bool,
     /// L'ancre, pour qu'un lien de la page puisse y mener.
     #[prop(optional, into)]
     id: Option<String>,
@@ -55,9 +71,17 @@ pub fn Bloc(
     view! {
         <section
             id=id
-            class="flex min-h-dvh flex-col justify-center border-t border-filet/50"
-            class=("voute-basse", !eclaire)
-            class=("voute", eclaire)
+            // **Trois états d'éclairage, donc une classe calculée.** À
+            // spécificité égale, trois `class=(…)` se départagent par l'ordre
+            // de la feuille — le piège de `max-w-mesure`, et celui que ce
+            // fichier raconte déjà dix lignes plus bas.
+            class=if nu {
+                "flex min-h-dvh flex-col justify-center"
+            } else if eclaire {
+                "flex min-h-dvh flex-col justify-center border-t border-filet/50 voute"
+            } else {
+                "flex min-h-dvh flex-col justify-center border-t border-filet/50 voute-basse"
+            }
         >
             // Les deux largeurs sont **exclusives**, et il faut qu'elles le
             // soient dans le balisage, pas seulement dans l'intention.

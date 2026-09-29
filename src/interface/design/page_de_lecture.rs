@@ -139,7 +139,10 @@ pub fn PageDeLecture(
                 crate::interface::design::sens().get().classe(),
             )
         }>
-        <Bloc page=liste>
+        // **Nu**, et c'est ce qui sépare un écran d'app d'une section de
+        // page : ni voûte d'aubergine, ni filet de section. L'app peint un
+        // fond plat — `ontScreen()` — et rien d'autre.
+        <Bloc page=liste nu=true>
             {barre.map(|barre| barre())}
 
             // **L'action seule, alignée à droite**, et `sticky` comme la barre

@@ -774,7 +774,7 @@ fn LaLecture() -> impl IntoView {
             // d'écran de réglages à lui, et lui en fabriquer un ferait une
             // seconde copie des mêmes bascules.
             <Ligne
-                chemin=Some("/fr/webapp/reglages".to_string())
+                chemin=Some("/fr/compte/lecture".to_string())
                 titre=Box::new(|| view! { "Réglages de lecture" }.into_any())
                 sous_titre=Box::new(|| {
                     view! { "Thème, fonte, taille, niveaux du texte" }.into_any()

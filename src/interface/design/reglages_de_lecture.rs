@@ -186,6 +186,19 @@ fn ecrire(preferences: Preferences) {
 /// définition, puisque rien n'est encore rendu.
 #[component]
 pub fn PeauDeLaLiseuse() -> impl IntoView {
+    // **Le compteur vit des deux côtés**, et il le faut.
+    //
+    // Il était dans le bloc `hydrate`, donc à zéro sur le serveur — qui
+    // rendait alors le pied de page du site, que le navigateur retirait
+    // aussitôt. Les deux arbres auraient divergé à l'hydratation : le piège
+    // exact du banc de la carte, deux heures plus tôt.
+    //
+    // Il ne touche à rien du DOM : c'est un nombre. Seul ce qu'on en **fait**
+    // — poser l'attribut de peau — appartient au navigateur.
+    let compteur = dans_la_liseuse();
+    compteur.update(|n| *n += 1);
+    on_cleanup(move || compteur.update(|n| *n = n.saturating_sub(1)));
+
     #[cfg(feature = "hydrate")]
     {
         let preferences = preferences();
@@ -216,7 +229,6 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
         //
         // C'est aussi ce qui rend le réglage **vivant partout** : l'effet suit
         // `preferences`, et la page des réglages en est une comme les autres.
-        MONTEES.with(|n| n.set(n.get() + 1));
         Effect::new(move |_| {
             let reglages = preferences.get();
             poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
@@ -224,37 +236,43 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
             poser_l_interligne(reglages.interligne);
             poser_la_coupure(reglages.coupure);
         });
-        on_cleanup(|| {
-            MONTEES.with(|n| {
-                let reste = n.get().saturating_sub(1);
-                n.set(reste);
-                if reste == 0 {
-                    poser_la_peau(None, None);
-                }
-            });
+        // Le retrait de la peau suit le compteur, une fois qu'il a été
+        // décrémenté par le nettoyage commun déclaré plus haut. `on_cleanup`
+        // s'exécute dans l'ordre de déclaration, donc celui-ci passe après.
+        on_cleanup(move || {
+            if compteur.get_untracked() == 0 {
+                poser_la_peau(None, None);
+            }
         });
     }
     view! { <></> }
 }
 
-// Combien de pages de liseuse sont à l'écran.
-//
-// **En commentaire simple et non en doc** : `thread_local!` est une macro, et
-// un `///` posé devant ne se rattache à rien — le compilateur le signale comme
-// « unused doc comment », et le texte disparaît de la documentation.
-//
-// **Une seule à la fois en régime établi**, deux le temps d'une navigation —
-// et c'est ce chevauchement qui compte : il est la seule raison d'être de ce
-// compteur.
-//
-// `thread_local` et non un contexte : le WASM du navigateur est mono-thread,
-// et un contexte imposerait à chaque page de le fournir, donc d'y penser. Ce
-// nombre ne décrit pas un arbre de composants, il décrit l'état de `<html>` —
-// qui est unique par construction.
-#[cfg(feature = "hydrate")]
-thread_local! {
-    static MONTEES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+/// Combien de pages de liseuse sont à l'écran.
+///
+/// **Zéro veut dire « on est dans l'édition »**, et c'est ce que deux pièces
+/// lisent : la peau, qui s'en va, et le **pied de page** du site, qui revient.
+///
+/// Le pied n'avait aucune condition et se posait donc sous la webapp — « LA
+/// BIBLE ONT / WEBAPP LEXIQUE » sous la barre d'onglets, ce qu'aucune app ne
+/// fait. `Entete` avait été retiré de la liseuse en ne le rendant pas dans
+/// `PageDeLecture` ; le pied, lui, est rendu par `App`, donc partout.
+///
+/// C'est la même question que la peau — *reste-t-il une page de liseuse à
+/// l'écran ?* — donc la même réponse, et non une seconde table de chemins à
+/// tenir d'accord avec la première.
+pub fn dans_la_liseuse() -> RwSignal<usize> {
+    if let Some(deja) = use_context::<CompteurDeLiseuse>() {
+        return deja.0;
+    }
+    let compteur = RwSignal::new(0usize);
+    provide_context(CompteurDeLiseuse(compteur));
+    compteur
 }
+
+/// Le porteur du compteur, pour que le contexte ait un type à lui.
+#[derive(Clone, Copy)]
+struct CompteurDeLiseuse(RwSignal<usize>);
 
 /// Écrit — ou retire — l'attribut de peau, et accorde la barre du navigateur.
 ///

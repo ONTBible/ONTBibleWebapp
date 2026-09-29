@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use crate::interface::design::{fournir_preferences, LesReglages, PageDeLecture};
 use crate::interface::tete::Tete;
 
-/// `/fr/webapp/reglages` — les réglages de lecture, en page.
+/// `/fr/compte/lecture` — les réglages de lecture, en page.
 ///
 /// ## Le chemin qui manquait
 ///
@@ -36,16 +36,26 @@ pub fn Reglages() -> impl IntoView {
             titre="Réglages de lecture"
             description="Thème, fonte, taille, interligne et niveaux du texte — la liseuse \
                          de La Bible ONT se règle sans compte."
-            chemin="/fr/webapp/reglages"
+            chemin="/fr/compte/lecture"
         />
         // Ce n'est pas une page qu'un moteur doit servir : elle ne porte aucun
         // contenu, seulement des interrupteurs, et elle est vide sans
         // JavaScript.
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
+        // **Sous « Vous », et non sous la Bible.**
+        //
+        // Elle était à `/fr/webapp/reglages`, donc l'onglet **Bible**
+        // s'allumait en y arrivant — on partait de « Vous » et l'on se
+        // retrouvait ailleurs. Et la mémoire de l'onglet Bible retenait cette
+        // page comme sa dernière place : y revenir ramenait aux réglages au
+        // lieu du corpus.
+        //
+        // C'est la structure de l'app : `YouTab` pousse `ReadingSettingsSheet`
+        // comme une destination **de son onglet**. L'adresse le dit maintenant.
         <PageDeLecture
             liste=true
-            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
+            fil=vec![("/fr/compte".to_string(), "Vous".to_string())]
             titre="Lecture"
         >
             <div class="max-w-mesure">

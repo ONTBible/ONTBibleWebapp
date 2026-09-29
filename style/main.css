@@ -644,8 +644,24 @@ select,
    l'élément et pas davantage. Un onglet qu'on retrouve ne la rejoue que s'il a
    été démonté — ce qui est le cas ici, chaque page se montant à neuf.       */
 
+/* **`backwards` et non `both`, et ça vaut d'être expliqué.**
+
+   `both` garde la dernière image appliquée **pour toujours** — donc un
+   `transform: translateY(0)` posé à demeure. Un transform, même identité,
+   fait de l'élément le **bloc conteneur de ses descendants `fixed`** : la
+   feuille des réglages se positionnait alors par rapport à la page entière au
+   lieu de l'écran, et partait à `y = 23726` sur un chapitre long. Le bouton
+   « aA » répondait — `aria-expanded` passait bien à vrai —, la feuille
+   existait, et personne ne la voyait jamais.
+
+   Mesuré au banc, parce que rien d'autre ne pouvait le dire : le bouton
+   marche, la feuille est dans le document, et le défaut est une coordonnée.
+
+   `backwards` applique la première image **pendant le délai** — ce qu'on veut,
+   l'élément ne doit pas clignoter avant son tour — puis rend l'élément à ses
+   styles normaux une fois l'animation finie. Aucun transform ne reste. */
 .arrivee {
-  animation: arrivee var(--pop-duree) var(--pop) both;
+  animation: arrivee var(--pop-duree) var(--pop) backwards;
   animation-delay: calc(min(var(--rang, 0), var(--cascade-borne)) * var(--cascade-pas));
 }
 
@@ -662,11 +678,11 @@ select,
    C'est le même arbitrage que la caméra du portail, qui arrive à 1 au lieu de
    dépasser.                                                                */
 .empile {
-  animation: empile var(--ressort-duree) var(--ressort) both;
+  animation: empile var(--ressort-duree) var(--ressort) backwards;
 }
 
 .depile {
-  animation: depile var(--ressort-duree) var(--ressort) both;
+  animation: depile var(--ressort-duree) var(--ressort) backwards;
 }
 
 @keyframes empile {
