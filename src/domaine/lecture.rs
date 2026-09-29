@@ -149,6 +149,12 @@ impl Theme {
     pub const CORPS_MAXIMUM: u8 = 28;
     pub const CORPS_PAR_DEFAUT: u8 = 19;
 
+    /// Les bornes de l'interligne — celles de l'app, `0,2...1,0` par pas de
+    /// 0,1. Le défaut est 0,5, et il rend les 1,68 que le §5 a mesurés.
+    pub const INTERLIGNE_MINIMUM: u8 = 2;
+    pub const INTERLIGNE_MAXIMUM: u8 = 10;
+    pub const INTERLIGNE_PAR_DEFAUT: u8 = 5;
+
     /// Les quatre, dans l'ordre du menu de l'app.
     pub const TOUS: [Theme; 4] = [
         Theme::Parchemin,
@@ -352,6 +358,57 @@ pub struct Preferences {
     /// n'est pas celui de l'app, il a été mesuré ici (§5). Ce qui voyage est
     /// le **rapport au défaut** — 19 laisse le site exactement tel qu'il est.
     pub corps: u8,
+    /// L'interligne, **dans l'unité de l'app** — `lineSpacing`, de 0,2 à 1,0.
+    ///
+    /// ## Pourquoi son unité n'est pas celle du web
+    ///
+    /// SwiftUI compte un **supplément** : `.lineSpacing` s'ajoute à
+    /// l'interligne naturel de la fonte, et l'app le multiplie par la taille
+    /// du corps. La CSS, elle, compte un **total** — `line-height: 1,68` est
+    /// la hauteur entière d'une ligne, fonte comprise.
+    ///
+    /// Les deux ne se convertissent pas exactement : le supplément naturel de
+    /// Literata n'est pas un nombre que ce dépôt connaît. Ce qu'on tient, et
+    /// qui suffit, c'est **le défaut et l'amplitude** :
+    ///
+    /// | | app | site |
+    /// |---|---|---|
+    /// | défaut | 0,5 | **1,68** — la valeur du §5 |
+    /// | plus serré | 0,2 | 1,38 |
+    /// | plus aéré | 1,0 | 2,18 |
+    ///
+    /// Le défaut du site rend donc **exactement** ce qu'il rendait avant ce
+    /// réglage, et c'est une condition : le §5 a mesuré 1,68 et dit pourquoi.
+    /// Un curseur dont le cran du milieu déplacerait la valeur documentée
+    /// changerait la composition de tout le monde pour offrir un réglage à
+    /// quelques-uns.
+    ///
+    /// ## En **dixièmes**, et non en flottant
+    ///
+    /// L'app le porte en `Double`, mais son curseur avance `step: 0.1` : ce
+    /// sont **neuf crans**, pas un continuum. Les compter en entier a trois
+    /// effets, et les trois comptent ici :
+    ///
+    /// - `Preferences` reste `Eq`, donc comparable — un flottant ne l'est pas,
+    ///   et c'est ce qui a refusé la première écriture ;
+    /// - la sérialisation est exacte : `0.7` ne s'écrit pas en binaire, et un
+    ///   aller-retour par `localStorage` peut rendre `0.7000000000000001` ;
+    /// - deux réglages identiques se reconnaissent, ce dont un signal a besoin
+    ///   pour ne pas se déclencher sur une égalité qui n'en est pas une.
+    ///
+    /// C'est le même choix que `corps`, qui compte des points entiers.
+    pub interligne: u8,
+    /// Couper les mots en fin de ligne.
+    ///
+    /// **Éteint par défaut, comme chez l'app**, et sa raison vaut mot pour
+    /// mot ici : *« la césure hache les mots, et qui grossit le texte pour le
+    /// voir se retrouve avec plus de coupures, pas moins »*. C'est la phrase
+    /// qui décide, sur un site dont l'auteur lit à 0,6/10.
+    ///
+    /// Le site l'avait posée **globalement** sur `p`, donc allumée pour tout
+    /// le monde et sans moyen de l'éteindre. Elle devient un réglage du
+    /// lecteur, là où elle change quelque chose — dans le corpus.
+    pub coupure: bool,
     /// La peau de la page.
     ///
     /// Elle vit ici, avec les niveaux du texte, parce qu'elle vit **au même
@@ -381,6 +438,8 @@ impl Default for Preferences {
             continu: false,
             theme: Theme::Mystique,
             corps: Theme::CORPS_PAR_DEFAUT,
+            interligne: Theme::INTERLIGNE_PAR_DEFAUT,
+            coupure: false,
             fonte: Fonte::Literata,
         }
     }
@@ -412,6 +471,8 @@ impl Preferences {
             // doivent être remplis, ils n'ont pas à être choisis.
             theme: Theme::Mystique,
             corps: Theme::CORPS_PAR_DEFAUT,
+            interligne: Theme::INTERLIGNE_PAR_DEFAUT,
+            coupure: false,
             fonte: Fonte::Literata,
         }
     }

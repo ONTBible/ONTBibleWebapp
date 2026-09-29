@@ -83,16 +83,13 @@ fn EnAttenteDeValidation() -> impl IntoView {
         <section class="max-w-mesure">
             <span aria-hidden="true" class="mb-4 block text-marque-encre">
                 <svg
-                    viewBox="0 0 24 24"
-                    class="size-8"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="M12 3 3 7.5l9 4.5 9-4.5L12 3ZM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" />
-                </svg>
+                aria-hidden="true"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+                class="size-8"
+            >
+                <path d=crate::interface::design::symboles::trace("strates", false) />
+            </svg>
             </span>
             <h2 class="m-0 mb-3 font-titre text-[1.15em] font-semibold text-encre-vive">
                 "Rien à lire pour l'instant"

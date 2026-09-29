@@ -59,6 +59,7 @@ mod reglages_de_lecture;
 mod segments;
 pub mod selection_de_versets;
 mod sommaire;
+pub mod symboles;
 mod titre_de_section;
 pub mod verset;
 

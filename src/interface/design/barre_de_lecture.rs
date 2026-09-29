@@ -124,15 +124,11 @@ pub fn BoutonDeRecherche() -> impl IntoView {
         >
             <svg
                 aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="size-[1.1rem]"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                viewBox="0 0 256 256"
+                fill="currentColor"
+                class="size-[1.05rem]"
             >
-                <path d="M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm5 11.5L20 20" />
+                <path d=crate::interface::design::symboles::trace("loupe", false) />
             </svg>
         </A>
     }

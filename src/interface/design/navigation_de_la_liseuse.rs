@@ -188,56 +188,47 @@ const DESTINATIONS: [Destination; 4] = [
 // 29 septembre 2026 : « je veux la même tabbar ». Une contrainte qui produit
 // le bon dessin reste le bon dessin.
 
-/// Le tracé d'un symbole, en coordonnées de `viewBox="0 0 24 24"`.
-///
-/// **Dessinés ici et non chargés**, contrairement aux images de la marque : ce
-/// sont quatre traits, ils changent de couleur avec l'état, et un fichier par
-/// symbole coûterait quatre requêtes pour trois cents octets de tracé.
-///
-/// Ils citent les symboles SF de l'app — `book.closed.fill`,
-/// `character.book.closed.fill`, `magnifyingglass`, `person.crop.circle.fill` —
-/// sans les recopier : les SF sont sous licence Apple et ne sortent pas d'une
-/// app. On en garde la **silhouette**, qui est ce que le lecteur reconnaît.
-fn signe(nom: &str) -> &'static str {
-    match nom {
-        "livre" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 12h13",
-        "lexique" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4.2 11.5 2.3-6.4 2.3 6.4m-3.8-2h3",
-        "loupe" => "M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm5 11.5L20 20",
-        // Les strates — `square.stack.3d.up.fill`. Des couches empilées et
-        // vues de biais : une *chuqqah* est gravée, et ce qui est gravé
-        // s'empile sans se réécrire.
-        "strates" => "M12 3 3 7.5l9 4.5 9-4.5L12 3ZM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5",
-        // Deux silhouettes — `person.2.fill` chez l'app. Deux et non trois :
-        // l'assemblée commence au second.
-        "qahal" => "M9.5 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6 16a6 6 0 0 1 12 0M16 5.2a3 3 0 0 1 0 5.6m.8 2.4a6 6 0 0 1 3.7 5.5",
-        // Le livre d'un rayon — `book.pages` chez l'app. Des feuillets, pas
-        // une couverture : la destination « Bible » porte déjà le volume
-        // fermé, et deux livres identiques à deux niveaux d'indentation ne
-        // diraient plus lequel est le rayon et lequel est l'ouvrage.
-        "feuillets" => "M12 6.5C10.5 5 8.5 4.5 5 4.5v13c3.5 0 5.5.5 7 2 1.5-1.5 3.5-2 7-2v-13c-3.5 0-5.5.5-7 2Zm0 0v15",
-        // Le signet de « Reprendre » — `bookmark.fill` chez l'app. Un signet
-        // et non une flèche : en barre latérale il tient un rang de ligne, où
-        // une flèche se lirait comme un bouton d'action.
-        "signet" => "M7 3h10a1 1 0 0 1 1 1v17l-6-4-6 4V4a1 1 0 0 1 1-1Z",
-        _ => "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18Zm0 4.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6.2 10a7.4 7.4 0 0 1 12.4 0",
-    }
-}
-
 /// Un symbole, à la taille d'une ligne.
 #[component]
-fn Signe(#[prop(into)] nom: String) -> impl IntoView {
+fn Signe(
+    #[prop(into)] nom: String,
+    /// Le plein plutôt que le contour.
+    ///
+    /// ## Toutes les destinations le portent, actives ou non
+    ///
+    /// C'était le premier réflexe de le réserver à l'onglet courant — un
+    /// contour qui se remplit dit l'état sans couleur, ce qu'un lecteur
+    /// daltonien peut lire. Mis côte à côte avec l'app, c'est faux : **elle
+    /// emploie `.fill` sur les cinq**, et ne distingue l'actif que par sa
+    /// capsule et son encre de marque.
+    ///
+    /// Ça se tient, et le site le tenait déjà sans le savoir : *« ici c'est le
+    /// fond qui tient le rôle du semi-gras »*. La capsule n'est pas une
+    /// couleur, c'est une forme — elle reste lisible sans distinguer les
+    /// teintes.
+    ///
+    /// Le prop reste, et il sert : le livre d'un rayon est en **contour**,
+    /// parce qu'il n'est pas une destination de la barre mais une entrée de
+    /// liste, et cinq livres pleins feraient une colonne de taches.
+    ///
+    /// Le site ne pouvait rien de tout ça tant qu'il dessinait ses symboles à
+    /// la main : un contour et son plein sont deux dessins, pas un réglage.
+    #[prop(optional, into)]
+    plein: Signal<bool>,
+) -> impl IntoView {
     view! {
+        // **Un aplat sur une grille de 256**, et non un trait sur 24. C'est la
+        // façon dont les SF Symbols sont faits, et Phosphor les suit : un
+        // symbole est une silhouette, pas un fil de fer. Les tracés dessinés à
+        // la main ici étaient des traits de 1,6 — plus maigres que ceux de
+        // l'app, et chacun avec sa propre épaisseur.
         <svg
             aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            viewBox="0 0 256 256"
+            fill="currentColor"
             class="signe size-[1.6em] shrink-0"
         >
-            <path d=signe(&nom) />
+            <path d=move || crate::interface::design::symboles::trace(&nom, plein.get()) />
         </svg>
     }
 }
@@ -323,7 +314,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                     )
                                     attr:class="mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
                                 >
-                                    <Signe nom="signet" />
+                                    <Signe nom="signet" plein=true />
                                     <span class="flex-1 truncate">"Reprendre"</span>
                                     <span class="chiffres-tableau text-[0.7rem] opacity-70">
                                         {ou}
@@ -373,7 +364,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                                         }
                                     }
                                 >
-                                    <Signe nom=destination.signe />
+                                    <Signe nom=destination.signe plein=true />
                                     {destination.nom}
                                 </A>
                             </li>
@@ -509,7 +500,7 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                     href="/fr/compte"
                     attr:class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"
                 >
-                    <Signe nom="compte" />
+                    <Signe nom="compte" plein=true />
                     "Vous"
                 </A>
             </div>
@@ -597,7 +588,7 @@ fn BarreDOnglets(chemin: Signal<String>) -> impl IntoView {
                                         }
                                     }
                                 >
-                                    <Signe nom=destination.signe />
+                                    <Signe nom=destination.signe plein=true />
                                     {destination.nom}
                                 </A>
                             </li>

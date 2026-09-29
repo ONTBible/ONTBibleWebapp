@@ -52,14 +52,11 @@ pub fn CarteDePrononciation() -> impl IntoView {
             // plateformes, et c'est le signe qui compte, pas le tracé.
             <svg
                 aria-hidden="true"
-                viewBox="0 0 24 24"
+                viewBox="0 0 256 256"
+                fill="currentColor"
                 class="size-6 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
             >
-                <path d="M2 12h1.5M6.5 7.5v9M11 4v16M15.5 8.5v7M20 11h2" />
+                <path d=crate::interface::design::symboles::trace("onde", false) />
             </svg>
         </A>
     }
