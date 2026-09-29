@@ -6436,3 +6436,91 @@ portaient sur le dessin, pas sur le contenu :
 > ==Un « ne copie pas ça » nomme une **cause**, pas une pièce. Relire la cause
 > avant d'obéir : quand elle n'existe pas chez soi, la pièce, elle, peut
 > valoir.==
+
+## 29 septembre 2026, le soir — un compte faux, et le défaut n'était que chez nous
+
+Une lecture externe — la session MANAGER, sans notre contexte — a relevé que
+trois pages du site annonçaient « **Trois** livres sur soixante-dix » quand
+`dist/books/` en porte **cinq** depuis le 11 septembre. Corrigé, et deux cas de
+plus trouvés par la garde qui a suivi. Ce qui traverse est ailleurs.
+
+### Mesuré chez les deux voisins : ils ne portent pas ce défaut
+
+Résultat **négatif et vérifié**, parce qu'un « probablement pas » ne vaut rien :
+
+    app      les comptes d'interface viennent du modèle — `totalVerses`,
+             `glossaryCount` —, jamais d'un littéral. Les occurrences de
+             « soixante-dix livres » dans le Swift sont toutes des
+             commentaires ; le pied de YouTab ne porte aucun nombre.
+    vault    ses scripts comptent ce qu'ils parcourent.
+
+Donc rien à porter, et c'est la conclusion utile : le défaut était une
+propriété de **notre** façon d'écrire des pages — de la prose en littéraux Rust
+—, pas une propriété du projet.
+
+### Et pourtant la même fausse affirmation est déjà arrivée chez l'app
+
+`app/Captures/LISEZ-MOI.md` la raconte : *« l'affiche 04 “Trois livres sur
+soixante-dix” quand il y en a cinq depuis le 11 septembre »*. Même chiffre,
+même écart, même date de bascule — par un mécanisme entièrement différent : là
+une **capture périmée**, ici un **littéral**.
+
+> ==Une classe de défaut traverse les dépôts sans que son mécanisme traverse.==
+> Chercher chez le voisin le mécanisme qu'on vient de corriger ne trouve rien ;
+> chercher l'**affirmation fausse** le trouve.
+
+Et les deux causes profondes sont la même : une chaîne où rien ne peut rougir.
+L'app le dit de ses captures — « la garde de `soumettre.py` refuse une version
+*sans* captures ; personne ne refusait une version aux captures **fausses** ».
+Ici, l'avertissement contre ce défaut exact était écrit **trois fois**, dans
+`design/chiffres.rs`, `build.rs` et `api.rs`, et le texte est resté en dur.
+
+### Ce qui explique que personne n'ait tranché, et qui manquait au relevé
+
+`design/chiffres.rs` rend des chiffres dans une **grille tabulaire** — juste
+pour un tableau de bord, faux au milieu d'une phrase. Écrire « 5 livres sur
+70 » aurait corrigé le mensonge en abîmant la composition. **Le défaut était
+connu et resté en dur parce que le corriger demandait une pièce qui n'existait
+pas.**
+
+`domaine/nombres.rs` est cette pièce : un nombre en toutes lettres, avec les
+trois irrégularités du français et une épreuve pour chacune — le `s` de
+« quatre-vingts » qui ne vaut que seul, le « et » qui remplace le trait d'union
+à six places exactement, les deux vigésimales. Au-delà de cent elle rend les
+chiffres : le corpus n'en compte que soixante-dix, et **une règle qu'on
+n'éprouverait jamais vaut moins qu'un aveu**.
+
+**Elle n'a pas à être portée**, et la raison est intéressante : l'app affiche
+ses comptes dans une **liste de réglages**, en chiffres alignés de chasse fixe,
+parce qu'une liste se parcourt d'un intitulé à sa valeur. Le site les écrit
+**dans une phrase**. C'est la distinction que `chiffres.rs` et `nombres.rs`
+portent déjà à eux deux, et c'est la même leçon que `readingWidth` contre
+`pageWidth` : une liste ne se lit pas comme une phrase.
+
+### La garde, et pourquoi elle exclut les commentaires
+
+`aucune_page_ne_code_le_compte_des_livres` cherche un nombre en lettres à côté
+du mot « livres » dans tout `src/interface`. Les lignes de commentaire sont
+**écartées du relevé** : elles racontent le défaut, elles ne le commettent pas.
+Sans cette exception, la garde accuserait sa propre explication — et c'est
+exactement ce qui la ferait désarmer.
+
+Elle a rougi sur les trois signalées **et sur deux autres** : `livre.rs`, qui
+disait « soixante-sept des soixante-dix », c'est-à-dire 70 − 3 — donc faux sur
+le compte *et* sur la soustraction, sur la page qu'on n'atteint qu'en cherchant
+un livre absent ; et `lire.rs`, qui écrivait le total dans une `description=`,
+là où personne ne relit jamais.
+
+### La leçon d'instrument, et elle vaut pour les huit sessions
+
+    la lecture froide    trouve la CLASSE, parce qu'elle lit la PAGE
+    la garde             trouve l'ÉTENDUE, parce qu'elle lit TOUT
+
+Cinq sessions avaient le défaut sous les yeux depuis des semaines en lisant la
+**règle** au lieu de la **page**. Une lecture sans notre mémoire ne peut pas
+savoir ce qu'on a décidé, donc elle ne voit que ce qui est écrit : c'est le seul
+contrôle de la flotte **qui puisse échouer pour une autre raison que nous**.
+Les autres partagent nos prémisses, donc nos angles morts.
+
+Et la garde ajoute ce qu'aucune lecture ne donne : elle ne se fatigue pas, et
+elle ne relit pas deux fois la même page.
