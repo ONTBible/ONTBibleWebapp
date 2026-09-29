@@ -70,6 +70,16 @@ pub fn PageDeLecture(
         //
         // La recherche la monte séparément : elle rend du corpus sans passer
         // par ce cadre-ci.
+        // **L'ouverture, et elle est dans le HTML du serveur.**
+        //
+        // Montée côté navigateur après vérification, elle arriverait *après* la
+        // page — une ouverture qui ouvre ce qui est déjà ouvert. Le script de
+        // l'en-tête la retire quand la session l'a déjà vue, avant la première
+        // peinture.
+        //
+        // Elle ne retarde rien : `fixed` par-dessus, la page est rendue,
+        // lisible et indexable dessous pendant qu'elle joue.
+        <crate::interface::design::Ouverture />
         <crate::interface::design::PeauDeLaLiseuse />
         // **La chrome de l'app, et elle remplace celle de l'édition.**
         //

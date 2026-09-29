@@ -41,6 +41,7 @@
 //! retrait relie.
 
 use leptos::prelude::*;
+use leptos_router::components::A;
 
 /// L'en-tête d'une section, au-dessus de la carte.
 ///
@@ -187,13 +188,27 @@ pub fn Ligne(
             {match chemin {
                 Some(chemin) => {
                     view! {
-                        <a
+                        // **`<A>` et non `<a>`.** C'est la règle de `lien.rs`,
+                        // et elle y est écrite depuis août : *un chemin du site
+                        // passe par le routeur — sinon la page entière se
+                        // recharge pour un lien interne.*
+                        //
+                        // Ces listes l'avaient enfreinte le jour de leur
+                        // écriture. Chaque toucher rechargeait le document :
+                        // la liseuse avait l'apparence d'une app et la
+                        // mécanique d'un site des années deux mille.
+                        //
+                        // C'est ce que l'auteur a senti sans le nommer, en
+                        // demandant une webapp « en CSR/SPA ». Elle l'est déjà
+                        // — Leptos navigue côté client une fois hydraté —, et
+                        // c'étaient mes liens qui s'en excluaient.
+                        <A
                             href=chemin
-                            class="flex items-center gap-3 text-encre no-underline transition-colors hover:text-encre-vive"
+                            attr:class="flex items-center gap-3 text-encre no-underline transition-colors hover:text-encre-vive"
                         >
                             {dedans()}
                             <Chevron />
-                        </a>
+                        </A>
                     }
                         .into_any()
                 }

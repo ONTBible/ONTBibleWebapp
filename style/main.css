@@ -11,6 +11,13 @@
    avant même le `@source` qui suit.                                         */
 @import "./jetons.css";
 
+/* Les ressorts de l'app, engendrés par `scripts/porter-les-ressorts.py`.
+
+   Quatre courbes résolues et échantillonnées en `linear()`, avec la durée à
+   laquelle chacune est visuellement arrivée. Le web n'a pas de ressort ; il a
+   `linear()`, qui prend une suite de points — et un ressort s'échantillonne.  */
+@import "./mouvement.css";
+
 /* Les gabarits sont écrits en Rust : c'est là que Tailwind doit chercher les
    classes. Sans cette ligne il ne verrait aucun gabarit et produirait une
    feuille vide — panne silencieuse, la page s'afficherait sans style.
@@ -437,8 +444,327 @@
   box-shadow: 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 2px 8px -4px rgb(0 0 0 / 0.08);
 }
 
+/* La barre flotte : elle n'impose plus sa hauteur, elle la **déclare**. Le
+   jeton reste la vérité — le bouton « aA » et la feuille le lisent — mais la
+   capsule ne s'y conforme plus, puisqu'elle se dimensionne sur son contenu et
+   que ses marges font partie de sa hauteur apparente. */
 .barre-d-onglets {
   min-height: calc(var(--barre-d-onglets) + env(safe-area-inset-bottom));
+}
+
+/* ═══ Le verre ════════════════════════════════════════════════════════════
+
+   ## Ce qui est reproductible, et ce qui ne l'est pas
+
+   Le *Liquid Glass* d'Apple fait quatre choses : il floute et sature ce qui
+   passe derrière, il **réfracte** — la lumière se courbe au bord —, il porte
+   un reflet spéculaire sur son arête, et il s'adapte à ce qu'il recouvre.
+
+   Trois sur quatre se font en CSS. La quatrième, la réfraction, demande
+   `backdrop-filter: url(#filtre)` sur un `feDisplacementMap` — et **seul
+   Chromium expose les filtres SVG à `backdrop-filter`**. Safari retombe
+   silencieusement sur un flou simple. C'est-à-dire : l'auteur, qui travaille
+   sur Safari, et tout iOS, ne verraient rien de la seule partie qui coûte.
+
+   ## Et on ne l'ajoute pas non plus pour Chrome
+
+   `backdrop-filter` rééchantillonne tout ce qui passe derrière, à chaque
+   image. Y empiler un déplacement SVG ajoute **une seconde passe de
+   rastérisation sur toute la surface**.
+
+   Ce dépôt a déjà payé exactement ça, et le §5 le raconte : le grain de pierre
+   du portail se rejouait à chaque image, le défilement tombait à huit images
+   par seconde, et il a fallu trois corrections pour comprendre que le coût
+   était dans la rastérisation et non dans le style. La barre d'onglets est
+   **fixe au-dessus d'un texte qui défile** : c'est le pire cas possible.
+
+   On fait donc le verre sans la réfraction, et on le dit — plutôt que de
+   livrer un effet invisible chez celui qui l'a demandé et coûteux chez les
+   autres.
+
+   ## Ce qui reste, et ce qui fait le verre
+
+   Le flou seul donne du plastique dépoli. Ce qui le rend *verre* est
+   l'**arête** : une lumière en haut, une ombre en bas, très fines. C'est
+   l'épaisseur du matériau qu'on voit par la tranche, et c'est elle que l'œil
+   lit comme du verre.
+
+   La saturation compte autant : le verre d'Apple **ravive** ce qu'il floute.
+   Sans elle, un fond coloré passe derrière en gris de brouillard.           */
+
+.verre {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  box-shadow:
+    /* L'arête haute — la lumière qui entre par la tranche. */
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+    /* L'arête basse — l'ombre de l'épaisseur. */
+    inset 0 -1px 0 color-mix(in srgb, black 14%, transparent),
+    /* Le décollement : ce qui dit qu'il flotte au-dessus et non qu'il est posé
+       dedans. Très basse et très large — on veut un soupçon, pas un relief. */
+    0 4px 20px -6px color-mix(in srgb, black 30%, transparent);
+}
+
+/* Sans `backdrop-filter`, le fond devient opaque plutôt que de laisser lire le
+   texte à travers une transparence que rien ne floute. Un verre qui ne floute
+   pas n'est pas du verre : c'est une vitre sale posée sur le texte.          */
+@supports not (backdrop-filter: blur(1px)) {
+  .verre {
+    background-color: var(--color-surface);
+  }
+}
+
+/* ── La bascule d'un onglet ────────────────────────────────────────────────
+
+   Ce qu'iOS fait, et qu'on ne voit qu'en le perdant : la capsule ne *paraît*
+   pas sous l'onglet touché, elle s'y **pose** — elle arrive un peu trop
+   grande et se range. Le symbole suit du même mouvement.
+
+   C'est `ressortVif` chez l'app, et le dépassement est dans la courbe : deux
+   pour cent au-delà de la cible. Il ne se remarque pas ; c'est son absence qui
+   se remarque, et qui fait dire « rigide » — le mot exact de la planche-contact
+   du 3 septembre, où quatorze vues du Mac ont été comparées à l'iPad.
+
+   ── Pourquoi une transition et non une animation ──────────────────────────
+
+   Une `animation` ne rejoue pas quand une classe change sur un élément qui
+   reste en place : il faudrait le démonter. Une `transition`, si — et c'est
+   exactement ce qui se passe ici, où le routeur change l'attribut sans
+   toucher au nœud.
+
+   ── Ce qui est animé, et rien d'autre ─────────────────────────────────────
+
+   `transform`, `background-color`, `color`. Les deux dernières ne sont pas
+   composées par le GPU, mais elles portent sur une pastille de quatre-vingts
+   pixels : la règle du §5 vise une scène qui couvre l'écran, pas ça.       */
+
+.onglet {
+  transition:
+    background-color var(--ressort-vif-duree) var(--ressort-vif),
+    color var(--ressort-vif-duree) var(--ressort-vif);
+}
+
+.onglet .signe {
+  transition: transform var(--ressort-vif-duree) var(--ressort-vif);
+}
+
+/* Le symbole de l'onglet choisi arrive un peu trop grand et se range — le
+   dépassement de la courbe fait le reste. Six pour cent : au-delà on voit un
+   effet, en deçà on ne voit rien. */
+.onglet[aria-current='page'] .signe {
+  transform: scale(1.06);
+}
+
+/* Le mouvement est un réglage système, pas un goût : il déclenche des vertiges
+   chez une partie des lecteurs. */
+@media (prefers-reduced-motion: reduce) {
+  .onglet,
+  .onglet .signe {
+    transition: none;
+  }
+  .onglet[aria-current='page'] .signe {
+    transform: none;
+  }
+}
+
+/* ═══ L'ouverture ═════════════════════════════════════════════════════════
+
+   La montagne qu'un trait de lumière révèle — le mouvement composé par
+   l'auteur, **rapatrié** et non réinventé.
+
+   ## Il est né ici
+
+   `ONTBibleApp/app/Marque/ouverture/logomark-sweep.jsx` : une composition web,
+   en CSS, dont `ONTSplash.swift` est le portage. Son README dit pourquoi elle
+   est gardée :
+
+   > Une animation portée dans un autre langage **perd sa source** si on ne la
+   > garde pas. Le Swift dit *ce que* le mouvement fait ; ces fichiers disent
+   > *ce qu'il devait faire*.
+
+   Le site est donc le seul des trois à ne rien porter : il reprend l'original.
+
+   ## Les trois temps, tels qu'ils sont déclarés
+
+       scène      durée   courbe           ce qu'elle fait
+       ────────────────────────────────────────────────────────────────
+       Attente    1,1 s   easeOutCubic     le logomark sort de la pénombre
+       Balayage   2,8 s   easeInOutSine    le front va de −0,22 à 1,22
+       Repos      1,6 s   easeOutQuad      la rémanence retombe de 0,8 à 0
+                  ─────
+                  5,5 s
+
+   **Le front naît et meurt hors du cadre** — de −0,22 à 1,22 —, donc on ne le
+   voit jamais apparaître ni s'éteindre.
+
+   ## La lueur est cinq ombres portées, pas un halo
+
+   12, 34, 80, 160 et 300 px. C'est l'empilement qui la fait décroître avec la
+   distance ; une seule ombre large donnerait un halo uniforme, qui se lit
+   comme un flou et non comme de la lumière.
+
+   Et elle est le `drop-shadow` **de la partie éclairée elle-même** : la
+   lumière quitte la silhouette sans jamais la dupliquer.
+
+   ## Le fond reste sombre, et ce n'est pas un choix de peau
+
+   Toute la lumière passe par `mix-blend-mode: screen`, qui n'a **aucun effet**
+   sur un fond clair. Sur du parchemin, le balayage serait invisible et la
+   montagne plate. L'ouverture est donc la même pour tout le monde — et elle
+   est en `nuit`, qui appartient déjà à la palette, plutôt qu'en noir de
+   circonstance.
+
+   ## Ce qui est animé
+
+   `transform` et `opacity`, dans des `@keyframes`. Le balayage déplace une
+   bande par `translateX` au lieu de bouger un `background-position` : c'est
+   la règle du §5, tirée du portail — *une propriété de plus, et la scène
+   retombe sur le fil principal.*                                            */
+
+/* Déjà entrée dans cette session : elle ne se peint jamais.
+
+   `display: none` et non une opacité nulle — une ouverture invisible mais
+   montée garderait ses cinq `drop-shadow` et son masque, donc son coût de
+   rastérisation, à chaque page d'une session entière. */
+.deja-entre .ouverture {
+  display: none;
+}
+
+.ouverture {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(120% 100% at 50% 55%, #16150f 0%, var(--color-nuit) 70%);
+  animation: ouverture-sortie 0.6s ease-out 5.5s forwards;
+}
+
+/* La marque. **Un peu plus d'un tiers de la largeur**, et le plafond ne mord
+   que sur tablette : à 36 % de 393 pt un téléphone donne 141 pt, la borne ne
+   sert jamais. Une grande dalle ne demande pas une grande marque — elle
+   demande plus de vide autour, et c'est ce vide qui la pose. */
+.ouverture-marque {
+  position: relative;
+  width: min(36vw, 225px);
+  aspect-ratio: 502 / 249;
+  isolation: isolate;
+}
+
+.ouverture-marque > * {
+  position: absolute;
+  inset: 0;
+  /* Le même masque que le signe de section et les massifs — par son chemin,
+     comme eux. QuickLook refuse un masque par chemin, mais l'ouverture ne se
+     juge pas sur une capture : elle se juge en mouvement. */
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* La montagne dans la pénombre — elle est toujours là, elle ne s'allume pas. */
+.ouverture-sombre {
+  background: #3a3527;
+}
+
+/* Elle sort de la pénombre pendant l'attente, puis la rémanence la reprend. */
+.ouverture-montee {
+  background: var(--color-or);
+  mix-blend-mode: screen;
+  opacity: 0.2;
+  animation:
+    ouverture-montee 1.1s cubic-bezier(0.215, 0.61, 0.355, 1) forwards,
+    ouverture-remanence 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 3.9s forwards;
+}
+
+/* La partie éclairée : une bande qui traverse, masquée par la montagne. Sa
+   lueur est son propre `drop-shadow`. */
+.ouverture-lumiere {
+  mix-blend-mode: screen;
+  opacity: 0;
+  filter:
+    drop-shadow(0 0 12px rgb(255 240 200 / 1)) drop-shadow(0 0 34px rgb(255 240 200 / 0.95))
+    drop-shadow(0 0 80px rgb(255 240 200 / 0.8)) drop-shadow(0 0 160px rgb(255 240 200 / 0.6))
+    drop-shadow(0 0 300px rgb(255 240 200 / 0.42));
+  animation: ouverture-allumage 3.6s ease-in-out 0.8s forwards;
+}
+
+.ouverture-bande {
+  position: absolute;
+  inset: 0;
+  width: 220%;
+  background-image: linear-gradient(
+    100deg,
+    rgb(205 190 131 / 0) 32%,
+    rgb(233 214 141 / 0.95) 44%,
+    #fffaf0 50%,
+    rgb(233 214 141 / 0.95) 56%,
+    rgb(205 190 131 / 0) 68%
+  );
+  /* De −0,22 à 1,22 de la largeur : le front naît et meurt hors du cadre. */
+  animation: ouverture-balayage 2.8s cubic-bezier(0.445, 0.05, 0.55, 0.95) 1.1s forwards;
+}
+
+@keyframes ouverture-montee {
+  to {
+    opacity: 0.42;
+  }
+}
+
+@keyframes ouverture-remanence {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 0.42;
+  }
+}
+
+@keyframes ouverture-allumage {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ouverture-balayage {
+  from {
+    transform: translateX(-77%);
+  }
+  to {
+    transform: translateX(43%);
+  }
+}
+
+@keyframes ouverture-sortie {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* **Le balayage disparaît entièrement**, et la montagne paraît simplement. Ce
+   réglage ne relève pas du goût : il sert ceux que le mouvement rend malades,
+   et un balayage « seulement plus doux » ne les soulagerait pas. */
+@media (prefers-reduced-motion: reduce) {
+  .ouverture {
+    animation: ouverture-sortie 0.4s ease-out 0.9s forwards;
+  }
+  .ouverture-montee {
+    opacity: 0.42;
+    animation: none;
+  }
+  .ouverture-lumiere {
+    display: none;
+  }
 }
 
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════

@@ -190,6 +190,9 @@ fn script_de_la_peau() -> String {
          if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);\
          var f=[{fontes}];\
          if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);}}\
+         if(sessionStorage.getItem('ont.entre'))\
+         r.classList.add('deja-entre');\
+         else sessionStorage.setItem('ont.entre','1');\
          }}catch(e){{}}"
     )
 }

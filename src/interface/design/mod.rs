@@ -78,7 +78,7 @@ pub use liste_groupee::{EnteteDeSection, Groupe, Ligne, Pastille, TitreDeListe};
 pub use liste_unites::{nom_d_unite, ListeDUnites};
 pub use marques::{Nom, Terme};
 pub use mention_brouillon::MentionBrouillon;
-pub use navigation_de_la_liseuse::NavigationDeLaLiseuse;
+pub use navigation_de_la_liseuse::{NavigationDeLaLiseuse, Ouverture};
 pub use occurrences::Occurrences;
 pub use page_de_lecture::PageDeLecture;
 pub use page_legale::PageLegale;

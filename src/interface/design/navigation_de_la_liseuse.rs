@@ -50,6 +50,7 @@
 //! elle, pas avant.
 
 use leptos::prelude::*;
+use leptos_router::components::A;
 
 use crate::interface::design::image;
 
@@ -115,7 +116,7 @@ fn Signe(#[prop(into)] nom: String) -> impl IntoView {
             stroke-width="1.6"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="size-[1.35em] shrink-0"
+            class="signe size-[1.6em] shrink-0"
         >
             <path d=signe(&nom) />
         </svg>
@@ -161,18 +162,18 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
     view! {
         <nav
             aria-label="La liseuse"
-            class="fixed inset-y-0 start-0 z-40 hidden w-[16.5rem] flex-col border-e border-filet bg-surface/60 px-3 py-5 backdrop-blur-sm lg:flex"
+            class="verre fixed inset-y-0 start-0 z-40 hidden w-[16.5rem] flex-col border-e border-filet px-3 py-5 lg:flex"
         >
             // La marque en tête, petite : on est dans la liseuse, elle rappelle
             // où l'on est sans se proclamer. Elle mène à l'édition — c'est la
             // porte dans l'autre sens.
-            <a href="/fr" class="mb-6 block px-3 no-underline">
+            <A href="/fr" attr:class="mb-6 block px-3 no-underline">
                 <img
                     src=image("wordmark.svg")
                     alt="La Bible ONT"
                     class="w-36 opacity-80 transition-opacity hover:opacity-100"
                 />
-            </a>
+            </A>
 
             <ul class="m-0 flex list-none flex-col gap-0.5 p-0">
                 {DESTINATIONS
@@ -182,36 +183,37 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                         let actif = Signal::derive(move || on_y_est(&chemin.get(), ici));
                         view! {
                             <li>
-                                <a
+                                // **La capsule choisie est en accent, pas en
+                                // aubergine.** L'aubergine est la marque, qui
+                                // ne suit aucun thème par construction : sur
+                                // une nuit la capsule se lisait, sur du
+                                // parchemin elle disparaissait sous son libellé
+                                // doré. C'est le défaut du massif de l'accueil,
+                                // un étage plus bas.
+                                //
+                                // **La classe se calcule en une fois**, et non
+                                // par une suite de `class=(…)` : passés à un
+                                // composant plutôt qu'à une balise, ces
+                                // conditionnels ne s'appliquent pas — ils ne
+                                // produisent aucune erreur, seulement une
+                                // capsule qui ne se peint jamais.
+                                <A
                                     href=destination.chemin
-                                    aria-current=move || actif.get().then_some("page")
-                                    // **La capsule choisie est en accent, pas
-                                    // en aubergine.**
-                                    //
-                                    // Le premier jet la peignait `bg-aubergine`
-                                    // — la marque, qui ne suit aucun thème par
-                                    // construction. Sur une nuit elle se lisait ;
-                                    // sur du parchemin, une capsule aubergine
-                                    // sous un libellé doré **disparaissait**.
-                                    //
-                                    // C'est le défaut du massif sur l'accueil,
-                                    // un étage plus bas : une couleur de marque
-                                    // posée sur un fond qui, lui, change. Ici on
-                                    // n'a pas le choix de borner — la barre est
-                                    // *dans* la liseuse. Elle prend donc l'accent
-                                    // du thème, qui change avec lui.
-                                    class="flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm uppercase tracking-capitales no-underline transition-colors"
-                                    class=("bg-accent/15", move || actif.get())
-                                    class=("ring-1", move || actif.get())
-                                    class=("ring-accent/30", move || actif.get())
-                                    class=("text-accent", move || actif.get())
-                                    class=("text-encre-douce", move || !actif.get())
-                                    class=("hover:bg-accent/8", move || !actif.get())
-                                    class=("hover:text-encre", move || !actif.get())
+                                    attr:aria-current=move || actif.get().then_some("page")
+                                    attr:class=move || {
+                                        let base = "flex items-center gap-3 rounded-full px-3 py-2 \
+                                                    font-titre text-sm uppercase tracking-capitales \
+                                                    no-underline transition-colors";
+                                        if actif.get() {
+                                            format!("{base} bg-accent/15 ring-1 ring-accent/30 text-accent")
+                                        } else {
+                                            format!("{base} text-encre-douce hover:bg-accent/8 hover:text-encre")
+                                        }
+                                    }
                                 >
                                     <Signe nom=destination.signe />
                                     {destination.nom}
-                                </a>
+                                </A>
                             </li>
                         }
                     })
@@ -225,13 +227,13 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
             // livres, c'est qui regarde.* Sur un corpus complet, une dernière
             // section le mettrait à soixante-dix livres de là.
             <div class="mt-auto pt-6">
-                <a
+                <A
                     href="/fr/compte"
-                    class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm uppercase tracking-capitales text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"
+                    attr:class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm uppercase tracking-capitales text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"
                 >
                     <Signe nom="compte" />
                     "Vous"
-                </a>
+                </A>
             </div>
         </nav>
     }
@@ -239,21 +241,41 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
 
 /// La barre d'onglets — en dessous de `lg`.
 ///
-/// Elle flotte en bas, comme celle de l'app, et pour la même raison que le
-/// bouton « aA » : c'est là qu'arrive le pouce.
+/// ## Une capsule qui flotte, pas une bande collée
 ///
-/// `env(safe-area-inset-bottom)` n'est pas une politesse — sans lui, la barre
-/// se pose sur la barre d'accueil d'un iPhone, où le geste de retour prend le
-/// toucher en premier.
+/// Le premier jet était une bande pleine largeur, bord à bord, comme les
+/// barres d'onglets d'avant. Relevé sur la capture de l'app : c'est une
+/// **capsule**, encartée de chaque côté, posée au-dessus du contenu, avec un
+/// filet très fin et une ombre basse.
+///
+/// La différence n'est pas cosmétique. Une bande bord à bord **ferme** la page :
+/// elle dit que le contenu s'arrête là. Une capsule flotte **sur** le contenu,
+/// qui continue de courir dessous — ce qui est vrai, puisqu'on défile encore.
+///
+/// ## L'onglet choisi porte sa propre capsule
+///
+/// Et c'est ce qui manquait le plus : la couleur seule ne suffit pas à dire
+/// « vous êtes ici » sur cinq entrées de même poids. L'app pose un fond
+/// arrondi sous l'onglet actif, et met son symbole **et** son libellé dans
+/// l'encre de la marque.
+///
+/// C'est la règle de l'accentuation, une pièce plus loin : *semi-gras **et**
+/// coloré — la couleur seule ne suffit pas, un lecteur daltonien ne verrait
+/// rien.* Ici c'est le fond qui tient le rôle du semi-gras.
+///
+/// ## `env(safe-area-inset-bottom)` n'est pas une politesse
+///
+/// Sans lui, la capsule se pose sur la barre d'accueil d'un iPhone, où le
+/// geste de retour prend le toucher en premier.
 #[component]
 fn BarreDOnglets(chemin: Signal<String>) -> impl IntoView {
     view! {
         <nav
             aria-label="La liseuse"
-            class="barre-d-onglets fixed inset-x-0 bottom-0 z-40 border-t border-filet bg-surface/80 backdrop-blur-md lg:hidden"
-            style="padding-bottom: env(safe-area-inset-bottom)"
+            class="barre-d-onglets pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-3 lg:hidden"
+            style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))"
         >
-            <ul class="m-0 flex list-none items-stretch justify-around p-0">
+            <ul class="verre pointer-events-auto m-0 flex w-full max-w-md list-none items-stretch justify-around gap-1 rounded-full border border-filet/50 p-1">
                 {DESTINATIONS
                     .iter()
                     .chain(std::iter::once(&COMPTE))
@@ -262,20 +284,44 @@ fn BarreDOnglets(chemin: Signal<String>) -> impl IntoView {
                         let actif = Signal::derive(move || on_y_est(&chemin.get(), ici));
                         view! {
                             <li class="flex-1">
-                                <a
+                                <A
                                     href=destination.chemin
-                                    aria-current=move || actif.get().then_some("page")
-                                    // Les libellés sont **sous** les symboles et
-                                    // en très petit, comme chez l'app : un
-                                    // symbole seul se devine mal, un libellé
-                                    // seul prend toute la place.
-                                    class="flex flex-col items-center gap-1 px-1 py-2.5 text-[0.7rem] uppercase tracking-[0.1em] no-underline transition-colors"
-                                    class=("text-accent", move || actif.get())
-                                    class=("text-encre-douce", move || !actif.get())
+                                    attr:aria-current=move || actif.get().then_some("page")
+                                    // Le libellé est **sous** le symbole et en
+                                    // très petit, comme chez l'app : un symbole
+                                    // seul se devine mal, un libellé seul prend
+                                    // toute la place.
+                                    attr:class=move || {
+                                        // **En casse normale, pas en capitales
+                                        // espacées.** Les capitales sont la
+                                        // voix du site — les œils-de-bœuf, les
+                                        // titres de section. L'app écrit
+                                        // « Bible », « Lexique », et c'est ce
+                                        // qu'un lecteur reconnaît d'un
+                                        // appareil à l'autre.
+                                        //
+                                        // Et à cette taille elles coûtent : une
+                                        // capitale espacée se lit moins vite
+                                        // qu'un bas de casse, et cette barre se
+                                        // lit du coin de l'œil.
+                                        // `onglet` porte la bascule — voir la
+                                        // feuille. Pas de `transition-colors`
+                                        // de Tailwind : il poserait sa propre
+                                        // durée et sa propre courbe par-dessus
+                                        // celles du ressort.
+                                        let base = "onglet flex flex-col items-center gap-1 \
+                                                    rounded-full px-1 py-1.5 font-titre \
+                                                    text-[0.72rem] leading-none no-underline";
+                                        if actif.get() {
+                                            format!("{base} bg-encre/10 text-marque-encre")
+                                        } else {
+                                            format!("{base} text-encre-douce")
+                                        }
+                                    }
                                 >
                                     <Signe nom=destination.signe />
                                     {destination.nom}
-                                </a>
+                                </A>
                             </li>
                         }
                     })
@@ -295,6 +341,53 @@ const COMPTE: Destination = Destination {
     nom: "Vous",
     signe: "compte",
 };
+
+/// L'ouverture — la montagne qu'un trait de lumière révèle.
+///
+/// ## Elle est rendue par le serveur, et retirée avant d'être peinte
+///
+/// Le réflexe est de la monter côté navigateur, après avoir vérifié qu'on ne
+/// l'a pas déjà vue. Ça ne peut pas marcher : la page s'afficherait d'abord,
+/// puis l'ouverture la recouvrirait — une ouverture qui arrive après ce qu'elle
+/// ouvre.
+///
+/// Elle est donc **toujours** dans le HTML du serveur, et le script de
+/// l'en-tête la retire immédiatement quand la session l'a déjà vue. Même
+/// mécanique que la peau, et pour la même raison : ce qui doit être vrai avant
+/// la première peinture ne peut pas attendre l'hydratation.
+///
+/// ## Une fois par session, pas une fois par visite
+///
+/// `sessionStorage` et non `localStorage` : l'ouverture dit qu'on entre. Elle a
+/// sa place quand on ouvre un onglet, pas quand on revient de la page d'à côté
+/// — et elle doit revenir le lendemain, faute de quoi elle n'existerait que
+/// pour les lecteurs qui vident leur cache.
+///
+/// ## Elle ne retarde rien
+///
+/// Elle est `fixed` par-dessus : la page est rendue, lisible et indexable
+/// dessous pendant qu'elle joue. Un moteur de recherche ne la voit pas, et un
+/// lecteur qui la traverse trouve la page déjà là.
+#[component]
+pub fn Ouverture() -> impl IntoView {
+    view! {
+        <div class="ouverture" aria-label="La Bible ONT" role="img">
+            <div class="ouverture-marque">
+                // La montagne dans la pénombre — elle est là depuis le premier
+                // instant, elle ne s'allume pas. C'est ce qui fait qu'on lit un
+                // objet révélé plutôt qu'une forme qui apparaît.
+                <div class="ouverture-sombre"></div>
+                <div class="ouverture-montee"></div>
+                // La partie éclairée : une bande qui traverse, masquée par la
+                // même montagne. Sa lueur est son propre `drop-shadow`, donc la
+                // lumière quitte la silhouette sans jamais la dupliquer.
+                <div class="ouverture-lumiere">
+                    <div class="ouverture-bande"></div>
+                </div>
+            </div>
+        </div>
+    }
+}
 
 #[cfg(all(test, feature = "ssr"))]
 mod epreuves {

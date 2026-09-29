@@ -1,0 +1,35 @@
+/* Engendré par scripts/porter-les-ressorts.py — ne pas éditer à la main.
+ *
+ * Les quatre ressorts de `ONTMouvement`, résolus et échantillonnés. Le web
+ * n'a pas de ressort ; `linear()` prend une suite de points, et un ressort
+ * s'échantillonne. Approcher chaque courbe par une cubique choisie à l'œil
+ * donnerait quatre mouvements qui ressemblent aux leurs sans en être.
+ *
+ * Chaque ressort donne **deux** jetons : sa courbe et sa durée. Un ressort
+ * n'a pas de fin — il tend vers sa cible —, donc la durée est l'instant où
+ * il est visuellement arrivé : à moins d'un millième, et il y reste.
+ */
+
+:root {
+  /* un état qui change, une sélection qui se pose — response 0.38, amortissement 0.74 */
+  --ressort: linear(0.0000, 0.0081, 0.0304, 0.0640, 0.1064, 0.1554, 0.2090, 0.2655, 0.3236, 0.3820, 0.4399, 0.4963, 0.5506, 0.6024, 0.6513, 0.6970, 0.7394, 0.7783, 0.8139, 0.8461, 0.8750, 0.9008, 0.9235, 0.9435, 0.9607, 0.9756, 0.9882, 0.9988, 1.0075, 1.0145, 1.0201, 1.0243, 1.0275, 1.0296, 1.0309, 1.0315, 1.0315, 1.0310, 1.0300, 1.0288, 1.0274, 1.0257, 1.0240, 1.0222, 1.0203, 1.0185, 1.0167, 1.0150, 1.0133, 1.0117, 1.0102, 1.0088, 1.0075, 1.0064, 1.0053, 1.0043, 1.0035, 1.0027, 1.0021, 1.0015, 1.0000);
+  --ressort-duree: 478ms;
+
+  /* un survol, un petit témoin — ce qui répond sous le doigt — response 0.25, amortissement 0.78 */
+  --ressort-vif: linear(0.0000, 0.0089, 0.0332, 0.0695, 0.1148, 0.1665, 0.2226, 0.2812, 0.3408, 0.4001, 0.4583, 0.5145, 0.5682, 0.6189, 0.6663, 0.7102, 0.7506, 0.7874, 0.8208, 0.8507, 0.8774, 0.9011, 0.9218, 0.9399, 0.9554, 0.9687, 0.9800, 0.9894, 0.9972, 1.0035, 1.0085, 1.0124, 1.0154, 1.0174, 1.0188, 1.0196, 1.0199, 1.0198, 1.0194, 1.0187, 1.0178, 1.0168, 1.0157, 1.0146, 1.0134, 1.0122, 1.0110, 1.0099, 1.0088, 1.0078, 1.0068, 1.0060, 1.0051, 1.0044, 1.0037, 1.0031, 1.0025, 1.0021, 1.0016, 1.0013, 1.0000);
+  --ressort-vif-duree: 331ms;
+
+  /* une carte, une feuille — le dépassement se voit, un peu — response 0.42, amortissement 0.72 */
+  --arrivee: linear(0.0000, 0.0131, 0.0481, 0.0994, 0.1623, 0.2327, 0.3072, 0.3831, 0.4581, 0.5305, 0.5992, 0.6631, 0.7217, 0.7747, 0.8220, 0.8635, 0.8995, 0.9303, 0.9562, 0.9777, 0.9951, 1.0088, 1.0194, 1.0272, 1.0327, 1.0361, 1.0379, 1.0384, 1.0378, 1.0364, 1.0344, 1.0319, 1.0292, 1.0263, 1.0234, 1.0205, 1.0178, 1.0151, 1.0127, 1.0105, 1.0085, 1.0067, 1.0051, 1.0037, 1.0026, 1.0016, 1.0008, 1.0001, 0.9996, 0.9992, 0.9989, 0.9987, 0.9986, 0.9985, 0.9985, 0.9986, 0.9986, 0.9987, 0.9988, 0.9989, 1.0000);
+  --arrivee-duree: 675ms;
+
+  /* un petit élément qui apparaît — vivant plutôt que posé là — response 0.32, amortissement 0.66 */
+  --pop: linear(0.0000, 0.0139, 0.0513, 0.1064, 0.1741, 0.2501, 0.3306, 0.4125, 0.4934, 0.5713, 0.6448, 0.7127, 0.7744, 0.8296, 0.8780, 0.9198, 0.9553, 0.9846, 1.0084, 1.0271, 1.0413, 1.0514, 1.0581, 1.0619, 1.0633, 1.0627, 1.0605, 1.0572, 1.0530, 1.0482, 1.0432, 1.0380, 1.0329, 1.0279, 1.0232, 1.0188, 1.0149, 1.0113, 1.0082, 1.0055, 1.0032, 1.0012, 0.9997, 0.9984, 0.9975, 0.9968, 0.9964, 0.9961, 0.9960, 0.9960, 0.9961, 0.9963, 0.9966, 0.9969, 0.9972, 0.9975, 0.9979, 0.9982, 0.9985, 0.9988, 1.0000);
+  --pop-duree: 529ms;
+
+  /* La cascade — le pas entre deux éléments qui se suivent,
+     borné au 12ᵉ : une grille de soixante-dix cases n'a pas à se
+     déplier pendant deux secondes. */
+  --cascade-pas: 28ms;
+  --cascade-borne: 12;
+}
