@@ -56,6 +56,86 @@ information, et il se voit.
 
 ---
 
+## #161 · Proposer la mesure à la page « Le pourquoi »
+
+    ouverte le   29 septembre 2026, par la manageuse
+    vers         main
+    état         ouverte — ==et elle attend l'auteur, non une relecture==
+
+**Pourquoi.** Une lecture sans mémoire du site, demandée par l'auteur, a
+reproché à cette page le **sophisme de la racine** — la formule *« le lien est
+vivant, actif à chaque emploi »* est la forme manuelle de l'erreur que James
+Barr a nommée en 1961. Mesuré : la page dit « vérifier » deux fois et ne dit
+==jamais== « mesurer » ni « compter », quand une fiche montre ses occurrences
+onze fois. ==La page plaide la moitié faible du projet et tait la moitié forte.==
+
+**Ce que ça engage.** Rien de technique — aucune donnée, aucun contrat. Mais
+c'est **la prose d'auteur sur les fondations du projet**, donc rien ne se
+fusionne sans son mot. Quatre mots deviennent touchables : `ʾeretz`, `ʾadamah`,
+`tevel`, `ʿanav`, `ʿani`, `malkhut`, `mamlakhah`, `melukhah` — ==les vingt-huit
+mots d'or de la page ont été vérifiés, tous ont une fiche==.
+
+**Pour la relire.** Trois paragraphes sont remplacés par quatre :
+
+    ruach « les trois ensemble, indissociablement »  → l'ambiguïté que le VERSET porte
+    la racine « active à chaque emploi »             → la racine explique, l'usage décide
+    les lettres (aleph le bœuf)                      → RETIRÉ, et remplacé par le relevé
+    (nouveau)                                        → lechem / milchamah
+
+==Le paragraphe des lettres est retiré parce qu'il est réfutable en une
+phrase== : notre A descend du même aleph, et le grec aussi. Ce qui distingue
+l'hébreu est d'avoir gardé les **noms** — un fait de nomenclature, pas de
+fonctionnement.
+
+Le quatrième a été refait après une objection des langues sources, et
+==l'objection porte== : *« réfuter l'exemple de Barr ne réfute pas Barr »*. Sa
+thèse n'est pas que ces deux mots soient étrangers — c'est que ==l'étymologie ne
+détermine pas le sens synchronique==. Gagner sur l'illustration ferait croire
+qu'on a gagné sur l'argument, et inviterait une contre-attaque d'arabiste.
+
+Le paragraphe ne marque donc plus un point : il ==démontre la retenue==. Il
+donne ce que le compte donne — un seul numéro, cinq des six emplois de
+« manger » dans des repas de danger, 812 emplois du verbe ordinaire contre 6 —
+puis il s'arrête, en rappelant que ==la règle qui l'y oblige est écrite dans les
+conventions du projet avant d'être invoquée ici==.
+
+==C'est aussi la réponse à l'autre reproche de l'audit== — qu'une méthode qui
+refuse les catégories extérieures se dérobe à la discussion. Une page qui
+publie une mesure **et** refuse d'en conclure montre le contraire.
+
+**Le comparatif sémitique n'est pas dans la page, et ce n'est plus par
+ignorance.** Il a été ouvert le 29 septembre : les langues sources ne tiennent
+que cinq témoins — hébreu, deux grecs, guèze, latin —, ==ni ougaritique ni
+arabe==, et **Lane** a donc été ouvert pour l'arabe.
+
+==Résultat mesuré, et il coupe des deux côtés :==
+
+- le groupe **« souder, refermer, entrelacer »** est réel et central chez Lane —
+  *closed up the hole thereof with a patch*, *the consolidating of wounds*, et
+  surtout `لَحْمَةٌ`, ==la trame du tissu==, ce qui s'entrelace avec la chaîne.
+  L'hypothèse du « presser ensemble » n'est donc pas farfelue ;
+- mais la seule dérivation que Lane énonce pour `ملحمة` ==passe par la chair==,
+  dans un emploi anatomique, sans un mot de guerre. ==Sur le point précis où
+  l'hypothèse avait besoin d'un appui, il donne la lecture rivale.==
+
+**Et la source est lacunaire, ce qui a été mesuré plutôt que supposé.** Lane
+meurt en 1876 à la 21ᵉ lettre ; ل est la 23ᵉ, donc cette racine tombe dans la
+partie posthume compilée sur des notes. Comparaison faite sur la même copie :
+`لحم` fait **1 582 caractères**, `حرب` — écrite par Lane — en fait **13 330**.
+==Huit fois plus mince==, et faite de renvois.
+
+==Donc son silence sur le sens de bataille ne prouve rien== : `malḥama` = mêlée
+est massivement attesté ailleurs. *Une absence dans ce qu'on voit n'est pas une
+absence* — la règle est au `CLAUDE.md` de la machine, et elle s'applique ici.
+
+==La datation reste ouverte, et l'instrument était mal décrit== : Lane cite des
+**autorités** — Jawharī, Farrāʾ, Fīrūzābādī, Zabīdī — et non des attestations
+datées. Ce sont les dates des lexicographes, pas celles des emplois. Trancher
+demanderait le *Lisān al-ʿArab* lu directement.
+
+==Ce que la page gagne est donc de se taire en connaissance de cause==, et non
+par défaut de mesure. Rien de tout cela ne paraît devant un lecteur.
+
 ## #156 · Porter les quatre thèmes de l'app
 
     ouverte le   21 septembre 2026, par la session du site (w6:p1)
