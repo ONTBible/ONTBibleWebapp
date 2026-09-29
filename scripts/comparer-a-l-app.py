@@ -37,8 +37,8 @@ ce qui dépend de la largeur (§7 bis). Le second passe par QuickLook, qui rend
 
 ## Emploi
 
-    ./scripts/comparer-a-l-app.py iphone 01=/fr/lire 04=/fr/lire/bereshit
-    ./scripts/comparer-a-l-app.py mac    01=/fr/lire
+    ./scripts/comparer-a-l-app.py iphone 01=/fr/webapp 04=/fr/webapp/bereshit
+    ./scripts/comparer-a-l-app.py mac    01=/fr/webapp
 
 La clé à gauche du `=` est le numéro de la capture de l'app ; à droite,
 l'adresse du site à mettre en face.
