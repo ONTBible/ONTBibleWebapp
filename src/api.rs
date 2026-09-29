@@ -276,6 +276,21 @@ pub async fn lexique() -> Result<Vec<ResumeDto>, ServerFnError> {
         .collect())
 }
 
+/// La feuille de prononciation, qui ouvre le lexique.
+///
+/// **Elle traverse le domaine telle quelle**, comme l'arbre du corpus et pour
+/// la même raison (voir l'en-tête de ce module) : la recopier en transport
+/// ferait deux descriptions du même arbre de blocs à tenir d'accord, et une
+/// `Prononciation` n'a aucun invariant que la sérialisation pourrait violer.
+///
+/// `None` quand le pipeline ne l'émet pas encore — le site se compile contre
+/// le `dist/` qu'il trouve.
+#[server(prefix = "/api", endpoint = "prononciation")]
+pub async fn prononciation() -> Result<Option<crate::domaine::corpus::Prononciation>, ServerFnError>
+{
+    Ok(glossaire()?.prononciation().cloned())
+}
+
 /// Une fiche et ses renvois.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FicheDto {

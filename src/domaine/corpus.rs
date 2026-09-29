@@ -75,6 +75,33 @@ pub enum Bloc {
     Filet,
 }
 
+/// La feuille qui explique **comment se prononce ce qui est écrit**.
+///
+/// ## Pourquoi elle existe
+///
+/// Le corpus écrit `chokhmah`, `malʾakh`, `Chanokh` — et rien dans la graphie
+/// n'avertit le lecteur quand il se trompe. L'auteur lui-même prononçait
+/// *Chanokh* « cha-no-q » : les deux consonnes fausses, aucun signe pour le
+/// lui dire. Une translittération sans diacritiques est faite pour **remonter
+/// à la lettre**, jamais pour guider la bouche.
+///
+/// ## Elle ne se compose pas ici
+///
+/// Son titre et ses blocs viennent de `lexique/prononciation.md`, par le
+/// pipeline. Le site les affiche et s'arrête là — c'est la règle que l'app
+/// s'est donnée, mot pour mot : *« écrire ici une explication de la
+/// prononciation en ferait une seconde source, qui divergerait du vault à la
+/// première correction »*.
+///
+/// Et elle arrive en **blocs**, pas en markdown : le rendu pose alors l'or des
+/// intraduisibles et la terre brûlée des noms propres sans une ligne de code
+/// de plus, avec leurs liens vers les fiches.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Prononciation {
+    pub titre: String,
+    pub blocs: Vec<Bloc>,
+}
+
 /// Le sous-titre d'un chapitre : ce que la tradition en dit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SousTitre {

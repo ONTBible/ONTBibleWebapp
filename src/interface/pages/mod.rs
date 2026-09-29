@@ -25,6 +25,7 @@ mod negations;
 mod partie;
 mod passage;
 mod pourquoi;
+mod prononciation;
 pub mod recherche;
 
 pub use accueil::Accueil;
@@ -41,4 +42,5 @@ pub use negations::Negations;
 pub use partie::Partie;
 pub use passage::Passage;
 pub use pourquoi::Pourquoi;
+pub use prononciation::Prononciation;
 pub use recherche::Recherche;

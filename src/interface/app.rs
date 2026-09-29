@@ -8,7 +8,7 @@ use leptos_router::{
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
     Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
-    Livre, Negations, Partie, Passage, Pourquoi, Recherche,
+    Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Recherche,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -347,6 +347,21 @@ pub fn App() -> impl IntoView {
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("lexique"))
                         view=Lexique
+                        ssr=SsrMode::Async
+                    />
+                    // **Avant celle de la fiche**, comme `/fr/lire/partie`
+                    // passe avant celle du livre : les deux font trois
+                    // segments, et un segment statique doit être essayé avant
+                    // un paramètre. Aucun lemme ne s'appelle ainsi — ce sont
+                    // des translittérations de l'hébreu — et une épreuve le
+                    // tient plutôt que ce commentaire.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("lexique"),
+                            StaticSegment("prononciation"),
+                        )
+                        view=Prononciation
                         ssr=SsrMode::Async
                     />
                     <Route

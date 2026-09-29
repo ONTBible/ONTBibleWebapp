@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 use crate::api::lexique;
-use crate::interface::design::PageDeLecture;
+use crate::interface::design::{CarteDePrononciation, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// `/fr/lexique` — l'index des intraduisibles.
@@ -36,6 +36,11 @@ pub fn Lexique() -> impl IntoView {
         // corpus mène ici » — se lit dans la forme : chaque ligne porte son
         // chevron.
         <PageDeLecture liste=true titre="Lexique">
+            // **Avant la première fiche, et c'est tout son propos.** La
+            // translittération donne les lettres, pas les sons — et rien dans
+            // sa graphie n'avertit quand on se trompe. Lue après coup, cette
+            // feuille ne répare rien.
+            <CarteDePrononciation />
             <Suspense fallback=|| ()>
                 {move || Suspend::new(async move {
                     match entrees.await {

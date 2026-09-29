@@ -167,6 +167,18 @@
      parchemin, où ils se confondaient avec les mots d'or du corpus. */
   --color-marque-encre: var(--ont-brandInk);
 
+  /* Ce qui s'écrit **sur** l'aplat de marque — `onBrandAccent`. Il ne se
+     déduit pas de `marque-encre` : sur les peaux claires l'aplat est
+     l'aubergine et le texte est l'or, sur les sombres l'aplat est l'or et le
+     texte est la nuit. La paire s'inverse, et c'est l'app qui l'a mesurée.
+
+     `onBrand` existe à côté chez elle — le texte plein sur le même aplat,
+     `#FAF5EB` là où `onBrandAccent` vaut `#CDBE83`. Le site ne porte que le
+     second : c'est celui de ses deux emplois d'aplat, la carte de
+     prononciation et le bouton de connexion. Le jour où un troisième demande
+     le texte plein, il se prend dans `jetons.css`, qui l'a déjà.          */
+  --color-sur-marque-accent: var(--ont-onBrandAccent);
+
   /* Les filets. C'est `separator` chez l'app, et ce n'est pas la même recette
      selon le thème : de l'or à 18 % sur une nuit — où un gris paraîtrait sale
      sur une teinte chaude —, de l'encre à 10 % sur du parchemin, où c'est le

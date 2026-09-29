@@ -31,8 +31,8 @@ use std::sync::{Arc, OnceLock};
 
 use crate::application::ports::{Corpus, Lexique};
 use crate::domaine::corpus::{
-    Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Section,
-    SousTitre, Statut,
+    Bloc, Chapitre, Conteneur, Ensemble, Entree, EntreeDeLivre, Livre, Occurrence, Prononciation,
+    Section, SousTitre, Statut,
 };
 use crate::domaine::texte::{
     CibleDeLaReference, CibleDuNiveauTrois, Noeud, PorteeDeLaReference, Verset,
@@ -60,6 +60,16 @@ const GLOSSAIRE: &str = include_str!(concat!(
 const SHEMOT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../ONTBibleApp/dist/shemot.json"
+));
+
+/// La feuille de prononciation — `lexique/prononciation.md`, passée en blocs.
+///
+/// **Analysée au démarrage**, contrairement aux occurrences : six kilo-octets,
+/// et la carte qui y mène est en tête du lexique. Un `OnceLock` de plus
+/// coûterait plus de lignes que l'analyse ne coûte de temps.
+const PRONONCIATION: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../ONTBibleApp/dist/prononciation.json"
 ));
 
 const OCCURRENCES: &str = include_str!(concat!(
@@ -448,6 +458,13 @@ pub struct LexiqueEmbarque {
     /// accès direct et non un parcours des 105 entrées.
     index: HashMap<String, usize>,
     occurrences: OnceLock<HashMap<String, Vec<Occurrence>>>,
+    /// `None` quand le pipeline ne l'émet pas encore.
+    ///
+    /// **Une absence et non une panne** : le site se compile contre le `dist/`
+    /// qu'il trouve, et un `dist/` produit avant cette feuille est un `dist/`
+    /// légitime. La carte du lexique ne se pose alors pas — plutôt qu'un lien
+    /// vers une page vide, qui est la seule chose pire qu'une carte absente.
+    prononciation: Option<Prononciation>,
 }
 
 impl LexiqueEmbarque {
@@ -518,6 +535,15 @@ impl LexiqueEmbarque {
             entrees,
             index,
             occurrences: OnceLock::new(),
+            // Elle **se tait** si elle ne s'analyse pas, au lieu de faire
+            // échouer tout le lexique : cent cinq fiches ne valent pas d'être
+            // perdues pour une feuille d'appoint.
+            prononciation: serde_json::from_str::<pipeline::PrononciationFile>(PRONONCIATION)
+                .ok()
+                .map(|dto| Prononciation {
+                    titre: dto.title,
+                    blocs: blocs(dto.blocks),
+                }),
         })
     }
 }
@@ -529,6 +555,10 @@ impl Lexique for LexiqueEmbarque {
 
     fn entree(&self, lemme: &str) -> Option<&Entree> {
         self.index.get(lemme).map(|rang| &self.entrees[*rang])
+    }
+
+    fn prononciation(&self) -> Option<&Prononciation> {
+        self.prononciation.as_ref()
     }
 
     fn occurrences(&self, lemme: &str) -> Vec<Occurrence> {

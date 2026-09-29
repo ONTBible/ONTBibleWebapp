@@ -29,6 +29,11 @@ pub const PAGES: &[&str] = &[
     "/fr",
     "/fr/lire",
     "/fr/lexique",
+    // La feuille de prononciation. Elle répond à une **question**, ce que
+    // « Lexique » ne fait pas : « comment prononcer chokhmah », « le kh en
+    // hébreu ». C'est exactement la longue traîne du §8 octies, et elle
+    // n'était atteignable que par la carte du lexique.
+    "/fr/lexique/prononciation",
     "/fr/rechercher",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",

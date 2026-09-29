@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use crate::domaine::corpus::{Ensemble, Entree, Livre, Occurrence};
+use crate::domaine::corpus::{Ensemble, Entree, Livre, Occurrence, Prononciation};
 use crate::domaine::vivier::VersetQuotidien;
 
 /// Savoir quel jour on est.
@@ -57,6 +57,14 @@ pub trait Lexique: Send + Sync {
     /// Analysé à la demande : c'est le plus gros fichier du pipeline, et la
     /// plupart des visites ne consultent aucune fiche.
     fn occurrences(&self, lemme: &str) -> Vec<Occurrence>;
+
+    /// La feuille de prononciation, qui ouvre le lexique.
+    ///
+    /// **Sur ce port-ci et non sur [`Corpus`]** : c'est l'app qui l'a rangée
+    /// là — `LexiconFeature` — et la raison tient. Elle ne parle pas du texte,
+    /// elle parle de la façon de lire les mots que le lexique tient debout ;
+    /// une page de lecture n'en a aucun besoin.
+    fn prononciation(&self) -> Option<&Prononciation>;
 }
 
 /// Ce que le site sait demander au backend de l'app, à propos d'un compte.
