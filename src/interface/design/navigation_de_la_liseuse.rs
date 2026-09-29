@@ -49,14 +49,28 @@
 //!   sans serveur »* : le verset du jour, que le site porte déjà et par la
 //!   même fonction de la date, plus l'annonce de ce qui vient. Tout ce qui
 //!   suppose d'autres lecteurs y est **annoncé sans être simulé** ;
-//! - **Chuqqot** attend le vault. `dist/chuqqot.json` est bien émis, et ses
-//!   `entries` sont vides. L'onglet serait donc exactement ce que ce dépôt
-//!   s'interdit depuis le badge App Store : *une bannière n'a que deux états
-//!   justes, et « allumée vers rien » n'en est pas un.*
+//! - **Chuqqot attend une validation, pas une rédaction.** Le pipeline émet
+//!   son fichier même vide — *« un fichier absent et un fichier sans entrée
+//!   ne se distinguent pas côté liseuse, et l'un des deux voudrait dire le
+//!   réseau a échoué »* — et il est vide aujourd'hui. Mais **quatorze chuqqot
+//!   sont écrites**, retenues dans les brouillons du vault par une règle
+//!   arbitrée le 9 septembre 2026 : une unité de traduction voyage marquée
+//!   « Brouillon », un **énoncé permanent** « en attente de validation » se
+//!   contredit lui-même.
+//!
+//!   L'onglet serait donc aujourd'hui ce que ce dépôt s'interdit depuis le
+//!   badge App Store — *une bannière n'a que deux états justes, et « allumée
+//!   vers rien » n'en est pas un* — et il cessera de l'être **d'un coup**, le
+//!   jour où l'auteur valide : les quatorze passent en `locked/`, le fichier
+//!   se remplit, et le vault n'écrit pas une ligne de plus.
+//!
+//!   C'est la session du Vault qui l'a corrigé, et l'écart comptait : j'avais
+//!   conclu « rien n'est écrit » d'un tableau vide. **Un compteur à zéro ne
+//!   dit pas pourquoi il est à zéro** — rien d'écrit et tout d'écrit-mais-
+//!   retenu donnent le même chiffre, et n'appellent pas la même préparation.
 //!
 //! La leçon est celle du §8 quinquies, prise à l'envers : on s'était
-//! transmis une contrainte sans la redater. Deux minutes dans `dist/`
-//! l'auraient tranchée.
+//! transmis une contrainte sans la redater.
 //!
 //! **« Reprendre » y est**, en barre latérale comme chez l'app — et ce
 //! paragraphe disait le contraire, au motif que « le site ne suit pas encore

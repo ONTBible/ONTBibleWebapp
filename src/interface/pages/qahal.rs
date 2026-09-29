@@ -28,9 +28,11 @@ use crate::interface::tete::Tete;
 /// est déjà porté par le site, et la même fonction de la date que l'app : le
 /// lecteur qui l'a vu sur son téléphone ce matin retrouve le même ici.
 ///
-/// `dist/chuqqot.json` existe aussi, mais ses `entries` sont vides — le vault
-/// n'en a encore écrit aucune. Un onglet Chuqqot serait donc exactement la
-/// chose qu'on refuse au paragraphe précédent.
+/// Les **chuqqot**, non : quatorze sont écrites et retenues dans les
+/// brouillons du vault jusqu'à ce que l'auteur les valide — un énoncé
+/// permanent ne voyage pas « en attente de validation ». Rien n'atteint donc
+/// les liseuses aujourd'hui, et un onglet Chuqqot serait exactement la chose
+/// qu'on refuse au paragraphe précédent.
 ///
 /// ## La carte garde sa mesure
 ///
