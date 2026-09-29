@@ -3674,6 +3674,66 @@ canvas, donc un navigateur.
 > « Le navigateur ne le fait pas » ne se vérifie nulle part ; « il faut quatre
 > drapeaux `web-sys` » se vérifie en une compilation.
 
+### La navigation se figeait — le 29 septembre 2026
+
+**« Au bout d'un moment la nav de la tabbar se fige. »** C'est la **troisième**
+fois que ce dépôt paie cette panne, avec trois causes différentes, et les trois
+se sont présentées par la même phrase : une construction en deux temps (§7 bis),
+un `<p>` dans un `<p>` (§8 bis), et celle-ci.
+
+La panique du WASM ne laisse **aucune trace ailleurs** : le serveur ne la voit
+pas, la page reste affichée et juste, elle s'indexe — seule l'interactivité
+meurt. On la cherche alors dans le composant qu'on vient d'écrire, où il n'y a
+rien.
+
+`scripts/banc-erreurs.html` la nomme en une ligne. Il charge le site dans un
+cadre de même origine, accroche `error`, `unhandledrejection` et
+`console.error`, puis **clique dix vrais liens** — un `pushState` synthétique ne
+réveillerait pas ce routeur, un clic sur une ancre du document, si. Chaque clic
+est suivi de l'URL obtenue : *un « clic → » sans « url= » qui suit est une
+navigation morte.*
+
+    ATTENTE=34 ./scripts/sim.sh /banc-erreurs.html
+
+#### Deux causes, la seconde cachée derrière la première
+
+    panicked at reactive_graph/traits.rs:394
+    you tried to access a reactive value … but it has already been disposed
+    RuntimeError: Unreachable code should not be executed
+
+Les barres créaient un `Signal::derive` par destination, **dans la boucle de
+rendu** : il appartenait donc à la portée réactive du moment, que la navigation
+détruit — pendant que les closures d'attribut, elles, sont réévaluées.
+
+Dessous, la vraie : le chemin **arrivait en prop**, et `#[prop(into)]` crée un
+signal possédé par la portée de l'**appelant**, c'est-à-dire la page. Les barres
+lisent maintenant `use_location()` elles-mêmes, qui rend le mémo du routeur.
+
+> ==Un signal traverse mal une frontière de composant quand les deux n'ont pas
+> la même durée de vie.== La barre survit aux pages ; son chemin doit venir de
+> ce qui leur survit aussi. Et rien de réactif ne se crée dans une boucle de
+> rendu.
+
+**« Au bout d'un moment » voulait dire *à la quatrième navigation*.** Une panne
+qu'on décrit par une durée est presque toujours une panne qu'on décrit par un
+compte.
+
+#### Et la garde de composition ne voyait pas les pages neuves
+
+Sa liste nommait encore `/fr/lire/*`, qui **redirige** depuis le déménagement :
+elle contrôlait des renvois de trois lignes et annonçait « 12 pages, aucune
+imbrication interdite ». Les cinq écrans écrits ce jour-là n'y étaient pas.
+
+> Une garde qui ne visite pas une page ne dit rien d'elle — et son décompte
+> final se lit comme si elle avait tout vu. C'est la forme la plus coûteuse :
+> elle rassure exactement là où elle ne regarde pas.
+
+Elle en visite dix-huit. Et la correction typographique qu'elle a réclamée a
+failli coûter la compilation : la première passe appliquait la règle à la
+**ligne entière**, donc à `move || !ouvert.get()`, où elle a posé une espace
+fine insécable devant le `!`. *Une règle de composition n'a rien à faire hors
+d'une chaîne.*
+
 ### Ce qui reste de la webapp
 
 - **Chuqqot** — l'onglet suit le jour où le vault écrit sa première chuqqah.

@@ -92,7 +92,7 @@ pub fn Compte() -> impl IntoView {
                 "Ce compte garde la " <b>"référence"</b> " du verset — son livre, son unité, "
                 "son numéro —, la couleur choisie et la note écrite. "
                 <b>"Jamais le texte du verset"</b> ", qui est déjà là. Un surlignage se "
-                "rattache à un verset et non à une position dans le texte : c'est ce qui le "
+                "rattache à un verset et non à une position dans le texte : c'est ce qui le "
                 "garde juste quand une traduction est révisée. Tout s'efface depuis "
                 <Lien href="/fr/confidentialite">"la page de confidentialité"</Lien>
                 ", immédiatement et complètement."
@@ -137,7 +137,7 @@ fn Ouvert() -> impl IntoView {
                                 // l'unité, pas la ligne — voir
                                 // `api::retenir_la_position`. Annoncer un verset
                                 // qu'on ne vise pas serait une précision fausse.
-                                ". Reprendre là où vous en étiez ?"
+                                ". Reprendre là où vous en étiez ?"
                             </p>
                         }
                     })
@@ -791,7 +791,7 @@ fn LaLecture() -> impl IntoView {
         // carré de 1080 px. Le site ne la porte pas encore — une entrée qui
         // règlerait une action inexistante serait « allumée vers rien ».
         <PiedDeSection>
-            "Les réglages s'ouvrent aussi par le bouton « aA » d'un chapitre, "
+            "Les réglages s'ouvrent aussi par le bouton « aA » d'un chapitre, "
             "au moment où l'on décide d'éteindre une glose."
         </PiedDeSection>
     }
@@ -847,13 +847,13 @@ fn LeRegistre() -> impl IntoView {
             </li>
         </Groupe>
         <PiedDeSection>
-            "Allumé, les livres portent le nom qu'on leur connaît — « Apocalypse », "
-            "« la Loi », « Chapitre 7 ». Éteint, ils portent ce que leur nom hébreu veut "
-            "dire : « le machazeh de Yohanan », « la Fondation », « Parashah 7 »."
+            "Allumé, les livres portent le nom qu'on leur connaît — « Apocalypse », "
+            "« la Loi », « Chapitre 7 ». Éteint, ils portent ce que leur nom hébreu veut "
+            "dire : « le machazeh de Yohanan », « la Fondation », « Parashah 7 »."
             <br /><br />
             "L'écart n'est pas une nuance de traduction. La "
-            <i>"torah"</i> " est l'instruction qui vise ; le grec l'a rendue par "
-            <i>"nomos"</i> ", le code qui contraint, et le français en a hérité « la Loi »."
+            <i>"torah"</i> " est l'instruction qui vise ; le grec l'a rendue par "
+            <i>"nomos"</i> ", le code qui contraint, et le français en a hérité « la Loi »."
             <br /><br />
             "Ce réglage est une béquille, et il est allumé pour qu'on puisse marcher avant "
             "de savoir. En l'éteignant, des mots apparaissent que vous n'avez peut-être "

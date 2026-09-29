@@ -110,7 +110,7 @@ mod tests {
         let lexique = LexiqueEmbarque::charger().expect("le lexique s'ouvre");
         assert!(
             lexique.entree("prononciation").is_none(),
-            "une fiche s'appelle « prononciation » : elle est masquée par la \
+            "une fiche s'appelle « prononciation » : elle est masquée par la \
              route de la feuille, qui passe avant celle des fiches dans \
              `app.rs`. Renommer l'une des deux — la feuille est la moins \
              coûteuse à déplacer."

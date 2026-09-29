@@ -152,7 +152,7 @@ pub fn Recherche() -> impl IntoView {
                     if liste.is_empty() {
                         return view! {
                             <p class="text-encre-douce">
-                                "Rien pour « " {mot} " ». Le corpus compte trois livres sur \
+                                "Rien pour « " {mot} " ». Le corpus compte trois livres sur \
                                  soixante-dix : ce mot est peut-être dans un livre qui n'est \
                                  pas encore traduit."
                             </p>
@@ -191,7 +191,7 @@ fn UneTrouvaille(t: crate::api::TrouvailleDto) -> impl IntoView {
     let renvoi = if t.verset == 0 {
         t.unite_titre.clone()
     } else {
-        format!("{} : {}", t.unite_titre, t.verset)
+        format!("{} : {}", t.unite_titre, t.verset)
     };
     let chemin = if t.verset == 0 {
         format!("/fr/webapp/{}/{}", t.livre_id, t.unite_id)

@@ -99,7 +99,7 @@ fn EnAttenteDeValidation() -> impl IntoView {
                 "Elles paraîtront ici une à une, dès qu'elles seront arrêtées."
             </p>
             <p class="m-0 text-sm text-encre-douce/80">
-                "Un énoncé permanent ne se publie pas « en attente » : "
+                "Un énoncé permanent ne se publie pas « en attente » : "
                 "il se contredirait lui-même."
             </p>
         </section>

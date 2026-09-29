@@ -91,7 +91,7 @@ pub fn preferences() -> Signal<Preferences> {
             // l'on peut le voir sans relire tout l'arbre.
             debug_assert!(
                 false,
-                "les réglages de lecture sont lus sans avoir été fournis : \
+                "les réglages de lecture sont lus sans avoir été fournis : \
                  appeler `fournir_preferences()` dans la page qui compose ce \
                  texte, sinon aucune bascule n'aura d'effet"
             );
@@ -518,7 +518,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                     <p class=NOTE>
                         "Les quatre peaux de l'application, à l'identique. Mystique est née "
                         "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
-                        "téléphone ; les trois autres font le chemin inverse."
+                        "téléphone ; les trois autres font le chemin inverse."
                     </p>
 
                     <Groupe titre="Fonte">
@@ -568,7 +568,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                     </p>
                     <p class=NOTE>
                         "Couper les mots resserre la justification et supprime les lézardes "
-                        "blanches d'une colonne étroite. Éteint par défaut : la césure hache "
+                        "blanches d'une colonne étroite. Éteint par défaut : la césure hache "
                         "les mots, et qui grossit le texte pour le voir se retrouve avec plus "
                         "de coupures, pas moins."
                     </p>
