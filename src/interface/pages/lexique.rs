@@ -30,81 +30,140 @@ pub fn Lexique() -> impl IntoView {
             chemin="/fr/lexique"
         />
 
-        <PageDeLecture
-            rappel="Les mots laissés debout"
-            titre="Lexique"
-            chapeau=Box::new(|| {
-                view! {
-                    <p class="text-encre-douce text-pretty">
-                        "Ce que la restitution a choisi de ne pas traduire, et comment elle \
-                         le rend. Et les noms propres, qu'elle garde dans leur forme hébraïque. \
-                         Chaque mot d'or et chaque nom du corpus mène ici."
-                    </p>
-                }
-                    .into_any()
-            })
-        >
+        // **Ni œil-de-bœuf ni chapeau**, comme la Bible. L'app ouvre son
+        // lexique sur « Lexique » et rien d'autre : une liste ne s'introduit
+        // pas. Ce que le chapeau disait — « chaque mot d'or et chaque nom du
+        // corpus mène ici » — se lit dans la forme : chaque ligne porte son
+        // chevron.
+        <PageDeLecture liste=true titre="Lexique">
             <Suspense fallback=|| ()>
                 {move || Suspend::new(async move {
                     match entrees.await {
-                        Ok(entrees) => {
-                            view! {
-                                <ul class="m-0 list-none p-0">
-                                    {entrees
-                                        .into_iter()
-                                        .map(|entree| {
-                                            view! {
-                                                <li class="border-b border-filet/40 last:border-0">
-                                                    <a
-                                                        href=format!("/fr/lexique/{}", entree.lemme)
-                                                        class="block py-4 no-underline"
-                                                    >
-                                                        <span class="flex items-baseline justify-between gap-4">
-                                                            // La teinte suit l'**espèce**, et ce
-                                                            // n'est pas une décoration : c'est le
-                                                            // contrat de couleurs du corpus. L'or
-                                                            // promet un intraduisible, la teinte du
-                                                            // Shem promet un nom propre. Les rendre
-                                                            // tous en or apprenait au lecteur que
-                                                            // l'or ne veut rien dire — sur la page
-                                                            // même qui est censée le lui enseigner.
-                                                            <span class=if entree.est_un_nom {
-                                                                "font-semibold text-shem"
-                                                            } else {
-                                                                "font-semibold text-accent"
-                                                            }>
-                                                                {entree.titre}
-                                                            </span>
-                                                            <span
-                                                                aria-hidden="true"
-                                                                dir="rtl"
-                                                                lang="he"
-                                                                class="font-hebreu text-[1.05em] text-encre-douce"
-                                                            >
-                                                                {entree.hebreu}
-                                                            </span>
-                                                        </span>
-                                                        {(!entree.rendu.is_empty())
-                                                            .then(|| {
-                                                                view! {
-                                                                    <span class="mt-1 block text-[0.92em] text-encre-douce">
-                                                                        {entree.rendu}
-                                                                    </span>
-                                                                }
-                                                            })}
-                                                    </a>
-                                                </li>
-                                            }
-                                        })
-                                        .collect_view()}
-                                </ul>
-                            }
-                                .into_any()
-                        }
+                        Ok(entrees) => view! { <ParLettre entrees /> }.into_any(),
                         Err(_) => ().into_any(),
                     }
                 })}
             </Suspense>
         </PageDeLecture>
     }
+}
+
+/// Le lexique groupé par initiale, comme chez l'app.
+///
+/// ## Ce que le groupement fait, et que la liste plate ne faisait pas
+///
+/// Trois cent quatre-vingts entrées à plat se parcourent en défilant. Groupées
+/// par lettre, elles se **parcourent par sauts** : l'œil cherche « C », pas la
+/// centième ligne. C'est ce que l'app fait, et c'est ce qui rend un lexique de
+/// cette taille utilisable sans recherche.
+///
+/// ## L'initiale se prend sur le lemme, pas sur le titre
+///
+/// Le titre est capitalisé — « Ahyah » —, le lemme ne l'est pas. Prendre l'un
+/// ou l'autre donne la même lettre ici, mais le lemme est ce qui **ordonne**
+/// la liste côté serveur : grouper sur autre chose que la clé de tri
+/// produirait des sections dans le désordre dès la première divergence.
+///
+/// Les diacritiques sont écartés de la même façon qu'ils le sont du tri —
+/// « ʾelohim » tombe sous **E**, pas sous une lettre qui n'existe pas dans un
+/// index.
+#[component]
+fn ParLettre(entrees: Vec<crate::api::ResumeDto>) -> impl IntoView {
+    use crate::interface::design::{EnteteDeSection, Groupe, Ligne};
+
+    let mut sections: Vec<(char, Vec<crate::api::ResumeDto>)> = Vec::new();
+    for entree in entrees {
+        let lettre = initiale(&entree.lemme);
+        match sections.last_mut() {
+            Some((courante, groupe)) if *courante == lettre => groupe.push(entree),
+            _ => sections.push((lettre, vec![entree])),
+        }
+    }
+
+    sections
+        .into_iter()
+        .map(|(lettre, entrees)| {
+            view! {
+                <div class="mb-6 last:mb-0">
+                    <EnteteDeSection>{lettre.to_string()}</EnteteDeSection>
+                    <Groupe>
+                        {entrees
+                            .into_iter()
+                            .map(|entree| {
+                                let titre = entree.titre.clone();
+                                let hebreu = entree.hebreu.clone();
+                                let rendu = entree.rendu.clone();
+                                let nom = entree.est_un_nom;
+                                view! {
+                                    <Ligne
+                                        chemin=Some(format!("/fr/lexique/{}", entree.lemme))
+                                        titre=Box::new(move || {
+                                            view! {
+                                                // La teinte suit l'**espèce**, et
+                                                // ce n'est pas une décoration :
+                                                // c'est le contrat de couleurs du
+                                                // corpus. L'or promet un
+                                                // intraduisible, la teinte du Shem
+                                                // promet un nom propre.
+                                                //
+                                                // C'est la seule liste du site où
+                                                // le titre garde sa couleur : ici
+                                                // elle **enseigne** au lieu de
+                                                // signaler qu'on peut toucher.
+                                                <span class=if nom {
+                                                    "text-shem"
+                                                } else {
+                                                    "text-accent"
+                                                }>{titre}</span>
+                                            }
+                                                .into_any()
+                                        })
+                                        sous_titre=Box::new(move || {
+                                            (!rendu.is_empty())
+                                                .then(|| view! { <span>{rendu}</span> })
+                                                .into_any()
+                                        })
+                                        // **L'hébreu est la valeur, pas une
+                                        // suite du titre.** Collé au lemme il
+                                        // s'y soudait — « badalבְּדַל » —, et
+                                        // deux écritures de sens opposés qui se
+                                        // touchent ne se lisent ni l'une ni
+                                        // l'autre. Chez l'app il tient la
+                                        // colonne de droite, où l'œil apprend à
+                                        // le trouver.
+                                        valeur=Box::new(move || {
+                                            view! {
+                                                <span
+                                                    aria-hidden="true"
+                                                    dir="rtl"
+                                                    lang="he"
+                                                    class="font-hebreu text-[1.05em]"
+                                                >
+                                                    {hebreu}
+                                                </span>
+                                            }
+                                                .into_any()
+                                        })
+                                    />
+                                }
+                            })
+                            .collect_view()}
+                    </Groupe>
+                </div>
+            }
+        })
+        .collect_view()
+}
+
+/// L'initiale d'un lemme, diacritiques écartés.
+///
+/// Les lemmes translittérés portent des signes que l'hébreu demande et qu'un
+/// index ne connaît pas — `ʾelohim`, `ʿolam`. Les laisser produirait des
+/// sections d'une seule entrée, rangées après Z.
+fn initiale(lemme: &str) -> char {
+    lemme
+        .chars()
+        .find(|c| c.is_ascii_alphabetic())
+        .map(|c| c.to_ascii_uppercase())
+        .unwrap_or('—')
 }
