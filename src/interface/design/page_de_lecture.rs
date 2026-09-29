@@ -119,7 +119,7 @@ pub fn PageDeLecture(
         // hauteur de la barre d'onglets, sans quoi la dernière ligne du
         // chapitre se lirait derrière elle.
         <div class="pb-24 lg:ps-[16.5rem] lg:pb-0">
-        <Bloc>
+        <Bloc page=liste>
             {barre.map(|barre| barre())}
 
             // Le fil **cède la place** à la pastille quand il y en a une.

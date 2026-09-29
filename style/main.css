@@ -263,6 +263,25 @@
      ligne suivante. La mesure large reprend `ONTLayout.readingWidth` — 700
      points, la largeur de lecture de l'app sur iPad. */
   --container-mesure: 38rem;
+
+  /* **La seconde mesure — celle d'une page, pas d'une phrase.**
+
+     L'app en porte deux, et la session macOS a insisté pour que la leçon ne
+     soit ni l'une ni l'autre valeur : `readingWidth 700` borne la prose,
+     `pageWidth 850` borne une page — listes, cartes, réglages. *« Une liste
+     ne se lit pas comme une phrase : l'œil n'y court pas d'un bout à l'autre,
+     il saute d'un intitulé à sa valeur. »*
+
+     Le site n'en avait qu'une, et c'est elle qui bornait ses listes : un
+     sommaire de soixante-dix livres composait sur la mesure d'un verset, avec
+     le compteur à trois centimètres de son titre au lieu d'être au bord.
+
+     Le rapport est celui de l'app — 850/700 —, appliqué à notre mesure plutôt
+     que sa valeur reportée : la nôtre vaut 38 rem parce que le corps vaut
+     21 px (§5), et recopier 850 pt casserait ce lien. `--container-large`,
+     lui, garde son emploi : c'est la comparaison de l'accueil, où deux
+     colonnes de prose doivent tenir côte à côte.                           */
+  --container-page: 46rem;
   --container-large: 52rem;
 
   /* La marque, dans l'en-tête. Elle **suit la même interpolation que le

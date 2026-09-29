@@ -34,6 +34,19 @@ pub fn Bloc(
     /// Élargit la mesure — pour ce qui n'est pas du texte courant.
     #[prop(optional)]
     large: bool,
+    /// La mesure d'une **page** plutôt que celle d'une phrase.
+    ///
+    /// C'est `pageWidth` contre `readingWidth` chez l'app : une liste, une
+    /// carte, un panneau de réglages. Ils ne se lisent pas d'un bout à
+    /// l'autre — l'œil y saute d'un intitulé à sa valeur —, et les borner à la
+    /// mesure d'un verset pose le compteur au milieu de la ligne au lieu du
+    /// bord.
+    ///
+    /// **Exclusif de `large`**, et il faut que ça le soit dans le balisage :
+    /// c'est exactement le piège raconté plus bas, un cran plus loin. Le
+    /// calcul se fait donc en amont, en une fois.
+    #[prop(optional)]
+    page: bool,
     /// L'ancre, pour qu'un lien de la page puisse y mener.
     #[prop(optional, into)]
     id: Option<String>,
@@ -61,11 +74,18 @@ pub fn Bloc(
             //
             // Un défaut de ce genre ne se voit pas : la page ne casse pas, elle
             // est juste étroite, et rien ne dit qu'elle devrait l'être moins.
-            <div
-                class="mx-auto w-full px-6 py-24"
-                class=("max-w-mesure", !large)
-                class=("max-w-large", large)
-            >
+            // Trois prétendants maintenant, donc la classe se **calcule** au
+            // lieu de s'empiler : à trois `class=(…)`, deux peuvent être vrais
+            // à la fois, et c'est encore l'ordre de la feuille qui trancherait.
+            // `large` l'emporte, étant la plus large — un appel qui demande les
+            // deux demande de la place.
+            <div class=if large {
+                "mx-auto w-full px-6 py-24 max-w-large"
+            } else if page {
+                "mx-auto w-full px-6 py-24 max-w-page"
+            } else {
+                "mx-auto w-full px-6 py-24 max-w-mesure"
+            }>
                 {children()}
             </div>
         </section>

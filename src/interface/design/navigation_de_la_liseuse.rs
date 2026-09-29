@@ -45,9 +45,31 @@
 //! que ce dépôt s'interdit depuis le badge App Store : *une bannière n'a que
 //! deux états justes, et « allumée vers rien » n'en est pas un.*
 //!
-//! « Reprendre » manque pour une autre raison : la position de lecture existe
-//! côté backend et le site ne la suit pas encore (§8 nonies). Elle viendra avec
-//! elle, pas avant.
+//! **« Reprendre » y est**, en barre latérale comme chez l'app — et ce
+//! paragraphe disait le contraire, au motif que « le site ne suit pas encore
+//! la position de lecture ». Il la suit : `api::retenir_la_position` est
+//! appelée à l'ouverture de chaque unité depuis que le compte existe, et
+//! `api::ma_position` la relit. C'était vrai à l'écriture du §8 nonies, et
+//! c'est resté écrit après avoir cessé de l'être.
+//!
+//! Elle n'est pas une destination de plus : l'app le dit d'un mot — *« les
+//! trois suivantes sont des lieux ; celle-ci est un signet »* —, et c'est ce
+//! qui lui donne sa section à elle, au-dessus des autres.
+//!
+//! ## Et la barre latérale porte le corpus
+//!
+//! Sous les destinations : un rayon par corpus peuplé, dépliable, avec les
+//! livres qui ont du texte. Ce n'est **pas** un emprunt à la barre dessinée du
+//! Mac — que la session macOS déconseille de copier, et à raison, ses trois
+//! contournements n'existant pas sur le web. Son propre commentaire dit que
+//! l'iPad montre la même chose : *« Sur l'iPad il est toujours visible »*. Le
+//! contournement était le **dessin**, pas le contenu.
+//!
+//! Le pli passe par `<details>`, qui est la réponse du web à
+//! `Section(isExpanded:)` : il replie sans JavaScript, il est au clavier, et
+//! il porte son témoin. Le Mac a dû dessiner le sien à la main parce que le
+//! style `sidebar` n'en affiche aucun — mesuré chez lui, la section se
+//! repliait sans que rien ne dise qu'elle le pouvait.
 
 use leptos::prelude::*;
 use leptos_router::components::A;
@@ -100,6 +122,10 @@ fn signe(nom: &str) -> &'static str {
         "livre" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 12h13",
         "lexique" => "M6 4h11a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4.2 11.5 2.3-6.4 2.3 6.4m-3.8-2h3",
         "loupe" => "M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm5 11.5L20 20",
+        // Le signet de « Reprendre » — `bookmark.fill` chez l'app. Un signet
+        // et non une flèche : en barre latérale il tient un rang de ligne, où
+        // une flèche se lirait comme un bouton d'action.
+        "signet" => "M7 3h10a1 1 0 0 1 1 1v17l-6-4-6 4V4a1 1 0 0 1 1-1Z",
         _ => "M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18Zm0 4.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-6.2 10a7.4 7.4 0 0 1 12.4 0",
     }
 }
@@ -159,6 +185,17 @@ fn on_y_est(chemin: &str, destination: &str) -> bool {
 /// Mac a payé et corrigé.
 #[component]
 fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
+    // **Deux ressources et non une.** Le plan est le même pour tout le monde
+    // et se met en cache au bord ; la position appartient au lecteur et ne
+    // doit jamais y entrer. Les fondre rendrait le plan incachable pour gagner
+    // un aller-retour.
+    //
+    // Ni l'une ni l'autre n'est `blocking` : la barre n'est pas ce qu'on vient
+    // chercher, et retarder le premier octet du texte pour peindre une
+    // navigation inverserait les priorités.
+    let plan = Resource::new(|| (), |_| async { crate::api::sommaire().await });
+    let position = Resource::new(|| (), |_| async { crate::api::ma_position().await });
+
     view! {
         <nav
             aria-label="La liseuse"
@@ -174,6 +211,38 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                     class="w-36 opacity-80 transition-opacity hover:opacity-100"
                 />
             </A>
+
+            // **Le signet, avant les lieux.** Il se tait sans compte et sans
+            // rien de lu — il n'y a alors rien à reprendre, et le dire serait
+            // un reproche.
+            <Suspense fallback=|| ()>
+                {move || Suspend::new(async move {
+                    match position.await {
+                        Ok(Some(p)) => {
+                            let ou = format!("{}:{}", p.chapter_title, p.verse);
+                            view! {
+                                <A
+                                    href=format!(
+                                        "/fr/lire/{}/{}?v={}",
+                                        p.book_id,
+                                        p.chapter_id,
+                                        p.verse,
+                                    )
+                                    attr:class="mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm uppercase tracking-capitales text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
+                                >
+                                    <Signe nom="signet" />
+                                    <span class="flex-1 truncate">"Reprendre"</span>
+                                    <span class="chiffres-tableau text-[0.7rem] normal-case tracking-normal opacity-70">
+                                        {ou}
+                                    </span>
+                                </A>
+                            }
+                                .into_any()
+                        }
+                        _ => ().into_any(),
+                    }
+                })}
+            </Suspense>
 
             <ul class="m-0 flex list-none flex-col gap-0.5 p-0">
                 {DESTINATIONS
@@ -220,13 +289,102 @@ fn BarreLaterale(chemin: Signal<String>) -> impl IntoView {
                     .collect_view()}
             </ul>
 
+            // **Le corpus, en rayons dépliables.** Il défile, lui — et c'est
+            // tout l'enjeu du compte épinglé juste en dessous : sur soixante-
+            // dix livres, une dernière section mettrait « Vous » hors de vue.
+            //
+            // `min-h-0` sur la boîte qui défile : dans une colonne flex, un
+            // enfant ne descend pas sous la taille de son contenu sans ça, et
+            // la barre déborderait au lieu de défiler.
+            <div class="-me-1 mt-5 min-h-0 flex-1 overflow-y-auto pe-1">
+                <Suspense fallback=|| ()>
+                    {move || Suspend::new(async move {
+                        let Ok(ensembles) = plan.await else {
+                            return ().into_any();
+                        };
+                        ensembles
+                            .into_iter()
+                            .filter_map(|ensemble| {
+                                // **Seulement les corpus qui ont un livre à
+                                // proposer**, mot pour mot la règle de l'app :
+                                // un en-tête « Berit Hadashah » suivi de rien
+                                // annoncerait un rayon vide.
+                                let livres: Vec<_> = ensemble
+                                    .sections
+                                    .iter()
+                                    .flat_map(|s| s.livres.iter())
+                                    .filter(|l| l.ecrit)
+                                    .map(|l| (l.id.clone(), l.titre.clone()))
+                                    .collect();
+                                if livres.is_empty() {
+                                    return None;
+                                }
+                                Some(
+                                    view! {
+                                        <details open class="mb-2 group">
+                                            // L'en-tête est **nettement plus
+                                            // petit que ses lignes**, et c'est
+                                            // une correction que l'app a payée :
+                                            // au corps de ses lignes, il cessait
+                                            // d'être un en-tête — « Kenesset » se
+                                            // lisait comme un livre de plus.
+                                            <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full px-3 py-1.5 font-titre text-[0.68rem] uppercase tracking-capitales text-encre-douce/70 transition-colors hover:text-encre-douce marker:content-['']">
+                                                <span class="flex-1 truncate">{ensemble.titre}</span>
+                                                // Le témoin est **toujours
+                                                // visible**, comme sur l'iPad —
+                                                // le Mac ne l'a que parce qu'il
+                                                // l'a dessiné.
+                                                <svg
+                                                    aria-hidden="true"
+                                                    viewBox="0 0 12 12"
+                                                    class="size-2.5 shrink-0 transition-transform duration-200 ease-out group-open:rotate-0 -rotate-90 motion-reduce:transition-none"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2.2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <path d="M2.5 4.5 6 8l3.5-3.5" />
+                                                </svg>
+                                            </summary>
+                                            <ul class="m-0 mt-0.5 flex list-none flex-col p-0">
+                                                {livres
+                                                    .into_iter()
+                                                    .map(|(id, titre)| {
+                                                        view! {
+                                                            <li>
+                                                                <A
+                                                                    href=format!("/fr/lire/{id}")
+                                                                    attr:class="block truncate rounded-full py-1.5 ps-3 pe-3 font-titre text-sm text-encre-douce no-underline transition-colors hover:bg-accent/8 hover:text-encre"
+                                                                >
+                                                                    {titre}
+                                                                </A>
+                                                            </li>
+                                                        }
+                                                    })
+                                                    .collect_view()}
+                                            </ul>
+                                        </details>
+                                    }
+                                    .into_any(),
+                                )
+                            })
+                            .collect_view()
+                            .into_any()
+                    })}
+                </Suspense>
+            </div>
+
             // **Le compte va en bas, épinglé, hors du défilement.**
             //
             // C'est la place qu'Apple Music lui donne, et la session macOS a
             // donné la raison : *le compte n'est pas une destination parmi les
             // livres, c'est qui regarde.* Sur un corpus complet, une dernière
             // section le mettrait à soixante-dix livres de là.
-            <div class="mt-auto pt-6">
+            // `mt-auto` a disparu : le corpus au-dessus prend désormais la
+            // place restante, donc il n'y a plus rien à pousser vers le bas.
+            // Le laisser ferait deux prétendants à l'espace libre.
+            <div class="border-t border-filet/60 pt-4 mt-4">
                 <A
                     href="/fr/compte"
                     attr:class="flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm uppercase tracking-capitales text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-encre"

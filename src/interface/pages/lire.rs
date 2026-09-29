@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
-use crate::api::sommaire;
-use crate::interface::design::{fournir_preferences, PageDeLecture, Sommaire};
+use crate::api::{ma_position, sommaire};
+use crate::interface::design::{fournir_preferences, CarteDeReprise, PageDeLecture, Sommaire};
 use crate::interface::tete::Tete;
 
 /// `/fr/lire` — le sommaire du corpus.
@@ -31,6 +31,16 @@ pub fn Lire() -> impl IntoView {
 
     let plan = Resource::new_blocking(|| (), |_| async { sommaire().await });
 
+    // **La position, et une ressource séparée du plan.** Le sommaire est le
+    // même pour tout le monde et se met en cache au bord ; la position
+    // appartient au lecteur et ne doit jamais y entrer. Les fondre en une
+    // seule réponse rendrait le plan incachable pour gagner un aller-retour.
+    //
+    // Elle n'est pas `blocking` : le plan est ce qu'on vient chercher, et
+    // retarder le premier octet du corpus pour un signet inverserait les
+    // priorités. La carte se pose après, comme le bouton « aA ».
+    let position = Resource::new(|| (), |_| async { ma_position().await });
+
     view! {
         <Tete
             // Même règle qu'au lexique : « Lire » nomme une action dans une
@@ -54,6 +64,20 @@ pub fn Lire() -> impl IntoView {
         // d'écran, où il faut dire *ce qu'on ouvre*. L'app dit « La Bible ONT »,
         // et c'est ce que le lecteur retrouve.
         <PageDeLecture liste=true titre="La Bible ONT">
+            // **Avant le corpus et détachée de lui** : ce n'est pas une
+            // destination de plus, c'est un signet. L'app le range de même,
+            // dans sa propre section.
+            <Suspense fallback=|| ()>
+                {move || Suspend::new(async move {
+                    match position.await {
+                        Ok(Some(position)) => view! { <CarteDeReprise position /> }.into_any(),
+                        // Sans compte, ou sans rien lu encore. Les deux se
+                        // taisent : il n'y a rien à reprendre, et le dire
+                        // serait un reproche.
+                        _ => ().into_any(),
+                    }
+                })}
+            </Suspense>
             <Suspense fallback=|| ()>
                 {move || Suspend::new(async move {
                     match plan.await {
