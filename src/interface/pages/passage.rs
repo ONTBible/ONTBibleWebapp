@@ -200,7 +200,7 @@ pub fn Passage() -> impl IntoView {
 
                         // Relevé **avant** le rendu : le `view!` consomme le
                         // chapitre, et le banc en a besoin.
-                        #[cfg(all(debug_assertions, feature = "hydrate"))]
+                        #[cfg(debug_assertions)]
                         let banc = (
                             chapitre
                                 .versets()
@@ -337,7 +337,7 @@ pub fn Passage() -> impl IntoView {
                                 // premier palier de taille, et on ne verrait
                                 // jamais les quatre autres.
                                 {
-                                    #[cfg(all(debug_assertions, feature = "hydrate"))]
+                                    #[cfg(debug_assertions)]
                                     {
                                         let (apercu, ou) = banc;
                                         view! {
@@ -348,7 +348,7 @@ pub fn Passage() -> impl IntoView {
                                         }
                                             .into_any()
                                     }
-                                    #[cfg(not(all(debug_assertions, feature = "hydrate")))]
+                                    #[cfg(not(debug_assertions))]
                                     {
                                         ().into_any()
                                     }

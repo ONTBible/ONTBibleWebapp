@@ -155,6 +155,17 @@ pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasE
     ctx.set_fill_style(&JsValue::from_str(&fond));
     ctx.fill_rect(0.0, 0.0, COTE, COTE);
 
+    // **La composition française traverse le canvas aussi.**
+    //
+    // Sans elle, la carte renvoyait « au serpent » et son deux-points sur deux
+    // lignes : le corpus porte des espaces **ordinaires** devant `; : ! ? »`,
+    // et une espace ordinaire est un point de coupure. C'est le §8 bis, et sa
+    // règle ne s'arrête pas au HTML — elle vaut partout où ce texte se replie.
+    //
+    // `verset::composer` rend une `String` : la même règle, au même endroit,
+    // pour la page et pour l'image.
+    let texte = crate::interface::design::verset::composer(texte);
+    let texte = texte.as_str();
     let corps = palier(texte.chars().count());
     let interligne = corps * 1.42;
 
@@ -166,7 +177,13 @@ pub(crate) fn composer(texte: &str, renvoi: &str) -> Option<web_sys::HtmlCanvasE
     let largeur = COTE - 2.0 * MARGE;
     let mut lignes: Vec<String> = Vec::new();
     let mut courante = String::new();
-    for mot in texte.split_whitespace() {
+    // **On coupe sur l'espace ordinaire seulement.**
+    //
+    // `split_whitespace` répond à « où sont les blancs », pas à « où puis-je
+    // couper » : il sépare aussi sur U+202F et U+00A0, qui ont la propriété
+    // `White_Space` — donc sur les insécables que `composer` vient de poser.
+    // La composition aurait été défaite par le pliage, une ligne plus bas.
+    for mot in texte.split(' ').filter(|m| !m.is_empty()) {
         let essai = if courante.is_empty() {
             mot.to_string()
         } else {
@@ -298,12 +315,24 @@ mod tests {
 ///
 /// - **`debug_assertions` seulement.** En production, la fonction n'existe
 ///   pas : un banc qui peut s'allumer sur un site en ligne finit allumé ;
+/// - **et `debug_assertions` des deux côtés.** Le premier jet le compilait
+///   `all(debug_assertions, feature = "hydrate")` — donc présent dans le WASM
+///   et **absent du rendu du serveur**. Les deux arbres auraient divergé à
+///   l'hydratation, ce qui est exactement la panne qu'on venait de corriger
+///   une heure plus tôt : le navigateur trouve un nœud là où le serveur n'a
+///   rien écrit, le WASM meurt, plus rien ne répond.
+///
+///   Un outil de diagnostic qui cause la panne qu'il sert à diagnostiquer est
+///   la pire forme possible. Le `<Show>` est donc rendu **identique des deux
+///   côtés** — `voulu()` lit la même adresse ici et là — et seul le dessin,
+///   qui vit dans un effet, appartient au navigateur. Les effets ne
+///   s'exécutent pas sur le serveur : il n'y a rien à garder de plus.
 /// - **une étiquette visible.** Le §5 le dit d'un banc précédent qui a coûté
 ///   dix minutes de vidéo d'un défaut inexistant : *« un outil qui imite le
 ///   produit doit porter sa marque »*. Celui-ci écrit ce qu'il est ;
 /// - **il ne remplace rien.** La page reste entière dessous ; la carte s'ajoute
 ///   en tête. Un banc qui se substitue à la page mesure le banc.
-#[cfg(all(debug_assertions, feature = "hydrate"))]
+#[cfg(debug_assertions)]
 #[component]
 pub fn BancDeLaCarte(
     #[prop(into)] texte: Signal<String>,
@@ -319,14 +348,17 @@ pub fn BancDeLaCarte(
         if !voulu() {
             return;
         }
-        let Some(hote) = hote.get() else { return };
-        let Some(toile) = composer(&texte.get(), &renvoi.get()) else {
-            return;
-        };
-        // La toile fait 1080 ; on la montre à la largeur disponible.
-        let _ = toile.set_attribute("style", "width:100%;height:auto;display:block");
-        hote.set_inner_html("");
-        let _ = hote.append_child(&toile);
+        let Some(_hote) = hote.get() else { return };
+        #[cfg(feature = "hydrate")]
+        {
+            let Some(toile) = composer(&texte.get(), &renvoi.get()) else {
+                return;
+            };
+            // La toile fait 1080 ; on la montre à la largeur disponible.
+            let _ = toile.set_attribute("style", "width:100%;height:auto;display:block");
+            _hote.set_inner_html("");
+            let _ = _hote.append_child(&toile);
+        }
     });
 
     view! {
