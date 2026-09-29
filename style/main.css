@@ -1076,6 +1076,26 @@
     margin-block-end: --spacing(6);
   }
 
+  /* **Mais elle ne vaut que pour de la prose.**
+
+     Elle est faite pour un paragraphe qui court sur dix lignes, où un lézard
+     se voit et où un mot coupé ne se remarque pas. Dans une note de deux
+     lignes sous une carte, c'est l'inverse exact : il n'y a pas de lézard à
+     éviter, et « ar-rivent » saute aux yeux — un mot coupé dans une phrase
+     courte se lit comme un défaut de rendu.
+
+     `hyphens: manual` et non `none` : la première laisse vivre un trait d'union
+     conditionnel qu'on poserait soi-même dans un mot long, la seconde
+     l'ignorerait aussi. On retire l'automatisme, pas la possibilité.
+
+     Relevé à l'œil sur une capture de l'onglet « Vous », pas dans le code :
+     la règle est dans la feuille, la note est dans un composant, et rien ne
+     met les deux côte à côte. */
+  .note-courte,
+  .note-courte p {
+    hyphens: manual;
+  }
+
   /* Le rythme vertical appartient au document, pas aux composants : sans lui,
      chaque page reposerait ses marges et deux pages ne respireraient pas
      pareil. Tailwind remet les marges à zéro — on les redonne ici, une fois. */

@@ -81,7 +81,7 @@ pub use image::image;
 pub use legende_niveaux::LegendeNiveaux;
 pub use lien::Lien;
 pub use liste_affirmations::ListeAffirmations;
-pub use liste_groupee::{EnteteDeSection, Groupe, Ligne, Pastille, TitreDeListe};
+pub use liste_groupee::{EnteteDeSection, Groupe, Ligne, Pastille, PiedDeSection, TitreDeListe};
 pub use liste_unites::{nom_d_unite, ListeDUnites};
 pub use marques::{Nom, Terme};
 pub use mention_brouillon::MentionBrouillon;

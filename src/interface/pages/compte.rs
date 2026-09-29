@@ -3,7 +3,9 @@ use leptos_router::hooks::use_query_map;
 
 use crate::api::mon_compte;
 use crate::domaine::compte::Fournisseur;
-use crate::interface::design::{EnteteDeSection, Groupe, Lien, Ligne, PageDeLecture};
+use crate::interface::design::{
+    fournir_preferences, EnteteDeSection, Groupe, Lien, Ligne, PageDeLecture, PiedDeSection,
+};
 use crate::interface::tete::Tete;
 
 /// `/fr/compte` — ouvrir un compte, ou le fermer.
@@ -24,20 +26,7 @@ pub fn Compte() -> impl IntoView {
     let requete = use_query_map();
     let etat = Resource::new_blocking(|| (), |_| async { mon_compte().await });
 
-    let erreur = move || {
-        requete
-            .read()
-            .get("erreur")
-            .map(|code| match code.as_str() {
-                "refus" => "La connexion a été interrompue. Rien n'a été enregistré.",
-                "expire" => "La demande a expiré. Recommencez, ça ne prend qu'un instant.",
-                "indisponible" => "Le service de comptes ne répond pas. Réessayez dans un moment.",
-                "fournisseur" | "reponse" | "interne" => {
-                    "Quelque chose s'est mal passé de notre côté. Réessayez."
-                }
-                _ => "La connexion n'a pas abouti.",
-            })
-    };
+    let _ = &requete;
 
     view! {
         <Tete
@@ -76,20 +65,10 @@ pub fn Compte() -> impl IntoView {
         // n'en pose qu'un.
         <PageDeLecture liste=true titre="Vous">
             <div>
-                {move || {
-                    erreur()
-                        .map(|message| {
-                            view! {
-                                <p
-                                    role="alert"
-                                    class="mb-8 rounded-carte border border-accentuation/40 bg-surface px-5 py-4 text-encre"
-                                >
-                                    {message}
-                                </p>
-                            }
-                        })
-                }}
-
+                // L'erreur est descendue dans le pied de la carte du compte —
+                // voir `Ferme`. Ici, détachée en tête, elle **remplaçait**
+                // l'explication dans le regard du lecteur au lieu de s'y
+                // ajouter.
                 <Suspense fallback=|| {
                     view! { <p class="text-encre-douce">"…"</p> }
                 }>
@@ -104,24 +83,23 @@ pub fn Compte() -> impl IntoView {
                 </Suspense>
             </div>
 
-            <div class="mt-16 border-t border-filet pt-10">
-                <h2 class="text-2xl">"Ce que nous gardons"</h2>
-                <p>
-                    "La " <b>"référence"</b> " du verset — son livre, son unité, son numéro — "
-                    "la couleur que vous avez choisie, et la note que vous y avez écrite. "
-                    <b>"Jamais le texte du verset"</b> ", qui est déjà dans le site et dans l'app."
-                </p>
-                <p>
-                    "Un surlignage se rattache à un " <b>"verset"</b> " et non à une position "
-                    "dans le texte. C'est ce qui le garde juste quand une traduction est "
-                    "révisée : les caractères bougent, le numéro du verset ne bouge pas."
-                </p>
-                <p>
-                    "Vous pouvez tout effacer, à tout moment, depuis "
-                    <Lien href="/fr/confidentialite">"la page de confidentialité"</Lien>
-                    " — l'effacement est immédiat et il est complet."
-                </p>
-            </div>
+            // **Ce que nous gardons** — trois paragraphes qui étaient une
+            // section d'édition, avec son `h2` en corps 2xl. C'est un **pied
+            // de carte** : une note attachée au réglage qui la motive, pas la
+            // suite d'un texte. L'app range ses explications longues de la
+            // même façon, en `footer:` de `Section`.
+            <PiedDeSection>
+                "Ce compte garde la " <b>"référence"</b> " du verset — son livre, son unité, "
+                "son numéro —, la couleur choisie et la note écrite. "
+                <b>"Jamais le texte du verset"</b> ", qui est déjà là. Un surlignage se "
+                "rattache à un verset et non à une position dans le texte : c'est ce qui le "
+                "garde juste quand une traduction est révisée. Tout s'efface depuis "
+                <Lien href="/fr/confidentialite">"la page de confidentialité"</Lien>
+                ", immédiatement et complètement."
+            </PiedDeSection>
+
+            <LaLecture />
+            <LeRegistre />
             <LeCorpus />
             <Credits />
         </PageDeLecture>
@@ -191,6 +169,29 @@ fn Ouvert() -> impl IntoView {
     }
 }
 
+/// Ce que dit un retour de connexion qui a échoué.
+///
+/// **Une fonction libre et non une closure de la page** : c'est `Ferme` qui
+/// l'affiche, dans le pied de sa carte, et non plus la page en tête. Le
+/// message doit vivre là où il se rend — sinon il faut le faire descendre par
+/// un prop à travers deux composants, et la première refonte le décroche.
+///
+/// Les codes viennent de la route de retour, qui les pose dans l'adresse.
+fn erreur_de_connexion() -> Option<&'static str> {
+    use_query_map()
+        .read()
+        .get("erreur")
+        .map(|code| match code.as_str() {
+            "refus" => "La connexion a été interrompue. Rien n'a été enregistré.",
+            "expire" => "La demande a expiré. Recommencez, ça ne prend qu'un instant.",
+            "indisponible" => "Le service de comptes ne répond pas. Réessayez dans un moment.",
+            "fournisseur" | "reponse" | "interne" => {
+                "Quelque chose s'est mal passé de notre côté. Réessayez."
+            }
+            _ => "La connexion n'a pas abouti.",
+        })
+}
+
 /// L'état fermé : on propose les fournisseurs déclarés.
 #[component]
 fn Ferme() -> impl IntoView {
@@ -199,13 +200,23 @@ fn Ferme() -> impl IntoView {
         .filter(|f| crate::interface::compte_public::disponible(*f))
         .collect();
 
-    view! {
-        <p class="mb-6">
-            "Choisissez par où vous connecter. Nous ne recevons que de quoi vous reconnaître — "
-            "ni votre nom, ni vos contacts."
-        </p>
+    let partiels = disponibles.len() < Fournisseur::tous().len();
 
-        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+    view! {
+        <EnteteDeSection sobre=true>"Compte"</EnteteDeSection>
+
+        // **Des capsules pleines, en aplat de marque.** Elles étaient cerclées
+        // et en capitales espacées — la forme que le design system réserve à
+        // une *seconde* voie, et la voix de l'édition. Or c'est ici l'action
+        // principale de l'écran, et l'app la peint en `brandInk` avec
+        // `onBrandAccent` dessus : le même aplat que la carte de
+        // prononciation, et pour la même raison — « ceci n'est pas du corpus,
+        // c'est l'app qui te parle ».
+        //
+        // Pleine largeur et empilées, comme là-bas : trois libellés
+        // « Continuer avec … » côte à côte ne tiennent sur aucun téléphone, et
+        // une action principale ne se met pas en concurrence avec elle-même.
+        <div class="flex flex-col gap-3">
             {disponibles
                 .iter()
                 .map(|f| {
@@ -216,7 +227,7 @@ fn Ferme() -> impl IntoView {
                             // servies avant le routeur, qui rendrait son 404.
                             rel="external"
                             href=format!("/fr/compte/aller/{}", f.cle())
-                            class="inline-block rounded-full border border-or/50 px-6 py-3 text-center text-sm uppercase tracking-capitales text-accent no-underline transition-colors hover:border-or hover:bg-aubergine/40"
+                            class="block rounded-full bg-marque-encre px-6 py-3.5 text-center font-titre text-sur-marque-accent no-underline transition-transform duration-150 ease-out hover:-translate-y-px active:scale-[0.99] motion-reduce:transition-none"
                         >
                             "Continuer avec " {f.nom()}
                         </a>
@@ -225,14 +236,45 @@ fn Ferme() -> impl IntoView {
                 .collect_view()}
         </div>
 
-        {(disponibles.len() < Fournisseur::tous().len())
+        {partiels
             .then(|| {
                 view! {
-                    <p class="mt-6 text-sm text-encre-douce">
+                    <p class="note-courte mt-3 px-4 text-[0.82em] text-encre-douce/80">
                         "D'autres façons de se connecter arrivent."
                     </p>
                 }
             })}
+
+        // **L'échec s'ajoute à l'explication, il ne la remplace pas.**
+        //
+        // C'est une leçon que l'app a payée cher : son message d'erreur
+        // *remplaçait* le pied, donc une connexion ratée effaçait la seule
+        // phrase qui dit que le compte est facultatif — et laissait croire
+        // l'app cassée. Un examinateur de l'App Store l'a vue ainsi le
+        // 19 août 2026.
+        //
+        // Le site avait la même forme sous un autre nom : l'erreur était un
+        // bloc en tête de page, détaché, et la phrase qui rassure vivait
+        // quatre écrans plus bas.
+        <PiedDeSection>
+            {move || {
+                erreur_de_connexion()
+                    .map(|message| {
+                        view! {
+                            // La braise de la gamme et non le rouge du système :
+                            // un échec se lit sans crier.
+                            <span
+                                role="alert"
+                                class="mb-2 block rounded-bloc bg-accentuation/12 px-3 py-2 text-accentuation"
+                            >
+                                {message}
+                            </span>
+                        }
+                    })
+            }}
+            "La lecture, les surlignages et les notes fonctionnent entièrement sans compte. "
+            "La connexion ne sert qu'à les retrouver sur un autre appareil."
+        </PiedDeSection>
     }
 }
 
@@ -685,6 +727,114 @@ fn Champ(nom: &'static str, libelle: &'static str, valeur: String) -> impl IntoV
     }
 }
 
+/// La section « Lecture » de l'app.
+///
+/// Elle porte trois entrées là-bas — réglages, options de partage, surlignages
+/// avec leur compteur. Le site en a deux, et l'absence est nommée plus bas.
+#[component]
+fn LaLecture() -> impl IntoView {
+    view! {
+        <EnteteDeSection sobre=true>"Lecture"</EnteteDeSection>
+        <Groupe>
+            // **Les réglages sont atteignables d'ici**, et pas seulement
+            // depuis le bouton « aA » d'un chapitre. C'est ce que l'app fait,
+            // et la raison tient : on veut parfois régler sa typographie
+            // **avant** d'ouvrir un texte, et le bouton « aA » n'existe que
+            // dans un texte ouvert.
+            //
+            // Le lien mène à la Bible, où la feuille s'ouvre : le site n'a pas
+            // d'écran de réglages à lui, et lui en fabriquer un ferait une
+            // seconde copie des mêmes bascules.
+            <Ligne
+                chemin=Some("/fr/webapp".to_string())
+                titre=Box::new(|| view! { "Réglages de lecture" }.into_any())
+                sous_titre=Box::new(|| {
+                    view! { "Thème, fonte, taille, niveaux du texte" }.into_any()
+                })
+            />
+            <Ligne
+                chemin=Some("/fr/compte#versets".to_string())
+                titre=Box::new(|| view! { "Surlignages" }.into_any())
+                sous_titre=Box::new(|| view! { "Ce que vous avez marqué" }.into_any())
+            />
+        </Groupe>
+        // **« Options de partage » n'y est pas**, et ce n'est pas un oubli :
+        // l'écran qu'elle règle chez l'app est l'action *Image*, qui rend un
+        // carré de 1080 px. Le site ne la porte pas encore — une entrée qui
+        // règlerait une action inexistante serait « allumée vers rien ».
+        <PiedDeSection>
+            "Les réglages s'ouvrent aussi par le bouton « aA » d'un chapitre, "
+            "au moment où l'on décide d'éteindre une glose."
+        </PiedDeSection>
+    }
+}
+
+/// Le registre — **le réglage qui décide de ce qu'on lit**, pas de son état.
+///
+/// ## Pourquoi il est ici et non dans les réglages de lecture
+///
+/// L'app l'en a sorti délibérément, et son commentaire dit pourquoi : il était
+/// rangé « entre la disposition des versets et la taille du texte », c'est-à-
+/// dire **avec la typographie**. Or il ne change pas la façon dont le texte se
+/// présente : il change **ce que les livres sont appelés**, donc le corpus tel
+/// que le lecteur le rencontre.
+///
+/// Le site l'avait au même mauvais endroit — dans la feuille « aA », entre les
+/// gloses et le corps. Il y reste atteignable en lecture, où l'on bascule d'un
+/// geste ; il a désormais **sa carte** ici, où l'on décide.
+///
+/// ## Et le texte qui l'accompagne n'est pas une notice
+///
+/// C'est l'explication la plus longue de l'app, et elle a sa raison : ce
+/// réglage est **une béquille allumée par défaut**, et l'éteindre fait
+/// apparaître des mots que le lecteur n'a peut-être jamais lus. Sans le pied,
+/// il le remet sans comprendre ce qu'il vient de voir.
+#[component]
+fn LeRegistre() -> impl IntoView {
+    // **`fournir_preferences` et non `preferences`** : il faut pouvoir
+    // **écrire**, et `preferences()` ne rend qu'un signal de lecture — son
+    // repli muet rendrait d'ailleurs un signal constant, donc un interrupteur
+    // qui ne commute rien. Elle est idempotente : appelée ici, elle retrouve
+    // celui qu'`App` a posé pour tout le site, et la bascule est donc la même
+    // que celle de la feuille « aA ».
+    let prefs = fournir_preferences();
+    let recu = Signal::derive(move || prefs.get().francais);
+
+    view! {
+        <EnteteDeSection sobre=true>"Le corpus"</EnteteDeSection>
+        <Groupe>
+            <li>
+                <label class="group flex cursor-pointer items-center justify-between gap-6 px-4 py-3.5">
+                    <span class="text-encre">"Le français reçu"</span>
+                    <input
+                        type="checkbox"
+                        class="peer sr-only"
+                        prop:checked=move || recu.get()
+                        on:change=move |_| prefs.update(|p| p.francais = !p.francais)
+                    />
+                    <span class="relative h-6 w-11 shrink-0 rounded-full bg-encre-douce/25 transition-colors peer-checked:bg-accent/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent motion-reduce:transition-none">
+                        <span class="absolute top-1/2 start-0.5 size-5 -translate-y-1/2 rounded-full bg-encre-douce transition-transform group-has-[:checked]:translate-x-5 group-has-[:checked]:bg-accent motion-reduce:transition-none"></span>
+                    </span>
+                </label>
+            </li>
+        </Groupe>
+        <PiedDeSection>
+            "Allumé, les livres portent le nom qu'on leur connaît — « Apocalypse », "
+            "« la Loi », « Chapitre 7 ». Éteint, ils portent ce que leur nom hébreu veut "
+            "dire : « le machazeh de Yohanan », « la Fondation », « Parashah 7 »."
+            <br /><br />
+            "L'écart n'est pas une nuance de traduction. La "
+            <i>"torah"</i> " est l'instruction qui vise ; le grec l'a rendue par "
+            <i>"nomos"</i> ", le code qui contraint, et le français en a hérité « la Loi »."
+            <br /><br />
+            "Ce réglage est une béquille, et il est allumé pour qu'on puisse marcher avant "
+            "de savoir. En l'éteignant, des mots apparaissent que vous n'avez peut-être "
+            "jamais lus — " <i>"parashah"</i> ", la division que le scribe hébreu traçait en "
+            "laissant un blanc, mille ans avant qu'on numérote des chapitres."
+        </PiedDeSection>
+    }
+}
+
 /// L'état du chantier, comme `YouTab` le donne.
 ///
 /// ## Pourquoi il est ici et pas seulement sur l'accueil
@@ -708,7 +858,6 @@ fn Champ(nom: &'static str, libelle: &'static str, valeur: String) -> impl IntoV
 #[component]
 fn LeCorpus() -> impl IntoView {
     view! {
-        <EnteteDeSection sobre=true>"Le corpus"</EnteteDeSection>
         <Groupe>
             <Ligne
                 titre=Box::new(|| view! { "Livres rédigés" }.into_any())
@@ -743,6 +892,10 @@ fn LeCorpus() -> impl IntoView {
                 })
             />
         </Groupe>
+        <PiedDeSection>
+            "La Bible ONT est une restitution en cours. Le corpus s'étend à mesure que "
+            "les unités sont verrouillées."
+        </PiedDeSection>
     }
 }
 

@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_query_map;
 
 use crate::domaine::recherche::{Portee, MINIMUM};
-use crate::interface::design::{Bloc, Hero, Lien};
+use crate::interface::design::{Lien, PageDeLecture};
 use crate::interface::tete::Tete;
 
 /// La page de recherche.
@@ -43,84 +43,88 @@ pub fn Recherche() -> impl IntoView {
                          ou en hébreu. Les résultats mènent au verset."
             chemin="/fr/rechercher"
         />
-        // ## Une ouverture, et non un en-tête en bande
+        // ## C'est un écran de la webapp, et ce paragraphe disait le contraire
         //
-        // Deux essais avant celui-ci. Un `Bloc` nu d'abord : la page n'avait ni
-        // marque, ni navigation, ni retour — on arrivait par la loupe et l'on
-        // était enfermé. Puis `PageDeLecture`, qui rend bien l'en-tête, mais
-        // **au-dessus** : on voyait alors deux objets, un bandeau puis un
-        // écran, et c'est exactement ce que le §5 dit d'éviter.
+        // Elle portait un `Hero` — une ouverture plein écran, avec le massif et
+        // la marque — et le §8 undecies s'en servait pour l'exclure du thème :
+        // *« la recherche n'en est pas, bien qu'elle rende du corpus : elle
+        // porte une ouverture, avec le même massif, et un bouton “Chercher” en
+        // or qui disparaît sur du clair. »*
         //
-        // `Hero` contient l'en-tête. La marque et la navigation flottent dans
-        // l'ouverture au lieu de la surmonter, et le premier écran est une
-        // seule chose. `sobre` parce qu'on cherche, on ne proclame pas : la
-        // variante ne change que la lumière, jamais la hauteur — toutes les
-        // ouvertures remplissent l'écran.
-        <Hero sobre=true>
-            <p class="text-sm uppercase tracking-capitales text-accent">"Dans le corpus"</p>
-            <h1 class="text-balance">"Rechercher"</h1>
-            <p class="max-w-xl text-encre-douce text-balance">
-                "Un mot, en français ou en hébreu. La recherche lit le texte, "
-                "ses gloses, et l'hébreu dénudé de ses voyelles."
-            </p>
-                // ## Le formulaire est **dans** l'ouverture
-                //
-                // Il était sous elle, et l'ouverture remplit l'écran : on
-                // arrivait sur une page de recherche sans champ de recherche, et
-                // il fallait défiler pour trouver l'outil qu'on venait chercher.
-                // Sur l'accueil, « Entrer » est dans le Hero pour la même
-                // raison — l'ouverture porte l'action de la page, pas seulement
-                // son titre.
-                //
-                // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
-                // même : le navigateur compose l'adresse, le serveur rend la
-                // page. C'est le même chemin que celui d'un lien partagé.
-                <form method="get" action="/fr/rechercher" role="search" class="mt-4 w-full max-w-xl">
-                    <label class="block">
-                        <span class="sr-only">"Le mot à chercher"</span>
-                        <input
-                            type="search"
-                            name="q"
-                            value=q
-                            autocomplete="off"
-                            placeholder="ruach, tohu, ברא…"
-                            class="w-full rounded-sm border border-filet bg-surface/40 px-4 py-3 text-base text-encre placeholder:text-encre-douce/60 focus:border-accent focus:outline-none"
-                        />
-                    </label>
+        // L'argument était juste et il est devenu faux le jour où la recherche
+        // a cessé d'être une page du site pour devenir **un bouton de la barre
+        // de la Bible** (§8 undecies, 29 septembre 2026). On y arrive
+        // maintenant depuis l'intérieur de la liseuse : garder l'ouverture
+        // ferait exactement ce que « Vous » faisait encore ce matin — sortir de
+        // la webapp d'un toucher, sans barre, sans thème, sans retour visible.
+        //
+        // La règle du §8 undecies n'a pas bougé pour autant, et c'est elle qui
+        // tranche : **les pages de la liseuse sont exactement celles qui
+        // emploient `PageDeLecture`.** La recherche en est une désormais, donc
+        // elle l'emploie — et le thème la suit par construction, sans table de
+        // chemins à tenir d'accord.
+        //
+        // Ce que l'ancien montage avait raison de vouloir : que le champ soit
+        // **immédiatement là**. Il l'est — premier objet sous le titre, sans
+        // un écran de défilement devant lui.
+        <PageDeLecture liste=true titre="Rechercher">
+            // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
+            // même : le navigateur compose l'adresse, le serveur rend la page.
+            // C'est le même chemin que celui d'un lien partagé.
+            <form method="get" action="/fr/rechercher" role="search" class="mb-8">
+                <label class="block">
+                    <span class="sr-only">"Le mot à chercher"</span>
+                    <input
+                        type="search"
+                        name="q"
+                        value=q
+                        autocomplete="off"
+                        // **Pas de capitale automatique.** C'est le seul des
+                        // accidents de `ONTPlateformes.swift` que la session
+                        // macOS jugeait transposable, et c'est exactement ici
+                        // qu'il vaut : un clavier mobile capitalise le premier
+                        // mot, et l'on cherche `ruach`, pas `Ruach`.
+                        autocapitalize="none"
+                        spellcheck="false"
+                        placeholder="ruach, tohu, ברא…"
+                        class="verre w-full rounded-full px-5 py-3 text-base text-encre placeholder:text-encre-douce/60 focus:outline focus:outline-2 focus:outline-accent"
+                    />
+                </label>
 
-                    <div class="mt-4 flex flex-wrap items-center gap-4">
-                        <div class="flex flex-wrap gap-2">
-                            {Portee::toutes()
-                                .into_iter()
-                                .map(|p| {
-                                    view! {
-                                        <label class="cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="ou"
-                                                value=p.cle()
-                                                checked=move || ou() == p
-                                                class="peer sr-only"
-                                            />
-                                            <span class="block rounded-full border border-filet px-3 py-1 text-sm text-encre-douce peer-checked:border-accent peer-checked:text-encre-vive">
-                                                {p.libelle()}
-                                            </span>
-                                        </label>
-                                    }
-                                })
-                                .collect_view()}
-                        </div>
-                        <button
-                            type="submit"
-                            class="rounded-full border border-accent px-5 py-1 text-sm uppercase tracking-capitales text-accent"
-                        >
-                            "Chercher"
-                        </button>
+                // Les portées passent par les **segments de l'app**, comme le
+                // lexique : quatre choix exclusifs sur une rangée, et la
+                // capsule dit lequel tient. C'étaient des pastilles cerclées,
+                // qui se lisaient comme quatre boutons indépendants.
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <div class="flex flex-wrap gap-2">
+                        {Portee::toutes()
+                            .into_iter()
+                            .map(|p| {
+                                view! {
+                                    <label class="cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="ou"
+                                            value=p.cle()
+                                            checked=move || ou() == p
+                                            class="peer sr-only"
+                                        />
+                                        <span class="segment block rounded-full px-3.5 py-1.5 text-sm text-encre-douce peer-checked:bg-encre/10 peer-checked:text-marque-encre peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
+                                            {p.libelle()}
+                                        </span>
+                                    </label>
+                                }
+                            })
+                            .collect_view()}
                     </div>
-                </form>
-        </Hero>
-
-        <Bloc>
+                    <button
+                        type="submit"
+                        class="verre ms-auto rounded-full px-5 py-1.5 font-titre text-sm text-accent transition-transform duration-150 ease-out active:scale-95 motion-reduce:transition-none"
+                    >
+                        "Chercher"
+                    </button>
+                </div>
+            </form>
 
             <Suspense fallback=|| {
                 view! { <p class="text-encre-douce">"…"</p> }
@@ -161,7 +165,7 @@ pub fn Recherche() -> impl IntoView {
                         .into_any()
                 })}
             </Suspense>
-        </Bloc>
+        </PageDeLecture>
     }
 }
 

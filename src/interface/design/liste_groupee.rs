@@ -122,6 +122,32 @@ pub fn Groupe(children: Children) -> impl IntoView {
     }
 }
 
+/// Le **pied** d'une carte — l'explication qui suit le groupe.
+///
+/// ## Pourquoi c'en est un, et pas un paragraphe de plus
+///
+/// L'app en pose trois dans `YouTab`, en `footer:` de `Section`, et c'est là
+/// que vivent ses textes les plus longs : ce que fait le registre, pourquoi le
+/// corpus s'étend, à quoi sert le catalogue. Un réglage dont la conséquence
+/// demande trois phrases est un réglage qu'on met de travers si on ne les lit
+/// pas — et personne ne les lit dans une page d'aide.
+///
+/// Ce qui le distingue d'un paragraphe : il est **attaché** à la carte qui
+/// précède, plus petit, en encre douce, et en retrait comme elle. Il se lit
+/// comme la note d'un réglage, pas comme la suite du texte.
+///
+/// C'est la pièce qui manquait pour porter « Ce que nous gardons » et « La
+/// Bible ONT est une restitution en cours » sans les rendre en titres de
+/// section d'un site d'édition.
+#[component]
+pub fn PiedDeSection(children: Children) -> impl IntoView {
+    view! {
+        <p class="note-courte mt-2 mb-8 px-4 text-[0.82em] leading-relaxed text-encre-douce/80 text-pretty">
+            {children()}
+        </p>
+    }
+}
+
 /// Le chevron — ce qui dit qu'une ligne mène quelque part.
 #[component]
 fn Chevron() -> impl IntoView {
