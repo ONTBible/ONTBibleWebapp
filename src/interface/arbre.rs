@@ -82,3 +82,24 @@ pub fn ici_dans(vise: Arbre) -> String {
         .get_untracked();
     crate::domaine::chemins::dans(vise, &ici)
 }
+
+/// Sommes-nous sous un arbre — c'est-à-dire dans la liseuse, au sens large ?
+///
+/// **Fonction du chemin seul**, et c'est ce qui la rend sûre : la condition qui
+/// la précédait lisait un compteur incrémenté au montage de la page, si bien
+/// qu'elle valait zéro au moment où la racine l'interrogeait. Le serveur et le
+/// client n'y répondaient pas la même chose au même instant — la définition d'un
+/// désaccord d'hydratation.
+///
+/// ==Une condition de rendu qui dépend d'un ordre de montage n'est pas une
+/// condition, c'est une course.==
+pub fn dans_un_arbre() -> Signal<bool> {
+    let chemin = leptos_router::hooks::use_location().pathname;
+    Signal::derive(move || chemin.with(|c| Arbre::du_chemin(c).is_some()))
+}
+
+/// Sommes-nous sous cet arbre-là précisément ?
+pub fn sous_l_arbre(vise: Arbre) -> Signal<bool> {
+    let chemin = leptos_router::hooks::use_location().pathname;
+    Signal::derive(move || chemin.with(|c| Arbre::du_chemin(c) == Some(vise)))
+}

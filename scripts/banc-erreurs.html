@@ -44,7 +44,7 @@
   secondes de vidéo d'un défaut qui n'existait pas.
 -->
 <pre id="j">…</pre>
-<iframe id="f" src="/fr/webapp"></iframe>
+<iframe id="f" src="/fr/webapp/bible"></iframe>
 <script>
 const j = document.getElementById('j'), f = document.getElementById('f');
 const lignes = [];
@@ -64,10 +64,24 @@ f.addEventListener('load', () => {
 
 // On navigue à la main dans l'iframe, par le routeur : `history.pushState`
 // seul ne réveille pas Leptos, mais changer `location` le fait comme un lien.
-const routes = ['/fr/webapp','/fr/lexique','/fr/qahal','/fr/chuqqot','/fr/compte',
-                '/fr/webapp','/fr/lexique','/fr/webapp/bereshit','/fr/webapp','/fr/lexique'];
-let i = 0;
+// **Les chemins viennent du document, pas d'une liste.** Une table figée se
+// périme au premier renommage de segment — et le banc annonce alors « pas de
+// lien vers … » pour des liens qui existent, sous un autre nom. On prend donc
+// les vrais liens de la barre, dans l'ordre où elle les pose, et on les
+// parcourt deux fois.
+const dansLaPage = () => [...f.contentWindow.document.querySelectorAll('nav a[href^="/fr/"]')]
+  .map(a => a.getAttribute('href'))
+  .filter((h, i, t) => t.indexOf(h) === i);
+let i = 0, routes = [];
 setInterval(() => {
+  // Relevé à la première visite, une fois la barre hydratée. Avant, elle
+  // n'existe pas : le document du serveur la porte, mais les `<A>` du routeur
+  // ne répondent qu'après.
+  if (!routes.length) {
+    try { routes = [...dansLaPage(), ...dansLaPage()].slice(0, 10); } catch(e){}
+    if (!routes.length) return;
+    dire('relevé : ' + routes.length + ' liens dans la barre');
+  }
   if (i >= routes.length) return;
   const r = routes[i++];
   try {

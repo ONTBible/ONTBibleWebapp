@@ -193,86 +193,55 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
     // aussitôt. Les deux arbres auraient divergé à l'hydratation : le piège
     // exact du banc de la carte, deux heures plus tôt.
     //
-    // Il ne touche à rien du DOM : c'est un nombre. Seul ce qu'on en **fait**
-    // — poser l'attribut de peau — appartient au navigateur.
-    let compteur = dans_la_liseuse();
-    compteur.update(|n| *n += 1);
-    on_cleanup(move || compteur.update(|n| *n = n.saturating_sub(1)));
-
+    // **La peau suit le chemin, et non un compteur de montage.**
+    //
+    // Il y a eu ici un compteur de pages de liseuse à l'écran. Il répondait à
+    // une vraie question — *reste-t-il une page de liseuse ?* — parce qu'en
+    // passant d'une page à l'autre, Leptos **monte la nouvelle avant de
+    // nettoyer l'ancienne** : un simple pose/retire laissait le dernier mot à
+    // la page qu'on venait de quitter, et le thème s'effaçait à chaque
+    // navigation.
+    //
+    // Le compteur réglait ça et en apportait un autre, que le banc a fini par
+    // rendre le 1er octobre 2026 :
+    //
+    // ```text
+    // At reglages_de_lecture.rs:243, you tried to access a reactive value
+    // which was defined at reglages_de_lecture.rs:268, but it has already
+    // been disposed.
+    // ```
+    //
+    // Le signal était créé par **la première page qui l'appelait**, donc dans
+    // une portée qui meurt à la navigation suivante ; le nettoyage de la page
+    // d'après lisait un signal mort, et le WASM s'arrêtait à la septième
+    // navigation.
+    //
+    // ==Un compteur de montages répond à la question « qu'est-ce qui est
+    // là ? ». Le chemin répond à « où sommes-nous ? » — et c'est la seconde
+    // qu'on posait.== Une condition tirée du chemin n'a ni ordre ni durée de
+    // vie : le serveur et le client y répondent la même chose au même instant.
     #[cfg(feature = "hydrate")]
     {
         let preferences = preferences();
+        let sous_un_arbre = crate::interface::arbre::dans_un_arbre();
 
-        // **Un compteur, et non un simple pose/retire.**
-        //
-        // La première version posait l'attribut à l'arrivée et le retirait au
-        // démontage. Elle marchait au chargement et **mourait à la première
-        // navigation** : le lecteur choisissait parchemin, touchait « Lexique »,
-        // et retombait sur la nuit d'aubergine.
-        //
-        // La cause est un ordre qu'on ne choisit pas. En passant d'une page de
-        // la liseuse à une autre, Leptos **monte la nouvelle avant de nettoyer
-        // l'ancienne** : l'effet de la nouvelle posait la peau, puis le
-        // nettoyage de l'ancienne l'effaçait. Le dernier mot revenait à la page
-        // qu'on venait de quitter.
-        //
-        // Mesuré au banc, pas déduit :
-        //
-        //     url=/fr/webapp   data-theme=parchemin   fond=250,245,235
-        //     url=/fr/lexique  data-theme=—           fond=24,9,13
-        //
-        // Le compteur répond à la vraie question — *« reste-t-il une page de
-        // liseuse à l'écran ? »* — là où le démontage ne répondait qu'à
-        // *« celle-ci est-elle partie ? »*. Entre deux pages de la liseuse il
-        // ne retombe jamais à zéro, donc l'attribut ne clignote pas ; en
-        // sortant vers l'édition il y retombe, et la peau s'en va.
-        //
-        // C'est aussi ce qui rend le réglage **vivant partout** : l'effet suit
-        // `preferences`, et la page des réglages en est une comme les autres.
+        // Un seul effet, et il suit les deux : les réglages **et** le lieu.
+        // Sortir de la liseuse retire la peau sans qu'aucun nettoyage n'ait à
+        // s'exécuter dans le bon ordre.
         Effect::new(move |_| {
-            let reglages = preferences.get();
-            poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
-            poser_la_taille(reglages.corps);
-            poser_l_interligne(reglages.interligne);
-            poser_la_coupure(reglages.coupure);
-        });
-        // Le retrait de la peau suit le compteur, une fois qu'il a été
-        // décrémenté par le nettoyage commun déclaré plus haut. `on_cleanup`
-        // s'exécute dans l'ordre de déclaration, donc celui-ci passe après.
-        on_cleanup(move || {
-            if compteur.get_untracked() == 0 {
+            if sous_un_arbre.get() {
+                let reglages = preferences.get();
+                poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
+                poser_la_taille(reglages.corps);
+                poser_l_interligne(reglages.interligne);
+                poser_la_coupure(reglages.coupure);
+            } else {
                 poser_la_peau(None, None);
             }
         });
     }
     view! { <></> }
 }
-
-/// Combien de pages de liseuse sont à l'écran.
-///
-/// **Zéro veut dire « on est dans l'édition »**, et c'est ce que deux pièces
-/// lisent : la peau, qui s'en va, et le **pied de page** du site, qui revient.
-///
-/// Le pied n'avait aucune condition et se posait donc sous la webapp — « LA
-/// BIBLE ONT / WEBAPP LEXIQUE » sous la barre d'onglets, ce qu'aucune app ne
-/// fait. `Entete` avait été retiré de la liseuse en ne le rendant pas dans
-/// `PageDeLecture` ; le pied, lui, est rendu par `App`, donc partout.
-///
-/// C'est la même question que la peau — *reste-t-il une page de liseuse à
-/// l'écran ?* — donc la même réponse, et non une seconde table de chemins à
-/// tenir d'accord avec la première.
-pub fn dans_la_liseuse() -> RwSignal<usize> {
-    if let Some(deja) = use_context::<CompteurDeLiseuse>() {
-        return deja.0;
-    }
-    let compteur = RwSignal::new(0usize);
-    provide_context(CompteurDeLiseuse(compteur));
-    compteur
-}
-
-/// Le porteur du compteur, pour que le contexte ait un type à lui.
-#[derive(Clone, Copy)]
-struct CompteurDeLiseuse(RwSignal<usize>);
 
 /// Écrit — ou retire — l'attribut de peau, et accorde la barre du navigateur.
 ///

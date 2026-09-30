@@ -101,8 +101,7 @@ pub use porte::{traverser, Porte};
 pub use portrait::Portrait;
 pub use principe::Principe;
 pub use reglages_de_lecture::{
-    dans_la_liseuse, fournir_preferences, preferences, LesReglages, PeauDeLaLiseuse,
-    ReglagesDeLecture,
+    fournir_preferences, preferences, LesReglages, PeauDeLaLiseuse, ReglagesDeLecture,
 };
 pub use segments::{RailDeLettres, Segments};
 pub use selection_de_versets::{

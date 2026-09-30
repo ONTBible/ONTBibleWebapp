@@ -5,6 +5,7 @@ use leptos_router::{
     ParamSegment, SsrMode, StaticSegment,
 };
 
+use crate::interface::arbre::sous_l_arbre;
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
     Accueil, Application, Assistance, Chuqqot, Compte, Conditions, Confidentialite, Fiche, Lexique,
@@ -253,6 +254,40 @@ pub fn App() -> impl IntoView {
             // Pas d'en-tête ici : `Hero` le porte, pour que l'ouverture
             // soit une seule unité qui remplit l'écran. Les pages sans
             // ouverture — les légales, l'erreur — posent le leur.
+            // **L'en-tête du site sous l'arbre de l'édition.**
+            //
+            // Il est rendu **ici et pas dans `PageDeLecture`**, et ce n'est pas
+            // une préférence de rangement : mesuré le 30 septembre 2026, posé
+            // là-bas il rompt l'hydratation à `bloc.rs:106`, parce que cette
+            // racine gouverne déjà le pied sous la condition voisine.
+            //
+            // ==Un second rendu d'un composant que la racine gouverne déjà est
+            // un désaccord qui attend son tour.==
+            //
+            // Les pages hors arbre — l'accueil, « Le pourquoi » — portent le
+            // leur : `Hero` pour la première, la page elle-même pour les
+            // autres. D'où la double condition : une page de liseuse **et**
+            // l'arbre de l'édition.
+            // **L'en-tête du site, sous l'arbre de l'édition seulement.**
+            //
+            // Rendu **ici et pas dans `PageDeLecture`** : mesuré le 30
+            // septembre 2026, posé là-bas il rompt l'hydratation à
+            // `bloc.rs:106`, parce que cette racine gouverne déjà le pied
+            // sous une condition voisine.
+            //
+            // ==Un second rendu d'un composant que la racine gouverne déjà
+            // est un désaccord qui attend son tour.==
+            //
+            // Avant `<main>`, et pas après : un en-tête posé sous le contenu
+            // casse l'ordre du document, et un lecteur d'écran le lit en
+            // dernier.
+            //
+            // Les pages hors arbre portent le leur — `Hero` pour l'accueil,
+            // la page elle-même pour les légales. D'où la double condition :
+            // une page de liseuse **et** l'arbre de l'édition.
+            <Show when=move || sous_l_arbre(crate::domaine::lecture::Arbre::Liseuse).get()>
+                <crate::interface::design::Entete />
+            </Show>
             <main id="contenu">
                 <Routes fallback=Introuvable>
                     // `SsrMode::Async` : le serveur attend le verset du jour et
@@ -561,7 +596,13 @@ pub fn App() -> impl IntoView {
             // chemins : c'est la même question — *reste-t-il une page de
             // liseuse à l'écran ?* — et deux tables à tenir d'accord finissent
             // toujours par diverger.
-            <Show when=move || crate::interface::design::dans_la_liseuse().get() == 0>
+            // Le pied suit l'édition et les pages hors arbre. Sous la webapp
+            // il s'efface : « La Bible ONT / Liseuse · Lexique » sous une barre
+            // d'onglets, aucune app ne fait ça.
+            <Show when=move || {
+                !crate::interface::arbre::dans_un_arbre().get()
+                    || sous_l_arbre(crate::domaine::lecture::Arbre::Liseuse).get()
+            }>
                 <PiedDePage />
             </Show>
         </Router>

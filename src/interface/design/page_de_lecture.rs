@@ -87,6 +87,12 @@ pub fn PageDeLecture(
     // une `FnOnce`, donc l'appeler la prend.
     let barre_posee = barre.is_some();
 
+    // **Sous quel arbre.** Lu une fois : une page ne change pas d'arbre sans se
+    // remonter, et s'abonner ici recalculerait toute la page à chaque
+    // navigation pour une valeur qui n'aura pas bougé.
+    let sous_l_app =
+        crate::interface::arbre::arbre_maintenant() == crate::domaine::lecture::Arbre::Webapp;
+
     view! {
         // **La peau du lecteur est montée ici**, et c'est ce qui la borne à la
         // liseuse : ce composant est la page de corpus, les cinq qui en
@@ -161,7 +167,11 @@ pub fn PageDeLecture(
         // les innocentait — à tort. Leur effet était masqué par la première
         // cause, qui tombait plus tôt dans l'arbre. *Un retrait qui ne change
         // rien ne dit que « ce n'est pas la première cause ».*
-        <crate::interface::design::NavigationDeLaLiseuse />
+        // **Les barres ne se rendent que sous leur arbre.** Un chrome par
+        // adresse, décidé côté serveur : rien de mort dans le document, et la
+        // barre latérale ne lance pas ses deux requêtes pour une page qui ne
+        // la montrera jamais.
+        {sous_l_app.then(|| view! { <crate::interface::design::NavigationDeLaLiseuse /> })}
         // La barre latérale est en `fixed` : elle ne pousse rien, donc le
         // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
         // hauteur de la barre d'onglets, sans quoi la dernière ligne du
@@ -172,7 +182,12 @@ pub fn PageDeLecture(
         // rang à l'intérieur de l'écran qui glisse.
         <div class=move || {
             format!(
-                "pb-24 lg:ps-[16.5rem] lg:pb-0 {}",
+                // Les marges servent les barres : la latérale pousse par la
+                // gauche au-delà de `lg`, les onglets réservent le bas. Sans
+                // barres, elles laisseraient un couloir vide et une bande sous
+                // le dernier verset.
+                "{} {}",
+                if sous_l_app { "pb-24 lg:ps-[16.5rem] lg:pb-0" } else { "" },
                 crate::interface::design::sens().get().classe(),
             )
         }>

@@ -631,9 +631,15 @@ fn BarreLaterale() -> impl IntoView {
 /// — qui existe, qui est explicite, et qui passe par le compte.
 #[cfg(feature = "hydrate")]
 fn retenir_la_place(chemin: &str) {
+    // **L'arbre vient du chemin retenu**, pas du contexte : cette fonction est
+    // appelée depuis un effet, hors de tout rendu, et la clé doit désigner
+    // l'onglet de l'arbre où l'on était — pas celui où l'on sera.
+    let Some(arbre) = crate::domaine::lecture::Arbre::du_chemin(chemin) else {
+        return;
+    };
     let Some(racine) = DESTINATIONS
         .iter()
-        .map(|d| d.chemin)
+        .map(|d| d.chemin(arbre))
         .find(|racine| on_y_est(chemin, racine))
     else {
         return;
