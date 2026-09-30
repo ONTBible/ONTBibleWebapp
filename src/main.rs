@@ -373,11 +373,24 @@ async fn main() {
                     // La requête garde sa **chaîne de requête** : `?v=1-3`
                     // désigne les versets, et la perdre rendrait le passage
                     // entier là où le lien désignait trois lignes.
-                    if chemin == "/fr/lire" || chemin.starts_with("/fr/lire/") {
-                        let suffixe = &chemin["/fr/lire".len()..];
+                    // ## Les anciennes adresses, et il y en a trois âges
+                    //
+                    // `/fr/lire/*` est la forme d'origine, celle des liens
+                    // partagés depuis l'app avant le 30 septembre. `/fr/webapp/*`
+                    // sans `bible` est celle d'un seul jour — le 30 —, mais elle
+                    // a circulé. Et les cinq onglets vivaient à la racine.
+                    //
+                    // ==Une adresse qu'on a servie une heure doit être renvoyée
+                    // pour toujours.== On ne sait pas qui l'a copiée.
+                    //
+                    // Toutes vers l'arbre **canonique** : c'est l'adresse
+                    // officielle du texte, et un lien reçu doit mener à la forme
+                    // qui s'indexe. La préférence du lecteur corrigera ensuite,
+                    // à l'arrivée.
+                    if let Some(cible) = ancienne_adresse(chemin) {
                         let cible = match requete.uri().query() {
-                            Some(q) => format!("/fr/webapp{suffixe}?{q}"),
-                            None => format!("/fr/webapp{suffixe}"),
+                            Some(q) => format!("{cible}?{q}"),
+                            None => cible,
                         };
                         return axum::response::IntoResponse::into_response(
                             axum::response::Redirect::permanent(&cible),
@@ -453,6 +466,110 @@ async fn main() {
 
 /// Le binaire est aussi compilé pour le navigateur, où il n'a rien à démarrer :
 /// l'entrée côté client est `hydrate()`, dans `lib.rs`.
+
+/// Où mène une adresse d'avant les deux arbres, s'il y en a une.
+///
+/// Rend `None` quand le chemin est déjà à sa place — le cas courant, et celui
+/// qui doit coûter le moins.
+///
+/// ## Trois âges d'adresses, et aucun ne se périme
+///
+/// ```text
+/// /fr/lire/{livre}/{unité}      la forme d'origine, dans le fichier
+///                               d'association d'iOS
+/// /fr/webapp/{livre}/{unité}    la forme du 30 septembre, sans `bible`
+/// /fr/qahal, /fr/lexique, …     les cinq onglets, quand ils vivaient
+///                               à la racine
+/// ```
+///
+/// Toutes mènent à l'arbre **canonique**. Un lien reçu doit ouvrir la forme qui
+/// s'indexe ; ce que le lecteur préfère se règle à l'arrivée, pas dans le lien
+/// qu'on lui a envoyé.
+fn ancienne_adresse(chemin: &str) -> Option<String> {
+    use ontbible::domaine::chemins as adresses;
+    use ontbible::domaine::lecture::Arbre;
+
+    // ## Les trois routes du compte ne se renvoient nulle part
+    //
+    // **Et il a fallu le mesurer.** Le commentaire d'à côté affirmait qu'elles
+    // « sont servies avant ce middleware, donc n'arrivent jamais ici ». C'était
+    // faux : `from_fn` est posée après elles dans le code, mais elle **enveloppe
+    // le routeur entier** — mergées avant ou après, toutes les requêtes la
+    // traversent.
+    //
+    // ```text
+    // /fr/compte/aller/google   308 /fr/liseuse/compte/aller/google
+    // /fr/compte/partir         308 /fr/liseuse/compte/partir
+    // ```
+    //
+    // Le lecteur partait chez Google, revenait, et tombait sur une adresse que
+    // rien ne sert. ==Une exemption qu'on affirme sans la mesurer est une
+    // exemption qui n'existe pas.==
+    //
+    // Elles restent où elles sont pour une raison qui ne se déplace pas :
+    // `/fr/compte/retour` est l'adresse enregistrée chez Google et chez GitHub.
+    const OAUTH: [&str; 3] = [
+        "/fr/compte/aller/",
+        "/fr/compte/retour",
+        "/fr/compte/partir",
+    ];
+    if OAUTH
+        .iter()
+        .any(|route| chemin == route.trim_end_matches('/') || chemin.starts_with(route))
+    {
+        return None;
+    }
+
+    let racine = Arbre::CANONIQUE.racine();
+
+    // Les deux formes du corpus. `/fr/lire` d'abord, puis `/fr/webapp` sans
+    // `bible` — et l'ordre compte : la seconde est un préfixe des adresses
+    // vivantes, donc on vérifie d'abord qu'on n'y est pas déjà.
+    for ancienne in ["/fr/lire", "/fr/webapp"] {
+        let Some(suite) = chemin
+            .strip_prefix(ancienne)
+            .filter(|s| s.is_empty() || s.starts_with('/'))
+        else {
+            continue;
+        };
+        // `/fr/webapp/bible…`, `/fr/webapp/compte…` : déjà en place.
+        if ancienne == "/fr/webapp"
+            && [
+                "/bible",
+                "/lexique",
+                "/qahal",
+                "/chuqqot",
+                "/compte",
+                "/rechercher",
+            ]
+            .iter()
+            .any(|vivant| suite == *vivant || suite.starts_with(&format!("{vivant}/")))
+        {
+            return None;
+        }
+        return Some(format!("{racine}/bible{suite}"));
+    }
+
+    // Les cinq onglets, quand ils étaient à la racine de `/fr`.
+    for (ancien, vers) in [
+        ("/fr/qahal", adresses::qahal(Arbre::CANONIQUE)),
+        ("/fr/chuqqot", adresses::chuqqot(Arbre::CANONIQUE)),
+        ("/fr/lexique", adresses::lexique(Arbre::CANONIQUE)),
+        ("/fr/compte", adresses::compte(Arbre::CANONIQUE)),
+        ("/fr/rechercher", adresses::rechercher(Arbre::CANONIQUE)),
+    ] {
+        if chemin == ancien {
+            return Some(vers);
+        }
+        // `/fr/lexique/{lemme}` et `/fr/compte/lecture` gardent leur suite.
+        if let Some(suite) = chemin.strip_prefix(&format!("{ancien}/")) {
+            return Some(format!("{vers}/{suite}"));
+        }
+    }
+
+    None
+}
+
 #[cfg(not(feature = "ssr"))]
 pub fn main() {}
 
@@ -517,4 +634,118 @@ async fn sans_cache(mut reponse: axum::response::Response) -> axum::response::Re
         );
     }
     reponse
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod epreuves_des_renvois {
+    use super::ancienne_adresse;
+    use ontbible::domaine::chemins as adresses;
+    use ontbible::domaine::lecture::Arbre;
+
+    /// **Les trois routes du compte ne se renvoient nulle part.**
+    ///
+    /// Ce sont les seules qui *agissent* — elles écrivent des cookies —, et
+    /// `/fr/compte/retour` est l'adresse enregistrée chez Google et chez
+    /// GitHub. Les renvoyer casse la connexion : le lecteur part chez le
+    /// fournisseur, revient, et tombe sur une adresse que rien ne sert.
+    ///
+    /// L'épreuve existe parce que le commentaire qui la remplaçait était faux.
+    /// Il affirmait que ces routes n'atteignent jamais le middleware, étant
+    /// déclarées avant lui — or `from_fn` enveloppe le routeur entier. Mesuré :
+    /// elles rendaient `308 /fr/liseuse/compte/aller/google`.
+    ///
+    /// ==Une exemption qu'on affirme sans la mesurer est une exemption qui
+    /// n'existe pas.==
+    #[test]
+    fn les_routes_du_compte_ne_se_renvoient_nulle_part() {
+        for route in [
+            "/fr/compte/aller/google",
+            "/fr/compte/aller/apple",
+            "/fr/compte/aller/github",
+            "/fr/compte/retour",
+            "/fr/compte/retour?code=abc&state=xyz",
+            "/fr/compte/partir",
+        ] {
+            assert_eq!(
+                ancienne_adresse(route.split('?').next().unwrap_or(route)),
+                None,
+                "{route} est renvoyée — la connexion casse"
+            );
+        }
+    }
+
+    /// Les trois âges d'adresses mènent tous à l'arbre canonique.
+    #[test]
+    fn les_anciennes_adresses_menent_au_canonique() {
+        let k = Arbre::CANONIQUE;
+        for (depuis, attendu) in [
+            ("/fr/lire", adresses::bible(k)),
+            (
+                "/fr/lire/bereshit/bereshit-1",
+                adresses::unite(k, "bereshit", "bereshit-1"),
+            ),
+            ("/fr/webapp", adresses::bible(k)),
+            ("/fr/webapp/bereshit", adresses::livre(k, "bereshit")),
+            ("/fr/qahal", adresses::qahal(k)),
+            ("/fr/chuqqot", adresses::chuqqot(k)),
+            ("/fr/lexique", adresses::lexique(k)),
+            ("/fr/lexique/bara", adresses::fiche(k, "bara")),
+            ("/fr/compte", adresses::compte(k)),
+            ("/fr/compte/lecture", adresses::reglages(k)),
+            ("/fr/rechercher", adresses::rechercher(k)),
+        ] {
+            assert_eq!(
+                ancienne_adresse(depuis),
+                Some(attendu.clone()),
+                "{depuis} ne mène pas à {attendu}"
+            );
+        }
+    }
+
+    /// **Une adresse vivante ne se renvoie pas.**
+    ///
+    /// C'est le piège du préfixe : `/fr/webapp` est à la fois une ancienne
+    /// adresse et la racine d'un arbre vivant. Sans la garde, `/fr/webapp/bible`
+    /// deviendrait `/fr/liseuse/bible/bible`.
+    #[test]
+    fn une_adresse_vivante_ne_se_renvoie_pas() {
+        for arbre in Arbre::TOUS {
+            for vivante in [
+                adresses::bible(arbre),
+                adresses::livre(arbre, "bereshit"),
+                adresses::unite(arbre, "bereshit", "bereshit-1"),
+                adresses::partie(arbre, "torah"),
+                adresses::lexique(arbre),
+                adresses::fiche(arbre, "bara"),
+                adresses::prononciation(arbre),
+                adresses::qahal(arbre),
+                adresses::chuqqot(arbre),
+                adresses::compte(arbre),
+                adresses::reglages(arbre),
+                adresses::rechercher(arbre),
+            ] {
+                assert_eq!(
+                    ancienne_adresse(&vivante),
+                    None,
+                    "{vivante} est renvoyée alors qu'elle est à sa place"
+                );
+            }
+        }
+    }
+
+    /// Les pages hors arbre ne bougent pas non plus.
+    #[test]
+    fn les_pages_hors_arbre_ne_bougent_pas() {
+        for fixe in [
+            "/fr",
+            "/fr/l-app",
+            "/fr/le-pourquoi",
+            "/fr/ce-que-l-ont-n-est-pas",
+            "/fr/confidentialite",
+            "/fr/conditions",
+            "/fr/assistance",
+        ] {
+            assert_eq!(ancienne_adresse(fixe), None, "{fixe} est renvoyée");
+        }
+    }
 }
