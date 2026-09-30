@@ -125,10 +125,24 @@ use crate::interface::design::image;
 
 /// Une destination de la liseuse.
 struct Destination {
-    chemin: &'static str,
+    /// Le segment sous la racine de l'arbre — « qahal », « bible ».
+    ///
+    /// **Un segment et non un chemin**, depuis que le site sert deux arbres :
+    /// une destination n'a pas d'adresse en propre, elle en a une par racine.
+    /// Écrire `/fr/webapp/qahal` ici forcerait la barre de l'édition à mener
+    /// dans l'app — une navigation qui marche, et qui ne ramène pas où l'on
+    /// était.
+    segment: &'static str,
     nom: &'static str,
     /// Le symbole, en SVG inline — voir `signe`.
     signe: &'static str,
+}
+
+impl Destination {
+    /// L'adresse de cette destination dans un arbre donné.
+    fn chemin(&self, arbre: crate::domaine::lecture::Arbre) -> String {
+        format!("{}/{}", arbre.racine(), self.segment)
+    }
 }
 
 /// Les destinations que le site peut tenir aujourd'hui.
@@ -141,17 +155,17 @@ const DESTINATIONS: [Destination; 4] = [
     // n'est pas une préférence : la Kenesset est le rassemblement des textes,
     // le Qahal celui des lecteurs, et c'est par le second qu'on arrive.
     Destination {
-        chemin: "/fr/qahal",
+        segment: "qahal",
         nom: "Qahal",
         signe: "qahal",
     },
     Destination {
-        chemin: "/fr/webapp",
+        segment: "bible",
         nom: "Bible",
         signe: "livre",
     },
     Destination {
-        chemin: "/fr/lexique",
+        segment: "lexique",
         nom: "Lexique",
         signe: "lexique",
     },
@@ -163,7 +177,7 @@ const DESTINATIONS: [Destination; 4] = [
     // écran d'attente**. Ce n'est donc pas une branche qu'aucun état du site
     // ne rend — c'est l'état d'aujourd'hui, visible et éprouvable.
     Destination {
-        chemin: "/fr/chuqqot",
+        segment: "chuqqot",
         nom: "Chuqqot",
         signe: "strates",
     },
@@ -326,11 +340,11 @@ fn BarreLaterale() -> impl IntoView {
                             let ou = format!("{}:{}", p.chapter_title, p.verse);
                             view! {
                                 <A
-                                    href=format!(
-                                        "/fr/webapp/{}/{}?v={}",
-                                        p.book_id,
-                                        p.chapter_id,
-                                        p.verse,
+                                    href=crate::domaine::chemins::unite_au_verset(
+                                        crate::interface::arbre::arbre_maintenant(),
+                                        &p.book_id,
+                                        &p.chapter_id,
+                                        &p.verse.to_string(),
                                     )
                                     attr:class="presse--ligne survol mb-3 flex items-center gap-3 rounded-full px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:text-encre"
                                 >
@@ -352,7 +366,19 @@ fn BarreLaterale() -> impl IntoView {
                 {DESTINATIONS
                     .iter()
                     .map(|destination| {
-                        let ici = destination.chemin;
+                        // **Recomposé à chaque rendu, et sans signal.** Le
+                        // segment est fixe, l'arbre ne l'est pas : une bascule
+                        // d'habillage change la racine sous les mêmes onglets.
+                        // La closure relit `chemin`, qui vient du routeur et
+                        // vit aussi longtemps que l'application.
+                        let segment = destination.segment;
+                        let ici = move || {
+                            let arbre = chemin.with(|c| {
+                                crate::domaine::lecture::Arbre::du_chemin(c)
+                                    .unwrap_or(crate::domaine::lecture::Arbre::CANONIQUE)
+                            });
+                            format!("{}/{segment}", arbre.racine())
+                        };
                         // **Pas de `Signal::derive` ici**, et ça a coûté la
                         // navigation entière.
                         //
@@ -378,7 +404,7 @@ fn BarreLaterale() -> impl IntoView {
                         // closure ne crée rien qui puisse être détruit. Un
                         // signal intermédiaire n'économisait qu'un appel de
                         // fonction sur une comparaison de chaînes.
-                        let actif = move || on_y_est(&chemin.get(), ici);
+                        let actif = move || on_y_est(&chemin.get(), &ici());
                         view! {
                             <li>
                                 // **La capsule choisie est en accent, pas en
@@ -407,7 +433,7 @@ fn BarreLaterale() -> impl IntoView {
                                     // navigation : une valeur figée au montage
                                     // renverrait à la place d'il y a trois
                                     // écrans.
-                                    href=move || place_retenue(ici)
+                                    href=move || place_retenue(&ici())
                                     attr:aria-current=move || actif().then_some("page")
                                     attr:class=move || {
                                         // `presse--ligne` et non `presse` :
@@ -525,7 +551,10 @@ fn BarreLaterale() -> impl IntoView {
                                                                 // le seul contrôle
                                                                 // qui l'attrape.
                                                                 <A
-                                                                    href=format!("/fr/webapp/{id}")
+                                                                    href=crate::domaine::chemins::livre(
+                                                                        crate::interface::arbre::arbre_maintenant(),
+                                                                        &id,
+                                                                    )
                                                                     attr:class="presse--ligne survol flex items-center gap-3 rounded-full py-1.5 px-3 font-titre text-sm text-encre-douce no-underline hover:text-encre"
                                                                 >
                                                                     <Signe nom="feuillets" />
@@ -558,7 +587,9 @@ fn BarreLaterale() -> impl IntoView {
             // Le laisser ferait deux prétendants à l'espace libre.
             <div class="border-t border-filet/60 pt-4 mt-4">
                 <A
-                    href="/fr/compte"
+                    href=crate::domaine::chemins::compte(
+                        crate::interface::arbre::arbre_maintenant(),
+                    )
                     attr:class="presse--ligne survol flex items-center gap-3 rounded-full border border-filet px-3 py-2 font-titre text-sm text-encre-douce no-underline hover:border-or/50 hover:text-encre"
                 >
                     <Signe nom="compte" plein=true />
@@ -693,12 +724,24 @@ fn BarreDOnglets() -> impl IntoView {
                     .iter()
                     .chain(std::iter::once(&COMPTE))
                     .map(|destination| {
-                        let ici = destination.chemin;
+                        // **Recomposé à chaque rendu, et sans signal.** Le
+                        // segment est fixe, l'arbre ne l'est pas : une bascule
+                        // d'habillage change la racine sous les mêmes onglets.
+                        // La closure relit `chemin`, qui vient du routeur et
+                        // vit aussi longtemps que l'application.
+                        let segment = destination.segment;
+                        let ici = move || {
+                            let arbre = chemin.with(|c| {
+                                crate::domaine::lecture::Arbre::du_chemin(c)
+                                    .unwrap_or(crate::domaine::lecture::Arbre::CANONIQUE)
+                            });
+                            format!("{}/{segment}", arbre.racine())
+                        };
                         // Même raison qu'en barre latérale, quatre cents lignes
                         // plus haut : rien de réactif ne se crée dans une
                         // boucle de rendu, sans quoi la navigation le détruit
                         // et les attributs le relisent.
-                        let actif = move || on_y_est(&chemin.get(), ici);
+                        let actif = move || on_y_est(&chemin.get(), &ici());
                         view! {
                             <li class="flex-1">
                                 <A
@@ -713,7 +756,7 @@ fn BarreDOnglets() -> impl IntoView {
                                     // navigation : une valeur figée au montage
                                     // renverrait à la place d'il y a trois
                                     // écrans.
-                                    href=move || place_retenue(ici)
+                                    href=move || place_retenue(&ici())
                                     attr:aria-current=move || actif().then_some("page")
                                     // Le libellé est **sous** le symbole et en
                                     // très petit, comme chez l'app : un symbole
@@ -765,7 +808,7 @@ fn BarreDOnglets() -> impl IntoView {
 /// Déclaré à part parce que sa **place** diffère selon la forme — et c'est
 /// justement ce que la barre latérale dit de lui.
 const COMPTE: Destination = Destination {
-    chemin: "/fr/compte",
+    segment: "compte",
     nom: "Vous",
     signe: "compte",
 };
@@ -821,29 +864,49 @@ pub fn Ouverture() -> impl IntoView {
 mod epreuves {
     use super::{on_y_est, COMPTE, DESTINATIONS};
 
-    /// Chaque destination mène à une route qui existe.
+    /// Chaque destination mène à une route qui existe, **dans les deux arbres**.
     ///
     /// Sans ça, une barre de navigation mène à un 404 — et une barre est la
     /// pièce qu'on touche sans regarder.
+    ///
+    /// Le relevé porte sur les deux racines depuis que le site en sert deux :
+    /// une destination déclarée d'un seul côté paraîtrait juste tant qu'on reste
+    /// dans son arbre, et casserait à la bascule — c'est-à-dire au moment où
+    /// personne ne regarde la barre.
     #[test]
     fn chaque_destination_a_sa_route() {
+        use crate::domaine::lecture::Arbre;
+
         let app = include_str!("../app.rs");
+        for arbre in Arbre::TOUS {
+            for destination in DESTINATIONS.iter().chain(std::iter::once(&COMPTE)) {
+                let chemin = destination.chemin(arbre);
+                let attendu = chemin
+                    .trim_start_matches('/')
+                    .split('/')
+                    .map(|s| format!("StaticSegment(\"{s}\")"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                assert!(
+                    app.contains(&attendu),
+                    "la navigation mène à {chemin} — aucune route ne le déclare ({attendu})"
+                );
+            }
+        }
+    }
+
+    /// Les destinations portent un **segment**, jamais un chemin.
+    ///
+    /// C'est ce qui leur permet d'exister dans les deux arbres. Un `/` dans un
+    /// segment voudrait dire qu'on a recopié un chemin, et la barre de
+    /// l'édition mènerait alors dans l'app.
+    #[test]
+    fn une_destination_est_un_segment() {
         for destination in DESTINATIONS.iter().chain(std::iter::once(&COMPTE)) {
-            // `/fr/webapp` se déclare `(StaticSegment("fr"), StaticSegment("lire"))`.
-            let segments: Vec<&str> = destination
-                .chemin
-                .trim_start_matches('/')
-                .split('/')
-                .collect();
-            let attendu = segments
-                .iter()
-                .map(|s| format!("StaticSegment(\"{s}\")"))
-                .collect::<Vec<_>>()
-                .join(", ");
             assert!(
-                app.contains(&attendu),
-                "la navigation mène à {} — aucune route ne le déclare ({attendu})",
-                destination.chemin
+                !destination.segment.contains('/'),
+                "« {} » est un chemin, pas un segment",
+                destination.segment
             );
         }
     }

@@ -312,7 +312,10 @@ impl Fonte {
 /// dont la préférence dit « l'app » —, ==c'est l'adresse qui s'aligne, jamais le
 /// rendu qui se tait==. Une URL qui affiche autre chose que ce qu'elle nomme est
 /// une URL qui ment : on la copie, on la repartage, on la met en signet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+// `Ord` parce qu'une épreuve range les deux arbres dans une table pour comparer
+// leurs routes terme à terme. L'ordre est celui de la déclaration — la liseuse
+// d'abord, qui est la canonique.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Arbre {
     /// L'édition — la forme lisible sans JavaScript, et celle qui s'indexe.

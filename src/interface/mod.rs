@@ -8,6 +8,7 @@
 //! espacement, ni taille.
 
 pub mod app;
+pub mod arbre;
 pub mod association;
 #[cfg(feature = "ssr")]
 pub mod compte;
