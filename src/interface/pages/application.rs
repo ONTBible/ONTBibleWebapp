@@ -221,9 +221,43 @@ fn Atout(titre: &'static str, children: Children) -> impl IntoView {
 /// n'en montrera donc rien, quel que soit l'appareil.
 ///
 /// Ce qu'on voit dans la capture, c'est son **empreinte** : iOS pousse l'heure
-/// à gauche et les indicateurs à droite, laissant un trou central. Mesuré sur
-/// `app-lecture.webp`, ce trou fait 47 % de la largeur — la preuve que la
-/// capture vient bien d'un appareil à île, et la place où la poser.
+/// à gauche et les indicateurs à droite, laissant un trou central — la preuve
+/// que la capture vient bien d'un appareil à île, et la place où la poser.
+///
+/// **La mesure se redonne avec sa méthode**, sans quoi elle ne se refait pas :
+/// sur la bande horizontale comprise entre 1 % et 3 % de la hauteur, on relève
+/// les colonnes qui s'écartent du fond de plus de 40 (somme des trois canaux),
+/// et l'on prend le plus grand intervalle vide entre deux d'entre elles. La
+/// capture de septembre 2026 rend **49,9 %** de la largeur ; celle d'août 2026,
+/// qu'elle remplace, en rendait 54,4 % à la même méthode.
+///
+/// Ce paragraphe annonçait 47 % sans dire comment. Le chiffre n'était pas faux,
+/// il était **invérifiable** — et il nommait un fichier qui a changé depuis.
+/// ==Une mesure dont on ne peut pas redonner le seuil n'est pas une mesure,
+/// c'est un souvenir.==
+///
+/// Rien de tout cela n'entre dans le code : l'île se place sur la géométrie de
+/// l'appareil, pas sur ce relevé. Le trou ne sert qu'à vérifier qu'il y a bien
+/// une île à dessiner.
+///
+/// ## Elle périme sans que rien ne le dise
+///
+/// La capture vient de `ONTBibleApp/app/Captures/brut/iphone-6.9/`, que
+/// `captures.sh` régénère — et l'app change. Celle qu'elle remplace datait du
+/// 13 août 2026 : elle montrait **quatre** onglets là où il y en a cinq, une
+/// pastille de barre **muette** là où elle nomme l'unité, et des noms propres
+/// en encre là où les renvois sont désormais rendus.
+///
+/// Le dépôt de l'app tient sa vitrine par une règle — *« un jeu de captures
+/// pris avant le dernier changement d'interface n'est pas réputé juste, il est
+/// réputé inconnu »* — et rien ne la tient **ici**. Ce site n'a pas de garde
+/// qui puisse rougir sur une image périmée : une capture ancienne s'affiche
+/// aussi bien qu'une fraîche.
+///
+/// ==C'est le même défaut que le compte des livres, sous une autre matière :
+/// une affirmation figée à côté d'une source qui bouge.== La différence est
+/// qu'un nombre se calcule et qu'une capture se reprend — donc celle-ci se
+/// refait à la main, quand l'écran de lecture de l'app bouge.
 ///
 /// Les proportions sont celles de l'appareil, pas un dessin à l'œil : 126 pt de
 /// large sur 37,33, à 11 pt du haut, sur un écran de 402 pt. Rapportées à la
@@ -252,7 +286,9 @@ fn Ecran() -> impl IntoView {
                     <img
                         src=image("app-lecture.webp")
                         alt="Bereshit 3 dans l'application : le texte, ses gloses en retrait, \
-                             les intraduisibles en or et l'hébreu vocalisé."
+                             les intraduisibles en or, l'hébreu vocalisé, les renvois \
+                             soulignés vers les passages cités, et la barre des cinq \
+                             onglets — Qahal, Bible, Lexique, Chuqqot, Vous."
                         width="880"
                         height="1912"
                         // `loading=eager` : elle est le sujet du bloc, et la charger
