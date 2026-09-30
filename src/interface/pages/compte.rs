@@ -99,6 +99,7 @@ pub fn Compte() -> impl IntoView {
             </PiedDeSection>
 
             <LaLecture />
+            <LHabillage />
             <LeRegistre />
             <LeCorpus />
             <Credits />
@@ -859,6 +860,92 @@ fn LeRegistre() -> impl IntoView {
             "de savoir. En l'éteignant, des mots apparaissent que vous n'avez peut-être "
             "jamais lus — " <i>"parashah"</i> ", la division que le scribe hébreu traçait en "
             "laissant un blanc, mille ans avant qu'on numérote des chapitres."
+        </PiedDeSection>
+    }
+}
+
+/// Le choix de l'habillage — **l'application, ou l'édition**.
+///
+/// ## Pourquoi il est ici et pas dans la feuille « aA »
+///
+/// La feuille porte ce qui change **le texte** : ses niveaux, son corps, sa
+/// fonte, sa peau. L'habillage ne touche pas au texte — les deux rendent la
+/// même mesure, la même fonte, la même composition, et c'est ce fait mesuré qui
+/// a permis de garder les deux sans les faire diverger.
+///
+/// Il change ce qu'il y a **autour**, c'est-à-dire la façon dont on circule. Et
+/// une façon de circuler se décide une fois, là où l'on décide — pas au milieu
+/// d'un chapitre. C'est la même raison qui a sorti le registre des réglages de
+/// lecture : il y était rangé avec la typographie alors qu'il change ce que les
+/// livres sont appelés.
+///
+/// ## Deux lignes nommées, et non un interrupteur
+///
+/// Un interrupteur dirait « habillage de l'application » avec un rond à
+/// basculer, et le lecteur ne saurait pas ce que l'autre état lui donne. Deux
+/// lignes disent chacune **ce qu'on y voit** — les onglets en bas, ou l'en-tête
+/// du site — et le choix se fait sur la conséquence, pas sur le nom.
+#[component]
+fn LHabillage() -> impl IntoView {
+    use crate::domaine::lecture::Habillage;
+
+    // Comme le registre : il faut pouvoir **écrire**, donc `fournir_preferences`
+    // et non `preferences`, dont le repli muet rendrait un signal constant.
+    let prefs = fournir_preferences();
+
+    view! {
+        <EnteteDeSection sobre=true>"L'habillage"</EnteteDeSection>
+        <Groupe>
+            {Habillage::TOUS
+                .into_iter()
+                .map(|habillage| {
+                    let choisi = Signal::derive(move || prefs.get().habillage == habillage);
+                    view! {
+                        <li>
+                            <label class="presse--ligne survol flex cursor-pointer items-start justify-between gap-5 px-4 py-3.5">
+                                <span class="min-w-0">
+                                    <span class="block text-encre">{habillage.libelle()}</span>
+                                    <span class="mt-1 block text-sm text-encre-douce text-pretty">
+                                        {habillage.note()}
+                                    </span>
+                                </span>
+                                <input
+                                    type="radio"
+                                    name="habillage"
+                                    class="peer sr-only"
+                                    prop:checked=move || choisi.get()
+                                    on:change=move |_| prefs.update(|p| p.habillage = habillage)
+                                />
+                                // Le témoin est **plein quand il est choisi**, et
+                                // c'est la seule marque : deux ronds cerclés dont
+                                // l'un porte un point se distinguent mal quand on
+                                // voit mal.
+                                <span
+                                    aria-hidden="true"
+                                    class="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border border-encre-douce/50 peer-checked:border-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent"
+                                >
+                                    <span
+                                        class="size-2.5 rounded-full bg-accent transition-opacity motion-reduce:transition-none"
+                                        class=("opacity-0", move || !choisi.get())
+                                    ></span>
+                                </span>
+                            </label>
+                        </li>
+                    }
+                })
+                .collect_view()}
+        </Groupe>
+        <PiedDeSection>
+            "Le texte ne bouge pas d'un habillage à l'autre\u{a0}: même largeur de "
+            "colonne, même fonte, même composition. Ce qui change est ce qu'il y a "
+            "autour — la façon d'aller d'un livre à l'autre."
+            <br /><br />
+            "L'application est ce que vous avez sur le téléphone, et c'est le défaut. "
+            "L'édition est la liseuse telle qu'elle était\u{a0}: l'en-tête du site, son "
+            "pied de page, et rien autour du texte."
+            <br /><br />
+            "Votre choix est retenu dans ce navigateur, avec les autres réglages de "
+            "lecture. Il ne demande aucun compte."
         </PiedDeSection>
     }
 }

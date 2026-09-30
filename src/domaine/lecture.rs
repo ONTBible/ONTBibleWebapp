@@ -294,6 +294,97 @@ impl Fonte {
     }
 }
 
+/// L'habillage de la liseuse — **l'app, ou l'édition**.
+///
+/// ## Deux produits, et l'auteur a refusé de choisir
+///
+/// Le 21 septembre 2026 il a demandé une webapp *identique en tout point* à
+/// l'app iOS. Le 30, il a regardé les deux côte à côte et dit l'inverse :
+/// « finalement la liseuse est peut-être mieux ». Les deux jugements sont
+/// justes, et ils ne portent pas sur la même chose.
+///
+/// Ce qui les distingue **n'est pas la composition du texte**, et c'est le fait
+/// qui a tranché : les deux rendent la même mesure de 38 rem, la même fonte, la
+/// même règle typographique. Mesuré sur les deux HTML servis le 30 septembre.
+/// Ce qui change est l'**habillage** — tout ce qui entoure le texte sans en
+/// faire partie :
+///
+/// ```text
+/// l'app        barre des cinq onglets, barre latérale du corpus,
+///              capsules de verre flottantes, barre collante
+/// l'édition    l'en-tête du site, son pied de page, le fil d'Ariane seul,
+///              et le bouton « aA » flottant en bas
+/// ```
+///
+/// ## Le défaut reste l'app, et ce n'est pas un arbitrage de plus
+///
+/// C'est celui qu'il a demandé, et un lecteur qui vient du téléphone doit
+/// retrouver ses gestes sans rien régler. L'édition est **un choix**, et un
+/// choix se pose — il ne se subit pas.
+///
+/// ## Une préférence, pas deux adresses
+///
+/// Deux jeux d'adresses auraient dédoublé les cent soixante-trois pages du
+/// corpus dans les index, et forcé chaque lien partagé à trancher pour son
+/// destinataire. ==Un habillage est une façon de regarder, pas un lieu.== Il
+/// vit donc avec les autres réglages, dans la même clé du stockage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+// La valeur retenue dans le stockage est **celle de l'attribut**, et c'est ce
+// qui permet au script d'avant-rendu de la poser sans conversion. Comme
+// `Theme`, qui a la même contrainte pour la même raison.
+#[serde(rename_all = "lowercase")]
+pub enum Habillage {
+    /// Les barres de l'app — le défaut, et la parité demandée.
+    #[default]
+    Application,
+    /// L'en-tête et le pied du site — la liseuse d'avant le 21 septembre.
+    Edition,
+}
+
+impl Habillage {
+    /// Les deux, dans l'ordre où le sélecteur les pose.
+    pub const TOUS: [Habillage; 2] = [Habillage::Application, Habillage::Edition];
+
+    /// La valeur de `data-habillage` sur l'élément racine.
+    ///
+    /// **C'est la CSS qui bascule, pas le rendu.** Les deux habillages sont
+    /// dans le document, et l'attribut décide lequel se peint — de sorte que la
+    /// bascule ne demande ni cookie, ni rendu conditionnel côté serveur, ni
+    /// second aller-retour. C'est le montage du thème, à un étage de plus.
+    pub fn attribut(self) -> &'static str {
+        match self {
+            Habillage::Application => "application",
+            Habillage::Edition => "edition",
+        }
+    }
+
+    /// Le nom qu'en donne le sélecteur.
+    pub fn libelle(self) -> &'static str {
+        match self {
+            Habillage::Application => "L'application",
+            Habillage::Edition => "L'édition",
+        }
+    }
+
+    /// Ce que le lecteur y gagne, en une ligne.
+    ///
+    /// Les deux notes disent une **conséquence visible**, jamais un nom de
+    /// composant : « les onglets en bas » se constate, « BarreDOnglets » ne dit
+    /// rien à qui lit.
+    pub fn note(self) -> &'static str {
+        match self {
+            Habillage::Application => {
+                "Les cinq onglets en bas, le corpus dans une barre latérale, \
+                 les capsules du haut. Ce que vous avez sur le téléphone."
+            }
+            Habillage::Edition => {
+                "L'en-tête du site et son pied de page, le fil d'Ariane seul, \
+                 et rien autour du texte. La liseuse d'avant."
+            }
+        }
+    }
+}
+
 /// Ce que le lecteur a choisi de voir.
 /// `serde(default)` sur chaque champ, et ce n'est pas une précaution de style :
 /// ces valeurs viennent du **stockage du navigateur**, écrit par une version
@@ -421,6 +512,12 @@ pub struct Preferences {
     pub theme: Theme,
     /// La fonte du corps, choisie par le lecteur.
     pub fonte: Fonte,
+    /// L'habillage de la liseuse — les barres de l'app, ou l'édition du site.
+    ///
+    /// Comme le thème, il ne traverse pas `depouiller` : ce n'est pas un niveau
+    /// du texte, et **rien du texte ne change quand il bascule**. C'est ce qui
+    /// rend la bascule sûre — elle ne peut pas faire disparaître un mot.
+    pub habillage: Habillage,
 }
 
 impl Default for Preferences {
@@ -441,6 +538,7 @@ impl Default for Preferences {
             interligne: Theme::INTERLIGNE_PAR_DEFAUT,
             coupure: false,
             fonte: Fonte::Literata,
+            habillage: Habillage::Application,
         }
     }
 }
@@ -474,6 +572,10 @@ impl Preferences {
             interligne: Theme::INTERLIGNE_PAR_DEFAUT,
             coupure: false,
             fonte: Fonte::Literata,
+            // Sans effet, comme le thème et le corps : une carte de partage
+            // n'a pas de barres à montrer ni d'en-tête à poser. La valeur est
+            // là parce que la structure l'exige, et le défaut est le bon.
+            habillage: Habillage::Application,
         }
     }
 }
@@ -613,6 +715,37 @@ fn resserrer_texte(texte: &str, premier: bool, dernier: bool) -> String {
 
 #[cfg(test)]
 mod tests {
+    /// La sérialisation d'un habillage **est** son attribut.
+    ///
+    /// Le script d'avant-rendu lit `ont.lecture` et pose la valeur telle quelle
+    /// dans `data-habillage` : si `serde` rendait « Application » là où la CSS
+    /// attend « application », le lecteur retomberait sur le défaut sans
+    /// qu'aucune erreur ne le dise — et la bascule paraîtrait ne pas marcher un
+    /// rechargement sur deux. C'est la même garde que pour le thème, et elle
+    /// tient les deux tables d'accord sans qu'on ait à les relire.
+    #[test]
+    fn la_serialisation_d_un_habillage_est_son_attribut() {
+        for habillage in Habillage::TOUS {
+            let json = serde_json::to_string(&habillage).expect("un habillage se sérialise");
+            assert_eq!(
+                json,
+                format!("\"{}\"", habillage.attribut()),
+                "{habillage:?} ne se sérialise pas comme son attribut"
+            );
+        }
+    }
+
+    /// Les deux habillages ont des libellés et des notes distincts.
+    ///
+    /// Un sélecteur dont deux lignes disent la même chose ne choisit rien.
+    #[test]
+    fn les_deux_habillages_se_distinguent() {
+        let [a, e] = Habillage::TOUS;
+        assert_ne!(a.attribut(), e.attribut());
+        assert_ne!(a.libelle(), e.libelle());
+        assert_ne!(a.note(), e.note());
+    }
+
     use super::*;
 
     /// Un verset réel, dans la forme que le pipeline produit : le mot, sa

@@ -124,7 +124,33 @@ pub fn PageDeLecture(
         // cinq entrées en capitales au-dessus de tout, qui disent « voici les
         // pages ». La liseuse est un lieu où l'on revient, pas une page qu'on
         // lit une fois, et sa navigation est celle de l'app.
-        <crate::interface::design::NavigationDeLaLiseuse />
+        // ## Les deux habillages sont dans le document, et la CSS en peint un
+        //
+        // L'auteur a demandé le 30 septembre 2026 de garder **les deux** — les
+        // barres de l'app et l'édition d'avant — avec une bascule dans « Vous ».
+        //
+        // Le rendu ne tranche pas : il pose les deux enveloppes, et
+        // `data-habillage` décide laquelle se peint. Trois raisons :
+        //
+        // - **pas de cookie.** Un rendu conditionnel côté serveur demanderait
+        //   d'écrire un en-tête sur des réponses que les pages ne composent
+        //   pas, et une seconde mémoire à tenir d'accord avec `ont.lecture` ;
+        // - **pas de saut.** Le script de l'en-tête pose l'attribut avant la
+        //   première peinture, donc on ne voit jamais l'un puis l'autre ;
+        // - **une seule adresse.** Deux jeux auraient dédoublé les cent
+        //   soixante-trois pages du corpus dans les index, et forcé chaque
+        //   lien partagé à trancher pour son destinataire.
+        //
+        // Le prix est l'en-tête du site et son pied rendus en pure perte quand
+        // on lit dans l'app — quelques centaines d'octets, contre les cent
+        // soixante-dix kilo-octets que la barre latérale du corpus pèse déjà.
+        // ==C'est le petit des deux coûts, et c'est le seul qu'on ait choisi.==
+        <div class="habillage-app">
+            <crate::interface::design::NavigationDeLaLiseuse />
+        </div>
+        <div class="habillage-edition">
+            <crate::interface::design::Entete />
+        </div>
         // La barre latérale est en `fixed` : elle ne pousse rien, donc le
         // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
         // hauteur de la barre d'onglets, sans quoi la dernière ligne du
@@ -135,7 +161,13 @@ pub fn PageDeLecture(
         // rang à l'intérieur de l'écran qui glisse.
         <div class=move || {
             format!(
-                "pb-24 lg:ps-[16.5rem] lg:pb-0 {}",
+                // `voute` et le filet sont ceux du `Bloc` d'avant le chantier :
+                // `nu=true` les lui retire, et ils reviennent ici pour
+                // l'édition. Portés par l'enveloppe plutôt que par la section,
+                // ils se neutralisent d'une règle sous l'app au lieu de
+                // demander un second prop à `Bloc`.
+                "liseuse-corps voute border-t border-filet/50 \
+                 pb-24 lg:ps-[16.5rem] lg:pb-0 {}",
                 crate::interface::design::sens().get().classe(),
             )
         }>
@@ -155,7 +187,13 @@ pub fn PageDeLecture(
             // première ligne de la liste deviendrait inatteignable.
             {action.map(|action| {
                 view! {
-                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
+                    // **`habillage-app`**, et c'est mesuré plutôt que supposé :
+                    // sous l'édition, `Entete` porte déjà un lien vers
+                    // `/fr/rechercher` et `PiedDePage` un second. Le bouton y
+                    // ferait un troisième accès à la même page, posé en
+                    // flottant au-dessus du texte — c'est-à-dire du bruit là où
+                    // l'habillage entier existe pour n'en pas avoir.
+                    <div class="habillage-app pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
                         {action()}
                     </div>
                 }
@@ -258,6 +296,12 @@ pub fn PageDeLecture(
             // qu'une chrome qui grandit mange la place du texte.
             <div class="arrivee liseuse" style:--rang="2">{children()}</div>
         </Bloc>
+        </div>
+        // Le pied du site, que `App` ne rend pas dans la liseuse : il compte
+        // les pages de liseuse à l'écran et s'efface tant qu'il y en a une.
+        // Sous l'édition il fait partie de l'habillage, donc il se pose ici.
+        <div class="habillage-edition">
+            <crate::interface::design::PiedDePage />
         </div>
     }
 }

@@ -3121,3 +3121,58 @@ select,
     rgb(255 252 246 / 0) 33%
   );
 }
+
+/* ── Les deux habillages de la liseuse ────────────────────────────────────────
+ *
+ * **Demandé par l'auteur le 30 septembre 2026.** Il avait demandé le 21 une
+ * webapp identique en tout point à l'app ; neuf jours plus tard, il a regardé
+ * les deux et dit « finalement la liseuse est peut-être mieux ». Les deux
+ * jugements sont justes, et ils ne portent pas sur la même chose.
+ *
+ * Ce qui les sépare **n'est pas la composition du texte** — mesuré sur les deux
+ * HTML servis : même mesure de 38 rem, même fonte, même règle typographique.
+ * C'est l'habillage, c'est-à-dire tout ce qui entoure le texte sans en faire
+ * partie.
+ *
+ * ## Le rendu pose les deux, l'attribut en peint un
+ *
+ * Pas de cookie, pas de rendu conditionnel côté serveur, pas de second jeu
+ * d'adresses. Le script de l'en-tête pose `data-habillage` avant la première
+ * peinture, donc on ne voit jamais l'un puis l'autre.
+ *
+ * **L'app est le défaut, et il l'est par l'absence de règle** : sans attribut,
+ * seules les deux lignes ci-dessous s'appliquent. C'est ce qui rend la bascule
+ * sûre pour un lecteur dont le stockage est vide ou refusé.
+ */
+.habillage-edition {
+  display: none;
+}
+
+:root[data-habillage='edition'] .habillage-edition {
+  display: revert;
+}
+
+:root[data-habillage='edition'] .habillage-app {
+  display: none;
+}
+
+/* Les marges du corps servent les barres de l'app : la latérale pousse par la
+ * gauche au-delà de `lg`, les onglets réservent le bas. Sans barres, elles
+ * laisseraient un couloir vide et une bande sous le dernier verset. */
+:root[data-habillage='edition'] .liseuse-corps {
+  padding-bottom: 0;
+  padding-inline-start: 0;
+}
+
+/* Et la voûte ne vaut que pour l'édition. `Bloc` la retire sous `nu`, l'enveloppe
+ * la porte, et l'app la neutralise — une seule déclaration au lieu d'un second
+ * prop à `Bloc`, qui n'a pas à connaître l'habillage.
+ *
+ * `:not()` et non une règle sur `[data-habillage='application']` : sans
+ * attribut — stockage vide, refusé, ou premier chargement — c'est encore l'app
+ * qu'il faut peindre. ==Un défaut qui dépend d'un attribut n'est pas un
+ * défaut.== */
+:root:not([data-habillage='edition']) .liseuse-corps {
+  background: none;
+  border-top-width: 0;
+}
