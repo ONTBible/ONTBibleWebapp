@@ -294,6 +294,81 @@ impl Fonte {
     }
 }
 
+/// **Où l'on est** — l'arbre d'adresses, et non ce que le lecteur préfère.
+///
+/// ## Deux notions que le 30 septembre a séparées
+///
+/// Le site sert deux produits sous deux racines. `Arbre` est un **fait** : il se
+/// lit dans le chemin, il n'a pas de défaut, et il décide du chrome rendu comme
+/// de la forme des liens qu'on pose. [`Habillage`] est un **souhait** : ce que le
+/// lecteur a demandé, qui peut diverger de l'arbre où il vient d'atterrir.
+///
+/// ```text
+/// /fr/liseuse/…   l'édition : en-tête du site, nav horizontale, pied de page
+/// /fr/webapp/…    l'app : barre latérale, barre d'onglets, corpus épinglé
+/// ```
+///
+/// Quand les deux divergent — un lien vers la liseuse ouvert sur un téléphone
+/// dont la préférence dit « l'app » —, ==c'est l'adresse qui s'aligne, jamais le
+/// rendu qui se tait==. Une URL qui affiche autre chose que ce qu'elle nomme est
+/// une URL qui ment : on la copie, on la repartage, on la met en signet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Arbre {
+    /// L'édition — la forme lisible sans JavaScript, et celle qui s'indexe.
+    #[default]
+    Liseuse,
+    /// L'app — les barres, le corpus, les onglets.
+    Webapp,
+}
+
+impl Arbre {
+    /// Les deux, dans l'ordre de leur préséance.
+    pub const TOUS: [Arbre; 2] = [Arbre::Liseuse, Arbre::Webapp];
+
+    /// Le segment de chemin, sans barres — « liseuse » ou « webapp ».
+    ///
+    /// C'est **la seule table** : les routes, les composeurs de chemins et le
+    /// script de l'en-tête la citent, jamais un littéral recopié. Un renommage
+    /// se fait ici et se propage ; recopié, il laisserait des pages joignables
+    /// par une adresse que plus rien n'engendre.
+    pub fn segment(self) -> &'static str {
+        match self {
+            Arbre::Liseuse => "liseuse",
+            Arbre::Webapp => "webapp",
+        }
+    }
+
+    /// La racine, barre comprise — `/fr/liseuse` ou `/fr/webapp`.
+    ///
+    /// Sans barre finale : elle se concatène avec une suite qui commence par la
+    /// sienne, de sorte que la racine seule reste une adresse valide.
+    pub fn racine(self) -> String {
+        format!("/fr/{}", self.segment())
+    }
+
+    /// L'arbre que désigne un chemin, s'il en désigne un.
+    ///
+    /// **Même forme que [`c_est_la_liseuse`]** — égalité, ou préfixe suivi d'une
+    /// barre. Le piège est le mot voisin : `/fr/webappnt-ils` n'est pas sous
+    /// `/fr/webapp`, et un simple `starts_with` le dirait.
+    pub fn du_chemin(chemin: &str) -> Option<Arbre> {
+        let chemin = chemin.trim_end_matches('/');
+        Arbre::TOUS.into_iter().find(|arbre| {
+            let racine = arbre.racine();
+            chemin == racine || chemin.starts_with(&format!("{racine}/"))
+        })
+    }
+
+    /// L'autre — celui vers lequel on bascule.
+    pub fn autre(self) -> Arbre {
+        match self {
+            Arbre::Liseuse => Arbre::Webapp,
+            Arbre::Webapp => Arbre::Liseuse,
+        }
+    }
+}
+
 /// L'habillage de la liseuse — **l'app, ou l'édition**.
 ///
 /// ## Deux produits, et l'auteur a refusé de choisir
@@ -329,38 +404,66 @@ impl Fonte {
 /// destinataire. ==Un habillage est une façon de regarder, pas un lieu.== Il
 /// vit donc avec les autres réglages, dans la même clé du stockage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-// La valeur retenue dans le stockage est **celle de l'attribut**, et c'est ce
-// qui permet au script d'avant-rendu de la poser sans conversion. Comme
-// `Theme`, qui a la même contrainte pour la même raison.
+// La valeur retenue dans le stockage est celle que le script lit pour poser le
+// cookie, donc elle ne se traduit nulle part. Comme `Theme`.
 #[serde(rename_all = "lowercase")]
 pub enum Habillage {
-    /// Les barres de l'app — le défaut, et la parité demandée.
+    /// **L'appareil décide** — grand écran l'édition, petit écran l'app.
+    ///
+    /// C'est le défaut, et ce n'est pas un compromis : les deux chromes ont été
+    /// dessinés chacun pour une taille. La barre latérale du corpus demande
+    /// seize rem et demie qu'un téléphone n'a pas ; l'en-tête centré du site
+    /// suppose une largeur où un titre et cinq entrées tiennent sur une ligne.
     #[default]
-    Application,
-    /// L'en-tête et le pied du site — la liseuse d'avant le 21 septembre.
+    Auto,
+    /// L'édition partout, quel que soit l'appareil.
     Edition,
+    /// L'app partout.
+    Application,
 }
 
 impl Habillage {
-    /// Les deux, dans l'ordre où le sélecteur les pose.
-    pub const TOUS: [Habillage; 2] = [Habillage::Application, Habillage::Edition];
-
-    /// La valeur de `data-habillage` sur l'élément racine.
+    /// Les trois, dans l'ordre où le sélecteur les pose.
     ///
-    /// **C'est la CSS qui bascule, pas le rendu.** Les deux habillages sont
-    /// dans le document, et l'attribut décide lequel se peint — de sorte que la
-    /// bascule ne demande ni cookie, ni rendu conditionnel côté serveur, ni
-    /// second aller-retour. C'est le montage du thème, à un étage de plus.
-    pub fn attribut(self) -> &'static str {
+    /// `Auto` en tête : c'est le défaut, et une liste qui commence par une
+    /// exception apprend l'exception avant la règle.
+    pub const TOUS: [Habillage; 3] = [Habillage::Auto, Habillage::Edition, Habillage::Application];
+
+    /// La valeur retenue, telle que le script la relit.
+    ///
+    /// **Ce n'est plus un attribut CSS.** Il y a eu, le 30 septembre au soir, un
+    /// montage où les deux chromes vivaient dans le même document et où un
+    /// `data-habillage` en peignait un. Il a été retiré le même soir : `display:
+    /// none` cache la peinture, il n'annule pas le travail — la barre latérale
+    /// lançait ses deux requêtes et sérialisait le corpus entier, pour un chrome
+    /// que le lecteur ne voyait pas. Cent soixante-six kilo-octets par page, et
+    /// le coût croît avec le corpus.
+    pub fn cle(self) -> &'static str {
         match self {
-            Habillage::Application => "application",
+            Habillage::Auto => "auto",
             Habillage::Edition => "edition",
+            Habillage::Application => "application",
+        }
+    }
+
+    /// L'arbre que ce souhait désigne, la largeur de l'écran étant connue.
+    ///
+    /// C'est la **seule** fonction qui traduit un souhait en fait, et le script
+    /// de l'en-tête la rejoue en JavaScript — l'épreuve `le_script_resout_l_auto`
+    /// tient les deux d'accord.
+    pub fn resoudre(self, grand_ecran: bool) -> Arbre {
+        match self {
+            Habillage::Edition => Arbre::Liseuse,
+            Habillage::Application => Arbre::Webapp,
+            Habillage::Auto if grand_ecran => Arbre::Liseuse,
+            Habillage::Auto => Arbre::Webapp,
         }
     }
 
     /// Le nom qu'en donne le sélecteur.
     pub fn libelle(self) -> &'static str {
         match self {
+            Habillage::Auto => "Selon l'appareil",
             Habillage::Application => "L'application",
             Habillage::Edition => "L'édition",
         }
@@ -373,6 +476,10 @@ impl Habillage {
     /// rien à qui lit.
     pub fn note(self) -> &'static str {
         match self {
+            Habillage::Auto => {
+                "L'édition sur un grand écran, l'application sur un téléphone. \
+                 Chaque chrome a été dessiné pour une taille."
+            }
             Habillage::Application => {
                 "Les cinq onglets en bas, le corpus dans une barre latérale, \
                  les capsules du haut. Ce que vous avez sur le téléphone."
@@ -715,35 +822,85 @@ fn resserrer_texte(texte: &str, premier: bool, dernier: bool) -> String {
 
 #[cfg(test)]
 mod tests {
-    /// La sérialisation d'un habillage **est** son attribut.
+    /// La sérialisation d'un habillage **est** la clé que le script relit.
     ///
-    /// Le script d'avant-rendu lit `ont.lecture` et pose la valeur telle quelle
-    /// dans `data-habillage` : si `serde` rendait « Application » là où la CSS
-    /// attend « application », le lecteur retomberait sur le défaut sans
-    /// qu'aucune erreur ne le dise — et la bascule paraîtrait ne pas marcher un
-    /// rechargement sur deux. C'est la même garde que pour le thème, et elle
-    /// tient les deux tables d'accord sans qu'on ait à les relire.
+    /// Le script d'avant-rendu lit `ont.lecture` et compare `o.habillage` aux
+    /// clés qu'il connaît : si `serde` rendait « Auto » là où le script attend
+    /// « auto », le lecteur retomberait sur le défaut sans qu'aucune erreur ne
+    /// le dise — et la préférence paraîtrait ne pas tenir d'une visite à
+    /// l'autre. C'est la garde du thème, pour la même raison.
     #[test]
-    fn la_serialisation_d_un_habillage_est_son_attribut() {
+    fn la_serialisation_d_un_habillage_est_sa_cle() {
         for habillage in Habillage::TOUS {
             let json = serde_json::to_string(&habillage).expect("un habillage se sérialise");
             assert_eq!(
                 json,
-                format!("\"{}\"", habillage.attribut()),
-                "{habillage:?} ne se sérialise pas comme son attribut"
+                format!("\"{}\"", habillage.cle()),
+                "{habillage:?} ne se sérialise pas comme sa clé"
             );
         }
     }
 
-    /// Les deux habillages ont des libellés et des notes distincts.
+    /// Les trois habillages se distinguent, jusque dans leur note.
     ///
     /// Un sélecteur dont deux lignes disent la même chose ne choisit rien.
     #[test]
-    fn les_deux_habillages_se_distinguent() {
-        let [a, e] = Habillage::TOUS;
-        assert_ne!(a.attribut(), e.attribut());
-        assert_ne!(a.libelle(), e.libelle());
-        assert_ne!(a.note(), e.note());
+    fn les_trois_habillages_se_distinguent() {
+        for (i, a) in Habillage::TOUS.into_iter().enumerate() {
+            for b in Habillage::TOUS.into_iter().skip(i + 1) {
+                assert_ne!(a.cle(), b.cle(), "{a:?} et {b:?} partagent leur clé");
+                assert_ne!(
+                    a.libelle(),
+                    b.libelle(),
+                    "{a:?} et {b:?} partagent leur libellé"
+                );
+                assert_ne!(a.note(), b.note(), "{a:?} et {b:?} partagent leur note");
+            }
+        }
+    }
+
+    /// `Auto` se résout par la largeur, les deux autres l'ignorent.
+    ///
+    /// C'est la **seule** traduction d'un souhait en fait, et le script de
+    /// l'en-tête la rejoue en JavaScript. Les deux sens sont éprouvés : un
+    /// habillage explicite ne doit pas se laisser fléchir par l'écran, sans quoi
+    /// « l'application partout » ne voudrait rien dire.
+    #[test]
+    fn auto_se_resout_par_la_largeur_et_les_autres_non() {
+        assert_eq!(Habillage::Auto.resoudre(true), Arbre::Liseuse);
+        assert_eq!(Habillage::Auto.resoudre(false), Arbre::Webapp);
+        for grand in [true, false] {
+            assert_eq!(Habillage::Edition.resoudre(grand), Arbre::Liseuse);
+            assert_eq!(Habillage::Application.resoudre(grand), Arbre::Webapp);
+        }
+    }
+
+    /// Un arbre se reconnaît à son chemin, et le mot voisin ne le trompe pas.
+    ///
+    /// `/fr/webappnt-ils` n'est pas sous `/fr/webapp` — c'est le piège que
+    /// `c_est_la_liseuse` a déjà payé, et `du_chemin` emploie la même forme.
+    #[test]
+    fn un_arbre_se_reconnait_sans_deborder() {
+        assert_eq!(Arbre::du_chemin("/fr/liseuse"), Some(Arbre::Liseuse));
+        assert_eq!(Arbre::du_chemin("/fr/liseuse/"), Some(Arbre::Liseuse));
+        assert_eq!(
+            Arbre::du_chemin("/fr/webapp/bible/bereshit"),
+            Some(Arbre::Webapp)
+        );
+        assert_eq!(Arbre::du_chemin("/fr/webappnt-ils"), None);
+        assert_eq!(Arbre::du_chemin("/fr/liseusement"), None);
+        assert_eq!(Arbre::du_chemin("/fr"), None);
+        assert_eq!(Arbre::du_chemin("/fr/l-app"), None);
+    }
+
+    /// La racine d'un arbre se compose de son segment, et d'aucun littéral.
+    #[test]
+    fn la_racine_vient_du_segment() {
+        for arbre in Arbre::TOUS {
+            assert_eq!(arbre.racine(), format!("/fr/{}", arbre.segment()));
+            assert_eq!(arbre.autre().autre(), arbre);
+            assert_ne!(arbre.autre(), arbre);
+        }
     }
 
     use super::*;

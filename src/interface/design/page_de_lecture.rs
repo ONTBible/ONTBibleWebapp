@@ -124,31 +124,15 @@ pub fn PageDeLecture(
         // cinq entrées en capitales au-dessus de tout, qui disent « voici les
         // pages ». La liseuse est un lieu où l'on revient, pas une page qu'on
         // lit une fois, et sa navigation est celle de l'app.
-        // ## Les deux habillages sont dans le document, et la CSS en peint un
+        // ## Deux leçons d'hydratation, payées le 30 septembre 2026
         //
-        // L'auteur a demandé le 30 septembre 2026 de garder **les deux** — les
-        // barres de l'app et l'édition d'avant — avec une bascule dans « Vous ».
+        // Elles ont survécu au montage qui les a produites, et elles valent pour
+        // tout ce qu'on posera ici.
         //
-        // Le rendu ne tranche pas : il pose les deux enveloppes, et
-        // `data-habillage` décide laquelle se peint. Trois raisons :
-        //
-        // - **pas de cookie.** Un rendu conditionnel côté serveur demanderait
-        //   d'écrire un en-tête sur des réponses que les pages ne composent
-        //   pas, et une seconde mémoire à tenir d'accord avec `ont.lecture` ;
-        // - **pas de saut.** Le script de l'en-tête pose l'attribut avant la
-        //   première peinture, donc on ne voit jamais l'un puis l'autre ;
-        // - **une seule adresse.** Deux jeux auraient dédoublé les cent
-        //   soixante-trois pages du corpus dans les index, et forcé chaque
-        //   lien partagé à trancher pour son destinataire.
-        //
-        // Le prix est l'en-tête du site et son pied rendus en pure perte quand
-        // on lit dans l'app — quelques centaines d'octets, contre les cent
-        // soixante-dix kilo-octets que la barre latérale du corpus pèse déjà.
-        // ==C'est le petit des deux coûts, et c'est le seul qu'on ait choisi.==
-        // **Sans enveloppe**, et c'est une leçon payée : un `<div>` posé autour
-        // de ce composant tue l'hydratation. Il rend deux barres *frères* — la
-        // latérale et les onglets —, et Leptos hydrate un fragment en comptant
-        // des marqueurs qui tombent alors ailleurs :
+        // **Aucune enveloppe autour de ce composant.** Un `<div>` posé autour de
+        // lui tue l'hydratation : il rend deux barres *frères* — la latérale et
+        // les onglets —, et Leptos hydrate un fragment en comptant des marqueurs
+        // qui tombent alors ailleurs.
         //
         // ```text
         // A hydration error occurred … at navigation_de_la_liseuse.rs:312
@@ -157,34 +141,22 @@ pub fn PageDeLecture(
         // ```
         //
         // Le WASM meurt au démarrage, la page reste belle, et **plus rien ne
-        // répond au doigt** — le symptôme du §7 bis, pour la quatrième fois
-        // dans ce dépôt et avec une quatrième cause.
+        // répond au doigt** — le symptôme du §7 bis, pour la quatrième fois dans
+        // ce dépôt et avec une quatrième cause.
         //
-        // ## Et l'en-tête du site ne peut pas être rendu ici
-        //
-        // Deuxième mesure du même soir : `Entete` et `PiedDePage` posés dans ce
-        // composant rompent l'hydratation à leur tour — `bloc.rs:106`, sur un
-        // `SVGCircleElement`. Sans enveloppe, donc ce n'est pas la même cause.
-        //
-        // `App` rend **déjà** le pied, sous `<Show when=dans_la_liseuse()==0>`,
-        // et ce compteur ne vaut pas la même chose des deux côtés au moment où
-        // la condition est lue : le serveur et le client ne s'accordent alors
-        // plus sur ce qu'il y a à cet endroit de l'arbre.
+        // **Et `Entete` / `PiedDePage` ne se rendent pas ici.** Deuxième mesure
+        // du même soir, `bloc.rs:106`, sans enveloppe — donc ce n'est pas la même
+        // cause. `App` rend **déjà** le pied sous `<Show when=…>`, et la condition
+        // ne vaut pas la même chose des deux côtés au moment où elle est lue.
         //
         // ==Un second rendu d'un composant que la racine gouverne déjà est un
-        // désaccord qui attend son tour.== L'habillage « édition » se limite
-        // donc pour l'instant à retirer les barres, la voûte et les marges de
-        // l'app. L'en-tête et le pied demandent de passer par `App`, où la
-        // condition vit — c'est un second temps, et il se mesure au même banc.
+        // désaccord qui attend son tour.==
         //
-        // ==Un habillage se pose sur l'élément, jamais autour de lui.== Les
-        // deux barres portent donc `habillage-app` dans leur propre `class`, et
-        // rien ne s'interpose entre le composant et son parent.
-        //
-        // Trouvé par `banc-erreurs.html` en deux passes : retirer `Entete` et
-        // `PiedDePage` n'a rien changé — ce qui les a innocentés —, retirer
-        // cette enveloppe a tout rendu. *Retirer le suspect est plus court que
-        // de raisonner sur lui.*
+        // Trouvé par `banc-erreurs.html` en trois passes, et la première a failli
+        // tromper : retirer `Entete` et `PiedDePage` n'avait rien changé, ce qui
+        // les innocentait — à tort. Leur effet était masqué par la première
+        // cause, qui tombait plus tôt dans l'arbre. *Un retrait qui ne change
+        // rien ne dit que « ce n'est pas la première cause ».*
         <crate::interface::design::NavigationDeLaLiseuse />
         // La barre latérale est en `fixed` : elle ne pousse rien, donc le
         // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
@@ -196,13 +168,7 @@ pub fn PageDeLecture(
         // rang à l'intérieur de l'écran qui glisse.
         <div class=move || {
             format!(
-                // `voute` et le filet sont ceux du `Bloc` d'avant le chantier :
-                // `nu=true` les lui retire, et ils reviennent ici pour
-                // l'édition. Portés par l'enveloppe plutôt que par la section,
-                // ils se neutralisent d'une règle sous l'app au lieu de
-                // demander un second prop à `Bloc`.
-                "liseuse-corps voute border-t border-filet/50 \
-                 pb-24 lg:ps-[16.5rem] lg:pb-0 {}",
+                "pb-24 lg:ps-[16.5rem] lg:pb-0 {}",
                 crate::interface::design::sens().get().classe(),
             )
         }>
@@ -222,13 +188,7 @@ pub fn PageDeLecture(
             // première ligne de la liste deviendrait inatteignable.
             {action.map(|action| {
                 view! {
-                    // **`habillage-app`**, et c'est mesuré plutôt que supposé :
-                    // sous l'édition, `Entete` porte déjà un lien vers
-                    // `/fr/rechercher` et `PiedDePage` un second. Le bouton y
-                    // ferait un troisième accès à la même page, posé en
-                    // flottant au-dessus du texte — c'est-à-dire du bruit là où
-                    // l'habillage entier existe pour n'en pas avoir.
-                    <div class="habillage-app pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
+                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
                         {action()}
                     </div>
                 }

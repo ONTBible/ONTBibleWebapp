@@ -146,7 +146,7 @@ fn PeauAvantLePremierRendu() -> impl IntoView {
 /// seule duplication de tout ce mécanisme, et `le_script_reprend_les_trois_
 /// clauses_de_la_regle` en garde la forme.
 fn script_de_la_peau() -> String {
-    use crate::domaine::lecture::{Fonte, Habillage, Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{Fonte, Theme, LA_LISEUSE};
 
     let connus = Theme::TOUS
         .iter()
@@ -161,14 +161,6 @@ fn script_de_la_peau() -> String {
     let fontes = Fonte::TOUTES
         .iter()
         .map(|fonte| format!("'{}'", fonte.attribut()))
-        .collect::<Vec<_>>()
-        .join(",");
-    // Même règle que pour les thèmes et les fontes : la liste **vient de
-    // l'énumération**. Un habillage renommé ferait autrement retomber le
-    // lecteur sur le défaut, en silence, à chaque chargement.
-    let habillages = Habillage::TOUS
-        .iter()
-        .map(|habillage| format!("'{}'", habillage.attribut()))
         .collect::<Vec<_>>()
         .join(",");
     let (bas, haut, defaut) = (
@@ -206,9 +198,7 @@ fn script_de_la_peau() -> String {
          if(d){{var c=[{connus}];\
          if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);\
          var f=[{fontes}];\
-         if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);\
-         var h=[{habillages}];\
-         if(h.indexOf(o.habillage)>=0)r.setAttribute('data-habillage',o.habillage);}}\
+         if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);}}\
          if(sessionStorage.getItem('ont.entre'))\
          r.classList.add('deja-entre');\
          else sessionStorage.setItem('ont.entre','1');\
@@ -603,45 +593,6 @@ mod epreuves_de_la_peau {
                  alors que `c_est_la_liseuse` le fait toujours"
             );
         }
-    }
-
-    /// Le script pose **les deux habillages**, et par leur attribut.
-    ///
-    /// C'est la garde des thèmes, étendue : une liste recopiée à la main dans
-    /// le script laisserait le lecteur retomber sur le défaut le jour d'un
-    /// renommage, sans qu'aucune erreur ne le dise — et il faudrait le
-    /// découvrir en rechargeant la page.
-    ///
-    /// Elle vérifie aussi que l'attribut est posé **dans la branche de la
-    /// liseuse** : hors d'elle il n'y a ni barres ni en-tête à départager, et
-    /// un `data-habillage` traînant sur l'accueil dirait que le lecteur a
-    /// choisi pour une page que le choix ne touche pas.
-    #[test]
-    fn le_script_pose_les_deux_habillages() {
-        let script = script_de_la_peau();
-        for habillage in crate::domaine::lecture::Habillage::TOUS {
-            let attendu = format!("'{}'", habillage.attribut());
-            assert!(
-                script.contains(&attendu),
-                "le script ne connaît pas {attendu} — la liste a-t-elle été recopiée ?"
-            );
-        }
-        assert!(
-            script.contains("r.setAttribute('data-habillage',o.habillage)"),
-            "le script ne pose pas l'attribut"
-        );
-        // La pose de l'habillage doit tomber **avant** la fermeture de la
-        // branche `if(d)`, comme celle du thème et de la fonte.
-        let pose = script
-            .find("data-habillage")
-            .expect("l'attribut est posé quelque part");
-        let fin_de_branche = script
-            .find("if(sessionStorage")
-            .expect("la branche de la liseuse se referme avant la mémoire de session");
-        assert!(
-            pose < fin_de_branche,
-            "l'habillage se pose hors de la branche de la liseuse"
-        );
     }
 
     /// Le témoin de la règle elle-même, depuis le côté qui l'emploie.

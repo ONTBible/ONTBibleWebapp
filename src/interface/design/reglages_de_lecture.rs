@@ -232,7 +232,6 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
         Effect::new(move |_| {
             let reglages = preferences.get();
             poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
-            poser_l_habillage(Some(reglages.habillage));
             poser_la_taille(reglages.corps);
             poser_l_interligne(reglages.interligne);
             poser_la_coupure(reglages.coupure);
@@ -243,7 +242,6 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
         on_cleanup(move || {
             if compteur.get_untracked() == 0 {
                 poser_la_peau(None, None);
-                poser_l_habillage(None);
             }
         });
     }
@@ -366,34 +364,6 @@ fn poser_la_taille(corps: u8) {
         .set_property("--lecture", &format!("{facteur}"));
 }
 
-/// Pose `data-habillage` sur l'élément racine, ou le retire en sortant.
-///
-/// **Même cycle que la peau**, et pour la même raison : hors de la liseuse il
-/// n'y a ni barres ni en-tête à départager, et laisser l'attribut traîner
-/// ferait croire qu'il gouverne une page qu'il ne touche pas.
-///
-/// C'est la CSS qui bascule — les deux habillages sont dans le document, et cet
-/// attribut décide lequel se peint. Le coût est **mesuré** : l'en-tête du site
-/// et son pied ajoutent quelques centaines d'octets là où un rendu conditionnel
-/// aurait demandé un cookie, une écriture d'en-tête sur des réponses que les
-/// pages ne composent pas, et une seconde mémoire à tenir d'accord.
-#[cfg(feature = "hydrate")]
-fn poser_l_habillage(habillage: Option<crate::domaine::lecture::Habillage>) {
-    let Some(racine) = web_sys::window()
-        .and_then(|f| f.document())
-        .and_then(|d| d.document_element())
-    else {
-        return;
-    };
-    match habillage {
-        Some(habillage) => {
-            let _ = racine.set_attribute("data-habillage", habillage.attribut());
-        }
-        None => {
-            let _ = racine.remove_attribute("data-habillage");
-        }
-    }
-}
 #[cfg(feature = "hydrate")]
 fn poser_la_peau(theme: Option<Theme>, fonte: Option<Fonte>) {
     let Some(document) = web_sys::window().and_then(|f| f.document()) else {
