@@ -115,7 +115,11 @@ pub fn PageDeLecture(
         // cinq secondes et demie parce que le lecteur découvre le site serait
         // exactement l'inverse du service rendu : il n'a pas demandé le site,
         // il a demandé un verset.
-        {(chemin.get_untracked().trim_end_matches('/') == "/fr/webapp")
+        // **L'entrée du corpus, dans l'arbre où l'on est.** Une égalité
+        // stricte : l'`Ouverture` salue l'arrivée dans la liseuse, elle n'a
+        // rien à faire sur un livre ni sur une unité.
+        {(chemin.get_untracked().trim_end_matches('/')
+            == crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()))
             .then(|| view! { <crate::interface::design::Ouverture /> })}
         <crate::interface::design::PeauDeLaLiseuse />
         // **La chrome de l'app, et elle remplace celle de l'édition.**

@@ -41,7 +41,7 @@ pub fn Recherche() -> impl IntoView {
             titre="Rechercher dans le corpus hébreu"
             description="Chercher un mot dans La Bible ONT — dans le texte, dans les gloses, \
                          ou en hébreu. Les résultats mènent au verset."
-            chemin="/fr/rechercher"
+            chemin=crate::domaine::chemins::rechercher(crate::interface::arbre::arbre_maintenant())
         />
         // ## C'est un écran de la webapp, et ce paragraphe disait le contraire
         //
@@ -71,7 +71,7 @@ pub fn Recherche() -> impl IntoView {
             // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
             // même : le navigateur compose l'adresse, le serveur rend la page.
             // C'est le même chemin que celui d'un lien partagé.
-            <form method="get" action="/fr/rechercher" role="search" class="mb-8">
+            <form method="get" action=crate::domaine::chemins::rechercher(crate::interface::arbre::arbre_maintenant()) role="search" class="mb-8">
                 <label class="block">
                     <span class="sr-only">"Le mot à chercher"</span>
                     <input
@@ -201,9 +201,18 @@ fn UneTrouvaille(t: crate::api::TrouvailleDto) -> impl IntoView {
         format!("{} : {}", t.unite_titre, t.verset)
     };
     let chemin = if t.verset == 0 {
-        format!("/fr/webapp/{}/{}", t.livre_id, t.unite_id)
+        crate::domaine::chemins::unite(
+            crate::interface::arbre::arbre_maintenant(),
+            &t.livre_id,
+            &t.unite_id,
+        )
     } else {
-        format!("/fr/webapp/{}/{}?v={}", t.livre_id, t.unite_id, t.verset)
+        crate::domaine::chemins::unite_au_verset(
+            crate::interface::arbre::arbre_maintenant(),
+            &t.livre_id,
+            &t.unite_id,
+            &t.verset.to_string(),
+        )
     };
 
     view! {

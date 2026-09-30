@@ -196,7 +196,7 @@ pub fn Passage() -> impl IntoView {
                         } else {
                             format!("{} · {rang}", p.livre_titre)
                         };
-                        let chemin_du_livre = format!("/fr/webapp/{}", p.livre_id);
+                        let chemin_du_livre = crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &p.livre_id);
 
                         // Relevé **avant** le rendu : le `view!` consomme le
                         // chapitre, et le banc en a besoin.
@@ -275,14 +275,14 @@ pub fn Passage() -> impl IntoView {
                             <Tete
                                 titre=titre_indexable(&chapitre, &p.livre_francais, &en_avant)
                                 description=description
-                                chemin=format!("/fr/webapp/{}/{}", p.livre_id, chapitre.id)
+                                chemin=crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &p.livre_id, &chapitre.id)
                             />
 
                             <PageDeLecture
                                 fil=vec![
-                                    ("/fr/webapp".to_string(), "Bible".to_string()),
+                                    (crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string()),
                                     (
-                                        format!("/fr/webapp/{}", p.livre_id),
+                                        crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &p.livre_id),
                                         p.livre_titre.clone(),
                                     ),
                                 ]
@@ -363,11 +363,7 @@ pub fn Passage() -> impl IntoView {
                                     selection=choix
                                     livre=livre_pour_renvoi
                                     chapitre=rang
-                                    chemin=format!(
-                                        "/fr/webapp/{}/{}",
-                                        p.livre_id,
-                                        chapitre_id,
-                                    )
+                                    chemin=crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &p.livre_id, &chapitre_id)
                                     textes=textes
                                     livre_id=p.livre_id.clone()
                                     unite_id=chapitre_id.clone()
@@ -609,12 +605,12 @@ fn Absent() -> impl IntoView {
         <Tete
             titre="Passage introuvable"
             description="Ce passage n'a pas encore été restitué."
-            chemin="/fr/webapp"
+            chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
+            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
             rappel="Le corpus"
             titre="Ce passage n'est pas encore là"
         >

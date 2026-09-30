@@ -26,6 +26,11 @@ impl VersetQuotidien {
     /// Le segment de langue est délibéré (§4) : il épargne une migration le
     /// jour d'une édition anglaise, et il ne coûte que trois caractères.
     pub fn chemin(&self) -> String {
-        format!("/fr/webapp/{}/{}?v={}", self.livre, self.unite, self.numero)
+        crate::domaine::chemins::unite_au_verset(
+            crate::domaine::lecture::Arbre::CANONIQUE,
+            &self.livre,
+            &self.unite,
+            &self.numero.to_string(),
+        )
     }
 }

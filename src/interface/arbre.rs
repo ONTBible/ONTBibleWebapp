@@ -26,33 +26,59 @@ use leptos::prelude::*;
 
 use crate::domaine::lecture::Arbre;
 
-/// L'arbre de l'adresse courante.
+/// L'arbre courant, porté par le contexte plutôt que lu partout.
 ///
-/// Réactif : une navigation d'un arbre à l'autre le fait changer, et tout ce qui
-/// en dépend se recompose — les liens de la barre, le fil d'Ariane, le chrome.
-pub fn arbre() -> Signal<Arbre> {
+/// **Fourni par `App`**, qui est le seul endroit garanti d'être sous le routeur.
+/// Les feuilles le lisent avec un repli : un composant rendu hors routeur — une
+/// épreuve qui monte un bloc isolé, un banc — doit rendre quelque chose de juste
+/// plutôt que de paniquer.
+///
+/// ==Une dépendance au routeur qui traverse trente composants est trente
+/// endroits où un rendu isolé s'arrête.== Le contexte la ramène à un.
+#[derive(Clone, Copy)]
+struct ArbreCourant(Signal<Arbre>);
+
+/// Pose l'arbre dans le contexte. Appelé une fois, par `App`.
+pub fn fournir_l_arbre() {
     let chemin = leptos_router::hooks::use_location().pathname;
-    Signal::derive(move || {
+    let courant = Signal::derive(move || {
         chemin.with(|chemin| Arbre::du_chemin(chemin).unwrap_or(Arbre::CANONIQUE))
-    })
+    });
+    provide_context(ArbreCourant(courant));
+}
+
+/// L'arbre de l'adresse courante, réactif.
+///
+/// Une navigation d'un arbre à l'autre le fait changer, et tout ce qui en dépend
+/// se recompose — les liens de la barre, le fil d'Ariane, le chrome.
+pub fn arbre() -> Signal<Arbre> {
+    match use_context::<ArbreCourant>() {
+        Some(ArbreCourant(courant)) => courant,
+        None => Signal::derive(|| Arbre::CANONIQUE),
+    }
 }
 
 /// L'arbre courant, lu une fois, sans s'abonner.
 ///
-/// Pour ce qui se décide **au montage** et ne se recompose pas : le titre d'une
-/// page, l'adresse canonique, la classe d'un conteneur. S'abonner là où rien ne
-/// doit rebouger coûte un recalcul à chaque navigation, et n'en rend aucun.
+/// Pour ce qui se décide **au montage** et ne se recompose pas : l'adresse d'un
+/// lien posé dans une boucle, le titre d'une page. S'abonner là où rien ne doit
+/// rebouger coûte un recalcul à chaque navigation, et n'en rend aucun.
 pub fn arbre_maintenant() -> Arbre {
-    let chemin = leptos_router::hooks::use_location().pathname;
-    chemin.with_untracked(|chemin| Arbre::du_chemin(chemin).unwrap_or(Arbre::CANONIQUE))
+    match use_context::<ArbreCourant>() {
+        Some(ArbreCourant(courant)) => courant.get_untracked(),
+        None => Arbre::CANONIQUE,
+    }
 }
 
 /// Le chemin courant, dans l'autre arbre.
 ///
 /// C'est ce que pose le sélecteur de « Vous » : basculer d'habillage ne renvoie
-/// pas à l'accueil de l'autre arbre, il rend **la même page**. Un réglage qui
-/// fait perdre sa place n'est pas un réglage, c'est une sortie.
+/// pas à l'accueil de l'autre arbre, il rend **la même page**.
+///
+/// > Un réglage qui fait perdre sa place n'est pas un réglage, c'est une sortie.
 pub fn ici_dans(vise: Arbre) -> String {
-    let chemin = leptos_router::hooks::use_location().pathname;
-    chemin.with_untracked(|chemin| crate::domaine::chemins::dans(vise, chemin))
+    let ici = leptos_router::hooks::use_location()
+        .pathname
+        .get_untracked();
+    crate::domaine::chemins::dans(vise, &ici)
 }

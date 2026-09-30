@@ -118,7 +118,7 @@ pub fn BarreDeLecture(
 pub fn BoutonDeRecherche() -> impl IntoView {
     view! {
         <A
-            href="/fr/rechercher"
+            href=crate::domaine::chemins::rechercher(crate::interface::arbre::arbre_maintenant())
             attr:aria-label="Rechercher dans le corpus"
             attr:class="presse verre pointer-events-auto flex size-9 items-center justify-center rounded-full text-encre-douce no-underline hover:text-encre"
         >

@@ -27,7 +27,7 @@ pub fn Lexique() -> impl IntoView {
             titre="Intraduisibles et noms propres hébreux"
             description="Les intraduisibles et les noms propres hébreux de La Bible ONT — \
                          les mots laissés debout, et pourquoi."
-            chemin="/fr/lexique"
+            chemin=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())
         />
 
         // **Ni œil-de-bœuf ni chapeau**, comme la Bible. L'app ouvre son
@@ -176,7 +176,7 @@ fn ParLettre(entrees: Vec<crate::api::ResumeDto>) -> impl IntoView {
                                         view! {
                                             <Ligne
                                                 chemin=Some(
-                                                    format!("/fr/lexique/{}", entree.lemme),
+                                                    crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), &entree.lemme),
                                                 )
                                                 titre=Box::new(move || {
                                                     // La teinte suit l'**espèce**, et ce

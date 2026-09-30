@@ -73,12 +73,12 @@ pub fn Livre() -> impl IntoView {
                                     format!("{} ({})", livre.titre, livre.francais)
                                 }
                                 description=description
-                                chemin=format!("/fr/webapp/{}", livre.id)
+                                chemin=crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &livre.id)
                             />
 
                             <PageDeLecture
                                 liste=true
-                                fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
+                                fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
                                 // **Pas de rappel.** Il portait « Genèse » en
                                 // capitales espacées au-dessus du titre —
                                 // l'appareil d'une page d'édition. L'app met le
@@ -153,12 +153,12 @@ fn Absent() -> impl IntoView {
         <Tete
             titre="Livre introuvable"
             description="Ce livre n'a pas encore été restitué."
-            chemin="/fr/webapp"
+            chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
+            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
             rappel="Le corpus"
             titre="Ce livre n'est pas encore là"
         >

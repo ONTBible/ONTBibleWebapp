@@ -44,7 +44,7 @@ pub fn Prononciation() -> impl IntoView {
             titre="Prononcer l'hébreu translittéré"
             description="Les cinq sons que le français n'a pas, et comment lire \
                          chokhmah, malʾakh ou Chanokh sans se tromper."
-            chemin="/fr/lexique/prononciation"
+            chemin=crate::domaine::chemins::prononciation(crate::interface::arbre::arbre_maintenant())
         />
 
         <Suspense fallback=|| ()>
@@ -53,7 +53,7 @@ pub fn Prononciation() -> impl IntoView {
                     Ok(Some(feuille)) => {
                         view! {
                             <PageDeLecture
-                                fil=vec![("/fr/lexique".to_string(), "Lexique".to_string())]
+                                fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
                                 titre=feuille.titre
                             >
                                 <Blocs blocs=feuille.blocs />
@@ -78,7 +78,7 @@ pub fn Prononciation() -> impl IntoView {
 fn Absente() -> impl IntoView {
     view! {
         <PageDeLecture
-            fil=vec![("/fr/lexique".to_string(), "Lexique".to_string())]
+            fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
             titre="Comment se prononce ce qui est écrit"
         >
             <p>

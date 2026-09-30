@@ -131,6 +131,89 @@ pub fn canonique(chemin: &str) -> String {
 mod tests {
     use super::*;
 
+    /// **Aucune adresse d'arbre n'est écrite à la main dans l'interface.**
+    ///
+    /// C'est la garde qui rend ce module utile : sans elle, un composant écrit
+    /// demain reprendrait `format!("/fr/webapp/…")` par habitude, et la barre de
+    /// l'édition mènerait dans l'app — une navigation qui marche, et qui ne
+    /// ramène pas où l'on était. Le défaut ne se voit qu'en basculant, c'est-à-
+    /// dire au moment où personne ne regarde.
+    ///
+    /// Trois exceptions, et chacune a sa raison :
+    ///
+    /// - `app.rs` **déclare** les routes, donc il nomme les segments ;
+    /// - `association.rs` porte les chemins que le fichier d'Apple annonce, qui
+    ///   ne sont pas des liens mais un contrat de distribution ;
+    /// - les blocs de commentaires et de doc, qui racontent sans commettre.
+    ///
+    /// La dernière exception est la même que celle de la garde des comptes de
+    /// livres, et pour la même raison : sans elle, une garde accuse sa propre
+    /// explication.
+    #[test]
+    fn aucune_adresse_d_arbre_n_est_ecrite_a_la_main() {
+        use crate::domaine::lecture::Arbre;
+
+        let exemptes = ["app.rs", "association.rs", "chemins.rs", "arbre.rs"];
+        let mut fautes = Vec::new();
+
+        for dossier in [
+            "src/interface",
+            "src/interface/design",
+            "src/interface/pages",
+        ] {
+            let Ok(entrees) = std::fs::read_dir(dossier) else {
+                continue;
+            };
+            for entree in entrees.flatten() {
+                let chemin = entree.path();
+                if chemin.extension().is_none_or(|e| e != "rs") {
+                    continue;
+                }
+                let nom = chemin
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if exemptes.contains(&nom.as_str()) {
+                    continue;
+                }
+                let Ok(source) = std::fs::read_to_string(&chemin) else {
+                    continue;
+                };
+                // **Le relevé s'arrête au module d'épreuves.** Un test nomme
+                // une adresse pour éprouver une règle — `on_y_est` déborde-t-il
+                // sur le mot voisin ? — et non pour poser un lien. Lui
+                // interdire les littéraux le forcerait à mesurer ce qu'il
+                // mesure avec l'outil qu'il mesure, ce qui ne mesure rien.
+                let vivant = source
+                    .find("\nmod tests {")
+                    .or_else(|| source.find("\nmod epreuves {"))
+                    .map_or(source.as_str(), |i| &source[..i]);
+
+                for (rang, ligne) in vivant.lines().enumerate() {
+                    let nu = ligne.trim_start();
+                    // Les commentaires et la doc racontent, ils ne commettent pas.
+                    if nu.starts_with("//") {
+                        continue;
+                    }
+                    for arbre in Arbre::TOUS {
+                        let motif = format!("\"{}", arbre.racine());
+                        if ligne.contains(&motif) {
+                            fautes.push(format!("{nom}:{} — {}", rang + 1, nu.trim()));
+                        }
+                    }
+                }
+            }
+        }
+
+        assert!(
+            fautes.is_empty(),
+            "des adresses d'arbre sont écrites à la main, au lieu de passer par \
+             `domaine::chemins` :\n  {}",
+            fautes.join("\n  ")
+        );
+    }
+
     /// Chaque composeur rend un chemin sous la racine qu'on lui donne.
     ///
     /// L'épreuve ne compare pas à des littéraux : elle vérifie la **propriété**,

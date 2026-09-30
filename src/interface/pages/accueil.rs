@@ -130,7 +130,7 @@ pub fn Accueil() -> impl IntoView {
             </p>
             <LegendeNiveaux />
             <p class="mt-10">
-                <Bouton href="/fr/lexique">"Les intraduisibles"</Bouton>
+                <Bouton href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())>"Les intraduisibles"</Bouton>
             </p>
         </Bloc>
 
@@ -166,7 +166,7 @@ pub fn Accueil() -> impl IntoView {
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
             </p>
             <p class="mt-8">
-                <Bouton href="/fr/webapp" principal=true>"Entrer dans le corpus"</Bouton>
+                <Bouton href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()) principal=true>"Entrer dans le corpus"</Bouton>
             </p>
         </Bloc>
 

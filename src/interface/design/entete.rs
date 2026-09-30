@@ -102,7 +102,7 @@ pub fn Entete(
             // c'est la disposition d'une barre de navigation d'app, où le geste
             // de gauche et celui de droite encadrent le titre.
             <A
-                href="/fr/rechercher"
+                href=crate::domaine::chemins::rechercher(crate::interface::arbre::arbre_maintenant())
                 attr:class="absolute start-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:start-6 sm:top-8 sm:text-xs"
                 attr:aria-label="Rechercher dans le corpus"
             >
@@ -120,7 +120,7 @@ pub fn Entete(
                 <span class="hidden sm:inline">"Chercher"</span>
             </A>
             <A
-                href="/fr/compte"
+                href=crate::domaine::chemins::compte(crate::interface::arbre::arbre_maintenant())
                 attr:class="absolute end-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:end-6 sm:top-8 sm:text-xs"
                 attr:aria-label="Votre compte"
             >
@@ -163,8 +163,8 @@ pub fn Entete(
                 // corpus. Tant qu'ils manquaient, la liseuse existait sans
                 // qu'aucun lien n'y mène — on y arrivait en tapant une adresse,
                 // ou par le renvoi du verset du jour. Ce n'était pas un chemin.
-                <A href="/fr/webapp" attr:class=LIEN>"Webapp"</A>
-                <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
+                <A href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()) attr:class=LIEN>"Liseuse"</A>
+                <A href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()) attr:class=LIEN>"Lexique"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>
                 <A href="/fr/l-app" attr:class=LIEN>"L'app"</A>

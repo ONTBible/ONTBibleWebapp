@@ -36,7 +36,7 @@ pub fn Reglages() -> impl IntoView {
             titre="Réglages de lecture"
             description="Thème, fonte, taille, interligne et niveaux du texte — la liseuse \
                          de La Bible ONT se règle sans compte."
-            chemin="/fr/compte/lecture"
+            chemin=crate::domaine::chemins::reglages(crate::interface::arbre::arbre_maintenant())
         />
         // Ce n'est pas une page qu'un moteur doit servir : elle ne porte aucun
         // contenu, seulement des interrupteurs, et elle est vide sans
@@ -55,7 +55,7 @@ pub fn Reglages() -> impl IntoView {
         // comme une destination **de son onglet**. L'adresse le dit maintenant.
         <PageDeLecture
             liste=true
-            fil=vec![("/fr/compte".to_string(), "Vous".to_string())]
+            fil=vec![(crate::domaine::chemins::compte(crate::interface::arbre::arbre_maintenant()), "Vous".to_string())]
             titre="Lecture"
         >
             <div class="max-w-mesure">

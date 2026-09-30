@@ -64,7 +64,7 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
                     let nom = libelle(&unite);
                     view! {
                         <Ligne
-                            chemin=Some(format!("/fr/webapp/{livre}/{}", unite.id))
+                            chemin=Some(crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &livre, &unite.id))
                             titre=Box::new(move || nom.into_any())
                             sous_titre=Box::new(move || {
                                 reference

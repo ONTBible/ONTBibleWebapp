@@ -180,7 +180,7 @@ pub fn Ligne(
     /// **`optional_no_strip`**, et il a fallu deux essais pour trouver
     /// pourquoi. `optional` seul *déshabille* l'`Option` : le prop devient un
     /// `String`, et son absence vaut `None`. C'est juste quand on écrit
-    /// `chemin="/fr/webapp"` ; c'est faux ici, où l'appelant a déjà un
+    /// `chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())` ; c'est faux ici, où l'appelant a déjà un
     /// `Option<String>` — « elle mène quelque part **si** le livre est écrit ».
     ///
     /// Avec `into` en plus, Rust demandait un `String: From<Option<String>>` et

@@ -26,17 +26,11 @@ pub const ORIGINE: &str = "https://ontbible.com";
 /// La page d'erreur n'y figure pas : elle porte un `noindex`. Celle de l'auteur
 /// non plus : sa route est retirée jusqu'à sa relecture.
 pub const PAGES: &[&str] = &[
+    // ── Hors des arbres ──────────────────────────────────────────────────
+    //
+    // Ces pages n'ont pas de jumelle : elles ne montrent pas de corpus, et
+    // aucun habillage ne les regarde.
     "/fr",
-    "/fr/qahal",
-    "/fr/webapp",
-    "/fr/lexique",
-    // La feuille de prononciation. Elle répond à une **question**, ce que
-    // « Lexique » ne fait pas : « comment prononcer chokhmah », « le kh en
-    // hébreu ». C'est exactement la longue traîne du §8 octies, et elle
-    // n'était atteignable que par la carte du lexique.
-    "/fr/lexique/prononciation",
-    "/fr/chuqqot",
-    "/fr/rechercher",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",
     "/fr/l-app",
@@ -44,6 +38,31 @@ pub const PAGES: &[&str] = &[
     "/fr/confidentialite",
     "/fr/conditions",
 ];
+
+/// Les pages fixes d'un arbre — celles que le plan du site déclare.
+///
+/// **Seul l'arbre canonique est déclaré**, et c'est la raison d'être du
+/// canonique : deux adresses pour un même texte font du contenu dupliqué, les
+/// moteurs choisissent eux-mêmes laquelle montrer, et la réputation des liens
+/// entrants se coupe en deux.
+///
+/// Les pages de l'autre arbre restent servies et navigables — elles ne sont
+/// simplement pas annoncées. ==Ne pas déclarer une page n'est pas la cacher :
+/// c'est dire laquelle de ses deux adresses fait foi.==
+///
+/// Le compte n'y est pas : on n'indexe pas une page qui ne montre rien à qui
+/// n'est pas connecté.
+pub fn pages_d_un_arbre(arbre: crate::domaine::lecture::Arbre) -> Vec<String> {
+    use crate::domaine::chemins as c;
+    vec![
+        c::bible(arbre),
+        c::qahal(arbre),
+        c::chuqqot(arbre),
+        c::lexique(arbre),
+        c::prononciation(arbre),
+        c::rechercher(arbre),
+    ]
+}
 
 /// L'identifiant App Store de l'app iOS, quand elle en a un.
 ///
@@ -152,7 +171,10 @@ pub fn Tete(
     // qui la garde vraie.
     let complet = composer(&complet);
     let description = composer(&description);
-    let canonique = format!("{ORIGINE}{chemin}");
+    // **Le canonique ramène à l'arbre officiel.** Une page servie sous
+    // `/fr/webapp/…` déclare `/fr/liseuse/…` : sans quoi les moteurs voient
+    // deux adresses pour un même texte et tranchent eux-mêmes.
+    let canonique = format!("{ORIGINE}{}", crate::domaine::chemins::canonique(&chemin));
 
     // La bannière d'app, quand l'identifiant est connu.
     //

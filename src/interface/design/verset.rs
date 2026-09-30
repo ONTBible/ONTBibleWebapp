@@ -224,7 +224,7 @@ fn rendre_la_translitteration(mot: &str, cible: Option<&CibleDuNiveauTrois>) -> 
     };
     let mot = mot.to_string();
     view! {
-        <a href=format!("/fr/lexique/{lemme}") class=teinte>
+        <a href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), lemme) class=teinte>
             <i>{mot}</i>
         </a>
     }
@@ -237,7 +237,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
 
         Noeud::Intraduisible { mot, lemme } => view! {
             <a
-                href=format!("/fr/lexique/{lemme}")
+                href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), lemme)
                 class="font-semibold text-accent decoration-accent/40"
             >
                 {mot.clone()}
@@ -251,7 +251,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         // de quoi le lecteur apprendrait deux gestes pour un seul.
         Noeud::Shem { mot, lemme } => view! {
             <a
-                href=format!("/fr/lexique/{lemme}")
+                href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), lemme)
                 class="font-semibold text-shem decoration-shem/40"
             >
                 {mot.clone()}
@@ -301,8 +301,8 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
                 // verset à l'arrivée. Rien à inventer : la page sait le faire
                 // depuis le premier jour, pour les liens venus de l'app.
                 let vers = match c.verset {
-                    Some(n) => format!("/fr/webapp/{}/{}?v={n}", c.livre, c.unite),
-                    None => format!("/fr/webapp/{}/{}", c.livre, c.unite),
+                    Some(n) => crate::domaine::chemins::unite_au_verset(crate::interface::arbre::arbre_maintenant(), &c.livre, &c.unite, &n.to_string()),
+                    None => crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &c.livre, &c.unite),
                 };
                 view! {
                     <a href=vers class="text-renvoi underline decoration-dotted">

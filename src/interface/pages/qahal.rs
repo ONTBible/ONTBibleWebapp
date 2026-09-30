@@ -52,7 +52,7 @@ pub fn Qahal() -> impl IntoView {
             titre="Qahal — l'assemblée des lecteurs"
             description="Le verset du jour de La Bible ONT, et ce que l'assemblée des \
                          lecteurs portera."
-            chemin="/fr/qahal"
+            chemin=crate::domaine::chemins::qahal(crate::interface::arbre::arbre_maintenant())
         />
 
         <PageDeLecture liste=true titre="Qahal">

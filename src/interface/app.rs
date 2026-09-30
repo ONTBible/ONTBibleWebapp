@@ -239,6 +239,13 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Router>
+            // **L'arbre courant, posé une fois.** Tout ce qui compose une
+            // adresse le lit ici plutôt que d'interroger le routeur soi-même :
+            // une dépendance au routeur qui traverse trente composants est
+            // trente endroits où un rendu isolé s'arrête.
+            {
+                crate::interface::arbre::fournir_l_arbre();
+            }
             <crate::interface::design::SuiviDuSens />
             // Le segment de langue est délibéré (§4) : il épargne une migration
             // le jour d'une édition anglaise, et il ne coûte que trois

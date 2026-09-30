@@ -33,7 +33,7 @@ pub fn Compte() -> impl IntoView {
             titre="Votre compte"
             description="Ouvrir un compte pour retrouver vos surlignages et vos notes \
                          d'un appareil à l'autre. La lecture, elle, n'en demande aucun."
-            chemin="/fr/compte"
+            chemin=crate::domaine::chemins::compte(crate::interface::arbre::arbre_maintenant())
         />
 
         // ── C'est un écran de la webapp, pas une page du site ─────────────
@@ -140,11 +140,7 @@ fn Ouvert() -> impl IntoView {
                         view! {
                             <p class="mb-6">
                                 "Vous lisiez "
-                                <Lien href=format!(
-                                    "/fr/webapp/{}/{}",
-                                    p.book_id,
-                                    p.chapter_id,
-                                )>{p.chapter_title.clone()}</Lien>
+                                <Lien href=crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &p.book_id, &p.chapter_id)>{p.chapter_title.clone()}</Lien>
                                 // Le verset n'est pas nommé : le site retient
                                 // l'unité, pas la ligne — voir
                                 // `api::retenir_la_position`. Annoncer un verset
@@ -494,7 +490,12 @@ fn UnVerset(v: crate::api::VersetSurligne) -> impl IntoView {
     let teinte = crate::domaine::surlignage::Couleur::depuis_cle(&v.couleur)
         .map(|c| c.teinte())
         .unwrap_or("#E8C973");
-    let chemin = format!("/fr/webapp/{}/{}?v={}", v.livre_id, v.unite_id, v.verset);
+    let chemin = crate::domaine::chemins::unite_au_verset(
+        crate::interface::arbre::arbre_maintenant(),
+        &v.livre_id,
+        &v.unite_id,
+        &v.verset.to_string(),
+    );
 
     view! {
         <li class="mb-6 border-s-2 ps-4" style=format!("border-color: {teinte}")>

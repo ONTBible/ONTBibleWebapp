@@ -104,12 +104,12 @@ fn Vue(ensemble: Ensemble, section: Section) -> impl IntoView {
                 "{francais} — les {total} livres de cette partie du corpus de La Bible ONT, \
                  et l'état de leur restitution.",
             )
-            chemin=format!("/fr/webapp/partie/{}", section.id)
+            chemin=crate::domaine::chemins::partie(crate::interface::arbre::arbre_maintenant(), &section.id)
         />
 
         <PageDeLecture
             liste=true
-            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
+            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
             titre=titre.clone()
             chapeau=Box::new(move || {
                 view! {
@@ -140,13 +140,13 @@ fn Introuvable() -> impl IntoView {
         <Tete
             titre="Partie introuvable"
             description="Cette partie du corpus n'existe pas."
-            chemin="/fr/webapp"
+            chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
             liste=true
-            fil=vec![("/fr/webapp".to_string(), "Bible".to_string())]
+            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
             titre="Cette partie n'existe pas"
         >
             <p class="text-encre-douce text-pretty">

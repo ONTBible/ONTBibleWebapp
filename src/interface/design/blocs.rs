@@ -576,7 +576,10 @@ mod tests {
         for p in [Preferences::default(), Preferences::nu()] {
             let html = rendre_sous(p);
             assert!(
-                html.contains("/fr/lexique/elohim"),
+                html.contains(&crate::domaine::chemins::fiche(
+                    crate::domaine::lecture::Arbre::CANONIQUE,
+                    "elohim"
+                )),
                 "le lien de la fiche doit survivre à {p:?}"
             );
         }

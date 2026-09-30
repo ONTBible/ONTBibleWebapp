@@ -114,7 +114,7 @@ fn ligne_de_partie(section: Section) -> AnyView {
             // Une partie sans aucun livre écrit reste **atteignable** : son
             // plan est le propos. C'est la règle du sommaire d'origine, et elle
             // ne change pas — « l'ampleur *est* le propos ».
-            chemin=Some(format!("/fr/webapp/partie/{id}"))
+            chemin=Some(crate::domaine::chemins::partie(crate::interface::arbre::arbre_maintenant(), &id))
             titre=Box::new(move || titre.into_any())
             sous_titre=Box::new(move || second.into_any())
             valeur=Box::new(move || {
@@ -154,7 +154,7 @@ fn ligne_de_sommaire(element: Element) -> AnyView {
 
     view! {
         <Ligne
-            chemin=livre.ecrit.then(|| format!("/fr/webapp/{}", livre.id))
+            chemin=livre.ecrit.then(|| crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &livre.id))
             titre=Box::new(move || {
                 view! {
                     {nom}

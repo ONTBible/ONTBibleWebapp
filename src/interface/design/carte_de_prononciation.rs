@@ -36,7 +36,7 @@ use leptos_router::components::A;
 pub fn CarteDePrononciation() -> impl IntoView {
     view! {
         <A
-            href="/fr/lexique/prononciation"
+            href=crate::domaine::chemins::prononciation(crate::interface::arbre::arbre_maintenant())
             attr:class="presse survol survol--souleve mb-8 flex min-h-[4.75rem] items-center gap-4 rounded-bloc bg-marque-encre px-5 py-4 text-sur-marque-accent no-underline"
         >
             <span class="flex-1">

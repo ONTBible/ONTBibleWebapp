@@ -57,7 +57,7 @@ pub fn Lire() -> impl IntoView {
                  Hadashah, et l'état de leur restitution.",
                 crate::domaine::nombres::en_lettres(env!("CORPUS_LIVRES").parse().unwrap_or(0)),
             )
-            chemin="/fr/webapp"
+            chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
 
         // **Ni œil-de-bœuf ni chapeau.** Ils y étaient — « Le corpus », puis

@@ -34,7 +34,7 @@ pub fn Chuqqot() -> impl IntoView {
             titre="Chuqqot — ce qui est gravé et demeure"
             description="Les chuqqot de La Bible ONT — les régularités de l'ontologie \
                          hébraïque, énoncées comme des nécessités."
-            chemin="/fr/chuqqot"
+            chemin=crate::domaine::chemins::chuqqot(crate::interface::arbre::arbre_maintenant())
         />
 
         <PageDeLecture liste=true titre="Chuqqot">

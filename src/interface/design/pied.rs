@@ -52,9 +52,9 @@ pub fn PiedDePage(
                     aria-label="Le corpus et l'application"
                     class="flex flex-wrap justify-center gap-x-6 gap-y-2 uppercase tracking-capitales text-encre"
                 >
-                    <a href="/fr/webapp" class=LIEN>"Webapp"</a>
-                    <a href="/fr/lexique" class=LIEN>"Lexique"</a>
-                    <a href="/fr/rechercher" class=LIEN>"Rechercher"</a>
+                    <a href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()) class=LIEN>"Webapp"</a>
+                    <a href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()) class=LIEN>"Lexique"</a>
+                    <a href=crate::domaine::chemins::rechercher(crate::interface::arbre::arbre_maintenant()) class=LIEN>"Rechercher"</a>
                     <a href="/fr/l-app" class=LIEN>"L'app"</a>
                 </nav>
 
@@ -67,7 +67,7 @@ pub fn PiedDePage(
                     // à lire. C'est un réglage, pas une façon d'entrer dans le
                     // corpus — le mettre en tête laisserait croire qu'il faut
                     // s'inscrire pour lire.
-                    <a href="/fr/compte" class=LIEN>"Votre compte"</a>
+                    <a href=crate::domaine::chemins::compte(crate::interface::arbre::arbre_maintenant()) class=LIEN>"Votre compte"</a>
                     <a href="/fr/assistance" class=LIEN>"Assistance"</a>
                     <a href="/fr/confidentialite" class=LIEN>"Confidentialité"</a>
                     <a href="/fr/conditions" class=LIEN>"Conditions"</a>

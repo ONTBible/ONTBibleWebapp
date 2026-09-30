@@ -117,9 +117,17 @@ async fn main() {
     // personne ne s'en aperçoit avant de constater qu'une page n'est pas
     // indexée.
     let plan = {
-        use ontbible::interface::tete::{ORIGINE, PAGES};
+        use ontbible::domaine::chemins as adresses;
+        use ontbible::domaine::lecture::Arbre;
+        use ontbible::interface::tete::{pages_d_un_arbre, ORIGINE, PAGES};
 
+        // Les pages hors arbre, puis celles de **l'arbre canonique seul**. Les
+        // deux arbres servent le même texte : les déclarer tous deux ferait du
+        // contenu dupliqué, et les moteurs trancheraient eux-mêmes laquelle
+        // montrer. Le `rel="canonical"` de chaque page dit déjà laquelle fait
+        // foi ; le plan du site le répète au lieu de le contredire.
         let mut chemins: Vec<String> = PAGES.iter().map(|c| c.to_string()).collect();
+        chemins.extend(pages_d_un_arbre(Arbre::CANONIQUE));
 
         // Le corpus et le lexique s'ajoutent **calculés**, jamais écrits à la
         // main. Un plan de site figé se périme au premier livre traduit, et
@@ -131,16 +139,16 @@ async fn main() {
         // qu'elle lui demande de repartir n'a pas de sens.
         for ensemble in corpus.sommaire() {
             for entree in ensemble.livres_ecrits() {
-                chemins.push(format!("/fr/webapp/{}", entree.id));
+                chemins.push(adresses::livre(Arbre::CANONIQUE, &entree.id));
                 if let Some(ouvrage) = corpus.livre(&entree.id) {
                     for unite in ouvrage.intro.iter().chain(ouvrage.chapitres.iter()) {
-                        chemins.push(format!("/fr/webapp/{}/{}", entree.id, unite.id));
+                        chemins.push(adresses::unite(Arbre::CANONIQUE, &entree.id, &unite.id));
                     }
                 }
             }
         }
         for entree in lexique.entrees() {
-            chemins.push(format!("/fr/lexique/{}", entree.lemme));
+            chemins.push(adresses::fiche(Arbre::CANONIQUE, &entree.lemme));
         }
 
         let entrees: String = chemins

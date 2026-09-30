@@ -142,11 +142,11 @@ pub fn Fiche() -> impl IntoView {
                                     )
                                 }
                                 description=description
-                                chemin=format!("/fr/lexique/{}", e.lemme)
+                                chemin=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), &e.lemme)
                             />
 
                             <PageDeLecture
-                                fil=vec![("/fr/lexique".to_string(), "Lexique".to_string())]
+                                fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
                                 // Le rappel nomme l'**espèce**, et il était
                                 // écrit en dur. Les deux cent vingt fiches de
                                 // Shemot affichaient donc « Intraduisible »
@@ -256,12 +256,12 @@ fn Absente() -> impl IntoView {
         <Tete
             titre="Fiche introuvable"
             description="Ce terme n'a pas de fiche dans le lexique."
-            chemin="/fr/lexique"
+            chemin=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![("/fr/lexique".to_string(), "Lexique".to_string())]
+            fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
             rappel="Les intraduisibles"
             titre="Ce terme n'a pas de fiche"
         >

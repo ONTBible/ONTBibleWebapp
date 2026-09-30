@@ -65,7 +65,7 @@ pub fn Assistance() -> impl IntoView {
                 )}
                 " sont traduits, et "
                 "une unité qui n'a pas été relue le dit — c'est délibéré. Le sommaire du "
-                <Lien href="/fr/webapp">"corpus"</Lien>" montre ce qui se lit aujourd'hui."
+                <Lien href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())>"corpus"</Lien>" montre ce qui se lit aujourd'hui."
             </p>
 
             <h2>"Un problème technique"</h2>

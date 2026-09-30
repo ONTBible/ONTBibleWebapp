@@ -32,9 +32,11 @@ use crate::domaine::surlignage::Position;
 /// suivi s'affinera, sans que cette carte bouge.
 #[component]
 pub fn CarteDeReprise(position: Position) -> impl IntoView {
-    let chemin = format!(
-        "/fr/webapp/{}/{}?v={}",
-        position.book_id, position.chapter_id, position.verse
+    let chemin = crate::domaine::chemins::unite_au_verset(
+        crate::interface::arbre::arbre_maintenant(),
+        &position.book_id,
+        &position.chapter_id,
+        &position.verse.to_string(),
     );
     let ou = format!("{}:{}", position.chapter_title, position.verse);
 
