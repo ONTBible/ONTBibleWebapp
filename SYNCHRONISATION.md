@@ -458,7 +458,8 @@ qui vivait en fichier non suivi, dont les deux « exemplaires de réserve »
 | `ONTBibleApp-journal13` | ==non réclamé== | PR #302, commits des 13-14 |
 | `ONTBibleWebapp` | **le site** | arbre principal — leadeuse du dépôt |
 | `ONTBibleWebapp-android` | la manageuse | PR #153 |
-| `ONTBibleWebapp-worktrees` | la manageuse | PR #155 |
+| `ONTBibleWebapp-tronc` | la manageuse | l'alignement du tronc commun, PR #159 |
+| `ONTBibleWebapp-pourquoi` | la manageuse | la page « Le pourquoi », PR #161 — attend l'auteur |
 | `ONTBibleWebapp-appuilong` | ==non réclamé== | le site travaille cette branche depuis son arbre principal, pas d'ici |
 
 ==Il n'y a pas de colonne « branche », et c'est une décision.== Trois sessions
@@ -481,6 +482,66 @@ sans chantier en cours ne peut donc pas se mettre « au neutre » sur la branche
 d'intégration, déjà tenue par un autre — il **reste** sur sa dernière branche,
 fusionnée. Ça ressemble à un worktree oublié et ce n'en est pas un.
 
+#### Ce que la table interdit à qui range
+
+**On ne démonte pas un worktree dont la ligne est encore dans la table.**
+La règle tient ; ==le récit qui l'a fait écrire était faux==, et il faut les
+séparer.
+
+**Ce qui a été cru le 22 septembre.** Trois worktrees d'une même session ont
+disparu ==dans la minute suivant la fusion de leur PR==, pendant qu'elle y
+travaillait encore. Elle a mesuré l'agent de veille, le journal de Herdr, les
+PR restantes, le motif de sélection — ==tout, sauf ses propres actes==. Et j'ai
+cherché un automate, un `cron`, une session en boucle.
+
+**Ce qui était vrai.** Son propre enchaînement de rangement, dans le même bloc
+que la poussée :
+
+    W=/Users/gloiiire_/ONTBible/ONTBibleApp-vous       136 assignations
+    W=/Users/gloiiire_/ONTBible/ONTBibleApp-cd           8
+    W=/Users/gloiiire_/ONTBible/ONTBibleApp-or           2
+
+    git push -q origin <branche>:device
+    git worktree remove --force $W && git worktree prune
+
+==La variable de sa garde et celle de son rangement sont la même.== D'où
+« disparu dans la minute suivant la fusion » — ==la suppression *est* l'étape
+de fusion== ; d'où « seuls les fusionnés partent » ; d'où l'enregistrement git
+absent, puisque `prune` suit. Et ==sa garde la protégeait de son propre
+geste== : `cd "$W" || exit 1` s'arrêtait net, au bloc suivant, sur ce qu'elle
+venait de démonter.
+
+**Ce que ça apprend, et c'est la huitième forme de la série :**
+
+> ==On cherche la cause au-dehors quand on ne s'est pas compté parmi les
+> causes.== Toutes les mesures étaient justes ; aucune ne portait sur celui qui
+> mesurait.
+
+**Et pourquoi la règle reste**, alors que son motif tombe : rien n'obligeait ce
+jour-là à séparer *la fusion d'une PR* de *la fin du travail sur sa branche*, et
+c'est une distinction réelle.
+
+> ==Qui lit la fusion mesure l'état de GitHub. Qui lit la table mesure l'état du
+> travail.== Après la fusion il reste le journal, le registre et le rangement —
+> ==précisément ce qu'on oublie le plus==.
+
+Le tenant retire donc sa ligne ==quand il a fini==, et tant qu'elle est là, le
+worktree ne se démonte pas — ==y compris par lui-même==. C'est la clause que le
+cas rendait invisible : celui contre qui la table protège le mieux est souvent
+==celui qui l'a écrite==.
+
+**Aucune donnée n'a été perdue**, vérifié par le contenu et non par
+l'ascendance : les branches étaient poussées avant chaque démontage, et la seule
+remise devenue inatteignable avait été reprise. ==Le seul dégât réel est
+ailleurs== — l'agent de veille du disque est resté mort trois jours, tué par un
+`No space left on device` sur son propre verrou, et personne ne l'a vu.
+
+**Pourquoi cette section est réécrite plutôt que retirée.** Le `CLAUDE.md`
+impose la même chose au corpus : les gloses de *Bereshit* 11 qui expliquaient
+une homonymie entre [[Haran]] et [[Charan]] ont été réécrites, parce qu'==un
+artefact d'outil relu comme un fait du texte== ne se corrige pas en silence. Une
+règle juste adossée à une cause fausse se relit comme vérifiée.
+
 #### Le contrôle qui la tient
 
     scripts/cartographier-la-flotte.py --worktrees
@@ -500,7 +561,61 @@ causes, et ne tranche pas.==
 Il ne réécrit rien — ==une table qui se met à jour seule perd le « pourquoi »,
 qui est la seule chose qu'aucun relevé ne peut produire==.
 
----
+### Inscrire sa proposition — 21 septembre 2026
+
+**Décision de l'auteur.** Toute PR s'inscrit dans **`PROPOSITIONS.md`**, par
+celle qui l'ouvre, avec ==ce qu'aucun tableau GitHub ne montre== : qui l'a
+ouverte, pourquoi, et ==ce qu'elle engage chez les voisins==.
+
+**Le nom est le pendant de `DECISIONS.md`** — celui-ci porte ce qui est
+==tranché==, celui-là ce qui est ==proposé et attend==. Une PR *est* une
+proposition.
+
+**Les trois trous qu'il comble :**
+
+    qui l'a ouverte    les huit sessions poussent sous le compte `gloiiire` ;
+                       `--author @me` rend TOUTES les PR du dépôt, et trois
+                       sessions y sont tombées le même jour
+    pourquoi           le titre dit ce que la PR fait, jamais le défaut qu'elle
+                       répare ni la mesure qui l'a rendue nécessaire
+    ce que ça engage   la règle du `CLAUDE.md` racine — *demander ce que ce
+                       travail change pour les autres dépôts* — que rien ne
+                       portait
+
+**Et ça ne coûte rien**, contrairement à la déclaration d'un worktree :
+==l'entrée voyage dans la PR qu'elle décrit==. On l'écrit sur la branche qu'on
+vient de pousser, avant d'ouvrir la PR. Pas un commit de plus, pas une CI de
+plus.
+
+==On ne retire pas une entrée fusionnée== : on change son état et on date. Une
+proposition abandonnée reste avec son motif — c'est souvent elle qui a le plus à
+apprendre.
+
+#### La même asymétrie, et ce qui la rend ici plus facile
+
+Relevée par les langues sources dans l'heure qui a suivi, contre ce registre-ci :
+**qui met la ligne à jour quand la PR fusionne ?** ==Une PR ne se ferme pas par
+un commit — elle se ferme chez GitHub.== Rien ne passe par l'arbre, donc rien ne
+peut corriger la ligne au moment où elle cesse d'être vraie. Leurs deux PR ont
+été fusionnées un samedi pendant leur absence ; elles l'ont appris le lundi.
+
+**Mais ici l'état se mesure sans ambiguïté**, et c'est la différence avec les
+worktrees : là-bas une ligne orpheline peut vouloir dire un démontage à l'insu
+de son tenant, donc on demande. ==Ici GitHub le dit, donc le contrôle conclut.==
+
+    au registre, PR ouverte          rien à dire
+    au registre, PR fusionnée        METTRE À JOUR l'état et la date — il conclut
+    PR ouverte, rien au registre     RAPPELER — à écrire par qui l'a ouverte
+
+`scripts/cartographier-la-flotte.py --propositions`. Il ne juge **jamais le
+contenu** — ==personne ne peut écrire le « pourquoi » d'une PR qu'il n'a pas
+ouverte==, et une entrée qui porte *« à écrire par qui l'a ouverte »* est
+complète à ses yeux : le trou y est déclaré.
+
+**Et il lit `origin/<base>`, jamais un chemin nu.** Un chemin nu lit l'arbre
+courant, qui est sur la branche où il se trouve — et ==là où l'on se tient n'est
+jamais la branche d'intégration==. La faute a été commise sur cet outil-ci, le
+lendemain du jour où elle a été nommée.---
 
 ## Tronc commun et entrées locales
 
@@ -6228,3 +6343,234 @@ synthétique dans un cadre ne pilote pas ce routeur ; il observe.
 Ce qui est établi suffisait : le défaut a été **vu**, il ne peut plus survenir.
 La seconde propriété ne dépend d'aucune hypothèse sur l'outil qui a trouvé la
 première — c'est ce qui la rend préférable à une explication plausible.
+
+---
+
+## 30 septembre 2026 — la garde contre un biais est elle-même un biais quand on ne la mesure pas
+
+L'auteur travaille une thèse sur la motivation du langage hébreu, et un exemple
+y revient partout : la famille פ-ר — *parad* séparer, *paras* rompre, *paraq*
+arracher, *parar* briser. Un noyau « rupture » ==semble== apparaître. C'est ce
+« semble » qu'on a voulu tuer ou confirmer avant qu'il entre dans une chuqqah.
+
+### Le dispositif, et pourquoi il fallait qu'il soit aveugle
+
+Les langues sources ont relevé les verbes du témoin par paires de deux
+premières radicales, mêlé פ-ר à ==sept paires tirées au sort==, et rendu les
+huit groupes ==anonymisés==, clé scellée. Je les ai lus sans savoir lequel était
+le candidat.
+
+**Le contrôle est tout le dispositif** : si un noyau plausible sortait de huit
+groupes sur huit, la méthode en fabriquerait partout et n'en prouverait aucun.
+
+### Deux chiffres, deux questions, et il faut les deux
+
+Sur les ==sept témoins== :
+
+    un noyau franc                   1 / 7      14 %
+    un noyau qu'on CROIT voir        3 / 7      43 %
+    aucun noyau                      4 / 7      57 %
+
+- *« combien de paires ont réellement un noyau ? »* → **1 sur 7**. פ-ר est donc
+  ==inhabituel, pas unique== ;
+- *« combien un lecteur croirait-il en voir ? »* → **3 sur 7**. ==C'est celui-là
+  qui répond à la question posée== : la méthode produit 43 % de faux positifs à
+  la première lecture.
+
+==La paréidolie n'est pas dans la langue, elle est dans l'œil== — et le
+protocole l'a mesurée sur son propre lecteur, ce qui est la seule façon
+honnête de l'établir.
+
+### Le critère qui en sort, et sa clause limitative
+
+La mesure scellée donnait la part des lemmes d'un groupe partageant ==un même
+mot de contenu== dans la glose de Strong :
+
+    פ-ר    8/10    80 %   ← le candidat    « break »
+    ע-ר    3/8     38 %                    « hence »
+    ע-ל    3/8     38 %                    « literal »
+    שׁ-ל    4/11    36 %                    « make »
+    ק-ר    3/10    30 %                    « bring »
+    שׁ-מ    2/7     29 %                    « hear »
+    ר-ע    2/9     22 %                    ══ 19 ex æquo ══
+    שׁ-ק    2/10    20 %                    2 ex æquo
+
+==Le bon énoncé n'est pas « 80 % contre 38 % ».== C'est celui-ci :
+
+> `פ-ר` est ==le seul groupe où une majorité de lemmes partage un mot== — huit
+> sur dix. Partout ailleurs le maximum est ==minoritaire==, et deux fois il
+> touche ==le plancher du bruit==.
+
+==Un écart de rang se discute ; un franchissement de la majorité, non.==
+
+**Et voici ce que l'élection d'un vainqueur cachait.** Sur ר-ע, ==dix-neuf mots
+atteignent le plafond de 2/9==. Ce n'est pas un signal faible, ==c'est du
+bruit== — et nommer « le mot le plus partagé » lui donnait l'apparence d'un
+signal. Le 22 % ne voulait rien dire du tout.
+
+> ==Élire un vainqueur donne au bruit l'apparence d'un signal.==
+
+**Le mot n'était pas reproductible, et il l'est devenu.** Avant correction, ר-ע
+rendait *rule*, *pasture* ou *tend* selon la graine de hachage du processus —
+==toujours à 2/9 et 22 %==. `Counter.most_common` départage les ex æquo par
+ordre de première rencontre, qui dépend de l'itération d'un ensemble.
+
+==Le §2.5 ter du `CLAUDE.md` portait l'avertissement mot pour mot, sur cette
+fonction précise== — *« un pourcentage qui bouge quand on trie un `glob` ne
+mesure pas ce qu'on croit »*. Il a été reproduit dans un script dont le
+docstring entier traite des biais d'instrument, par quelqu'un qui l'avait cité
+le jour même. ==Une règle n'empêche que ce qu'on pense à lui soumettre, et
+connaître la règle ne suffit pas à y penser.==
+
+L'outil ne choisit donc plus : à égalité, ==il dit combien de mots le sont et
+les nomme==. Vérifié déterministe sur quatre graines — sortie identique au
+caractère près.
+
+**Ce qui survit, et c'est le fait qui compte.** La première version de la mesure
+ne comptait que *hence*, *causatively*, *applications* — ==des mots de
+l'appareil de Strong==, ce qui flattait l'écart. La liste durcie fait que les
+témoins partagent de ==vrais mots de sens==, et ==le franchissement de la
+majorité tient quand même==.
+
+==Un résultat qui survit à un instrument plus dur est plus solide qu'un
+résultat obtenu avec un instrument complaisant.==
+
+> ==Un noyau qui se lit dans les mots du glossateur est suspect ; un noyau
+> qu'il faut aller chercher sous ses mots est un fait de langue.==
+>
+> Quand le sens **et** le mot montent ensemble, c'est le lexicographe. Quand le
+> sens monte seul, c'est la langue.
+
+**Le contre-exemple qui le valide** : שׁ-ל porte le noyau sémantique le plus
+fort des huit — *envoyer au loin, jeter, arracher, dépouiller*, 86 % des
+emplois — sous des verbes anglais ==tous différents== : *send, throw, pull,
+drop, strip*. ==36 % de partage lexical, contre 80 % au candidat== : la
+dissociation est celle que le critère prédit, et ==elle est plus étroite
+qu'au premier relevé==, qui annonçait 27 % avec l'instrument complaisant.
+
+**Et la clause sans laquelle le critère conclut trop :** 80 % ne dit pas que le
+noyau de פ-ר est faux. Strong a peut-être écrit *break* huit fois ==parce que
+ces verbes veulent dire briser==. ==Le critère écarte un témoin, il ne tranche
+pas la question.==
+
+**L'instrument est au dépôt**, et c'est ce qui distingue ce relevé d'un
+chiffre qu'on recopie :
+
+    python3 scripts/eprouver-un-noyau-consonantique.py --aveugle
+    python3 scripts/eprouver-un-noyau-consonantique.py --cle --harmonisation
+
+La graine vaut `20260930` par défaut et ==rejoue le tirage à l'identique==.
+==La clause s'imprime avec le chiffre==, à chaque exécution — un critère séparé
+de sa clause finit par circuler sans elle.
+
+### Les quatre biais penchaient tous du même côté
+
+    préfixe mem pris pour une radicale     vu en regardant une FORME
+    shin et sin fondus en un graphème      vu en regardant une FORME
+    formes hébraïques laissées en clair    vue par le lecteur, en lisant
+    plages de Strong ordonnées par lettre  vue en cherchant si la première
+                                           réparation suffisait
+
+Les deux premiers frappaient les témoins et ==épargnaient le candidat== : פ
+n'est pas une lettre préfixe. Les deux derniers laissaient identifier le
+candidat sans lire une glose — les numéros de Strong suivent l'ordre
+alphabétique, et chaque groupe tient dans une plage de moins de 80.
+
+==Les quatre penchaient dans le même sens, et personne ne cherchait à
+pencher.== Aucun n'a été trouvé par plus de rigueur dans la mesure : ==tous
+l'ont été en regardant une forme, ou en faisant lire quelqu'un d'autre==.
+
+**La réparation complète de la cécité**, pour la prochaine fois : ni forme
+hébraïque, ni numéro de Strong — ==un identifiant local opaque==, réattribué au
+hasard, et la clé rend le Strong après coup. On perd tout contrôle visuel
+pendant la lecture, on le récupère entier à l'ouverture.
+
+### Deux remèdes, deux maladies — et les confondre coûte cher
+
+Treize défauts ont été corrigés dans la journée sur ce seul dossier. ==Aucun
+n'est venu d'une relecture.== Tous sont venus d'un ==geste refait== : un
+contexte ouvert autour d'un `grep`, une taille de fichier regardée avant de
+croire un compte de zéro, une recherche relancée qu'on avait démontrée inutile,
+une morphologie regardée, une mesure rejouée depuis `main`.
+
+> ==Une relecture ne contredit rien ; seule une seconde mesure le peut.==
+>
+> Le second lecteur n'est pas précieux parce qu'il est second. Il l'est parce
+> qu'==il refait le geste== au lieu de relire le compte rendu.
+
+**Et la même personne le démontre sur elle-même.** J'ai ==lu== l'entrée #135 en
+l'écrivant : rien. J'ai ==rejoué la mesure depuis `main`== : le défaut des ex
+æquo est tombé dans la minute. Même personne, même objet, même journée —
+==un acte différent==. Si la variable était l'identité du lecteur, le second
+passage n'aurait rien pu trouver que le premier n'ait vu.
+
+**Ce qui résiste à la seconde mesure, et là le second lecteur est
+irremplaçable.** La cécité ratée en est le cas pur : ==aucune réexécution ne
+l'aurait montrée à qui avait bâti le test==, parce qu'elle connaissait la clé.
+Il fallait quelqu'un qui lise ==en cherchant vraiment la réponse==, et qui
+reconnaisse la paire avant la première glose.
+
+    refaire le geste       attrape ce qu'un instrument fait mal
+    un second lecteur      attrape ce qu'on ne peut pas se cacher à soi-même
+
+==Les confondre fait payer le prix du second pour des défauts que le premier
+attrape.== La règle *« toute mesure demande un second lecteur »* est juste et
+==impraticable à huit sessions== — c'est la file d'attente permanente que
+`strict_required_status_checks_policy` avait déjà produite, une exigence juste
+qui rend le travail infusionnable.
+
+La règle praticable est ==à la portée de celui qui écrit== : **avant de
+rapporter un compte, refaire le geste une fois, autrement.** Changer la
+référence, ouvrir le contexte, relancer depuis l'état publié. Elle a attrapé
+six des treize ==sans déranger personne==. Le second lecteur se demande pour le
+reste.
+
+*(Ce paragraphe corrige un compte que j'avais avancé à la session des langues
+sources — « trois fois un second lecteur, zéro fois une relecture ». ==Il était
+faux== : six des treize ont été trouvés seuls, deux des miens par elle, deux des
+siens par moi. Le compte honnête est six, deux et deux, et ==la règle que 3–0
+suggérait aurait été chère et fausse==. Il n'avait pas atteint le journal.)*
+
+Le dépôt avait déjà refusé la mauvaise version de cette règle, en juillet : *la
+règle qu'on en tire n'est pas « faire relire son code par le voisin » —
+==nommer un défaut, et pas seulement le corriger==*. La distinction ci-dessus
+en est le prolongement : ==ce qui voyage n'est pas le lecteur, c'est le geste==.
+
+### Et l'énoncé qui donne son titre à l'entrée
+
+Mon premier décompte annonçait *« environ la moitié des paires montrent un
+noyau »*. ==Il comptait comme noyaux deux groupes que j'avais disqualifiés deux
+lignes plus haut.== J'avais tant surveillé le biais qui arrangeait la thèse que
+j'ai sur-corrigé dans l'autre sens — et l'erreur allait ==dans la direction qui
+me faisait honneur==, ce qui est précisément ce qui la rendait invisible.
+
+> ==La garde contre un biais est elle-même un biais quand on ne la mesure pas.==
+
+Le dépôt portait déjà *une garde qui rassure est pire qu'une garde absente*.
+Celle-ci ne rassurait pas : ==elle penchait==, et du côté de la rigueur
+apparente. C'est la même famille que *l'instrument qui répond à une autre
+question que la sienne*, prise par le bout de celui qui mesure.
+
+### Ce qui traverse
+
+**Le site.** La page « Le pourquoi » fait dire à l'ONT *« une racine ne décide
+pas d'un sens, seul l'usage le fait »* (PR #161, en attente de l'auteur). Une
+chuqqah qui poserait *« rien n'est arbitraire »* aurait l'air de la contredire.
+Les deux tiennent ensemble ==à une condition== : dire que **motivé** n'est pas
+**déterminant**. Un nom délibérément choisi ne dit pas pour autant ce que la
+chose fait aujourd'hui. ==Si la chuqqah ne l'écrit pas, quelqu'un la citera un
+jour pour passer outre la page.==
+
+**Deux chiffres rectifiés** avant qu'ils voyagent : Blasi et al. 2016 a analysé
+==4 298 langues== — le 6 000 qui circule est le total mondial que l'article
+cite, non son échantillon. Et Bohas se dit ==« une théorie publiée et
+poursuivie, dont la réception n'a pas été mesurée »== ; « contestée » était une
+supposition, et qualifier une réception sans la chercher est exactement ce que
+le projet reproche ailleurs.
+
+**Ce qui ne traverse pas.** La pensée de l'auteur reste dans
+`restranscriptions/`, ==ignorée par git et par `decisions.py`== depuis la PR
+#127. Le dépôt est public, et *git n'oublie pas*. ==Ce qui voyage d'une
+retranscription n'est jamais le fichier — c'est ce qu'on en tire :== une
+chuqqah, une fiche, une entrée de glossaire. La présente entrée en est
+l'application.
