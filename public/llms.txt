@@ -37,11 +37,11 @@ C'est la première à lire.
 
 ## Le corpus
 
-- [Le sommaire](https://ontbible.com/fr/lire) : les livres, écrits et à venir
-- [Le lexique](https://ontbible.com/fr/lexique) : les intraduisibles, chacun avec sa définition et ses occurrences
+- [Le sommaire](https://ontbible.com/fr/liseuse/bible) : les livres, écrits et à venir
+- [Le lexique](https://ontbible.com/fr/liseuse/lexique) : les intraduisibles, chacun avec sa définition et ses occurrences
 - [Le plan du site](https://ontbible.com/sitemap.xml) : toutes les adresses
 
-Chaque unité se lit à `/fr/lire/{livre}/{unité}`, et un passage précis à
+Chaque unité se lit à `/fr/liseuse/bible/{livre}/{unité}`, et un passage précis à
 `?v=1-5`. Tout le texte est rendu par le serveur : il est dans le HTML, sans
 JavaScript.
 

@@ -420,7 +420,20 @@ async fn main() {
                         );
                     }
 
-                    if let Some(lemme) = chemin.strip_prefix("/fr/lexique/") {
+                    // **Les anciens lemmes, sous les deux arbres.** Le préfixe
+                    // était `/fr/lexique/` quand le lexique vivait à la racine ;
+                    // il est maintenant `/fr/{arbre}/lexique/`. Chercher l'un
+                    // sans l'autre laissait « adam » injoignable — trouvé par la
+                    // garde de composition, qui visite les deux arbres depuis
+                    // qu'il y en a deux.
+                    let sous_le_lexique = ontbible::domaine::lecture::Arbre::TOUS
+                        .into_iter()
+                        .find_map(|arbre| {
+                            chemin
+                                .strip_prefix(&format!("{}/lexique/", arbre.racine()))
+                                .map(|lemme| (arbre, lemme))
+                        });
+                    if let Some((arbre, lemme)) = sous_le_lexique {
                         let decode = percent_encoding::percent_decode_str(lemme)
                             .decode_utf8_lossy()
                             .into_owned();
@@ -430,7 +443,8 @@ async fn main() {
                             // un moteur qui la détient doit transférer son
                             // ancienneté à la nouvelle, ce qu'un 302 ne fait pas.
                             let cible = format!(
-                                "/fr/lexique/{}",
+                                "{}/lexique/{}",
+                                arbre.racine(),
                                 percent_encoding::utf8_percent_encode(
                                     vers,
                                     percent_encoding::NON_ALPHANUMERIC,

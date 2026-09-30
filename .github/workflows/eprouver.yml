@@ -254,7 +254,8 @@ jobs:
             sleep 1
           done
 
-          for chemin in /fr /fr/webapp /fr/lexique /sitemap.xml /llms.txt \
+          for chemin in /fr /fr/liseuse/bible /fr/liseuse/lexique \
+                        /fr/webapp/bible /fr/webapp/lexique /sitemap.xml /llms.txt \
                         /7162566e429a0cd82fba80f161e32026.txt \
                         /.well-known/apple-app-site-association \
                         /.well-known/assetlinks.json; do
@@ -302,9 +303,16 @@ jobs:
           # `<<-` ne relâche que les tabulations. Le tableau n'a pas d'avis sur
           # l'indentation.
           redirections=(
-            "/fr/lire /fr/webapp"
-            "/fr/lire/bereshit /fr/webapp/bereshit"
-            "/fr/lire/bereshit/bereshit-1?v=1-3 /fr/webapp/bereshit/bereshit-1?v=1-3"
+            # Les trois âges d'adresses, tous vers l'arbre canonique.
+            "/fr/lire /fr/liseuse/bible"
+            "/fr/lire/bereshit/bereshit-1 /fr/liseuse/bible/bereshit/bereshit-1"
+            "/fr/lire/bereshit/bereshit-1?v=1-3 /fr/liseuse/bible/bereshit/bereshit-1?v=1-3"
+            "/fr/webapp /fr/liseuse/bible"
+            "/fr/webapp/bereshit /fr/liseuse/bible/bereshit"
+            "/fr/qahal /fr/liseuse/qahal"
+            "/fr/lexique /fr/liseuse/lexique"
+            "/fr/compte /fr/liseuse/compte"
+            "/fr/rechercher /fr/liseuse/rechercher"
           )
           for couple in "${redirections[@]}"; do
             depuis=${couple%% *}

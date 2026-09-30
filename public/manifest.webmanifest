@@ -34,12 +34,12 @@
   "shortcuts": [
     {
       "name": "Lire",
-      "url": "/fr/lire",
+      "url": "/fr/liseuse/bible",
       "description": "Le sommaire du corpus"
     },
     {
       "name": "Lexique",
-      "url": "/fr/lexique",
+      "url": "/fr/liseuse/lexique",
       "description": "Les intraduisibles"
     }
   ]

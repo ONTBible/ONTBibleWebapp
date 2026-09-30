@@ -901,8 +901,6 @@ fn LeRegistre() -> impl IntoView {
 fn LHabillage() -> impl IntoView {
     use crate::domaine::lecture::Habillage;
 
-    // Comme le registre : il faut pouvoir **écrire**, donc `fournir_preferences`
-    // et non `preferences`, dont le repli muet rendrait un signal constant.
     let prefs = fournir_preferences();
 
     view! {
@@ -952,9 +950,10 @@ fn LHabillage() -> impl IntoView {
             "colonne, même fonte, même composition. Ce qui change est ce qu'il y a "
             "autour — la façon d'aller d'un livre à l'autre."
             <br /><br />
-            "L'application est ce que vous avez sur le téléphone, et c'est le défaut. "
-            "L'édition est la liseuse telle qu'elle était\u{a0}: l'en-tête du site, son "
-            "pied de page, et rien autour du texte."
+            "L'adresse suit\u{a0}: l'application vit sous "
+            <code>"/fr/webapp"</code> ", l'édition sous " <code>"/fr/liseuse"</code>
+            ". Changer d'habillage vous laisse "
+            <b>"sur la même page"</b> ", dans l'autre arbre — jamais à son accueil."
             <br /><br />
             "Votre choix est retenu dans ce navigateur, avec les autres réglages de "
             "lecture. Il ne demande aucun compte."

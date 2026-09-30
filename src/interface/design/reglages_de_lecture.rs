@@ -225,6 +225,28 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
         let preferences = preferences();
         let sous_un_arbre = crate::interface::arbre::dans_un_arbre();
 
+        // **Changer d'habillage change d'adresse.** Le réglage vit dans
+        // `ont.lecture` ; le cookie et le serveur s'en chargent aux chargements
+        // suivants, mais celui qui vient de cliquer doit voir l'effet tout de
+        // suite — et sur **la même page**, pas à l'accueil de l'autre arbre.
+        //
+        // > Un réglage qui fait perdre sa place n'est pas un réglage, c'est une
+        // > sortie.
+        //
+        // On recharge plutôt qu'on ne navigue : le chrome est rendu par le
+        // serveur, donc une navigation du routeur laisserait l'ancien en place.
+        Effect::new(move |_| {
+            let vise = preferences.get().habillage.resoudre(grand_ecran());
+            let ici = leptos_router::hooks::use_location().pathname.get();
+            if crate::domaine::lecture::Arbre::du_chemin(&ici).is_some_and(|a| a != vise) {
+                poser_le_cookie(vise);
+                let cible = crate::domaine::chemins::dans(vise, &ici);
+                if let Some(fenetre) = web_sys::window() {
+                    let _ = fenetre.location().replace(&cible);
+                }
+            }
+        });
+
         // Un seul effet, et il suit les deux : les réglages **et** le lieu.
         // Sortir de la liseuse retire la peau sans qu'aucun nettoyage n'ait à
         // s'exécuter dans le bon ordre.
@@ -331,6 +353,36 @@ fn poser_la_taille(corps: u8) {
     let _ = racine
         .style()
         .set_property("--lecture", &format!("{facteur}"));
+}
+
+/// Sommes-nous sur un grand écran ? La même borne que le script de l'en-tête.
+///
+/// **64 rem et non une largeur en pixels** : la borne suit la taille de police
+/// du lecteur, comme tout le reste de la feuille. Quelqu'un qui grossit son
+/// texte a un écran proportionnellement plus petit, et c'est exactement le
+/// lecteur pour qui la barre latérale devient un couloir.
+#[cfg(feature = "hydrate")]
+fn grand_ecran() -> bool {
+    web_sys::window()
+        .and_then(|f| f.match_media("(min-width: 64rem)").ok().flatten())
+        .is_some_and(|m| m.matches())
+}
+
+/// Pose le cookie que le serveur lira au prochain chargement.
+///
+/// Un an, `samesite=lax` : il ne voyage pas sur une requête d'un autre site, et
+/// il n'a rien de sensible — c'est un choix d'affichage, pas une identité.
+#[cfg(feature = "hydrate")]
+fn poser_le_cookie(arbre: crate::domaine::lecture::Arbre) {
+    if let Some(document) = web_sys::window()
+        .and_then(|f| f.document())
+        .and_then(|d| d.dyn_into::<web_sys::HtmlDocument>().ok())
+    {
+        let _ = document.set_cookie(&format!(
+            "ont.habillage={};path=/;max-age=31536000;samesite=lax",
+            arbre.segment()
+        ));
+    }
 }
 
 #[cfg(feature = "hydrate")]

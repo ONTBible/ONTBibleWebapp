@@ -53,7 +53,11 @@ SERVEUR = "http://127.0.0.1:3000"
 #
 # **Un contrôle interdit désormais d'en ajouter une sans elle** : voir
 # `chaque_route_du_site_est_controlee` plus bas.
-PAGES = [
+# **Les deux arbres**, et pas un seul. Un défaut de composition peut vivre dans
+# un chrome plutôt que dans le texte — l'en-tête du site et la barre latérale ne
+# portent pas les mêmes chaînes —, et ne contrôler qu'un arbre laisserait la
+# moitié des pages hors du relevé sans que le décompte final le dise.
+HORS_ARBRE = [
     "/fr",
     "/fr/le-pourquoi",
     "/fr/ce-que-l-ont-n-est-pas",
@@ -61,19 +65,26 @@ PAGES = [
     "/fr/assistance",
     "/fr/confidentialite",
     "/fr/conditions",
-    # La webapp — les cinq onglets et ce qu'ils ouvrent.
-    "/fr/qahal",
-    "/fr/webapp",
-    "/fr/compte/lecture",
-    "/fr/webapp/partie/torah",
-    "/fr/webapp/bereshit",
-    "/fr/webapp/bereshit/bereshit-1",
-    "/fr/lexique",
-    "/fr/lexique/adam",
-    "/fr/lexique/prononciation",
-    "/fr/chuqqot",
-    "/fr/compte",
-    "/fr/rechercher?q=ruach",
+]
+
+# Ce que chaque arbre porte, sous sa racine.
+SOUS_UN_ARBRE = [
+    "/qahal",
+    "/bible",
+    "/bible/partie/torah",
+    "/bible/bereshit",
+    "/bible/bereshit/bereshit-1",
+    "/lexique",
+    "/lexique/adam",
+    "/lexique/prononciation",
+    "/chuqqot",
+    "/compte",
+    "/compte/lecture",
+    "/rechercher?q=ruach",
+]
+
+PAGES = HORS_ARBRE + [
+    f"/fr/{arbre}{suite}" for arbre in ("liseuse", "webapp") for suite in SOUS_UN_ARBRE
 ]
 
 # L'espace ordinaire devant une ponctuation double, ou juste après un guillemet

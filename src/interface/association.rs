@@ -145,7 +145,7 @@ pub const APP_ID: &str = "N49VNC2G57.com.labibleont.ONT";
 /// conversation, un signet, un message archivé ; il n'y a pas de date après
 /// laquelle on saurait qu'aucun ne circule plus. Cette liste ne se raccourcit
 /// donc que sur une décision explicite, jamais par ménage.
-pub const CHEMINS: [&str; 2] = ["/fr/webapp/*", "/fr/lire/*"];
+pub const CHEMINS: [&str; 3] = ["/fr/liseuse/*", "/fr/webapp/*", "/fr/lire/*"];
 
 /// Le corps du fichier.
 ///
@@ -282,11 +282,15 @@ mod tests {
         // tous les liens partagés avant le 29 septembre 2026 — ils
         // s'ouvriraient dans le navigateur au lieu de l'app, sans qu'aucune
         // erreur ne le dise.
-        assert!(
-            CHEMINS.contains(&"/fr/lire/*"),
-            "`/fr/lire/*` a disparu : les liens déjà partagés cesseraient \
-             d'ouvrir l'app, et rien ne le signalerait"
-        );
+        // **Les trois âges**, et aucun ne part. Un appareil installé avant un
+        // renommage porte l'ancienne liste jusqu'à sa réinstallation.
+        for age in ["/fr/lire/*", "/fr/webapp/*", "/fr/liseuse/*"] {
+            assert!(
+                CHEMINS.contains(&age),
+                "`{age}` a disparu : les liens déjà partagés sous cette forme \
+                 cesseraient d'ouvrir l'app, et rien ne le signalerait"
+            );
+        }
     }
 
     /// Le fichier doit rester d'accord avec le backend de l'app, qui le sert
