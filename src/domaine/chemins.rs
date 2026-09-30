@@ -302,6 +302,52 @@ mod tests {
         );
     }
 
+    /// **Toute page d'arbre déclare son canonique dans l'arbre canonique.**
+    ///
+    /// Mesuré en ligne le 1er octobre 2026 sur le serveur local — une page de
+    /// `/fr/webapp/…` porte bien `<link href="…/fr/liseuse/…" rel="canonical">`
+    /// — mais une mesure faite une fois ne garde rien. Celle-ci parcourt les
+    /// treize adresses des deux arbres.
+    ///
+    /// Ce qu'elle protège n'est pas visible : deux adresses pour un même texte
+    /// font du contenu dupliqué, les moteurs choisissent eux-mêmes laquelle
+    /// montrer, et la réputation des liens entrants se coupe en deux — le
+    /// facteur qui décide vraiment du référencement, et le seul qu'aucune ligne
+    /// de Rust ne fabrique.
+    #[test]
+    fn toute_page_d_arbre_a_son_canonique_dans_l_arbre_canonique() {
+        for arbre in Arbre::TOUS {
+            for chemin in [
+                bible(arbre),
+                livre(arbre, "bereshit"),
+                unite(arbre, "bereshit", "bereshit-1"),
+                partie(arbre, "torah"),
+                lexique(arbre),
+                fiche(arbre, "bara"),
+                prononciation(arbre),
+                qahal(arbre),
+                chuqqot(arbre),
+                compte(arbre),
+                reglages(arbre),
+                rechercher(arbre),
+            ] {
+                let officiel = canonique(&chemin);
+                assert_eq!(
+                    Arbre::du_chemin(&officiel),
+                    Some(Arbre::CANONIQUE),
+                    "le canonique de {chemin} n'est pas dans l'arbre officiel"
+                );
+                // Et il désigne **la même page**, pas seulement le même arbre :
+                // une suite tronquée renverrait les moteurs vers l'accueil.
+                assert_eq!(
+                    officiel.strip_prefix(&Arbre::CANONIQUE.racine()),
+                    chemin.strip_prefix(&arbre.racine()),
+                    "le canonique de {chemin} ne désigne pas la même page"
+                );
+            }
+        }
+    }
+
     /// La chaîne de requête survit à la bascule.
     ///
     /// Perdre `?v=1-3` rendrait le passage entier là où le lien désignait trois

@@ -6654,3 +6654,73 @@ bouge —, à ceci près qu'un nombre se calcule et qu'une capture se reprend.
 
 Comparer deux images ne dit pas laquelle est juste. La garde reste donc humaine
 des deux côtés : l'app prévient quand son écran bouge, le site reprend.
+
+## 1er octobre 2026 — le site sert deux arbres, et l'app doit le savoir
+
+`ontbible.com` ne sert plus une liseuse mais **deux**, sous deux racines :
+
+    /fr/liseuse/…    l'édition — en-tête du site, nav horizontale, pied de page
+    /fr/webapp/…     l'app — barre latérale, barre d'onglets, corpus épinglé
+
+Le texte est le même des deux côtés — même mesure, même fonte, même composition.
+Ce qui change est l'habillage, et le lecteur choisit. **L'adresse dit toujours
+lequel il regarde** : quand sa préférence diverge de l'arbre demandé, c'est
+l'adresse qui s'aligne, jamais le rendu qui se tait.
+
+### Ce qui traverse chez l'app : le fichier d'association
+
+`interface/association.rs` déclare maintenant **trois** chemins :
+
+    /fr/liseuse/*    la forme d'aujourd'hui
+    /fr/webapp/*     la forme du 30 septembre
+    /fr/lire/*       l'originale
+
+Et aucun ne partira. La raison est chez Apple, pas chez nous :
+
+> ==iOS ne relit ce fichier qu'à l'installation, et Apple le met en cache sur
+> son propre CDN.== Un appareil installé hier porte l'ancienne liste pour
+> longtemps.
+
+Retirer un chemin ferait ouvrir ses liens dans le navigateur au lieu de l'app,
+**en silence des deux côtés** — rien ne le signale ni ici ni là-bas. La liste
+s'allonge donc, et ne se raccourcit que sur une décision, jamais par ménage.
+
+L'app, de son côté, intercepte sur le **chemin déclaré**, pas sur sa cible : un
+lien `/fr/lire/…` qu'elle laisse passer sera renvoyé par le serveur, mais s'il
+ne figure pas dans sa liste elle ne le verra jamais.
+
+### Ce qui ne bouge pas, et qu'il faut savoir avoir vérifié
+
+**Les trois routes OAuth restent à `/fr/compte/aller|retour|partir`.** Elles ne
+sont dans aucun arbre, et c'est délibéré : `/fr/compte/retour` est l'adresse
+enregistrée chez Google et chez GitHub. Rien à rouvrir dans les consoles.
+
+Un piège mesuré au passage, qui vaut pour tout middleware Axum du projet :
+`axum::middleware::from_fn` **enveloppe le routeur entier**, y compris les
+routes `merge`ées avant elle dans le code. Un commentaire affirmait le
+contraire ; la mesure a rendu `308 /fr/liseuse/compte/aller/google`, c'est-à-dire
+une connexion cassée.
+
+> ==Une exemption qu'on affirme sans la mesurer est une exemption qui n'existe
+> pas.==
+
+### Ce que le vault et le pipeline ne voient pas changer
+
+Rien. Le corpus, le lexique et `dist/` sont lus exactement comme avant — seul
+change le chemin sous lequel le site les rend. Vérifié : aucun fichier de
+`../ONTBibleApp/dist/` n'est nommé différemment, et `prononciation.json` reste
+la dépendance de compilation déclarée le 29 septembre.
+
+### Une seule adresse s'indexe
+
+`/fr/liseuse/…` est l'arbre **canonique** : c'est la forme lisible sans
+JavaScript, celle qu'un moteur reçoit entière au premier octet. Chaque page de
+`/fr/webapp/…` porte un `rel="canonical"` vers sa jumelle, et le plan du site
+ne déclare que la première — 436 adresses, zéro de l'autre arbre.
+
+> ==Ne pas déclarer une page n'est pas la cacher : c'est dire laquelle de ses
+> deux adresses fait foi.==
+
+Rien à resoumettre à Bing ni à Google au-delà du plan habituel : les adresses
+déclarées ne changent que de préfixe, et IndexNow se relance sur un **ajout** de
+pages, pas sur un déménagement.
