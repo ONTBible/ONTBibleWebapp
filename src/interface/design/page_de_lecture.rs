@@ -145,12 +145,47 @@ pub fn PageDeLecture(
         // on lit dans l'app — quelques centaines d'octets, contre les cent
         // soixante-dix kilo-octets que la barre latérale du corpus pèse déjà.
         // ==C'est le petit des deux coûts, et c'est le seul qu'on ait choisi.==
-        <div class="habillage-app">
-            <crate::interface::design::NavigationDeLaLiseuse />
-        </div>
-        <div class="habillage-edition">
-            <crate::interface::design::Entete />
-        </div>
+        // **Sans enveloppe**, et c'est une leçon payée : un `<div>` posé autour
+        // de ce composant tue l'hydratation. Il rend deux barres *frères* — la
+        // latérale et les onglets —, et Leptos hydrate un fragment en comptant
+        // des marqueurs qui tombent alors ailleurs :
+        //
+        // ```text
+        // A hydration error occurred … at navigation_de_la_liseuse.rs:312
+        // the framework expected a marker node, but found [object HTMLElement]
+        // panicked at tachys/src/hydration.rs:216
+        // ```
+        //
+        // Le WASM meurt au démarrage, la page reste belle, et **plus rien ne
+        // répond au doigt** — le symptôme du §7 bis, pour la quatrième fois
+        // dans ce dépôt et avec une quatrième cause.
+        //
+        // ## Et l'en-tête du site ne peut pas être rendu ici
+        //
+        // Deuxième mesure du même soir : `Entete` et `PiedDePage` posés dans ce
+        // composant rompent l'hydratation à leur tour — `bloc.rs:106`, sur un
+        // `SVGCircleElement`. Sans enveloppe, donc ce n'est pas la même cause.
+        //
+        // `App` rend **déjà** le pied, sous `<Show when=dans_la_liseuse()==0>`,
+        // et ce compteur ne vaut pas la même chose des deux côtés au moment où
+        // la condition est lue : le serveur et le client ne s'accordent alors
+        // plus sur ce qu'il y a à cet endroit de l'arbre.
+        //
+        // ==Un second rendu d'un composant que la racine gouverne déjà est un
+        // désaccord qui attend son tour.== L'habillage « édition » se limite
+        // donc pour l'instant à retirer les barres, la voûte et les marges de
+        // l'app. L'en-tête et le pied demandent de passer par `App`, où la
+        // condition vit — c'est un second temps, et il se mesure au même banc.
+        //
+        // ==Un habillage se pose sur l'élément, jamais autour de lui.== Les
+        // deux barres portent donc `habillage-app` dans leur propre `class`, et
+        // rien ne s'interpose entre le composant et son parent.
+        //
+        // Trouvé par `banc-erreurs.html` en deux passes : retirer `Entete` et
+        // `PiedDePage` n'a rien changé — ce qui les a innocentés —, retirer
+        // cette enveloppe a tout rendu. *Retirer le suspect est plus court que
+        // de raisonner sur lui.*
+        <crate::interface::design::NavigationDeLaLiseuse />
         // La barre latérale est en `fixed` : elle ne pousse rien, donc le
         // contenu se décale lui-même au-delà de `lg`. Et le bas respire de la
         // hauteur de la barre d'onglets, sans quoi la dernière ligne du
@@ -300,8 +335,5 @@ pub fn PageDeLecture(
         // Le pied du site, que `App` ne rend pas dans la liseuse : il compte
         // les pages de liseuse à l'écran et s'efface tant qu'il y en a une.
         // Sous l'édition il fait partie de l'habillage, donc il se pose ici.
-        <div class="habillage-edition">
-            <crate::interface::design::PiedDePage />
-        </div>
     }
 }

@@ -42,9 +42,26 @@ use crate::interface::design::image;
 /// écran de téléphone. Elle se vérifie au simulateur (`scripts/sim.sh`), jamais
 /// à l'œil sur un grand écran.
 #[component]
-pub fn Entete() -> impl IntoView {
+pub fn Entete(
+    /// Une classe de plus sur l'élément racine — l'habillage, et rien d'autre.
+    ///
+    /// **Elle ne s'enveloppe pas.** Un `<div>` posé autour de ce composant tue
+    /// l'hydratation : Leptos compte des marqueurs, et une enveloppe les fait
+    /// tomber ailleurs. Mesuré le 30 septembre 2026, deux fois de suite et à
+    /// deux endroits — `navigation_de_la_liseuse.rs:312`, puis `bloc.rs:106`.
+    ///
+    /// ==Un habillage se pose sur l'élément, jamais autour de lui.==
+    #[prop(optional, into)]
+    classe: Option<&'static str>,
+) -> impl IntoView {
     view! {
-        <header class="relative z-20 flex flex-col items-center gap-5 px-6 pt-8 text-center sm:gap-6 sm:pt-10">
+        <header class=move || {
+            format!(
+                "{} relative z-20 flex flex-col items-center gap-5 px-6 pt-8 text-center \
+                 sm:gap-6 sm:pt-10",
+                classe.unwrap_or_default(),
+            )
+        }>
             // ── L'accès au compte ─────────────────────────────────────────────
             //
             // **Posé à part de la navigation, et pas dedans.** Deux raisons, et

@@ -303,7 +303,7 @@ fn BarreLaterale() -> impl IntoView {
     view! {
         <nav
             aria-label="La liseuse"
-            class="verre fixed inset-y-0 start-0 z-40 hidden w-[16.5rem] flex-col border-e border-filet px-3 py-5 lg:flex"
+            class="habillage-app verre fixed inset-y-0 start-0 z-40 hidden w-[16.5rem] flex-col border-e border-filet px-3 py-5 lg:flex"
         >
             // La marque en tête, petite : on est dans la liseuse, elle rappelle
             // où l'on est sans se proclamer. Elle mène à l'édition — c'est la
@@ -685,7 +685,7 @@ fn BarreDOnglets() -> impl IntoView {
     view! {
         <nav
             aria-label="La liseuse"
-            class="barre-d-onglets pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-3 lg:hidden"
+            class="habillage-app barre-d-onglets pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-3 lg:hidden"
             style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom))"
         >
             <ul class="verre pointer-events-auto m-0 flex w-full max-w-md list-none items-stretch justify-around gap-1 rounded-full border border-filet/50 p-1">

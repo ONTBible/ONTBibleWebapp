@@ -14,9 +14,25 @@ use leptos::prelude::*;
 /// serveur **et** par le navigateur, donc il ne peut pas lire l'horloge, qui
 /// n'existe que d'un côté.
 #[component]
-pub fn PiedDePage() -> impl IntoView {
+pub fn PiedDePage(
+    /// Une classe de plus sur l'élément racine — l'habillage, et rien d'autre.
+    ///
+    /// **Elle ne s'enveloppe pas.** Un `<div>` posé autour de ce composant tue
+    /// l'hydratation : Leptos compte des marqueurs, et une enveloppe les fait
+    /// tomber ailleurs. Mesuré le 30 septembre 2026, deux fois de suite et à
+    /// deux endroits — `navigation_de_la_liseuse.rs:312`, puis `bloc.rs:106`.
+    ///
+    /// ==Un habillage se pose sur l'élément, jamais autour de lui.==
+    #[prop(optional, into)]
+    classe: Option<&'static str>,
+) -> impl IntoView {
     view! {
-        <footer class="border-t border-filet px-6 py-12 text-sm text-encre-douce">
+        <footer class=move || {
+            format!(
+                "{} border-t border-filet px-6 py-12 text-sm text-encre-douce",
+                classe.unwrap_or_default(),
+            )
+        }>
             <div class="mx-auto flex max-w-large flex-col items-center gap-8">
                 <div class="flex items-center gap-3">
                     <span class="signe-montagne w-8 text-accent" aria-hidden="true"></span>
