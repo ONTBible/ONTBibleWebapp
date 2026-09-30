@@ -6593,3 +6593,64 @@ l'autre rouge : la différence ne pouvait venir que du dépôt du site.
 > ==Deux exécutions qui ne diffèrent que par une variable désignent cette
 > variable.== C'est le seul raisonnement qui ait servi ici, et il n'a demandé
 > aucune connaissance du pipeline.
+
+## 30 septembre 2026 — une capture a deux consommateurs, et un seul le sait
+
+`/fr/l-app` affiche l'écran de lecture de l'app dans un châssis d'iPhone. La
+capture venait du **13 août 2026** et montrait une app qui n'existe plus :
+quatre onglets au lieu de cinq, une pastille de barre muette au lieu de « Bereshit · 3 »,
+des noms propres nus au lieu des renvois rendus. Reprise depuis le jeu du
+18 septembre.
+
+### Ce que ni l'un ni l'autre des deux dépôts ne pouvait voir seul
+
+La source est `ONTBibleApp/app/Captures/brut/iphone-6.9/02.png`, et elle est
+**gitignorée là-bas** — ligne 31, classée « régénérable ». Le site en dépend
+sans qu'aucun commit ne le porte :
+
+    chez l'app    un intermédiaire jetable, que `captures.sh` refait en 3 min
+    chez le site  la seule source d'une image de la page d'acquisition
+
+Personne n'a tort. Le fichier *est* régénérable, et le classer ainsi était
+juste tant qu'il n'avait qu'un consommateur. **C'est le second consommateur qui
+change la nature du fichier, et il est né dans l'autre dépôt.**
+
+> ==Un fichier jetable cesse de l'être quand quelqu'un d'autre s'en sert, et
+> celui qui le jette ne le sait pas.== Le versionner ne réglerait rien — il
+> doublerait le poids du dépôt pour un intermédiaire. Ce qui manquait était une
+> ligne nommant le second lecteur, là où quelqu'un pourrait le supprimer.
+
+Le livrable, lui, est versionné chez le site : `public/images/app-lecture.webp`.
+C'est la **provenance** qui était fragile, pas l'image. Refaire la capture
+demande donc de la *reproduire* et non de la retrouver.
+
+### Et la comparaison au pixel vaut mieux qu'une promesse
+
+Le site avait demandé un mot quand l'écran de lecture changerait. La session iOS
+a fait un cran mieux : elle a régénéré l'écran le jour même et l'a comparé au
+jeu de septembre, barre d'état exclue — **zéro octet différent sur 11 979 220**.
+
+Elle ne dit pas « c'est juste », elle dit « rien n'a bougé depuis ce jeu-là » —
+ce qui est exactement ce dont un consommateur d'image a besoin. La barre d'état
+est exclue parce que `captures.sh` y fige l'heure à 09:41 et qu'un simulateur
+fraîchement effacé ne la porte pas encore.
+
+**Sa première mesure rendait 74,8 % de pixels différents**, et pas un seul du
+fait de l'app : `simctl openurl` avait déclenché l'alerte « Ouvrir dans … ? »,
+qui appartient à SpringBoard, survit aux relancements et **assombrit tout
+l'écran**. Elle comparait d'abord deux écrans différents, puis le bon écran sous
+un voile.
+
+> ==Une différence massive n'est pas une preuve de changement ; c'est d'abord un
+> soupçon sur l'instrument.== Les deux pièges étaient documentés en tête de
+> `captures.sh`, et la mesure a été lancée avant de le lire.
+
+### Le risque qui reste, et pourquoi on ne l'automatise pas
+
+Le site n'a **aucune garde** qui puisse rougir sur une capture périmée : une
+vieille image s'affiche aussi bien qu'une fraîche. C'est le compte des livres de
+la veille sous une autre matière — une affirmation figée à côté d'une source qui
+bouge —, à ceci près qu'un nombre se calcule et qu'une capture se reprend.
+
+Comparer deux images ne dit pas laquelle est juste. La garde reste donc humaine
+des deux côtés : l'app prévient quand son écran bouge, le site reprend.

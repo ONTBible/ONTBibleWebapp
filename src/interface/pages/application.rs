@@ -242,8 +242,18 @@ fn Atout(titre: &'static str, children: Children) -> impl IntoView {
 ///
 /// ## Elle périme sans que rien ne le dise
 ///
-/// La capture vient de `ONTBibleApp/app/Captures/brut/iphone-6.9/`, que
-/// `captures.sh` régénère — et l'app change. Celle qu'elle remplace datait du
+/// La capture vient de `ONTBibleApp/app/Captures/brut/iphone-6.9/02.png`, et
+/// **ce chemin n'est dans aucun commit** : `brut/` est gitignoré là-bas, classé
+/// « régénérable ». Le livrable, lui, est ici et versionné — c'est la
+/// *provenance* qui est fragile, pas l'image.
+///
+/// Pour la refaire, il faut donc la **reproduire** et non la retrouver :
+/// `ONTBibleApp/scripts/captures.sh`, trois minutes. Le jeu versionné de
+/// l'app — `app/Captures/iphone-6.9/02.png` — ne sert pas : c'est l'**affiche**
+/// App Store, déjà posée sur son fond d'aubergine, quand il nous faut l'écran
+/// nu pour poser notre propre châssis.
+///
+/// Et l'app change. Celle qu'elle remplace datait du
 /// 13 août 2026 : elle montrait **quatre** onglets là où il y en a cinq, une
 /// pastille de barre **muette** là où elle nomme l'unité, et des noms propres
 /// en encre là où les renvois sont désormais rendus.
@@ -258,6 +268,16 @@ fn Atout(titre: &'static str, children: Children) -> impl IntoView {
 /// une affirmation figée à côté d'une source qui bouge.== La différence est
 /// qu'un nombre se calcule et qu'une capture se reprend — donc celle-ci se
 /// refait à la main, quand l'écran de lecture de l'app bouge.
+///
+/// **Mais on peut faire un cran mieux qu'une promesse**, et la session iOS l'a
+/// montré le 30 septembre 2026 : elle a régénéré l'écran ce jour-là et l'a
+/// comparé au jeu de septembre, barre d'état exclue — **zéro octet différent
+/// sur 11 979 220**. Pas « visuellement identique » : identique.
+///
+/// La comparaison au pixel ne dit pas *c'est juste*, elle dit *rien n'a bougé
+/// depuis ce jeu-là* — et c'est exactement ce qu'on demande ici. Elle exclut la
+/// barre d'état, que `captures.sh` fige à 09:41 et qu'un simulateur neuf ne
+/// porte pas encore.
 ///
 /// Les proportions sont celles de l'appareil, pas un dessin à l'œil : 126 pt de
 /// large sur 37,33, à 11 pt du haut, sur un écran de 402 pt. Rapportées à la
