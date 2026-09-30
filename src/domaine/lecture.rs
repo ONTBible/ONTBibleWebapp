@@ -326,6 +326,15 @@ impl Arbre {
     /// Les deux, dans l'ordre de leur préséance.
     pub const TOUS: [Arbre; 2] = [Arbre::Liseuse, Arbre::Webapp];
 
+    /// L'arbre qui s'indexe — **l'adresse officielle du texte**.
+    ///
+    /// Arbitré le 30 septembre 2026. C'est la liseuse, pour une raison qui n'est
+    /// pas un goût : elle est la forme lisible **sans JavaScript**, celle qu'un
+    /// moteur reçoit entière au premier octet. Les pages de l'autre arbre
+    /// portent un `rel="canonical"` vers leur jumelle, et le plan du site ne
+    /// déclare que celle-ci.
+    pub const CANONIQUE: Arbre = Arbre::Liseuse;
+
     /// Le segment de chemin, sans barres — « liseuse » ou « webapp ».
     ///
     /// C'est **la seule table** : les routes, les composeurs de chemins et le
