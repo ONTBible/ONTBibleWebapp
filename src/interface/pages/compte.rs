@@ -951,7 +951,14 @@ fn LHabillage() -> impl IntoView {
             "autour — la façon d'aller d'un livre à l'autre."
             <br /><br />
             "L'adresse suit\u{a0}: l'application vit sous "
-            <code>"/fr/webapp"</code> ", l'édition sous " <code>"/fr/liseuse"</code>
+            // **Composées, pas écrites.** La garde de `domaine::chemins` a rougi
+            // sur ce texte, et elle avait raison : une adresse nommée à la main
+            // dans une explication se périme comme une adresse nommée à la main
+            // dans un lien. Elle mentirait au lecteur au lieu de le perdre, ce
+            // qui est pire.
+            <code>{Habillage::Application.resoudre(false).racine()}</code>
+            ", l'édition sous "
+            <code>{Habillage::Edition.resoudre(false).racine()}</code>
             ". Changer d'habillage vous laisse "
             <b>"sur la même page"</b> ", dans l'autre arbre — jamais à son accueil."
             <br /><br />
