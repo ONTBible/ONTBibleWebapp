@@ -346,6 +346,7 @@ async fn main() {
                 let redirections = redirections.clone();
                 async move {
                     let chemin = requete.uri().path();
+                    let entetes = requete.headers();
 
                     // **L'ancienne adresse de la liseuse.**
                     //
@@ -387,6 +388,28 @@ async fn main() {
                     // officielle du texte, et un lien reçu doit mener à la forme
                     // qui s'indexe. La préférence du lecteur corrigera ensuite,
                     // à l'arrivée.
+                    // ## L'adresse s'aligne sur la préférence, côté serveur
+                    //
+                    // Le cookie est posé par le script de l'en-tête, avant la
+                    // première peinture. Le serveur le lit et sert **le bon
+                    // arbre d'emblée** : une seule requête, un seul chrome,
+                    // aucune correction après coup.
+                    //
+                    // **302 et jamais 308.** La cible dépend du lecteur : un
+                    // renvoi permanent serait mis en cache par le navigateur et
+                    // par CloudFront, et le suivant hériterait du choix du
+                    // précédent. C'est l'inverse exact de la règle des
+                    // anciennes adresses, dont la cible ne dépend de personne.
+                    if let Some(cible) = alignement(chemin, entetes) {
+                        let cible = match requete.uri().query() {
+                            Some(q) => format!("{cible}?{q}"),
+                            None => cible,
+                        };
+                        return axum::response::IntoResponse::into_response(
+                            axum::response::Redirect::temporary(&cible),
+                        );
+                    }
+
                     if let Some(cible) = ancienne_adresse(chemin) {
                         let cible = match requete.uri().query() {
                             Some(q) => format!("{cible}?{q}"),
@@ -466,6 +489,53 @@ async fn main() {
 
 /// Le binaire est aussi compilé pour le navigateur, où il n'a rien à démarrer :
 /// l'entrée côté client est `hydrate()`, dans `lib.rs`.
+
+/// Où mener une requête dont l'arbre diverge de la préférence du lecteur.
+///
+/// Rend `None` quand tout est en place — le cas courant.
+///
+/// ## Pourquoi le serveur, et pas le navigateur
+///
+/// Le script de l'en-tête sait déjà tout : il lit la préférence et la largeur
+/// de l'écran avant la première peinture. Il peut donc corriger l'adresse — mais
+/// seulement l'**adresse** : `history.replaceState` ne re-rend rien, et le
+/// document servi reste celui de l'arbre demandé.
+///
+/// Mesuré au banc le 1er octobre 2026, dans un cadre de 390 px :
+///
+/// ```text
+/// url après chargement : /fr/webapp/bible     ← corrigée
+/// barre latérale       : absente              ← pas re-rendue
+/// en-tête du site      : présent              ← celui de la liseuse
+/// ```
+///
+/// ==Une adresse corrigée sans que le rendu suive est le mensonge qu'on
+/// voulait éviter, dans l'autre sens.== Le serveur, lui, tranche avant de
+/// composer : un seul chrome, et il correspond.
+fn alignement(chemin: &str, entetes: &axum::http::HeaderMap) -> Option<String> {
+    use ontbible::domaine::chemins as adresses;
+    use ontbible::domaine::lecture::Arbre;
+
+    // Les routes du compte agissent : elles ne se renvoient nulle part.
+    if chemin.starts_with("/fr/compte/") {
+        return None;
+    }
+
+    let actuel = Arbre::du_chemin(chemin)?;
+    let voulu = entetes
+        .get(axum::http::header::COOKIE)?
+        .to_str()
+        .ok()?
+        .split(';')
+        .filter_map(|paire| paire.trim().strip_prefix("ont.habillage="))
+        .find_map(|valeur| {
+            Arbre::TOUS
+                .into_iter()
+                .find(|arbre| arbre.segment() == valeur.trim())
+        })?;
+
+    (voulu != actuel).then(|| adresses::dans(voulu, chemin))
+}
 
 /// Où mène une adresse d'avant les deux arbres, s'il y en a une.
 ///
@@ -672,6 +742,61 @@ mod epreuves_des_renvois {
                 "{route} est renvoyée — la connexion casse"
             );
         }
+    }
+
+    /// **L'adresse s'aligne sur le cookie, dans les deux sens.**
+    ///
+    /// Et elle ne bouge pas quand les deux s'accordent — sans quoi le serveur
+    /// se renverrait à lui-même indéfiniment.
+    #[test]
+    fn l_adresse_s_aligne_sur_la_preference() {
+        use axum::http::{header::COOKIE, HeaderMap, HeaderValue};
+
+        let avec = |valeur: &str| {
+            let mut e = HeaderMap::new();
+            e.insert(
+                COOKIE,
+                HeaderValue::from_str(valeur).expect("un cookie lisible"),
+            );
+            e
+        };
+
+        for arbre in Arbre::TOUS {
+            let ici = adresses::bible(arbre);
+            // Accord : rien ne bouge.
+            assert_eq!(
+                super::alignement(&ici, &avec(&format!("ont.habillage={}", arbre.segment()))),
+                None,
+                "{ici} bouge alors que la préférence s'y accorde"
+            );
+            // Divergence : on s'aligne sur la préférence.
+            let autre = arbre.autre();
+            assert_eq!(
+                super::alignement(&ici, &avec(&format!("ont.habillage={}", autre.segment()))),
+                Some(adresses::bible(autre)),
+                "{ici} ne s'aligne pas sur {autre:?}"
+            );
+        }
+
+        // Sans cookie, sans arbre, ou sur une valeur inconnue : rien ne bouge.
+        assert_eq!(
+            super::alignement("/fr/liseuse/bible", &HeaderMap::new()),
+            None
+        );
+        assert_eq!(
+            super::alignement("/fr/l-app", &avec("ont.habillage=webapp")),
+            None
+        );
+        assert_eq!(
+            super::alignement("/fr/liseuse/bible", &avec("ont.habillage=autre-chose")),
+            None,
+            "une valeur inconnue doit être ignorée, pas devinée"
+        );
+        // Les routes du compte agissent : elles ne s'alignent jamais.
+        assert_eq!(
+            super::alignement("/fr/compte/retour", &avec("ont.habillage=webapp")),
+            None
+        );
     }
 
     /// Les trois âges d'adresses mènent tous à l'arbre canonique.

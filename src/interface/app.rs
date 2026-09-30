@@ -147,16 +147,19 @@ fn PeauAvantLePremierRendu() -> impl IntoView {
 /// seule duplication de tout ce mécanisme, et `le_script_reprend_les_trois_
 /// clauses_de_la_regle` en garde la forme.
 fn script_de_la_peau() -> String {
-    use crate::domaine::lecture::{Fonte, Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{Arbre, Fonte, Theme};
 
     let connus = Theme::TOUS
         .iter()
         .map(|theme| format!("'{}'", theme.attribut()))
         .collect::<Vec<_>>()
         .join(",");
-    let liseuse = LA_LISEUSE
+    // **Les deux racines, depuis l'énumération.** `LA_LISEUSE` portait une
+    // table de préfixes ; elle disait la même chose que `Arbre`, et deux tables
+    // qui disent la même chose finissent par en dire deux différentes.
+    let liseuse = Arbre::TOUS
         .iter()
-        .map(|prefixe| format!("'{prefixe}'"))
+        .map(|arbre| format!("'{}'", arbre.racine()))
         .collect::<Vec<_>>()
         .join(",");
     let fontes = Fonte::TOUTES
@@ -200,6 +203,16 @@ fn script_de_la_peau() -> String {
          if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);\
          var f=[{fontes}];\
          if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);}}\
+         var C=/(^|;\\s*)ont\\.habillage=/.test(document.cookie),\
+         H=o.habillage||'auto',\
+         A=H==='edition'?L[0]:H==='application'?L[1]:\
+         (matchMedia('(min-width: 64rem)').matches?L[0]:L[1]);\
+         document.cookie='ont.habillage='+A.slice(4)+\
+         ';path=/;max-age=31536000;samesite=lax';\
+         if(d&&!C){{var Q=p;\
+         for(var j=0;j<L.length;j++)if(p===L[j]||p.indexOf(L[j]+'/')===0)\
+         Q=A+p.slice(L[j].length);\
+         if(Q!==p)location.replace(Q+location.search+location.hash);}}\
          if(sessionStorage.getItem('ont.entre'))\
          r.classList.add('deja-entre');\
          else sessionStorage.setItem('ont.entre','1');\
@@ -643,7 +656,7 @@ fn Introuvable() -> impl IntoView {
 #[cfg(test)]
 mod epreuves_de_la_peau {
     use super::script_de_la_peau;
-    use crate::domaine::lecture::{c_est_la_liseuse, Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{c_est_la_liseuse, Arbre, Theme};
 
     /// ## Le script porte les deux tables, et rien de plus
     ///
@@ -711,10 +724,11 @@ mod epreuves_de_la_peau {
                 fonte.attribut()
             );
         }
-        for prefixe in LA_LISEUSE {
+        for arbre in Arbre::TOUS {
             assert!(
-                script.contains(&format!("'{prefixe}'")),
-                "le script ignore le préfixe {prefixe}"
+                script.contains(&format!("'{}'", arbre.racine())),
+                "le script ignore la racine {}",
+                arbre.racine()
             );
         }
         // Et rien qui ressemble à un chemin sans être dans la table.
@@ -722,7 +736,8 @@ mod epreuves_de_la_peau {
             .split('\'')
             .filter(|morceau| morceau.starts_with("/fr"))
             .collect();
-        assert_eq!(chemins, LA_LISEUSE, "le script nomme un chemin hors table");
+        let racines: Vec<String> = Arbre::TOUS.iter().map(|a| a.racine()).collect();
+        assert_eq!(chemins, racines, "le script nomme un chemin hors table");
     }
 
     /// ## Les trois clauses de la règle sont dans le script

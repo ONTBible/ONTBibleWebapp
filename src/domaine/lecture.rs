@@ -77,66 +77,23 @@ pub enum Theme {
     Mystique,
 }
 
-/// Les chemins où la peau du lecteur s'applique — **la liseuse, et rien d'autre**.
+/// Les chemins où la peau du lecteur s'applique — **les deux arbres**.
 ///
-/// ## Pourquoi le site n'est pas thémé en entier
+/// ## Une table, et non deux qui disent la même chose
 ///
-/// Arbitré par l'auteur le 21 septembre 2026, devant trois rendus de l'accueil.
-/// La liseuse encaisse les quatre peaux ; l'ouverture, non.
+/// Il y avait ici `LA_LISEUSE = ["/fr/webapp", "/fr/lexique"]`, posée avant que
+/// le site ne serve deux arbres. Elle répondait à la même question qu'[`Arbre`]
+/// — *sommes-nous dans la liseuse ?* — avec une seconde liste à tenir d'accord.
 ///
-/// La cause est dans la rampe : `--color-aubergine` est **la marque**, donc
-/// elle ne suit aucun thème — une enseigne ne change pas de couleur parce que
-/// le lecteur a baissé la lumière. Le massif, la voûte et le portail sont
-/// dessinés avec elle. Sur les deux peaux sombres ils tiennent ; posés sur du
-/// parchemin, le massif devient une forme violette et « C'est un Temple »,
-/// qui est en or, disparaît presque.
+/// ==Deux tables qui disent la même chose finissent par en dire deux
+/// différentes.== Celle-ci dérive donc d'`Arbre::TOUS`, et un arbre renommé
+/// emporte le thème avec lui.
 ///
-/// Les deux autres voies ont été écartées devant lui : redessiner l'ouverture
-/// par thème ferait de la nuit d'aubergine — trouvée en trois essais — un
-/// thème parmi quatre ; n'offrir que les deux peaux sombres laisserait le
-/// lecteur qui lit sur parchemin ne pas le retrouver, c'est-à-dire l'écart que
-/// ce chantier existe pour fermer.
-///
-/// **C'est la couture que la session macOS nomme de son côté** : une liseuse
-/// est un lieu où l'on revient, une page d'édition est quelque chose qu'on lit
-/// une fois. Le site a les deux natures, et elles ne se règlent pas pareil.
-/// C'est aussi ce que fait l'app, dont l'accueil n'a jamais eu de thème.
-///
-/// ## Pourquoi cette table vit dans le domaine
-///
-/// Elle a la forme d'une table de routes, et ce n'est pas là qu'on la
-/// chercherait. Mais **trois endroits en ont besoin** : le script de l'en-tête,
-/// qui pose la peau avant le premier rendu ; l'effet qui la repose à chaque
-/// navigation ; et l'épreuve qui les garde d'accord. Deux d'entre eux vivent
-/// côté navigateur.
-///
-/// Une règle pure, sans horloge ni réseau, qui compile des deux côtés et se
-/// teste sans rien monter : c'est la définition de ce qui va au domaine. La
-/// poser dans `interface::app` obligerait `design/` à connaître le routeur.
-/// ## Et la recherche n'en est pas, bien qu'elle rende du corpus
-///
-/// Elle **porte une ouverture** — `Hero`, avec le massif —, et c'est
-/// exactement ce qui ne survit pas à une peau claire : la montagne devient une
-/// forme violette sur de la crème, et le bouton « Chercher », qui est en or,
-/// disparaît dans son fond. Mesuré, pas supposé.
-///
-/// La règle que l'auteur a tranchée n'est donc pas « les pages qui montrent du
-/// corpus » mais « les pages du lecteur » — et celles-là n'ont pas d'ouverture,
-/// elles ont un fil d'Ariane. Le départage se lit d'ailleurs dans le code sans
-/// cette table : **les cinq pages de la liseuse sont exactement celles qui
-/// emploient `PageDeLecture`.**
-pub const LA_LISEUSE: [&str; 2] = ["/fr/webapp", "/fr/lexique"];
-
-/// La peau du lecteur s'applique-t-elle à ce chemin ?
-///
-/// **Le préfixe seul ne suffit pas**, et c'est le seul piège de cette
-/// fonction : `/fr/webappnt-ils` commence par `/fr/webapp` sans être la liseuse.
-/// On exige donc le chemin exact, ou le préfixe **suivi d'une barre**.
+/// La forme de la comparaison ne change pas : égalité, ou préfixe **suivi d'une
+/// barre**. Le piège est le mot voisin — `/fr/webappnt-ils` n'est pas sous
+/// `/fr/webapp`, et un `starts_with` nu le dirait.
 pub fn c_est_la_liseuse(chemin: &str) -> bool {
-    let chemin = chemin.trim_end_matches('/');
-    LA_LISEUSE
-        .iter()
-        .any(|prefixe| chemin == *prefixe || chemin.starts_with(&format!("{prefixe}/")))
+    Arbre::du_chemin(chemin).is_some()
 }
 
 impl Theme {
@@ -908,7 +865,7 @@ mod tests {
     /// La racine d'un arbre se compose de son segment, et d'aucun littéral.
     #[test]
     fn la_racine_vient_du_segment() {
-        for arbre in Arbre::TOUS {
+        for arbre in super::Arbre::TOUS {
             assert_eq!(arbre.racine(), format!("/fr/{}", arbre.segment()));
             assert_eq!(arbre.autre().autre(), arbre);
             assert_ne!(arbre.autre(), arbre);
@@ -1143,14 +1100,23 @@ mod epreuves_de_la_liseuse {
 
     #[test]
     fn les_trois_pages_de_corpus_portent_la_peau() {
-        for chemin in [
-            "/fr/webapp",
-            "/fr/webapp/bereshit",
-            "/fr/webapp/bereshit/bereshit-1",
-            "/fr/lexique",
-            "/fr/lexique/bara",
-        ] {
-            assert!(c_est_la_liseuse(chemin), "{chemin} est la liseuse");
+        // La peau vaut sous **les deux arbres** : un lecteur qui a choisi le
+        // parchemin le garde qu'il lise dans l'édition ou dans l'app.
+        for arbre in super::Arbre::TOUS {
+            for chemin in [
+                crate::domaine::chemins::bible(arbre),
+                crate::domaine::chemins::livre(arbre, "bereshit"),
+                crate::domaine::chemins::unite(arbre, "bereshit", "bereshit-1"),
+                crate::domaine::chemins::lexique(arbre),
+                crate::domaine::chemins::fiche(arbre, "bara"),
+                crate::domaine::chemins::compte(arbre),
+                crate::domaine::chemins::rechercher(arbre),
+            ] {
+                assert!(
+                    c_est_la_liseuse(&chemin),
+                    "{chemin} devrait porter la peau du lecteur"
+                );
+            }
         }
     }
 
