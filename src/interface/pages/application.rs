@@ -298,11 +298,25 @@ fn Ecran() -> impl IntoView {
                 class="pointer-events-none absolute inset-0 -z-10 scale-125 rounded-full bg-aubergine/45 blur-3xl"
             ></span>
 
-            <div class="rounded-[2.4rem] border border-or/15 bg-nuit p-2 shadow-2xl shadow-nuit/70">
+            // Toutes les mesures du châssis dérivent de `--chassis`, et c'est
+            // la seule valeur qui change avec l'écran. Les trois paliers
+            // reprennent exactement `w-56 / sm:w-64 / lg:w-72`, qui étaient
+            // posés sur l'image : ils portent maintenant la **coque**, bord
+            // compris, donc l'image y perd les 5,2 % du cadre. C'est voulu — un
+            // téléphone se mesure à sa coque, pas à sa dalle.
+            <div class="chassis [--chassis:14rem] sm:[--chassis:16rem] lg:[--chassis:18rem]">
+                // Les cinq commandes, aux places de l'appareil. Elles sont
+                // posées sur la **coque** et non sur l'écran : elles en sortent.
+                <span aria-hidden="true" class="chassis-touche chassis-touche--g top-[12.5%] h-[4.4%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--g top-[20.5%] h-[7%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--g top-[29.5%] h-[7%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--d top-[22.5%] h-[10%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--d top-[36%] h-[5.2%]"></span>
+
                 // Le `relative` est sur un conteneur qui épouse l'image, et non
                 // sur la coque : l'île se place en part de l'**écran**, pas du
                 // châssis, et les deux diffèrent de l'épaisseur du bord.
-                <div class="relative w-56 sm:w-64 lg:w-72">
+                <div class="relative">
                     <img
                         src=image("app-lecture.webp")
                         alt="Bereshit 3 dans l'application : le texte, ses gloses en retrait, \
@@ -314,13 +328,14 @@ fn Ecran() -> impl IntoView {
                         // `loading=eager` : elle est le sujet du bloc, et la charger
                         // paresseusement la ferait apparaître après coup.
                         loading="eager"
-                        class="block h-auto w-full rounded-[1.9rem]"
+                        class="chassis-ecran"
                     />
                     <span
                         aria-hidden="true"
                         class="pointer-events-none absolute top-[1.26%] left-1/2 w-[31.4%] -translate-x-1/2 rounded-full bg-nuit aspect-[126/37.33]"
                     ></span>
                 </div>
+                <span aria-hidden="true" class="chassis-reflet"></span>
             </div>
         </div>
     }

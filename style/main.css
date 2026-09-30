@@ -3008,3 +3008,116 @@ select,
     transparent
   );
 }
+
+/* ── Le châssis d'iPhone — `/fr/l-app` ────────────────────────────────────────
+ *
+ * La page d'acquisition montre l'écran de lecture de l'app dans un châssis, et
+ * ce châssis avait deux défauts que l'œil ne signale pas.
+ *
+ * **Son rayon était fixe.** Écrit `rounded-[1.9rem]`, il valait 13,6 % de la
+ * largeur sur téléphone et 10,6 % sur grand écran, là où un appareil garde un
+ * rapport constant — celui de l'iPhone est d'environ 15,4 %. C'est exactement
+ * la faute que le module dénonce trois lignes plus haut pour la Dynamic Island,
+ * et qu'il n'avait pas vue pour le coin qui l'entoure.
+ *
+ * **Et un `border-radius` en pourcentage ne la corrigeait pas.** Un pourcentage
+ * s'y lit sur deux axes — la largeur pour le rayon horizontal, la hauteur pour
+ * le vertical — donc `15.4%` sur un objet deux fois plus haut que large dessine
+ * une **ellipse**, pas un coin d'appareil. Il faut une longueur, calculée sur
+ * une seule dimension, et c'est ce que `--chassis` donne.
+ *
+ * Toutes les mesures dérivent donc de ce seul nombre, et le châssis peut
+ * changer trois fois de taille sans qu'aucune d'elles cesse d'être juste :
+ *
+ *     bord        2,6 % du châssis
+ *     rayon écran 15,4 % de l'écran, soit 14,6 % du châssis
+ *     rayon coque le précédent plus le bord, soit 17,2 %
+ *
+ * ## Le cadre est un dégradé, parce qu'un aplat n'a pas d'épaisseur
+ *
+ * Il était en `nuit` uni : deux valeurs identiques de part et d'autre du filet,
+ * donc rien qui dise qu'il y a de la matière. Le dégradé parcourt la rampe —
+ * `surface-haute`, `nuit`, `aubergine` — de sorte que le cadre capte la lumière
+ * en haut à gauche et la perd en bas à droite. **Aucune couleur nouvelle** : la
+ * teinte reste à 343°, comme tout le site.
+ */
+.chassis {
+  position: relative;
+  width: var(--chassis);
+  padding: calc(var(--chassis) * 0.026);
+  border-radius: calc(var(--chassis) * 0.172);
+  background: linear-gradient(
+    146deg,
+    color-mix(in srgb, var(--color-surface-haute) 74%, var(--color-or) 9%) 0%,
+    var(--color-surface) 26%,
+    var(--color-nuit) 50%,
+    var(--color-aubergine) 76%,
+    var(--color-nuit) 100%
+  );
+  /* Le filet d'or reste, et il passe à l'intérieur : posé en `border`, il
+   * s'ajouterait à la largeur et fausserait toutes les fractions ci-dessus. */
+  box-shadow:
+    0 26px 52px -12px color-mix(in srgb, var(--color-nuit) 75%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-or) 22%, transparent);
+}
+
+.chassis-ecran {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--chassis) * 0.146);
+}
+
+/* ── Les commandes ────────────────────────────────────────────────────────────
+ *
+ * Cinq saillies, aux places de l'appareil : le bouton Action et les deux
+ * volumes à gauche, la veille et la commande d'appareil photo à droite. Elles
+ * sont **en fraction de la hauteur** parce que c'est la hauteur qui les situe,
+ * et en fraction du châssis pour leur épaisseur.
+ *
+ * Elles ne sont pas un ornement : ce sont elles qui font qu'on lit « un
+ * téléphone » plutôt que « une plaque aux coins ronds ». Un cadre sans elles
+ * est une forme ; avec elles, c'est un objet qu'on a déjà tenu.
+ */
+.chassis-touche {
+  position: absolute;
+  width: calc(var(--chassis) * 0.018);
+  border-radius: calc(var(--chassis) * 0.006);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-aubergine) 62%, var(--color-or) 14%),
+    var(--color-surface) 55%,
+    var(--color-aubergine)
+  );
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-or) 26%, transparent);
+}
+
+.chassis-touche--g {
+  left: calc(var(--chassis) * -0.011);
+}
+
+.chassis-touche--d {
+  right: calc(var(--chassis) * -0.011);
+}
+
+/* ── Le reflet ────────────────────────────────────────────────────────────────
+ *
+ * Un pan de lumière en diagonale, qui meurt au tiers. Il dit que la dalle est
+ * du verre et non du papier — et il s'arrête tôt, parce qu'un reflet qui
+ * traverse l'écran entier devient un voile sur le texte, c'est-à-dire sur le
+ * sujet que ce châssis est là pour montrer.
+ *
+ * Il ne prend pas le clic, et il est `aria-hidden` côté balisage.
+ */
+.chassis-reflet {
+  position: absolute;
+  inset: calc(var(--chassis) * 0.026);
+  border-radius: calc(var(--chassis) * 0.146);
+  pointer-events: none;
+  background: linear-gradient(
+    116deg,
+    rgb(255 252 246 / 0.15) 0%,
+    rgb(255 252 246 / 0.05) 15%,
+    rgb(255 252 246 / 0) 33%
+  );
+}
