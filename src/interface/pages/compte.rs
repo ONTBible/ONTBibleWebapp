@@ -98,8 +98,19 @@ pub fn Compte() -> impl IntoView {
                 ", immédiatement et complètement."
             </PiedDeSection>
 
-            <LaLecture />
+            // **L'habillage en tête**, avant même les réglages de lecture.
+            //
+            // Il était en seconde position et l'auteur ne l'a pas trouvé — « les
+            // btn pour passer de webapp à liseuse web ont sauté ». Ils n'avaient
+            // pas sauté : ils étaient sous une section longue, dans une page qui
+            // en compte cinq.
+            //
+            // ==Un réglage qui change tout l'écran ne se range pas parmi ceux
+            // qui changent un détail du texte.== C'est le plus structurant de
+            // cette page — il décide de ce qu'on voit partout ailleurs — donc il
+            // passe devant, et le reste garde son ordre.
             <LHabillage />
+            <LaLecture />
             <LeRegistre />
             <LeCorpus />
             <Credits />
