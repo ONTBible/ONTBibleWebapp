@@ -312,26 +312,45 @@ mod tests {
             source.contains(APP_ID),
             "l'identifiant d'app a changé dans le backend sans changer ici"
         );
-        // **On vérifie l'ancien chemin, pas la liste entière.**
+        // ## On vérifie **les trois âges**, et le raisonnement a changé
         //
-        // Depuis le déménagement du 29 septembre 2026, le site en déclare
-        // deux et le backend un seul. Exiger l'égalité ferait rougir cette
-        // épreuve **chez nous** pour un travail qui se fait **là-bas** — et
-        // une garde qui accuse le mauvais dépôt est une garde qu'on désarme.
+        // Cette épreuve n'en contrôlait qu'un, avec cet argument : « exiger
+        // l'égalité ferait rougir chez nous pour un travail qui se fait
+        // là-bas, et une garde qui accuse le mauvais dépôt est une garde qu'on
+        // désarme ». Il était juste tant que le backend était en retard.
         //
-        // Ce qui est un invariant, en revanche, et le restera : les deux
-        // doivent garder `/fr/lire/*`. Le jour où il disparaît d'un côté,
-        // tous les liens partagés avant le déménagement cessent d'ouvrir
-        // l'app — en silence, iOS ne relisant ce fichier qu'à l'installation.
+        // **Il ne l'est plus.** La session iOS a aligné sa copie le 1er octobre
+        // 2026 — et elle l'a trouvée en lisant un message qui lui disait
+        // qu'elle n'avait rien à faire.
         //
-        // L'ajout de `/fr/webapp/*` côté backend est demandé à la session qui
-        // tient l'app ; tant qu'il manque, un lien **neuf** ouvre le site dans
-        // le navigateur au lieu de l'app.
-        assert!(
-            source.contains("/fr/lire/*"),
-            "`/fr/lire/*` a disparu du backend : les liens partagés avant le \
-             29 septembre 2026 n'ouvrent plus l'app, et rien ne le signale"
-        );
+        // ## Ce que son cas a appris, et qui vaut pour toute copie
+        //
+        // Cette copie est **morte** : c'est le site qui sert le vrai fichier
+        // depuis la bascule des domaines du 13 août. Son propre commentaire
+        // annonçait le risque — *« le jour où quelqu'un remet l'API sur la
+        // racine, une copie périmée casserait tous les liens universels sans
+        // qu'aucune erreur ne le dise »* — et le cas annoncé est arrivé deux
+        // jours plus tard.
+        //
+        // ==Une copie morte ne dérive pas moins vite qu'une vivante : elle
+        // dérive sans témoin.==
+        //
+        // ## Et la liste ne se raccourcit jamais
+        //
+        // C'est ce qui rend l'égalité tenable ici. Les trois chemins sont
+        // permanents : iOS ne relit ce fichier qu'à l'installation, donc un
+        // appareil installé avant un renommage porte l'ancienne liste pour
+        // longtemps. Le jour où un quatrième âge apparaît, cette épreuve se met
+        // à jour **après** le voisin, jamais avant — elle désigne alors le bon
+        // travail au lieu d'accuser le mauvais dépôt.
+        for age in CHEMINS {
+            assert!(
+                source.contains(age),
+                "`{age}` manque au backend : les liens partagés sous cette \
+                 forme cesseraient d'ouvrir l'app, et rien ne le signalerait — \
+                 iOS ne relit ce fichier qu'à l'installation"
+            );
+        }
     }
 
     /// Le corps Android est du JSON valide, et conforme à ce qu'Android attend.
