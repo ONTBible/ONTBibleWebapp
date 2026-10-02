@@ -26,11 +26,27 @@ pub fn PiedDePage(
     #[prop(optional, into)]
     classe: Option<&'static str>,
 ) -> impl IntoView {
+    // **Sous la webapp, il se range derrière les barres.**
+    //
+    // Elles sont en `fixed` : la latérale occupe seize rem et demie à gauche
+    // au-delà de `lg`, les onglets flottent en bas en dessous. Le contenu s'en
+    // écarte lui-même — `pb-24 lg:ps-[16.5rem] lg:pb-0` —, mais le pied est
+    // rendu par `App`, **hors** de ce conteneur : sans le même dégagement, il
+    // passe sous la barre latérale sur un grand écran et sous les onglets sur un
+    // téléphone.
+    //
+    // ==Ce qu'un `fixed` libère, chacun doit se l'ajouter : il ne pousse
+    // personne.== Et c'est pourquoi la valeur est écrite deux fois — ici et sur
+    // le conteneur de `PageDeLecture`. Les deux décrivent la même géométrie,
+    // qui est celle des barres ; le jour où elle bouge, les deux bougent.
+    let sous_l_app = crate::interface::arbre::sous_l_arbre(crate::domaine::lecture::Arbre::Webapp);
+
     view! {
         <footer class=move || {
             format!(
-                "{} border-t border-filet px-6 py-12 text-sm text-encre-douce",
+                "{} {} border-t border-filet px-6 py-12 text-sm text-encre-douce",
                 classe.unwrap_or_default(),
+                if sous_l_app.get() { "pb-24 lg:ps-[16.5rem] lg:pb-12" } else { "" },
             )
         }>
             <div class="mx-auto flex max-w-large flex-col items-center gap-8">

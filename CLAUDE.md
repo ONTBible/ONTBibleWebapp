@@ -4221,6 +4221,38 @@ avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 
 après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
 ```
 
+### Le pied revient sous la webapp — elle n'avait aucune sortie
+
+**Corrigé le 2 octobre 2026** : *« quand je suis en webapp je n'ai aucun moyen de
+retourner à la home page autrement que par l'URL, donc il faut ramener le
+footer »*.
+
+Il s'effaçait sous la webapp, au motif qu'« aucune app ne met "La Bible ONT /
+Liseuse · Lexique" sous une barre d'onglets ». C'est vrai d'une app — **et une
+app est le site entier, alors que la webapp n'en est qu'une partie.** L'accueil,
+« Le pourquoi », « Ce que l'ONT n'est pas » et les pages légales devenaient donc
+injoignables autrement qu'en tapant l'adresse.
+
+Mesuré : **un seul** lien vers `/fr` dans tout l'arbre, la marque en tête de la
+barre latérale — `hidden lg:flex`, donc **absente sur téléphone**, et muette
+partout ailleurs : une marque ne dit pas « accueil ».
+
+> ==Une ressemblance qu'on porte jusqu'à retirer une sortie n'est plus une
+> ressemblance, c'est une impasse.==
+
+**Le dégagement sous les barres est posé par le pied lui-même**, et il le faut :
+elles sont en `fixed`, le contenu s'en écarte par `pb-24 lg:ps-[16.5rem]`, mais
+le pied est rendu par `App`, **hors** de ce conteneur. Sans le même retrait il
+passerait sous la barre latérale sur un grand écran et sous les onglets sur un
+téléphone.
+
+> ==Ce qu'un `fixed` libère, chacun doit se l'ajouter : il ne pousse personne.==
+
+Et il est rendu **sans condition** plutôt que sous un second `<Show>` : ce
+fichier a payé deux pannes d'hydratation le 30 septembre, et la forme la plus
+sûre est celle qui ne branche pas. Vérifié au banc : dix navigations sous la
+webapp, toutes par le routeur, aucune erreur.
+
 ### « Reprendre » prend la DA du hero — sous la webapp seulement
 
 **Arbitré par l'auteur le 2 octobre 2026** : *« sur la webapp récupère la DA du

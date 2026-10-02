@@ -609,15 +609,29 @@ pub fn App() -> impl IntoView {
             // chemins : c'est la même question — *reste-t-il une page de
             // liseuse à l'écran ?* — et deux tables à tenir d'accord finissent
             // toujours par diverger.
-            // Le pied suit l'édition et les pages hors arbre. Sous la webapp
-            // il s'efface : « La Bible ONT / Liseuse · Lexique » sous une barre
-            // d'onglets, aucune app ne fait ça.
-            <Show when=move || {
-                !crate::interface::arbre::dans_un_arbre().get()
-                    || sous_l_arbre(crate::domaine::lecture::Arbre::Liseuse).get()
-            }>
-                <PiedDePage />
-            </Show>
+            // **Le pied est partout. Corrigé le 2 octobre 2026.**
+            //
+            // Il s'effaçait sous la webapp, au motif qu'« aucune app ne met
+            // "La Bible ONT / Liseuse · Lexique" sous une barre d'onglets ».
+            // C'est vrai d'une app — et une app **est** le site entier, alors
+            // que la webapp en est une partie. Elle n'avait donc **aucune
+            // sortie** : l'accueil, « Le pourquoi », les pages légales
+            // devenaient injoignables autrement qu'en tapant l'adresse.
+            //
+            // Le seul chemin restant était la marque en tête de la barre
+            // latérale — `hidden lg:flex`, donc **absent sur téléphone**, et
+            // muet partout ailleurs : une marque ne dit pas « accueil ».
+            //
+            // ==Une ressemblance qu'on porte jusqu'à retirer une sortie n'est
+            // plus une ressemblance, c'est une impasse.== L'auteur l'a dit
+            // ainsi : *« je n'ai aucun moyen de retourner à la home page
+            // autrement que par l'URL, donc il faut ramener le footer »*.
+            //
+            // Rendu sans condition plutôt que sous un second `<Show>` : ce
+            // fichier a payé deux pannes d'hydratation le 30 septembre, et la
+            // forme la plus sûre est celle qui ne branche pas. Le dégagement
+            // sous les barres est posé par le pied lui-même.
+            <PiedDePage />
         </Router>
     }
 }
