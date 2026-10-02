@@ -1,0 +1,106 @@
+<!doctype html><meta charset="utf-8">
+<title>Banc — ce que la souris envoie</title>
+<style>
+ html,body{margin:0;height:100%;background:#18090D;color:#CFC5B9;
+           font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+ #j{position:fixed;inset:auto 0 0 0;height:38vh;overflow:auto;z-index:9;
+    background:#261016;border-top:2px solid #D87994;padding:10px;white-space:pre-wrap}
+ h1{position:fixed;top:0;left:0;z-index:10;margin:0;padding:4px 10px;
+    font:600 12px/1.4 -apple-system,system-ui;color:#18090D;background:#D87994}
+ iframe{width:100%;height:62vh;border:0;display:block;margin-top:22px}
+</style>
+<h1>BANC — ce n'est pas le site. Clique un verset dans le cadre.</h1>
+<iframe id="f"></iframe>
+<pre id="j">chargement…</pre>
+<!--
+  Ce que la souris envoie, et ce que la page en fait.
+
+  ## Pourquoi il existe
+
+  « Sur l'iPad j'arrive à sélectionner un verset, sur le Safari de mon MacBook
+  non. » Le même code, deux façons de pointer — et aucun des bancs précédents ne
+  pouvait trancher : ils envoient des événements **synthétiques**, qui partent de
+  la cible et arrivent toujours.
+
+  ==Un événement qu'on fabrique prouve que le gestionnaire existe ; il ne prouve
+  rien de ce que le navigateur envoie.== Entre `mousedown` et `click`, Safari
+  peut tout annuler — un glissement de quelques pixels, une sélection qui
+  commence, un `preventDefault` ailleurs — et il n'en dit rien.
+
+  Celui-ci n'envoie rien. Il **écoute**, en capture, sur le document de la page :
+  chaque `mousedown`, `mouseup`, `click`, `pointerdown`, `selectstart` et
+  `dragstart` est journalisé avec sa cible et le déplacement parcouru. C'est à
+  l'auteur de cliquer, et au banc de dire ce qui est arrivé.
+
+  ## Comment s'en servir
+
+      cp scripts/banc-souris.html target/site/
+      → http://127.0.0.1:3000/banc-souris.html
+
+  Puis cliquer un verset dans le cadre, et lire le journal du bas.
+
+  Il porte son étiquette en rouge — règle du §7 bis.
+-->
+<script>
+const f = document.getElementById('f'), j = document.getElementById('j');
+const lignes = [];
+function dire(t){
+  lignes.push(t);
+  if (lignes.length > 200) lignes.shift();
+  j.textContent = lignes.join('\n');
+  j.scrollTop = j.scrollHeight;
+}
+
+const page = new URLSearchParams(location.search).get('page')
+          || '/fr/liseuse/bible/bereshit/bereshit-1';
+f.src = page;
+
+function nommer(e) {
+  if (!e || !e.tagName) return '(rien)';
+  const cls = (e.className && e.className.baseVal !== undefined
+    ? e.className.baseVal : e.className || '').toString().trim().split(/\s+/)
+    .filter(c => c).slice(0, 3).join('.');
+  return e.tagName.toLowerCase() + (cls ? '.' + cls : '');
+}
+
+f.addEventListener('load', () => {
+  const w = f.contentWindow, d = w.document;
+  dire('page : ' + w.location.pathname);
+  dire('clique un verset dans le cadre ci-dessus.');
+  dire('');
+
+  let depart = null;
+  const suivre = (nom) => (e) => {
+    const t = e.target;
+    let extra = '';
+    if (nom === 'mousedown') depart = [e.clientX, e.clientY];
+    if (nom === 'mouseup' && depart) {
+      const dx = Math.abs(e.clientX - depart[0]), dy = Math.abs(e.clientY - depart[1]);
+      extra = '  déplacement ' + dx + ',' + dy + (dx > 3 || dy > 3 ? '  ⚠ glissé' : '');
+    }
+    // Le verset qui porte ce nœud, s'il y en a un, et son état.
+    const verset = t.closest ? t.closest('[role="button"][aria-pressed]') : null;
+    if (verset) extra += '   verset aria-pressed=' + verset.getAttribute('aria-pressed');
+    dire(nom.padEnd(12) + nommer(t) + extra);
+    if (nom === 'click') {
+      setTimeout(() => {
+        const v = t.closest && t.closest('[role="button"][aria-pressed]');
+        dire('            → après : ' + (v ? 'aria-pressed=' + v.getAttribute('aria-pressed')
+                                           : 'aucun verset sous la cible'));
+        const barre = d.querySelector('[aria-label*="élection"]');
+        dire('            → barre de sélection : ' + (barre ? 'présente' : 'absente'));
+        dire('');
+      }, 350);
+    }
+  };
+
+  for (const nom of ['pointerdown','mousedown','mouseup','click','selectstart','dragstart']) {
+    d.addEventListener(nom, suivre(nom), true);
+  }
+  // Ce qui tuerait le clic sans rien dire.
+  w.addEventListener('error', e => dire('ERREUR ' + (e.message || e.error)));
+  d.addEventListener('click', e => {
+    if (e.defaultPrevented) dire('            ⚠ defaultPrevented');
+  }, false);
+});
+</script>
