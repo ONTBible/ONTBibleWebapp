@@ -4221,6 +4221,44 @@ avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 
 après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
 ```
 
+### « Reprendre » prend la DA du hero — sous la webapp seulement
+
+**Arbitré par l'auteur le 2 octobre 2026** : *« sur la webapp récupère la DA du
+hero de vocalisation, mais sur la liseuse laisse comme elle est »*.
+
+`ONTHero` est **le pavé d'appel en tête d'onglet** chez l'app, et son commentaire
+porte une décision du 13 septembre : *« la DA du hero de prononciation vaut pour
+les deux »* — la feuille de prononciation dans le Lexique **et la reprise de
+lecture dans la Bible**. Il le justifie par l'arrivée : un hero *doit se voir
+d'un coup d'œil en arrivant*, donc il est doré et plein. Et *un onglet a un hero
+ou n'en a pas ; il n'en a jamais deux.*
+
+Le site avait déjà la moitié du portage — `CarteDePrononciation` est l'aplat de
+marque — et l'autre moitié lui manquait : `CarteDeReprise` était une carte de
+surface, c'est-à-dire la **variante approximative** que l'app avait justement
+supprimée en nommant le composant.
+
+| | la webapp | l'édition |
+|---|---|---|
+| fond | `bg-marque-encre`, `text-sur-marque-accent` | `bg-surface`, encre ordinaire |
+| hauteur | plancher de `4.75rem` | la hauteur du contenu |
+| le titre | demi-gras | `font-medium` |
+| le second niveau | la même encre à **85 %** | `text-encre-douce` |
+| la flèche | l'encre du pavé | l'accent |
+
+**L'opacité et non une encre atténuée**, et c'est une mesure de l'app reprise au
+mot : sur un aplat doré, `text-encre-douce` part du fond de l'**écran** et rend un
+gris qui n'a rien à voir avec l'or.
+
+**Et l'édition ne la prend pas**, parce qu'elle n'a pas la grammaire qui la
+justifie. On n'y arrive pas sur un onglet : on y arrive par un en-tête, un rappel
+en capitales et un titre. Un aplat de marque y pèserait plus que le titre de la
+page — et le site ne l'emploie qu'à deux endroits, le bouton de connexion et la
+feuille de prononciation, tous deux pour dire *« ceci n'est pas du corpus, c'est
+l'app qui te parle »*.
+
+> ==Une DA se porte avec la grammaire qui la justifie, pas toute seule.==
+
 ### `attr:` sur un élément natif entre dans le nom de l'attribut
 
 **Corrigé le 2 octobre 2026.** Les versets portaient `attr:data-verset=numero`,

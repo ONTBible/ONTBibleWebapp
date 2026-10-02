@@ -40,14 +40,63 @@ pub fn CarteDeReprise(position: Position) -> impl IntoView {
     );
     let ou = format!("{}:{}", position.chapter_title, position.verse);
 
+    // **La DA du hero, mais sous la webapp seulement.**
+    //
+    // `ONTHero` est le pavé d'appel en tête d'onglet, et son commentaire porte
+    // la décision de l'auteur du 13 septembre 2026 : *« la DA du hero de
+    // prononciation vaut pour les deux »*. Les deux, ce sont la feuille de
+    // prononciation dans le Lexique **et la reprise de lecture dans la Bible** —
+    // *un onglet a un hero ou n'en a pas ; il n'en a jamais deux.*
+    //
+    // Son argument tient à l'arrivée : un hero *doit se voir d'un coup d'œil en
+    // arrivant*, donc il est doré et plein. C'est vrai d'un écran d'app, où l'on
+    // atterrit sur un onglet et où l'œil cherche la porte principale.
+    //
+    // **L'édition n'a pas cette grammaire.** On y arrive par un en-tête, un
+    // rappel en capitales et un titre ; un aplat de marque y pèserait plus que
+    // le titre de la page, et le site n'emploie l'aplat qu'à deux endroits — le
+    // bouton de connexion et la feuille de prononciation —, tous deux pour dire
+    // *« ceci n'est pas du corpus, c'est l'app qui te parle »*.
+    //
+    // ==Une DA se porte avec la grammaire qui la justifie, pas toute seule.==
+    // Arbitré par l'auteur le 2 octobre 2026 : *« sur la webapp récupère la DA
+    // du hero de vocalisation, mais sur la liseuse laisse comme elle est »*.
+    let hero = !crate::interface::arbre::sous_l_edition();
+
     view! {
         <A
             href=chemin
-            attr:class="presse survol survol--souleve carte-de-liste mb-8 flex items-center gap-4 rounded-bloc bg-surface px-5 py-4 no-underline"
+            attr:class=if hero {
+                "presse survol survol--souleve mb-8 flex min-h-[4.75rem] items-center gap-4 \
+                 rounded-bloc bg-marque-encre px-5 py-4 text-sur-marque-accent no-underline"
+            } else {
+                "presse survol survol--souleve carte-de-liste mb-8 flex items-center gap-4 \
+                 rounded-bloc bg-surface px-5 py-4 no-underline"
+            }
         >
             <span class="flex-1">
-                <span class="block font-titre text-base font-medium text-encre">"Reprendre"</span>
-                <span class="chiffres-tableau mt-0.5 block text-sm text-encre-douce">{ou}</span>
+                <span
+                    class="block font-titre text-base leading-snug"
+                    class=("font-semibold", hero)
+                    class=("font-medium", !hero)
+                    class=("text-encre", !hero)
+                >
+                    "Reprendre"
+                </span>
+                // Sous le hero, l'opacité plutôt qu'une encre atténuée : sur un
+                // aplat doré, `text-encre-douce` part du fond de l'**écran** et
+                // rend un gris qui n'a rien à voir avec l'or. C'est la mesure de
+                // l'app, et elle vaut ici au mot près — *une opacité de la même
+                // encre garde le rapport voulu sur les quatre thèmes.*
+                <span
+                    class="chiffres-tableau block text-sm"
+                    class=("mt-1", hero)
+                    class=("opacity-85", hero)
+                    class=("mt-0.5", !hero)
+                    class=("text-encre-douce", !hero)
+                >
+                    {ou}
+                </span>
             </span>
             // La flèche qui repart, et non un chevron : un chevron dit « ici
             // dedans », celle-ci dit « là où tu étais ». C'est
@@ -57,7 +106,10 @@ pub fn CarteDeReprise(position: Position) -> impl IntoView {
             <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                class="size-5 shrink-0 text-accent"
+                // Sur l'aplat, la flèche prend l'encre du pavé : l'or sur de
+                // l'or ne se voit pas, et le hero n'a qu'une couleur.
+                class="size-5 shrink-0"
+                class=("text-accent", !hero)
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.8"
