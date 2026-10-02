@@ -79,6 +79,19 @@ if (p.get('neuf') === '1') {
   document.cookie = 'ont.habillage=;path=/;max-age=0';
   dire('profil vidé : ont.lecture et ont.habillage');
 }
+// Un réglage de lecture imposé avant le chargement, pour mesurer une
+// disposition que le serveur ne rend jamais : il rend toujours les défauts, et
+// c'est le navigateur qui recompose après hydratation.
+const regle = p.get('regle');
+if (regle) {
+  try {
+    const o = JSON.parse(localStorage.getItem('ont.lecture') || '{}');
+    const [cle, valeur] = regle.split('=');
+    o[cle] = valeur === 'true';
+    localStorage.setItem('ont.lecture', JSON.stringify(o));
+    dire('réglage imposé : ' + cle + '=' + o[cle]);
+  } catch (e) { dire('réglage impossible : ' + e); }
+}
 const large = p.get('large') === '1';
 if (large) {
   f.style.width = '1440px';
@@ -118,6 +131,8 @@ setTimeout(() => {
   dire('min-width 64rem : ' + w.matchMedia('(min-width: 64rem)').matches
        + '  — racine : ' + w.getComputedStyle(d.documentElement).fontSize);
   dire('cookie : ' + (d.cookie || '(aucun)'));
+  dire('versets sélectionnables : ' + d.querySelectorAll('[role="button"][aria-pressed]').length
+       + '  — curseur pointeur : ' + d.querySelectorAll('.cursor-pointer').length);
   try {
     dire('ont.lecture : ' + (w.localStorage.getItem('ont.lecture') || '(absent)'));
   } catch (e) { dire('ont.lecture : illisible'); }

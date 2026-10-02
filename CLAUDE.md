@@ -4121,6 +4121,60 @@ avant : url obtenue /fr/webapp/…   cookie=webapp   habillage:"application"
 après : url obtenue /fr/liseuse/…  cookie=liseuse  habillage:"auto"
 ```
 
+### En « Versets à la suite », aucun verset ne se sélectionnait
+
+**Corrigé le 2 octobre 2026**, et c'est la cause de tout ce que l'auteur voyait :
+*« sur l'iPad j'arrive à sélectionner un verset, sur le Safari de mon MacBook
+non »*, puis *« ça fonctionne en 127.0.0.1, mais pas en localhost »*.
+
+Les deux dispositions ne rendaient pas le même objet. La lecture **séparée**
+pose un `<div>` avec `role="button"`, `on:click`, `cursor-pointer` et les classes
+d'état ; la lecture **suivie** posait un `<span>` qui n'avait rien de tout ça.
+
+Un lecteur qui avait allumé « Versets à la suite » perdait donc le surlignage, la
+note, la copie, l'image et le partage — et le curseur ne changeait même pas au
+survol, donc **rien ne lui disait qu'il avait perdu quelque chose**.
+
+> ==Deux dispositions du même texte sont deux façons de le poser, pas deux
+> façons de s'en servir.== Un réglage de mise en page qui retire une
+> fonctionnalité n'est plus un réglage de mise en page.
+
+Les trois états — l'estompage des voisins, la teinte d'un surlignage, le
+surlignage lui-même — vivaient en trois fermetures écrites sur place dans la
+seule branche qui les avait. Ils sont dans `etats()` désormais, à côté de
+`gestes()`, et les deux branches les appellent : *deux exemplaires d'une même
+règle finissent par en dire deux différentes, et celui qu'on ne regarde pas est
+celui qui dérive.*
+
+Le pointillé de sélection est d'ailleurs **mieux en flux** qu'en blocs : posé sur
+la décoration de texte, il épouse les retours à la ligne. Et
+`box-decoration-clone` vaut maintenant pour tout ce qui se peint — le fond d'un
+verset désigné **comme** celui d'un surlignage, qui sans lui recevrait un seul
+rectangle à cheval sur ses trois lignes.
+
+#### Pourquoi deux origines donnaient deux réponses
+
+`localhost` et `127.0.0.1` sont **deux origines distinctes** pour un navigateur :
+`localStorage` et cookies séparés. L'auteur avait « Versets à la suite » allumé
+sur l'une et pas sur l'autre — d'où un site qui marchait d'un côté et pas de
+l'autre, à serveur identique.
+
+Vérifié avant de chercher ailleurs : les deux hôtes servent le **même octet**
+(252 275), les mêmes en-têtes, le même WASM.
+
+> ==Un réglage par origine fait deux sites de la même adresse.== Quand « ça
+> marche ici et pas là » et que le serveur sert le même octet, ce n'est pas le
+> site qui diffère, c'est ce que le navigateur a retenu de lui.
+
+D'où `?neuf=1` et `?regle=<clé>=<valeur>` au banc du pointeur : vider le profil
+d'une origine, ou **imposer un réglage** que le serveur ne rend jamais — il rend
+toujours les défauts, et c'est le navigateur qui recompose après hydratation.
+
+```text
+avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 6
+après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
+```
+
 ### `attr:` sur un élément natif entre dans le nom de l'attribut
 
 **Corrigé le 2 octobre 2026.** Les versets portaient `attr:data-verset=numero`,
