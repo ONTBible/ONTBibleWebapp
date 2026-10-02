@@ -147,10 +147,12 @@ fn libelle(unite: &UniteDto) -> impl IntoView {
     let prefs = preferences();
     move || {
         if n == 0 {
-            return view! { <span class="nom-d-unite text-encre-vive">{titre.clone()}</span> }.into_any();
+            return view! { <span class="nom-d-unite text-encre-vive">{titre.clone()}</span> }
+                .into_any();
         }
         if prefs.get().francais {
-            return view! { <span class="nom-d-unite text-encre-vive">{MOT_RECU}" "{n}</span> }.into_any();
+            return view! { <span class="nom-d-unite text-encre-vive">{MOT_RECU}" "{n}</span> }
+                .into_any();
         }
         view! {
             <span class="nom-d-unite text-encre-vive">

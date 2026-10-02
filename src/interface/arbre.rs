@@ -131,6 +131,10 @@ pub fn sous_l_edition() -> bool {
 /// retouche — et le fil est exactement ce que personne ne relit.==
 pub fn maillon_de_la_bible() -> (String, String) {
     let ici = arbre_maintenant();
-    let nom = if ici == Arbre::Liseuse { "Lire" } else { "Bible" };
+    let nom = if ici == Arbre::Liseuse {
+        "Lire"
+    } else {
+        "Bible"
+    };
     (crate::domaine::chemins::bible(ici), nom.to_string())
 }
