@@ -1862,8 +1862,23 @@ CloudFront ──┬── /pkg/*  /images/*  /fontes/*  /robots.txt ──▶  
 Un seul geste : `./scripts/deployer.sh`. Il construit, pousse, applique,
 invalide.
 
-**Mesuré** : 75 ms par page à chaud, 378 ms à froid. WASM 1 275 Ko en
-`application/wasm`, première visite ~700 Ko sur le fil, visites suivantes 0.
+**Mesuré le 2 octobre 2026**, sur le déployé : 67 à 97 ms au premier octet selon
+la page. WASM **2 489 Ko** en `application/wasm`, **828 Ko sur le fil** une fois
+compressé en brotli par CloudFront ; visites suivantes 0, le nom portant
+l'empreinte. La feuille fait 12 Ko sur le fil, le JS 7,5.
+
+Le relevé d'août disait « 1 275 Ko, ~700 Ko sur le fil » : le WASM a **doublé**
+pendant le chantier des deux arbres, et le fil n'a gagné que dix-huit pour cent —
+brotli absorbe une bonne part de ce qu'on ajoute. Le chiffre est tenu à jour ici
+plutôt que laissé derrière : ==un nombre périmé dans un document de reprise ne se
+lit pas comme périmé, il se lit comme une mesure.==
+
+**Et ce qu'on voit en développement n'est pas ce que voit un lecteur.** Le même
+WASM pèse **12 Mo** servi par `cargo leptos watch` — quinze fois le fil de
+production : le profil `dev` ne passe ni par `opt-level = 'z'`, ni par `lto`, ni
+par `wasm-opt`, et le serveur local ne compresse pas. Une page qui paraît lente à
+s'animer en local peut n'avoir aucun défaut.
+
 Coût attendu : 0 € jusqu'à des dizaines de milliers de visites, ~2 €/mois si le
 palier gratuit disparaissait. Une alerte de budget à 5 $ en prévision — c'est
 la seule chose qui voie venir un abus, qui ne se manifeste par aucune erreur.
