@@ -312,45 +312,49 @@ mod tests {
             source.contains(APP_ID),
             "l'identifiant d'app a changé dans le backend sans changer ici"
         );
-        // ## On vérifie **les trois âges**, et le raisonnement a changé
+        // ## On vérifie **l'ancien chemin seul**, et j'ai dû le réapprendre
         //
-        // Cette épreuve n'en contrôlait qu'un, avec cet argument : « exiger
-        // l'égalité ferait rougir chez nous pour un travail qui se fait
-        // là-bas, et une garde qui accuse le mauvais dépôt est une garde qu'on
-        // désarme ». Il était juste tant que le backend était en retard.
+        // Cette épreuve a exigé les trois âges pendant un commit. Elle a fait
+        // rougir la CI, et pour une raison qui était écrite ici même avant que
+        // je ne l'efface : ==une garde qui accuse le mauvais dépôt est une
+        // garde qu'on désarme.==
         //
-        // **Il ne l'est plus.** La session iOS a aligné sa copie le 1er octobre
-        // 2026 — et elle l'a trouvée en lisant un message qui lui disait
-        // qu'elle n'avait rien à faire.
+        // La session iOS avait aligné sa copie dans **une branche**. Je l'ai
+        // mesurée dans mon arbre local — où son travail était visible — et j'en
+        // ai conclu qu'elle était alignée. La CI, elle, clone `dev`, où la PR
+        // attendait encore.
         //
-        // ## Ce que son cas a appris, et qui vaut pour toute copie
+        // ```text
+        // mon arbre local   /fr/lire/*  /fr/liseuse/*  /fr/webapp/*
+        // dev               /fr/lire/*  …
+        // ```
         //
-        // Cette copie est **morte** : c'est le site qui sert le vrai fichier
-        // depuis la bascule des domaines du 13 août. Son propre commentaire
-        // annonçait le risque — *« le jour où quelqu'un remet l'API sur la
-        // racine, une copie périmée casserait tous les liens universels sans
-        // qu'aucune erreur ne le dise »* — et le cas annoncé est arrivé deux
-        // jours plus tard.
+        // ==Le dépôt voisin qu'on lit n'est pas celui que la CI clone.== Un
+        // arbre de travail porte les branches de qui y travaille ; une CI ne
+        // voit que ce qui est fusionné. Les deux répondent à la même commande
+        // et ne disent pas la même chose.
         //
-        // ==Une copie morte ne dérive pas moins vite qu'une vivante : elle
-        // dérive sans témoin.==
+        // C'est la fenêtre de quatre heures du 29 septembre, retournée : là une
+        // promotion précédait la fusion du lecteur, ici une garde précédait la
+        // fusion de ce qu'elle garde. Dans les deux cas, **le rouge tombe chez
+        // qui n'a rien à corriger**.
         //
-        // ## Et la liste ne se raccourcit jamais
+        // ## Ce qu'on garde ici, et ce qu'on laisse à l'autre
         //
-        // C'est ce qui rend l'égalité tenable ici. Les trois chemins sont
-        // permanents : iOS ne relit ce fichier qu'à l'installation, donc un
-        // appareil installé avant un renommage porte l'ancienne liste pour
-        // longtemps. Le jour où un quatrième âge apparaît, cette épreuve se met
-        // à jour **après** le voisin, jamais avant — elle désigne alors le bon
-        // travail au lieu d'accuser le mauvais dépôt.
-        for age in CHEMINS {
-            assert!(
-                source.contains(age),
-                "`{age}` manque au backend : les liens partagés sous cette \
-                 forme cesseraient d'ouvrir l'app, et rien ne le signalerait — \
-                 iOS ne relit ce fichier qu'à l'installation"
-            );
-        }
+        // `/fr/lire/*` est l'invariant qui ne dépend de personne : il est dans
+        // les deux copies depuis le premier jour, et le retirer ferait cesser
+        // d'ouvrir l'app à tous les liens partagés avant le déménagement — en
+        // silence, iOS ne relisant ce fichier qu'à l'installation.
+        //
+        // L'alignement des âges plus récents est gardé **chez le voisin**, à
+        // l'endroit du geste : il l'a écrit dans son `web.rs` le 1er octobre
+        // 2026. Chacun garde ce qu'il contrôle, et aucune des deux gardes ne
+        // peut mettre l'autre en file d'attente.
+        assert!(
+            source.contains("/fr/lire/*"),
+            "`/fr/lire/*` a disparu du backend : les liens partagés avant le \
+             déménagement n'ouvrent plus l'app, et rien ne le signale"
+        );
     }
 
     /// Le corps Android est du JSON valide, et conforme à ce qu'Android attend.
