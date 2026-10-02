@@ -61,7 +61,24 @@ if (arbre) {
   } catch (e) {}
   document.cookie = 'ont.habillage=' + arbre + ';path=/;max-age=600;samesite=lax';
 }
-dire('page : ' + page);
+// **Et il faut pouvoir mesurer une fenêtre de bureau.** Un iframe prend la
+// largeur de l'écran du simulateur — 956 px —, donc toutes les mesures faites
+// ici restaient **sous `lg`**. Un défaut qui ne se produit qu'au-delà de
+// 1024 px ne pouvait pas y entrer, et l'on concluait « tout va bien » en
+// n'ayant jamais regardé la moitié des cas.
+//
+// ==Un banc qui ne peut pas prendre la taille du cas mesuré ne mesure que
+// l'autre.== `?large=1` donne au cadre 1440 px de viewport et le réduit à
+// l'écran : la page croit être sur un Mac, et les requêtes média avec elle.
+const large = p.get('large') === '1';
+if (large) {
+  f.style.width = '1440px';
+  f.style.height = '900px';
+  f.style.transformOrigin = 'top left';
+  f.style.transform = 'scale(' + (document.body.clientWidth / 1440).toFixed(4) + ')';
+  f.style.marginBottom = (900 * (document.body.clientWidth / 1440) - 900) + 'px';
+}
+dire('page : ' + page + (large ? '  (fenêtre 1440×900)' : '  (fenêtre du simulateur)'));
 f.src = page;
 
 // Le nom lisible d'un élément : sa balise, son id, ses classes utiles.
@@ -161,12 +178,31 @@ setTimeout(() => {
     dire('  user-select : ' + w.getComputedStyle(v).userSelect
          + ' — webkitUserSelect : ' + (w.getComputedStyle(v).webkitUserSelect || '—'));
     dire('  aria-pressed=' + v.getAttribute('aria-pressed'));
-    v.click();
+    // **Un vrai clic part du nœud sous le pointeur**, et remonte. `v.click()`
+    // part de l'élément qu'on vise : il déclenche le gestionnaire même si
+    // quelque chose le recouvre, et même si le garde du composant aurait
+    // écarté la cible réelle — `cible_est_un_lien` regarde `event.target`.
+    //
+    // ==Un clic synthétique posé sur sa cible prouve que le gestionnaire
+    // existe, pas qu'on peut l'atteindre.==
+    // **Un seul clic, et relu après coup.**
+    //
+    // Le premier jet en envoyait deux — un depuis le nœud sous le pointeur,
+    // un sur l'élément visé — puis relisait l'attribut. Or `basculer` est une
+    // bascule : le second défaisait le premier, et le banc rapportait
+    // `aria-pressed=false` en décrivant l'état qu'il venait de produire.
+    //
+    // ==Deux mesures qui modifient la même chose ne se complètent pas, elles
+    // s'annulent.== Et la lecture synchrone qui suivait un clic rendait
+    // toujours l'ancienne valeur, l'attribut n'étant écrit qu'au tour suivant.
+    const cible = sur || v;
+    cible.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
     setTimeout(() => {
-      dire('  après clic : aria-pressed=' + v.getAttribute('aria-pressed'));
+      dire('  clic depuis ' + nommer(cible)
+           + ' → aria-pressed=' + v.getAttribute('aria-pressed'));
       const barre = d.querySelector('[aria-label*="élection"], .barre-de-selection');
       dire('  barre de sélection : ' + (barre ? 'présente' : 'absente'));
-    }, 500);
+    }, 600);
   }
 }, 8000);
 </script>
