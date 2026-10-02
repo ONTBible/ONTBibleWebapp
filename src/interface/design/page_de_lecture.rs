@@ -266,7 +266,21 @@ pub fn PageDeLecture(
             // première ligne de la liste deviendrait inatteignable.
             {action.map(|action| {
                 view! {
-                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
+                    // **Et la rangée rend le pointeur à ce qu'elle porte.**
+                    //
+                    // `pointer-events-none` est là pour que la largeur vide à
+                    // gauche ne prenne pas les clics sur toute la colonne — mais
+                    // il **descend**, et ce qu'on pose dedans l'hérite.
+                    // `BoutonDeRecherche` le rétablissait sur lui-même ; le
+                    // « aA » ne le faisait pas, et sous l'édition, où il atterrit
+                    // ici, il ne répondait ni au survol ni au clic.
+                    //
+                    // ==Une annulation qui descend doit être rendue par le
+                    // conteneur, pas redemandée à chacun de ses hôtes.== Posée
+                    // chez l'hôte, elle devient une discipline — donc une chose
+                    // qu'on oublie, et qui ne casse rien de visible en
+                    // s'oubliant.
+                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2 [&>*]:pointer-events-auto">
                         {action()}
                     </div>
                 }

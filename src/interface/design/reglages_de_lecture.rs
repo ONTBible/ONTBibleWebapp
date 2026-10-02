@@ -593,7 +593,23 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("pointer-events-none", selection_active)
                 inert=move || selection_active().then_some("")
             >
-                <span aria-hidden="true" class="font-titre text-base leading-none">"aA"</span>
+                // **Le libellé suit le bouton, pas l'inverse.** `main` écrit
+                // `text-xl` dans un cercle de `size-14` ; la capsule de l'app
+                // fait `size-9` et prend `text-base`. Reporter l'un dans
+                // l'autre donne un « aA » perdu au milieu d'un grand disque —
+                // ce que l'auteur a vu tout de suite : *« le texte à
+                // l'intérieur n'a pas la bonne taille »*.
+                //
+                // ==Une taille de contenu reprise sans sa boîte n'est pas une
+                // valeur portée, c'est une valeur déplacée.==
+                <span
+                    aria-hidden="true"
+                    class="font-titre leading-none"
+                    class=("text-xl", sous_l_edition)
+                    class=("text-base", !sous_l_edition)
+                >
+                    "aA"
+                </span>
             </button>
 
             <div

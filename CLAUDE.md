@@ -4003,6 +4003,28 @@ faut remonter chercher n'en est plus un.*
 | la feuille | croît depuis le bas à droite | depuis le haut à droite |
 | la zone sûre | `calc(1.5rem + env(safe-area-inset-bottom))` | portée par la barre |
 
+**Deux reprises de plus, et les deux viennent de la production** — *« regarde
+vraiment la prod et récupère »* :
+
+- **le libellé suit la boîte.** `main` écrit `text-xl` dans un cercle de
+  `size-14` ; la capsule de l'app fait `size-9` et prend `text-base`. Reporter la
+  taille sans la boîte donnait un « aA » perdu au milieu d'un grand disque.
+  ==Une taille de contenu reprise sans sa boîte n'est pas une valeur portée,
+  c'est une valeur déplacée.==
+- **et le bouton ne répondait ni au survol ni au clic.** Sous l'édition il
+  atterrit dans la rangée de `action`, qui porte `pointer-events-none` pour que
+  sa largeur vide ne prenne pas les clics de toute la colonne. Or cette
+  annulation **descend** : `BoutonDeRecherche` la rétablissait sur lui-même, le
+  « aA » ne le faisait pas.
+
+  La rangée porte donc `[&>*]:pointer-events-auto`. ==Une annulation qui descend
+  doit être rendue par le conteneur, pas redemandée à chacun de ses hôtes.==
+  Posée chez l'hôte, elle devient une discipline — donc une chose qu'on oublie,
+  et qui ne casse rien de visible en s'oubliant.
+
+Mesuré au banc du pointeur : `56×56 à 876,1120`, `pointer-events: auto` sur le
+bouton et `none` sur son parent, le clic reçu, `aria-expanded` à `true`.
+
 La feuille suit le bouton, et ce n'est pas un détail : *une feuille qui pousse du
 coin opposé à celui qu'on vient de toucher ne se lit plus comme venant de là.*
 

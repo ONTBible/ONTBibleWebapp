@@ -114,6 +114,35 @@ setTimeout(() => {
   // Le clic est pris par le conteneur du verset, qui porte `role="button"`.
   // On le clique et l'on relit son `aria-pressed` — l'état que le composant
   // écrit, et non une classe qu'on devinerait.
+  // Le « aA » : est-il atteignable là où il se dessine ?
+  const aa = [...d.querySelectorAll('button[aria-label="Réglages de lecture"]')][0];
+  if (!aa) {
+    dire('');
+    dire('✗ bouton « aA » absent du document');
+  } else {
+    const r = aa.getBoundingClientRect();
+    const dessus = d.elementFromPoint(Math.round(r.left + r.width / 2),
+                                      Math.round(r.top + r.height / 2));
+    const ok = aa.contains(dessus) || dessus === aa;
+    dire('');
+    dire('« aA » : ' + Math.round(r.width) + '×' + Math.round(r.height)
+         + ' à ' + Math.round(r.left) + ',' + Math.round(r.top));
+    dire('  pointer-events : ' + w.getComputedStyle(aa).pointerEvents
+         + ' — parent : ' + w.getComputedStyle(aa.parentElement).pointerEvents);
+    dire(ok ? '  ✓ il reçoit son clic' : '  ✗ VOLÉ par ' + nommer(dessus));
+    // **Le clic vient en dernier, et c'est une leçon d'instrument.** Ouvrir la
+    // feuille pose un voile plein écran : toute sonde qui suit le trouve, lui
+    // et rien d'autre. Un premier relevé a ainsi annoncé « le lien est volé »
+    // en décrivant l'état que le banc venait lui-même de créer.
+    //
+    // ==Une mesure qui modifie la page doit passer après celles qui la
+    // lisent.==
+    setTimeout(() => {
+      aa.click();
+      setTimeout(() => dire('  après clic : aria-expanded=' + aa.getAttribute('aria-expanded')), 400);
+    }, 1200);
+  }
+
   const v = d.querySelector('[role="button"][aria-pressed]');
   if (!v) {
     dire('');
