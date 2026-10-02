@@ -95,6 +95,20 @@ pub fn PageDeLecture(
     /// la barre. Chaque arbre en pose une et pas l'autre.
     #[prop(optional_no_strip)]
     action: Option<Children>,
+    /// **Cette page porte-t-elle du texte à lire ?**
+    ///
+    /// Vrai pour un passage, une fiche, la feuille de prononciation et les
+    /// extraits d'une recherche : leur corps est du corpus, et le curseur de
+    /// taille doit l'agrandir. Faux partout ailleurs — un sommaire, le lexique,
+    /// « Vous », les réglages portent des **noms** et des commandes, pas du
+    /// texte qu'on lit au long.
+    ///
+    /// Le défaut est `false`, et c'est voulu : ==un réglage qui agrandit
+    /// l'interface se remarque tout de suite ; un corpus qui n'a pas grandi se
+    /// remarque aussi, et l'on sait alors quoi corriger.== L'oubli dans ce sens
+    /// se voit ; dans l'autre, il passe pour une mise en page.
+    #[prop(optional)]
+    corpus: bool,
 ) -> impl IntoView {
     let chemin = leptos_router::hooks::use_location().pathname;
     // Relevé avant que `barre` ne soit consommée par le rendu — `Children` est
@@ -421,7 +435,32 @@ pub fn PageDeLecture(
             // le titre sont de la chrome, et ils ne doivent pas enfler quand on
             // monte le corps — c'est la règle de l'app, et sa raison est
             // qu'une chrome qui grandit mange la place du texte.
-            <div class="liseuse" class=("arrivee", sous_l_app) style:--rang="2">
+            //
+            // **Et elle ne vaut que pour les pages qui portent du corpus.
+            // Corrigé le 2 octobre 2026**, sur une observation de l'auteur :
+            // *« le modificateur de taille de texte ne doit pas impacter
+            // l'interface, seulement le corps du texte — j'ai vu que quand
+            // j'augmentais le texte, les boutons OAuth grossissaient aussi ».*
+            //
+            // `.liseuse` pose une **taille de police**, donc tout ce qu'elle
+            // contient en hérite. Posée sur les douze pages du gabarit, elle
+            // faisait enfler les boutons de connexion, les cartes de « Vous »,
+            // les rangées de réglages — c'est-à-dire exactement la chrome que
+            // le commentaire ci-dessus dit de protéger.
+            //
+            // ==Une règle qu'on énonce pour un conteneur ne vaut que pour ce
+            // qu'on met dedans.== Le gabarit la posait au bon endroit ; ce
+            // qu'il y mettait n'était pas toujours du texte à lire.
+            //
+            // Le §8 undecies l'avait écrit et c'est resté vrai à moitié : *« il
+            // n'est lu que par `.liseuse`. Ni la navigation, ni le fil
+            // d'Ariane, ni le panneau lui-même ne bougent — c'est la moitié du
+            // sujet, et c'est la moitié qu'on oublie. »*
+            <div
+                class=("liseuse", corpus)
+                class=("arrivee", sous_l_app)
+                style:--rang="2"
+            >
                 {children()}
             </div>
         </Bloc>

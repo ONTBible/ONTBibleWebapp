@@ -4221,6 +4221,55 @@ avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 
 après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
 ```
 
+### Le curseur de taille faisait enfler l'interface
+
+**Corrigé le 2 octobre 2026** : *« le modificateur de taille de texte ne doit pas
+impacter l'interface, seulement le corps du texte — j'ai vu que quand
+j'augmentais le texte, les boutons OAuth grossissaient aussi ».*
+
+Le §8 undecies l'avait pourtant écrit, et c'est resté vrai **à moitié** :
+
+> il n'est lu que par `.liseuse`. Ni la navigation, ni le fil d'Ariane, ni le
+> panneau lui-même ne bougent — c'est la moitié du sujet, et c'est la moitié
+> qu'on oublie.
+
+`.liseuse` pose une **taille de police**, donc tout ce qu'elle contient en
+hérite. `PageDeLecture` la posait sur les douze pages du gabarit : les boutons de
+connexion, les cartes de « Vous », les rangées de réglages enflaient avec le
+corps — c'est-à-dire exactement la chrome que le commentaire du gabarit dit de
+protéger.
+
+> ==Une règle qu'on énonce pour un conteneur ne vaut que pour ce qu'on met
+> dedans.== Le gabarit la posait au bon endroit ; ce qu'il y mettait n'était pas
+> toujours du texte à lire.
+
+Le prop `corpus` la borne aux quatre pages qui portent du texte : un **passage**,
+une **fiche**, la **prononciation**, les extraits d'une **recherche**. Un
+sommaire, le lexique, « Vous » et les réglages portent des noms et des
+commandes.
+
+Son défaut est `false`, et c'est voulu : ==un réglage qui agrandit l'interface se
+remarque tout de suite ; un corpus qui n'a pas grandi se remarque aussi, et l'on
+sait alors quoi corriger.== L'oubli dans ce sens se voit ; dans l'autre, il passe
+pour une mise en page.
+
+#### La garde a menti deux fois avant de dire vrai
+
+`verifier-composition.py` refuse désormais `.liseuse` sur une page d'interface
+**et** son absence sur une page de corpus. Elle a fallu la corriger deux fois :
+
+- elle cherchait la chaîne « liseuse », qui est dans le **canonique** de chaque
+  page (`ontbible.com/fr/liseuse/…`) et dans le script d'avant-rendu, lequel
+  porte les deux racines d'arbres. Toutes les pages de la webapp rougissaient.
+  ==Un nom qui sert aussi d'adresse ne se cherche pas comme un mot.== ;
+- puis elle attrapait le **sélecteur de fonte**, qui pose la classe sur chacun
+  de ses boutons pour que chaque ligne du menu se compose dans la fonte qu'elle
+  propose. Elle y est légitime. La garde vise donc `<div class="liseuse` — le
+  gabarit pose un `div`, le sélecteur des `button`.
+
+Et `/fr/<arbre>/bible/partie/<id>` a la même forme qu'un passage sans en être
+un : c'est la liste des livres d'une partie.
+
 ### La barre de sélection débordait du cadre
 
 **Corrigé le 2 octobre 2026**, sur une capture à 402 points : `PARTAGER` était

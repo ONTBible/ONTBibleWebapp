@@ -53,6 +53,7 @@ pub fn Prononciation() -> impl IntoView {
                     Ok(Some(feuille)) => {
                         view! {
                             <PageDeLecture
+                                corpus=true
                                 fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
                                 titre=feuille.titre
                             >
@@ -78,6 +79,7 @@ pub fn Prononciation() -> impl IntoView {
 fn Absente() -> impl IntoView {
     view! {
         <PageDeLecture
+                                corpus=true
             fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
             titre="Comment se prononce ce qui est écrit"
         >

@@ -171,6 +171,44 @@ def prefixes_restes(document: str) -> list[str]:
     return sorted({m.group(1) for m in PREFIXES_DE_LEPTOS.finditer(document)})
 
 
+# **Les pages qui portent du texte à lire, et elles seules.**
+#
+# `.liseuse` pose une taille de police que le curseur des réglages gouverne :
+# tout ce qu'elle contient en hérite. Posée sur les douze pages du gabarit, elle
+# faisait enfler les boutons de connexion et les cartes de « Vous » — c'est-à-
+# dire l'interface, que ce curseur ne doit jamais toucher.
+#
+# La liste est écrite par **suffixe de chemin**, pour qu'elle vaille dans les
+# deux arbres sans être écrite deux fois.
+#
+# ==Un réglage qui agrandit l'interface se remarque tout de suite ; un corpus qui
+# n'a pas grandi se remarque aussi.== L'oubli dans ce sens se voit ; dans
+# l'autre, il passe pour une mise en page — d'où cette garde, qui refuse les
+# deux.
+PORTENT_DU_CORPUS = (
+    "/lexique/prononciation",
+    "/rechercher",
+)
+
+
+def porte_du_corpus(page: str) -> bool:
+    """Un passage, une fiche, la prononciation ou une recherche."""
+    # **Sans la chaîne de requête.** `/fr/webapp/rechercher?q=ruach` ne finit pas
+    # par `/rechercher`, et la garde signalait une page de corpus comme une page
+    # d'interface — en décrivant très bien un défaut qui n'existait pas.
+    page = page.split("?", 1)[0]
+    if page.endswith(PORTENT_DU_CORPUS):
+        return True
+    # Un passage : `/fr/<arbre>/bible/<livre>/<unité>`. Une fiche :
+    # `/fr/<arbre>/lexique/<lemme>`, la feuille de prononciation mise à part.
+    morceaux = [m for m in page.split("/") if m]
+    # `/fr/<arbre>/bible/partie/<id>` a la même longueur qu'un passage et n'en
+    # est pas un : c'est la liste des livres d'une partie.
+    if len(morceaux) == 5 and morceaux[2] == "bible" and morceaux[3] != "partie":
+        return True
+    return len(morceaux) == 4 and morceaux[2] == "lexique"
+
+
 def texte_de(page: str) -> str:
     document = urllib.request.urlopen(SERVEUR + page).read().decode()
     # Le script d'hydratation porte du JSON sérialisé, qui n'est pas de la
@@ -184,6 +222,31 @@ def main() -> None:
     for page in PAGES:
         try:
             document = urllib.request.urlopen(SERVEUR + page).read().decode()
+            attendu = porte_du_corpus(page)
+            # **La classe, et non le mot.** Un premier jet cherchait la chaîne
+            # « liseuse » : elle est dans le canonique de chaque page
+            # (`ontbible.com/fr/liseuse/…`) et dans le script d'avant-rendu, qui
+            # porte les deux racines d'arbres. La garde signalait alors toutes
+            # les pages de la webapp.
+            #
+            # ==Un nom qui sert aussi d'adresse ne se cherche pas comme un
+            # mot.==
+            # **Le conteneur du gabarit, et non la classe partout.** Le
+            # sélecteur de fonte en pose une sur chacun de ses boutons, pour que
+            # chaque ligne du menu se compose dans la fonte qu'elle propose : la
+            # classe y est légitime, et la chercher sans sa balise faisait
+            # rougir la page des réglages.
+            #
+            # `PageDeLecture` pose un `<div>` ; le sélecteur, des `<button>`.
+            trouvee = re.search(r'<div class="liseuse(?:\s|")', document) is not None
+            if attendu != trouvee:
+                fautes += 1
+                if trouvee:
+                    print(f"{page} — `.liseuse` posée sur une page d'interface")
+                    print("    le curseur de taille y ferait enfler les boutons et les cartes")
+                else:
+                    print(f"{page} — `.liseuse` absente d'une page de corpus")
+                    print("    le curseur de taille n'y agrandirait rien")
             prefixes = prefixes_restes(document)
             if prefixes:
                 fautes += len(prefixes)
@@ -214,7 +277,8 @@ def main() -> None:
 
     print(
         f"{len(PAGES)} pages, aucune ponctuation double détachable, "
-        "aucune imbrication interdite et aucun préfixe de Leptos servi."
+        "aucune imbrication interdite, aucun préfixe de Leptos servi "
+        "et `.liseuse` exactement sur les pages de corpus."
     )
 
 

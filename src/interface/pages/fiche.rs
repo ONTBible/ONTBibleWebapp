@@ -146,6 +146,7 @@ pub fn Fiche() -> impl IntoView {
                             />
 
                             <PageDeLecture
+                                corpus=true
                                 fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
                                 // Le rappel nomme l'**espèce**, et il était
                                 // écrit en dur. Les deux cent vingt fiches de
@@ -261,6 +262,7 @@ fn Absente() -> impl IntoView {
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
+                                corpus=true
             fil=vec![(crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()), "Lexique".to_string())]
             rappel="Les intraduisibles"
             titre="Ce terme n'a pas de fiche"

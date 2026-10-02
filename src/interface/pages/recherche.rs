@@ -67,7 +67,7 @@ pub fn Recherche() -> impl IntoView {
         // Ce que l'ancien montage avait raison de vouloir : que le champ soit
         // **immédiatement là**. Il l'est — premier objet sous le titre, sans
         // un écran de défilement devant lui.
-        <PageDeLecture liste=true titre="Rechercher">
+        <PageDeLecture liste=true corpus=true titre="Rechercher">
             // Un vrai formulaire, en `GET`. Sans JavaScript il marche quand
             // même : le navigateur compose l'adresse, le serveur rend la page.
             // C'est le même chemin que celui d'un lien partagé.

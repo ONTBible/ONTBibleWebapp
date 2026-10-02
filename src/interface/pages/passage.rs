@@ -366,6 +366,7 @@ pub fn Passage() -> impl IntoView {
                             />
 
                             <PageDeLecture
+                                corpus=true
                                 fil=vec![
                                     crate::interface::arbre::maillon_de_la_bible(),
                                     (
@@ -693,6 +694,7 @@ fn Absent() -> impl IntoView {
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
+                                corpus=true
             fil=vec![crate::interface::arbre::maillon_de_la_bible()]
             rappel="Le corpus"
             titre="Ce passage n'est pas encore là"
