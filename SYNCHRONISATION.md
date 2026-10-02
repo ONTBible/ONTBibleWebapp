@@ -6724,3 +6724,57 @@ ne déclare que la première — 436 adresses, zéro de l'autre arbre.
 Rien à resoumettre à Bing ni à Google au-delà du plan habituel : les adresses
 déclarées ne changent que de préfixe, et IndexNow se relance sur un **ajout** de
 pages, pas sur un déménagement.
+
+### Et une garde d'égalité entre dépôts a mis la CI en file d'attente
+
+**Le 1er octobre 2026, dans l'heure qui a suivi.** L'épreuve qui lit la copie du
+fichier d'association chez le backend n'en vérifiait qu'un chemin ; je l'ai
+resserrée pour qu'elle exige les trois, ayant constaté que le voisin était
+aligné.
+
+Il l'était **dans une branche**. Ma CI clone `dev`.
+
+```text
+mon arbre local   /fr/lire/*  /fr/liseuse/*  /fr/webapp/*
+origin/dev        /fr/lire/*  /fr/webapp/*
+origin/device     les trois — 17 commits en attente de promotion
+```
+
+> ==Le dépôt voisin qu'on lit n'est pas celui que la CI clone.== Un arbre de
+> travail porte les branches de qui y travaille ; une CI ne voit que ce qui est
+> fusionné. Les deux répondent à la même commande et ne disent pas la même
+> chose.
+
+Et l'écart n'est pas borné par le temps : `device → dev` est une décision de
+l'auteur, pas un délai de CI. Une garde posée dessus attend un arbitrage humain
+dont personne ne connaît la date.
+
+#### À quoi on voit, avant de l'écrire, qu'une garde va devenir une file
+
+C'est la forme de ce qu'on compare, et elle se lit sans attendre le rouge :
+
+| garde | compare | tient-elle ? |
+|---|---|---|
+| `applicationId` entre les deux dépôts | deux **valeurs stables** | oui — un identifiant se renomme, il ne s'allonge pas : aucun côté n'a jamais raison d'être en retard |
+| les chemins de l'association | deux **listes dont l'une grandit** | non — le côté qui ajoute précède forcément l'autre |
+
+> ==Une garde d'égalité entre dépôts tient quand les deux côtés changent
+> ensemble, et devient une file d'attente dès que l'un peut avoir raison d'être
+> en retard.==
+
+Le découpage qui tient : **chacun garde ce qu'il contrôle**. Le site exige
+`/fr/lire/*`, qui ne dépend de personne et dont le retrait casserait tous les
+liens d'avant le déménagement. L'alignement des âges récents est gardé chez
+l'app, à l'endroit du geste.
+
+#### Et les deux dépendances de la semaine ont été trouvées de la même façon
+
+    app/Captures/brut/        →  /fr/l-app et comparer-a-l-app.py
+    backend/…/web.rs          →  deux épreuves du site
+
+Les deux sont **nées dans le dépôt du site**, et rien chez l'app ne peut les
+énumérer. Aucune n'a été trouvée par une recherche : la première par un message
+sur les captures, la seconde par un message sur l'association. Les deux fois, ce
+message disait « tu n'as rien à faire ».
+
+> ==Ce n'est pas l'information qui manquait, c'est l'occasion de la croiser.==
