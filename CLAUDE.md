@@ -3977,6 +3977,40 @@ les liens marchent, et l'on n'essaie de sélectionner du texte que lorsqu'on en 
 envie. C'est la famille du §5 : *la page ne casse pas, elle est seulement plus
 pauvre, et rien ne dit qu'elle devrait l'être moins.*
 
+### Le « aA » a deux places, une par chrome
+
+**Rendu à l'édition le 2 octobre 2026**, sur la capture de production que
+l'auteur a mise à côté : *« le btn est en bas à droite, remets-le au bon endroit
+en liseuse »*.
+
+Il avait remonté le 29 septembre, et l'argument tenait **sous l'app** : elle le
+met en `ONTPlacement.principale`, en haut à droite, et sa barre d'onglets occupe
+désormais le bas — « deux rustines tenaient une place que trois objets se
+disputaient ».
+
+Sous l'édition, il n'y a pas de barre d'onglets, et l'argument d'origine du
+§8 bis reprend sa force entière : *un chapitre fait jusqu'à quarante-six versets,
+et l'on décide d'éteindre les gloses au milieu de la lecture ; un réglage qu'il
+faut remonter chercher n'en est plus un.*
+
+> ==Un argument dérivé d'une contrainte meurt avec elle.== Ce qui avait fait
+> remonter le bouton n'est pas une règle de dessin, c'est une barre — et un
+> chrome qui ne l'a pas n'hérite pas de la conséquence.
+
+| | l'édition | l'app |
+|---|---|---|
+| le bouton | flottant, bas à droite, `size-14` cerclé d'or | une capsule de verre dans la barre, `size-9` |
+| la feuille | croît depuis le bas à droite | depuis le haut à droite |
+| la zone sûre | `calc(1.5rem + env(safe-area-inset-bottom))` | portée par la barre |
+
+La feuille suit le bouton, et ce n'est pas un détail : *une feuille qui pousse du
+coin opposé à celui qu'on vient de toucher ne se lit plus comme venant de là.*
+
+Et l'effacement pendant une sélection retrouve sa **seconde** raison. Son
+commentaire disait que la mécanique était « tombée avec le déplacement, le bouton
+n'étant plus dans le coin qu'occupe la barre de sélection ». Sous l'édition il y
+est de nouveau : les deux raisons valent, celle de propos comme celle de place.
+
 ### Deux bancs, parce qu'un clic peut échouer de deux façons
 
 **Le banc d'erreurs annonçait deux arbres sains pendant que l'auteur voyait des

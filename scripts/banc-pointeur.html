@@ -108,5 +108,27 @@ setTimeout(() => {
   } else {
     dire('aucun lien trouvé');
   }
+
+  // ── Le verset se sélectionne-t-il ? ────────────────────────────────────
+  //
+  // Le clic est pris par le conteneur du verset, qui porte `role="button"`.
+  // On le clique et l'on relit son `aria-pressed` — l'état que le composant
+  // écrit, et non une classe qu'on devinerait.
+  const v = d.querySelector('[role="button"][aria-pressed]');
+  if (!v) {
+    dire('');
+    dire('✗ aucun verset cliquable dans le document (role=button + aria-pressed)');
+    const tous = d.querySelectorAll('[role="button"]');
+    dire('  role=button trouvés : ' + tous.length);
+  } else {
+    dire('');
+    dire('verset : aria-pressed=' + v.getAttribute('aria-pressed'));
+    v.click();
+    setTimeout(() => {
+      dire('  après clic : aria-pressed=' + v.getAttribute('aria-pressed'));
+      const barre = d.querySelector('[aria-label*="élection"], .barre-de-selection');
+      dire('  barre de sélection : ' + (barre ? 'présente' : 'absente'));
+    }, 500);
+  }
 }, 8000);
 </script>

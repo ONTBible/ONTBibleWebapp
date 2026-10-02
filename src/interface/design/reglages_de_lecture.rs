@@ -490,6 +490,11 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
 
     let ouvert = RwSignal::new(false);
 
+    // **Lu une fois, et sans s'abonner.** L'habillage d'une page ne change pas
+    // sans qu'elle soit remontée : le sélecteur de « Vous » recharge, et le
+    // routeur remonte à chaque navigation.
+    let sous_l_edition = crate::interface::arbre::sous_l_edition();
+
     // Échap referme. C'est le geste attendu de tout ce qui se pose par-dessus
     // une page, et l'omettre enferme qui navigue au clavier.
     let _ = window_event_listener(ev::keydown, move |evenement| {
@@ -532,7 +537,41 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // `active:scale-95` : le bouton s'enfonce sous le doigt. C'est
                 // le seul retour tactile qu'un navigateur laisse donner, et son
                 // absence fait douter que le clic ait été pris.
-                class="presse verre se-poser flex size-9 items-center justify-center rounded-full text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                // **Deux places, parce que deux chromes.**
+                //
+                // Sous l'app, c'est une capsule de la barre du haut, à droite
+                // d'une pastille de renvoi : le dessin d'iOS 26, et
+                // `ONTPlacement.principale` le met là.
+                //
+                // Sous l'édition, il **flotte en bas à droite**, comme `main` —
+                // et l'argument d'origine du §8 bis tient toujours : *un
+                // chapitre fait jusqu'à quarante-six versets, et l'on décide
+                // d'éteindre les gloses au milieu de la lecture ; un réglage
+                // qu'il faut remonter chercher n'en est plus un.* Ce qui avait
+                // fait remonter le bouton le 29 septembre est la barre
+                // d'onglets, qui occupait le bas — et l'édition n'en a pas.
+                //
+                // La zone sûre s'ajoute au retrait : sans elle, le bouton se
+                // pose sur la barre d'accueil d'un iPhone, où le geste de
+                // retour prend le clic en premier.
+                class=move || {
+                    if sous_l_edition {
+                        "halo se-poser fixed end-6 z-50 flex size-14 items-center \
+                         justify-center rounded-full border border-or/30 bg-surface-haute \
+                         text-accent transition-[transform,border-color,box-shadow,opacity] \
+                         duration-200 ease-out hover:border-or/60 active:scale-95 \
+                         focus-visible:outline focus-visible:outline-2 \
+                         focus-visible:outline-offset-2 focus-visible:outline-accent \
+                         motion-reduce:transition-none"
+                    } else {
+                        "presse verre se-poser flex size-9 items-center justify-center \
+                         rounded-full text-accent focus-visible:outline focus-visible:outline-2 \
+                         focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    }
+                }
+                style=move || {
+                    sous_l_edition.then_some("bottom: calc(1.5rem + env(safe-area-inset-bottom))")
+                }
                 // Il s'efface pendant une sélection, et il n'en reste
                 // qu'une raison sur deux.
                 //
@@ -572,7 +611,23 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // pouce, et c'est de là qu'elle monte. Sur un grand écran elle
                 // se pose au-dessus du bouton, à sa largeur, et croît depuis
                 // son coin : le mouvement dit d'où elle sort.
-                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-feuille border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:bottom-auto sm:end-6 sm:top-16 sm:w-96 sm:origin-top-right sm:rounded-feuille sm:border motion-reduce:transition-none"
+                // **Elle sort du bouton, donc elle le suit.** Sur un grand
+                // écran, la feuille croît depuis son coin d'origine : ancrée en
+                // haut quand le bouton est en haut, au-dessus de lui quand il
+                // flotte en bas. Une feuille qui pousse du coin opposé à celui
+                // qu'on vient de toucher ne se lit plus comme venant de là.
+                class=move || {
+                    let commun = "fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto \
+                                  rounded-t-feuille border-t border-filet bg-surface-haute px-6 \
+                                  pt-6 transition-[transform,opacity] duration-300 ease-out \
+                                  sm:inset-x-auto sm:end-6 sm:w-96 sm:rounded-feuille sm:border \
+                                  motion-reduce:transition-none";
+                    if sous_l_edition {
+                        format!("{commun} sm:bottom-24 sm:origin-bottom-right")
+                    } else {
+                        format!("{commun} sm:bottom-auto sm:top-16 sm:origin-top-right")
+                    }
+                }
                 class=("translate-y-full", move || !ouvert.get())
                 class=("opacity-0", move || !ouvert.get())
                 class=("pointer-events-none", move || !ouvert.get())
