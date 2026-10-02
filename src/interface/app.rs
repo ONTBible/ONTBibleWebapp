@@ -259,6 +259,17 @@ pub fn App() -> impl IntoView {
             // trente endroits où un rendu isolé s'arrête.
             {
                 crate::interface::arbre::fournir_l_arbre();
+                // Ce qu'un navigateur fait gratuitement en chargeant un
+                // document, un routeur doit le refaire à la main : sans lui, on
+                // touche « Lexique » au bas d'un chapitre de vingt-deux mille
+                // pixels et l'on arrive au milieu du lexique.
+                //
+                // **Dans ce bloc, et non en composant.** Écrit en composant
+                // rendant un fragment vide, il a tué l'hydratation — un
+                // composant qui ne rend rien occupe quand même une place dans
+                // le comptage des marqueurs. ==Ce qui ne rend rien ne doit pas
+                // se rendre.==
+                crate::interface::defilement::remonter_en_haut();
             }
             <crate::interface::design::SuiviDuSens />
             // Le segment de langue est délibéré (§4) : il épargne une migration

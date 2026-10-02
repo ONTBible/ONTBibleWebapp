@@ -137,13 +137,31 @@ setInterval(() => {
   try {
     const w = f.contentWindow;
     const lien = w.document.querySelector('a[href="' + r + '"]');
-    if (lien) { lien.click(); dire('clic → ' + r); }
+    // **On descend avant de cliquer.** Un routeur en SPA ne recharge rien : il
+    // remplace le contenu et laisse la page où elle était. Mesurer depuis le
+    // haut ne verrait jamais le défaut — `scrollY` y vaut zéro avant comme
+    // après. ==Une mesure qui part de l'état attendu ne peut pas le démentir.==
+    if (lien) { w.scrollTo(0, 2000); }
+    if (lien) { lien.click(); dire('clic → ' + r + '  (depuis y=' + Math.round(w.scrollY) + ')'); }
     else { dire('pas de lien vers ' + r + ' (url=' + w.location.pathname + ')'); }
     const avant = chargements;
+    const ou = w.location.pathname;
     setTimeout(() => {
       try {
-        dire('  … url=' + f.contentWindow.location.pathname
-             + (chargements === avant ? '  (routeur)' : '  (RECHARGÉ)'));
+        const y = Math.round(f.contentWindow.scrollY);
+        const ici = f.contentWindow.location.pathname;
+        // **Un clic sur la page où l'on est n'est pas une navigation.** Le
+        // chemin ne change pas, donc rien ne se réveille, et `y` reste où il
+        // était. Le signaler comme un défaut ferait chercher une panne là où il
+        // n'y a qu'un geste sans effet.
+        //
+        // ==Une garde doit distinguer « ça n'a pas marché » de « il n'y avait
+        // rien à faire ».==
+        const change = ici !== ou;
+        dire('  … url=' + ici
+             + (chargements === avant ? '  (routeur)' : '  (RECHARGÉ)')
+             + '  y=' + y
+             + (!change ? '  (même page)' : y > 40 ? '  ⚠ pas remonté' : ''));
       } catch(e){}
     }, 900);
   } catch (e) { dire('clic impossible : ' + e); }

@@ -13,6 +13,7 @@ pub mod association;
 #[cfg(feature = "ssr")]
 pub mod compte;
 pub mod compte_public;
+pub mod defilement;
 pub mod design;
 pub mod echantillon;
 pub mod pages;

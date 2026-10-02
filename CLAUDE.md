@@ -4221,6 +4221,59 @@ avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 
 après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
 ```
 
+### Changer de page ne remontait pas en haut
+
+**Corrigé le 2 octobre 2026** : *« quand on navigue, ça change de page mais ça ne
+ramène pas en haut de la page, c'est un gros problème d'UX »*.
+
+Un navigateur remonte de lui-même quand il **charge** un document. Un routeur en
+SPA ne charge rien : il remplace le contenu et laisse la page où elle était. On
+touche « Lexique » au bas d'un chapitre de vingt-deux mille pixels, et l'on
+arrive au milieu du lexique, sans titre ni repère.
+
+> ==Ce qu'un navigateur faisait gratuitement, un routeur doit le refaire à la
+> main — et son absence ne lève aucune erreur.==
+
+**Trois cas où il ne faut pas remonter**, et aucun ne se devine :
+
+- **le premier rendu** — le navigateur vient de poser la page, et il restaure
+  lui-même la position quand on rouvre un onglet ;
+- **une adresse qui porte une ancre** : `#installer` demande un endroit précis ;
+- **un retour en arrière.** ==Un retour n'est pas une navigation vers une page,
+  c'est une navigation vers un *moment*== — et le défilement en fait partie. Le
+  drapeau vient d'un écouteur `popstate`, qui est émis **avant** que le routeur
+  ne mette le chemin à jour.
+
+Et le saut est **instantané** : `scroll-behavior: smooth` est sur `html` (§5) et
+`scrollTo` en hérite. Sans `instant`, changer de page lancerait un défilement
+doux sur toute la hauteur du document qu'on quitte. C'est le piège que
+`porte.rs` a payé — *la position demandée doit redevenir la position obtenue.*
+
+#### Un composant qui ne rend rien n'est pas gratuit
+
+Écrit en composant rendant `view! { <></> }`, il a **tué l'hydratation** :
+
+```text
+the framework expected a marker node, but found this instead: [object HTMLElement]
+panicked at tachys/src/hydration.rs:216
+```
+
+Cinquième fois dans ce dépôt, et le banc l'a nommé en une passe : dix clics, et
+l'URL ne bougeait plus de `/fr/liseuse/bible`. Un composant vide occupe une place
+dans le comptage des marqueurs, et Leptos n'en pose pas les mêmes des deux côtés.
+
+> ==Ce qui ne rend rien ne doit pas se rendre.== Un effet de bord s'appelle, il
+> ne se monte pas — c'est la forme de `fournir_l_arbre()`, et c'est celle à
+> reprendre.
+
+#### Ce qui reste, et qui n'est pas un défaut
+
+Toucher l'onglet de la page où l'on est **déjà** ne remonte pas : le chemin ne
+change pas, donc rien ne se réveille. L'app le fait — c'est le geste d'iOS — et
+le site ne le fait pas encore. Le banc distingue désormais les deux cas :
+==une garde doit distinguer « ça n'a pas marché » de « il n'y avait rien à
+faire ».==
+
 ### Le pied revient sous la webapp — elle n'avait aucune sortie
 
 **Corrigé le 2 octobre 2026** : *« quand je suis en webapp je n'ai aucun moyen de
