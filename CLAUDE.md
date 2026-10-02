@@ -4221,6 +4221,33 @@ avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 
 après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
 ```
 
+### La barre de sélection débordait du cadre
+
+**Corrigé le 2 octobre 2026**, sur une capture à 402 points : `PARTAGER` était
+coupé en plein mot, `TOUT` et `EFFACER` tombaient hors du cadre.
+
+`flex-1` n'y pouvait rien : il répartit ce qui reste, mais un élément flexible ne
+descend pas sous la largeur de son contenu tant qu'on ne l'y autorise pas — et
+l'y autoriser aurait tronqué les mots. Six libellés en capitales espacées ne
+tiennent pas sur une ligne de téléphone.
+
+> ==Une rangée d'actions qui déborde ne perd pas de la place : elle perd des
+> actions.== Celles qui sortaient du cadre étaient injoignables, sans que rien ne
+> le dise.
+
+La rangée se **replie** désormais : `basis-[6.5rem]` donne la largeur visée,
+`flex-1` laisse les tuiles s'étaler quand il y a la place. Six sur une ligne
+au-delà de 28 rem, trois puis trois en dessous, et chaque libellé entier.
+
+Sans `basis`, `flex-1` seul vaut `flex-basis: 0 %` : les tuiles se tassent sur
+une ligne quoi qu'il arrive, et le repli ne se déclenche jamais. Les **quatre**
+tuiles la portent — *Noter*, *Image* et *Partager* l'avaient oubliée, et un
+repli à largeurs inégales se lit comme un défaut de mise en page.
+
+Et ça tient **à tous les crans d'agrandissement**, ce qui n'est pas un détail
+ici : l'auteur monte le corps du texte pour voir, et un dessin qui ne tient qu'à
+la taille par défaut ne tient pas (§8 undecies).
+
 ### Changer de page ne remontait pas en haut
 
 **Corrigé le 2 octobre 2026** : *« quand on navigue, ça change de page mais ça ne

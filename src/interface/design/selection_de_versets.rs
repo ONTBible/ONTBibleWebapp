@@ -288,7 +288,30 @@ pub fn BarreDeSelection(
                         }
                     })}
 
-                <div class="flex items-stretch">
+                // **Elle se replie, et c'est un plancher et non un goût.**
+                //
+                // Six libellés en capitales espacées ne tiennent pas sur une
+                // ligne de 402 points : `PARTAGER` était coupé en plein mot, et
+                // `TOUT` comme `EFFACER` tombaient hors du cadre. `flex-1` n'y
+                // peut rien — il répartit ce qui reste, mais un élément flexible
+                // ne descend pas sous la largeur de son contenu tant qu'on ne
+                // l'y autorise pas, et l'autoriser ici tronquerait les mots.
+                //
+                // ==Une rangée d'actions qui déborde ne perd pas de la place :
+                // elle perd des actions.== Celles qui sortaient du cadre étaient
+                // injoignables, sans que rien ne le dise.
+                //
+                // Le repli garde chaque libellé **entier** et chaque action
+                // atteignable. `basis` donne la largeur visée, `flex-1` laisse
+                // les tuiles s'étaler quand il y a la place : six sur une ligne
+                // au-delà de 28 rem, trois puis trois en dessous. Rien ne change
+                // sur un grand écran.
+                //
+                // Et ça tient **à tous les crans d'agrandissement**, ce qui n'est
+                // pas un détail ici : l'auteur monte le corps du texte pour
+                // voir, et un dessin qui ne tient qu'à la taille par défaut ne
+                // tient pas (§8 undecies).
+                <div class="flex flex-wrap items-stretch">
                     // « Noter » n'apparaît que sur **un seul** verset, et l'app
                     // dit pourquoi : « Une note se rattache à un verset : le
                     // domaine ne sait pas en porter une sur un intervalle, et
@@ -299,7 +322,7 @@ pub fn BarreDeSelection(
                             view! {
                                 <button
                                     type="button"
-                                    class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                    class="flex-1 basis-[6.5rem] rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                                     class=("invisible", move || selection.with(|s| s.len() != 1))
                                     on:click=move |_| note_ouverte.set(true)
                                 >
@@ -457,12 +480,17 @@ fn FeuilleDeNote(
 /// Elles se partagent la largeur à parts égales (`flex-1`), comme le
 /// `.frame(maxWidth: .infinity)` de chacune côté Swift. C'est ce qui fait que la
 /// barre ne se réorganise pas quand une action apparaît ou disparaît.
+///
+/// **`basis` en plus, pour que la rangée puisse se replier.** Sans largeur
+/// visée, `flex-1` seul donne `flex-basis: 0 %` : toutes les tuiles se tassent
+/// sur une ligne quoi qu'il arrive, et le texte déborde du cadre. Avec elle,
+/// celle qui ne tient plus passe à la ligne entière — jamais coupée.
 #[component]
 fn ActionSimple(libelle: &'static str, au_clic: Callback<(), ()>) -> impl IntoView {
     view! {
         <button
             type="button"
-            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:bg-aubergine/40 hover:text-encre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="flex-1 basis-[6.5rem] rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:bg-aubergine/40 hover:text-encre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             on:click=move |_| au_clic.run(())
         >
             {libelle}
@@ -516,7 +544,7 @@ fn ActionDeSelection(
     view! {
         <button
             type="button"
-            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="flex-1 basis-[6.5rem] rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-live="polite"
             on:click=au_clic
         >
@@ -577,7 +605,7 @@ fn ActionDePartage(texte: Callback<(), String>, lien: Callback<(), String>) -> i
     view! {
         <button
             type="button"
-            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="flex-1 basis-[6.5rem] rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-live="polite"
             on:click=au_clic
         >
