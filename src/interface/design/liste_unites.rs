@@ -126,19 +126,34 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
 /// pas or parce qu'il se touche, il est or parce que c'est un **intraduisible**
 /// et qu'il ouvre sa fiche. Une fois le titre en encre, cet or redevient
 /// lisible comme ce qu'il est.
+///
+/// ## Et il revient sous l'édition — le 2 octobre 2026
+///
+/// L'argument ci-dessus a une prémisse, et elle est fausse dans l'autre arbre :
+/// *le chevron le dit*. L'édition n'en a pas — elle ne dessine pas des rangées
+/// qu'on touche au pouce, elle dresse une table des matières —, donc plus rien
+/// ne dirait qu'une entrée mène quelque part.
+///
+/// La classe `nom-d-unite` est le point où la feuille reprend la main. Elle ne
+/// décide rien ici : elle **nomme** ce qui est en jeu, pour que la décision se
+/// prenne une fois, dans l'habillage.
+///
+/// ==Une règle qui pose « puisque X le dit déjà » ne vaut que là où X existe.==
+/// Celle-ci avait été écrite sans arbre alternatif ; elle n'était pas fausse,
+/// elle était incomplète.
 fn libelle(unite: &UniteDto) -> impl IntoView {
     let titre = unite.titre.clone();
     let n = unite.numero;
     let prefs = preferences();
     move || {
         if n == 0 {
-            return view! { <span class="text-encre-vive">{titre.clone()}</span> }.into_any();
+            return view! { <span class="nom-d-unite text-encre-vive">{titre.clone()}</span> }.into_any();
         }
         if prefs.get().francais {
-            return view! { <span class="text-encre-vive">{MOT_RECU}" "{n}</span> }.into_any();
+            return view! { <span class="nom-d-unite text-encre-vive">{MOT_RECU}" "{n}</span> }.into_any();
         }
         view! {
-            <span class="text-encre-vive">
+            <span class="nom-d-unite text-encre-vive">
                 <Terme lemme="parashah">{MOT_ONT}</Terme>
                 " " {n}
             </span>

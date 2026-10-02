@@ -43,7 +43,14 @@ pub fn PageDeLecture(
     #[prop(into)]
     titre: Signal<String>,
     /// Ce qui se lit sous le titre, avant le corps — un renvoi, une mention.
-    #[prop(optional)]
+    ///
+    /// **`optional_no_strip`**, pour que l'appelant puisse en poser *un ou
+    /// aucun* selon l'arbre. Avec `optional` seul, le prop devient un `Children`
+    /// et l'absence ne s'exprime plus : il faudrait passer une fermeture qui ne
+    /// rend rien — et le conteneur qui l'enveloppe, lui, rendrait quand même sa
+    /// marge de trois rem et demi. ==Un vide qui occupe la place d'un contenu
+    /// n'est pas une absence.==
+    #[prop(optional_no_strip)]
     chapeau: Option<Children>,
     children: Children,
     /// **Un écran de liste, et non de lecture.**
@@ -68,7 +75,10 @@ pub fn PageDeLecture(
     /// Elle est rendue **hors de `.liseuse`**, comme le titre : c'est de la
     /// chrome, et une chrome qui enfle avec le réglage du corps mange la place
     /// du texte.
-    #[prop(optional)]
+    ///
+    /// **`optional_no_strip`** : elle n'existe que sous l'arbre de l'app, et
+    /// l'édition doit pouvoir n'en poser aucune. Voir `chapeau`.
+    #[prop(optional_no_strip)]
     barre: Option<Children>,
     /// Ce qui se pose **en haut à droite** d'un écran de liste.
     ///
@@ -79,7 +89,11 @@ pub fn PageDeLecture(
     /// **Distinct de `barre`**, qui appartient à un écran de *lecture* et
     /// porte sa pastille. Les deux ne coexistent jamais : une liste n'a pas de
     /// renvoi à afficher.
-    #[prop(optional)]
+    ///
+    /// **`optional_no_strip`**, pour la même raison que `barre` : sous l'édition,
+    /// c'est elle qui porte le « aA » d'un écran de lecture, et sous l'app c'est
+    /// la barre. Chaque arbre en pose une et pas l'autre.
+    #[prop(optional_no_strip)]
     action: Option<Children>,
 ) -> impl IntoView {
     let chemin = leptos_router::hooks::use_location().pathname;
@@ -92,6 +106,19 @@ pub fn PageDeLecture(
     // navigation pour une valeur qui n'aura pas bougé.
     let sous_l_app =
         crate::interface::arbre::arbre_maintenant() == crate::domaine::lecture::Arbre::Webapp;
+
+    // **`liste` est un registre de l'app, et il n'a pas cours ailleurs.**
+    //
+    // L'édition n'a qu'une composition : celle de `main`, avec sa voûte, sa
+    // mesure de 38 rem et son titre d'affiche. Un sommaire n'y est pas dessiné
+    // autrement qu'un chapitre — c'est l'app qui distingue une **liste** d'une
+    // **lecture**, parce qu'une liste d'application se parcourt au pouce.
+    //
+    // Éteint ici et une seule fois, plutôt que `liste=!edition` chez les neuf
+    // appelants : ==un drapeau qui ne vaut que sous une condition se borne là où
+    // il est lu, jamais chez ceux qui le posent.== Sinon la dixième page
+    // l'oublie, et rien ne le dit.
+    let liste = liste && sous_l_app;
 
     view! {
         // **La peau du lecteur est montée ici**, et c'est ce qui la borne à la
@@ -186,15 +213,47 @@ pub fn PageDeLecture(
                 // gauche au-delà de `lg`, les onglets réservent le bas. Sans
                 // barres, elles laisseraient un couloir vide et une bande sous
                 // le dernier verset.
-                "{} {}",
+                // **La classe d'écran, et la feuille descend.** Les
+                // composants profonds — `Groupe`, `Ligne`, `EnteteDeSection` —
+                // n'ont rien à savoir de l'arbre : ils rendent une fois, et la
+                // CSS les habille.
+                //
+                // Ce n'est pas la double peinture retirée le 30 septembre.
+                // Celle-là mettait **deux chromes dans un même document** —
+                // cent soixante-six kilo-octets de DOM mort et deux requêtes
+                // par page. Ici il y a un seul rendu et deux feuilles.
+                //
+                // ==Dupliquer un rendu coûte ; le restyler ne coûte rien.==
+                "{} {} {}",
+                if sous_l_app { "ecran-app" } else { "ecran-edition" },
                 if sous_l_app { "pb-24 lg:ps-[16.5rem] lg:pb-0" } else { "" },
-                crate::interface::design::sens().get().classe(),
+                // **Le sens de la navigation est une affaire d'app.** Il rejoue
+                // `ONTApparition` : l'écran glisse dans la direction d'où l'on
+                // vient, ce qui donne à une pile de vues la profondeur qu'une
+                // barre d'onglets ne dit pas.
+                //
+                // Une édition ne se feuillette pas, elle se charge. `main` n'avait
+                // aucune animation d'entrée, et c'est juste : un mouvement sur une
+                // page de texte se lit comme un chargement qui n'en finit pas.
+                if sous_l_app {
+                    crate::interface::design::sens().get().classe()
+                } else {
+                    ""
+                },
             )
         }>
-        // **Nu**, et c'est ce qui sépare un écran d'app d'une section de
-        // page : ni voûte d'aubergine, ni filet de section. L'app peint un
-        // fond plat — `ontScreen()` — et rien d'autre.
-        <Bloc page=liste nu=true>
+        // **Nu sous l'app, habillé sous l'édition**, et c'est ce qui sépare
+        // un écran d'application d'une section de page.
+        //
+        // L'app peint un fond plat — `ontScreen()` — et rien d'autre : ni
+        // voûte d'aubergine, ni filet de section, et sa mesure est celle d'une
+        // liste (46 rem), où l'œil saute d'un intitulé à sa valeur.
+        //
+        // L'édition reprend ce que `main` rendait : `<Bloc>` **sans aucun
+        // prop**, donc la voûte, le filet, et la mesure d'une phrase (38 rem).
+        // C'est le défaut du composant, et il était juste — c'est de l'avoir
+        // écrasé pour les deux arbres qui ne l'était pas.
+        <Bloc page=sous_l_app && liste nu=sous_l_app>
             {barre.map(|barre| barre())}
 
             // **L'action seule, alignée à droite**, et `sticky` comme la barre
@@ -213,8 +272,11 @@ pub fn PageDeLecture(
                 }
             })}
 
-            // Le fil **cède la place** à la pastille quand il y en a une.
-            {(!fil.is_empty() && !barre_posee)
+            // Le fil **cède la place** à la pastille quand il y en a une — et
+            // il n'y en a que sous l'app. Sous l'édition il est la seule
+            // remontée : le retirer laisserait le lecteur sans chemin vers le
+            // livre qu'il vient de quitter.
+            {(!fil.is_empty() && !(sous_l_app && barre_posee))
                 .then(|| {
                     view! {
                         <nav
@@ -250,7 +312,13 @@ pub fn PageDeLecture(
                     }
                 })}
 
+            // **Vide vaut absent.** `optional` déshabille l'`Option` d'un prop :
+            // le rappel arrive en `String`, et une page qui n'en veut pas selon
+            // l'arbre ne peut pas passer `None` — elle passe la chaîne vide.
+            // Sans ce filtre, l'édition gagnerait un paragraphe vide portant sa
+            // marge, c'est-à-dire un blanc que rien ne justifie sous le titre.
             {rappel
+                .filter(|rappel| !rappel.is_empty())
                 .map(|rappel| {
                     view! {
                         <p class="mb-3 text-sm uppercase tracking-capitales text-accent">{rappel}</p>
@@ -267,7 +335,8 @@ pub fn PageDeLecture(
             // classe par rang ferait douze classes dans la feuille pour ce que
             // `calc` fait en une ligne.
             <h1
-                class="arrivee mt-0 text-balance"
+                class="mt-0 text-balance"
+                class=("arrivee", sous_l_app)
                 style:--rang="0"
                 // **Le titre d'unité suit le corps, comme chez l'app.**
                 //
@@ -284,20 +353,38 @@ pub fn PageDeLecture(
                 // `.liseuse`, parce qu'une chrome ne doit pas enfler avec le
                 // réglage du corps. Il lit donc `--lecture` lui-même, ce qui
                 // le fait suivre le curseur sans faire suivre le fil d'Ariane.
+                //
+                // **Sous l'édition, rien de tout cela.** `main` rendait
+                // `<h1 class="mt-0 mb-4 text-balance">` et s'en remettait à
+                // l'échelle typographique du §5, dont chaque palier a été
+                // mesuré. Un titre de page d'édition ouvre un écran ; il n'a
+                // pas à suivre le curseur du corps.
                 style:font-size=move || {
-                    (!liste).then_some("calc(var(--text-base) * var(--lecture, 1) * 1.7)")
+                    (sous_l_app && !liste)
+                        .then_some("calc(var(--text-base) * var(--lecture, 1) * 1.7)")
                 }
-                class=("mb-4", !liste)
+                class=("mb-4", !sous_l_app || !liste)
                 // Le titre d'une liste est celui de l'app : serré, à gauche, et
                 // sans l'air d'une affiche. Celui d'une lecture ne bouge pas.
-                class=("mb-6", liste)
-                class=("text-2xl", liste)
-                class=("leading-none", liste)
+                class=("mb-6", sous_l_app && liste)
+                class=("text-2xl", sous_l_app && liste)
+                class=("leading-none", sous_l_app && liste)
             >
                 {move || titre.get()}
             </h1>
 
-            {chapeau.map(|chapeau| view! { <div class="arrivee mb-14" style:--rang="1">{chapeau()}</div> })}
+            {chapeau
+                .map(|chapeau| {
+                    view! {
+                        <div
+                            class="mb-14"
+                            class=("arrivee", sous_l_app)
+                            style:--rang="1"
+                        >
+                            {chapeau()}
+                        </div>
+                    }
+                })}
 
             // **La seconde échelle.** Tout ce que la liseuse contient hérite
             // de cette taille, donc tout suit le réglage du lecteur — une
@@ -308,7 +395,9 @@ pub fn PageDeLecture(
             // le titre sont de la chrome, et ils ne doivent pas enfler quand on
             // monte le corps — c'est la règle de l'app, et sa raison est
             // qu'une chrome qui grandit mange la place du texte.
-            <div class="arrivee liseuse" style:--rang="2">{children()}</div>
+            <div class="liseuse" class=("arrivee", sous_l_app) style:--rang="2">
+                {children()}
+            </div>
         </Bloc>
         </div>
         // Le pied du site, que `App` ne rend pas dans la liseuse : il compte

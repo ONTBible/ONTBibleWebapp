@@ -77,8 +77,8 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
             let francais = ensemble.francais.clone();
             let glose = ensemble.glose.clone();
             view! {
-                <section class="mb-8 last:mb-0">
-                    <EnteteDeSection glose=Box::new({
+                <section class="ensemble-du-corpus mb-8 last:mb-0">
+                    <EnteteDeSection ensemble=true glose=Box::new({
                         let f = francais.clone();
                         let g = glose.clone();
                         move || sous_titre(f, g, "").into_any()
@@ -160,11 +160,24 @@ fn ligne_de_sommaire(element: Element) -> AnyView {
                     {nom}
                     // Le nom hébreu double le titre latin : un lecteur d'écran
                     // le prononcerait deux fois.
+                    //
+                    // **`ml-` et non `ms-`, et c'est le piège du `dir`.** Une
+                    // marge logique se résout dans la direction de **l'élément
+                    // qui la porte** : sur un `span` en `rtl`, `margin-inline-
+                    // start` est à **droite**. L'écart se posait donc après le
+                    // mot hébreu, et le titre latin s'y soudait —
+                    // « Bereshitבְּרֵאשִׁית », exactement le défaut que le §8 bis
+                    // raconte pour le lexique.
+                    //
+                    // ==Une propriété logique dans un îlot bidirectionnel
+                    // s'inverse par rapport à la ligne qui le contient.== Ici on
+                    // veut un écart du côté du texte latin, donc du côté
+                    // physique gauche, donc une propriété physique.
                     <span
                         aria-hidden="true"
                         dir="rtl"
                         lang="he"
-                        class="ms-2.5 font-hebreu text-[0.9em] font-normal text-encre-douce"
+                        class="ml-2.5 font-hebreu text-[0.9em] font-normal text-encre-douce"
                     >
                         {hebreu}
                     </span>

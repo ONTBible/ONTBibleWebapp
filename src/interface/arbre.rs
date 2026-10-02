@@ -103,3 +103,34 @@ pub fn sous_l_arbre(vise: Arbre) -> Signal<bool> {
     let chemin = leptos_router::hooks::use_location().pathname;
     Signal::derive(move || chemin.with(|c| Arbre::du_chemin(c) == Some(vise)))
 }
+
+/// Sommes-nous sous l'arbre de l'**édition** — la liseuse du site ?
+///
+/// Lu une fois, sans s'abonner : ce qui en dépend se décide au montage, et une
+/// page ne change pas d'arbre sans se remonter.
+///
+/// C'est la question que posent les pages pour savoir quel registre composer :
+/// un rappel en capitales et un chapeau en prose sous l'édition, un grand titre
+/// serré et rien d'autre sous l'app. ==Le registre se demande une fois, en haut
+/// de la page ; il ne se redérive pas à chaque prop.==
+pub fn sous_l_edition() -> bool {
+    arbre_maintenant() == Arbre::Liseuse
+}
+
+/// Le premier maillon du fil d'Ariane — l'entrée du corpus, nommée.
+///
+/// ## Pourquoi un composeur et non six littéraux
+///
+/// Le chemin et le **nom** changent ensemble : sous l'app c'est « Bible », le mot
+/// de sa barre d'onglets ; sous l'édition c'est « Lire », le mot de la navigation
+/// du site — celui que le lecteur vient de toucher pour arriver là.
+///
+/// Les six endroits qui posent ce maillon l'écrivaient à la main, et le nom y
+/// était figé. ==Deux valeurs qui changent ensemble se composent au même
+/// endroit ; écrites côte à côte six fois, elles divergent à la première
+/// retouche — et le fil est exactement ce que personne ne relit.==
+pub fn maillon_de_la_bible() -> (String, String) {
+    let ici = arbre_maintenant();
+    let nom = if ici == Arbre::Liseuse { "Lire" } else { "Bible" };
+    (crate::domaine::chemins::bible(ici), nom.to_string())
+}

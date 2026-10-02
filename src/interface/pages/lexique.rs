@@ -18,6 +18,8 @@ use crate::interface::tete::Tete;
 pub fn Lexique() -> impl IntoView {
     let entrees = Resource::new_blocking(|| (), |_| async { lexique().await });
 
+    let edition = crate::interface::arbre::sous_l_edition();
+
     view! {
         <Tete
             // Le titre indexable dit ce que la page contient ; le titre
@@ -30,12 +32,31 @@ pub fn Lexique() -> impl IntoView {
             chemin=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())
         />
 
-        // **Ni œil-de-bœuf ni chapeau**, comme la Bible. L'app ouvre son
-        // lexique sur « Lexique » et rien d'autre : une liste ne s'introduit
-        // pas. Ce que le chapeau disait — « chaque mot d'or et chaque nom du
-        // corpus mène ici » — se lit dans la forme : chaque ligne porte son
-        // chevron.
-        <PageDeLecture liste=true titre="Lexique">
+        // **Deux registres**, comme la Bible. L'app ouvre son lexique sur
+        // « Lexique » et rien d'autre : une liste ne s'introduit pas, et ce que
+        // le chapeau disait — « chaque mot d'or et chaque nom du corpus mène
+        // ici » — se lit dans la forme, chaque ligne portant son chevron.
+        //
+        // L'édition, elle, **présente** : le chevron n'y est pas, donc la phrase
+        // reprend le travail qu'il faisait.
+        <PageDeLecture
+            liste=true
+            rappel=if edition { "Les mots laissés debout" } else { "" }
+            titre="Lexique"
+            chapeau=edition
+                .then(|| {
+                    Box::new(|| {
+                        view! {
+                            <p class="text-encre-douce text-pretty">
+                                "Ce que la restitution a choisi de ne pas traduire, et comment elle \
+                                 le rend. Et les noms propres, qu'elle garde dans leur forme hébraïque. \
+                                 Chaque mot d'or et chaque nom du corpus mène ici."
+                            </p>
+                        }
+                            .into_any()
+                    }) as leptos::children::Children
+                })
+        >
             // **Avant la première fiche, et c'est tout son propos.** La
             // translittération donne les lettres, pas les sons — et rien dans
             // sa graphie n'avertit quand on se trompe. Lue après coup, cette

@@ -70,9 +70,24 @@ pub fn EnteteDeSection(
     /// l'intention — le piège de `Bloc` et de `max-w-mesure`.
     #[prop(optional)]
     sobre: bool,
+    /// Un **nom d'ensemble du corpus** — « Kenesset », « Besorot ».
+    ///
+    /// Sous l'édition, il reçoit le signe de la montagne et la taille d'un
+    /// titre de section ; sous l'app, il ne change rien. C'est un `bool` et non
+    /// une classe passée par l'appelant : la forme est décidée par la feuille,
+    /// l'appelant ne dit que **ce qu'est** cet en-tête.
+    ///
+    /// Il ne se déduit pas de `!sobre` — le lexique groupe par initiale sans
+    /// être sobre, et un massif devant la lettre « C » ne voudrait rien dire.
+    #[prop(optional)]
+    ensemble: bool,
 ) -> impl IntoView {
     view! {
-        <div class="mt-8 mb-2 px-1 first:mt-0">
+        <div class=if ensemble {
+            "entete-de-section entete-d-ensemble mt-8 mb-2 px-1 first:mt-0"
+        } else {
+            "entete-de-section mt-8 mb-2 px-1 first:mt-0"
+        }>
             <p class=if sobre {
                 "m-0 font-titre text-[0.95em] text-encre-douce"
             } else {
@@ -160,7 +175,11 @@ fn Chevron() -> impl IntoView {
             stroke-width="2.4"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="size-[0.72em] shrink-0 text-encre-douce/60"
+            // **`chevron` en plus de la forme**, pour que l'édition puisse le
+            // retirer d'une règle. Il dit « cette ligne mène quelque part »,
+            // ce qu'une liste d'app doit annoncer parce qu'on y touche sans
+            // regarder ; dans une édition, un titre en or le dit déjà.
+            class="chevron size-[0.72em] shrink-0 text-encre-douce/60"
         >
             <path d="m9 5 7 7-7 7" />
         </svg>
@@ -301,7 +320,7 @@ pub fn Ligne(
 #[component]
 pub fn Pastille(children: Children) -> impl IntoView {
     view! {
-        <span class="shrink-0 rounded-full bg-encre-douce/15 px-2 py-0.5 text-[0.72em] uppercase tracking-[0.08em] text-encre-douce">
+        <span class="pastille shrink-0 rounded-full bg-encre-douce/15 px-2 py-0.5 text-[0.72em] uppercase tracking-[0.08em] text-encre-douce">
             {children()}
         </span>
     }

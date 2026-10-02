@@ -26,6 +26,11 @@
 
       cp scripts/banc-erreurs.html target/site/
       ATTENTE=34 ./scripts/sim.sh /banc-erreurs.html
+      ATTENTE=34 ./scripts/sim.sh '/banc-erreurs.html?arbre=liseuse'
+
+  Sans paramètre il mesure la webapp. **Les deux arbres se mesurent
+  séparément** : ils ne rendent ni le même chrome ni les mêmes composants, et
+  une panne d'hydratation vit dans un composant.
 
   Il charge le site dans un cadre de même origine, y accroche `error`,
   `unhandledrejection` et `console.error`, puis clique dix liens de la barre.
@@ -44,11 +49,41 @@
   secondes de vidéo d'un défaut qui n'existait pas.
 -->
 <pre id="j">…</pre>
-<iframe id="f" src="/fr/webapp/bible"></iframe>
+<iframe id="f"></iframe>
 <script>
 const j = document.getElementById('j'), f = document.getElementById('f');
 const lignes = [];
 function dire(t){ lignes.push(t); j.textContent = lignes.join('\n'); }
+// **L'arbre se passe en paramètre**, depuis qu'il y en a deux. Une page de
+// départ écrite en dur ne mesurait que la webapp — et c'est l'autre arbre qui
+// venait d'être restylé. Une garde qui ne visite pas une page ne dit rien
+// d'elle, et son décompte final se lit comme si elle avait tout vu.
+//
+//     ATTENTE=34 ./scripts/sim.sh '/banc-erreurs.html?arbre=liseuse'
+const arbre = new URLSearchParams(location.search).get('arbre') || 'webapp';
+// **Et il faut poser la préférence, pas seulement l'adresse.** Le serveur
+// aligne l'URL sur le cookie `ont.habillage` par un 307 : sur un simulateur
+// d'iPhone, la préférence par défaut résout vers la webapp, et un banc lancé
+// sur `/fr/liseuse/bible` se retrouvait à mesurer l'autre arbre — en affichant
+// « arbre : liseuse » en tête.
+//
+// ==Un banc qui annonce ce qu'il visait, et non ce qu'il a obtenu, ment à la
+// seule ligne qu'on lit.== D'où la préférence posée ici, et l'URL obtenue
+// relevée après chaque clic.
+//
+// **Et la préférence vit à deux endroits.** Le cookie est ce que le serveur
+// lit ; `localStorage` est ce que le script d'avant-rendu relit à chaque page
+// et réécrit par-dessus. Ne poser que le cookie, c'est le voir remplacé au
+// premier chargement — ce qui s'est produit, et le banc annonçait quand même
+// l'arbre qu'il visait.
+try {
+  const o = JSON.parse(localStorage.getItem('ont.lecture') || '{}');
+  o.habillage = arbre === 'liseuse' ? 'edition' : 'application';
+  localStorage.setItem('ont.lecture', JSON.stringify(o));
+} catch (e) { dire('localStorage inaccessible : ' + e); }
+document.cookie = 'ont.habillage=' + arbre + ';path=/;max-age=600;samesite=lax';
+dire('arbre demandé : ' + arbre + ' — cookie : ' + document.cookie);
+f.src = '/fr/' + arbre + '/bible';
 
 // Les erreurs de l'iframe remontent ici quand il est de même origine.
 f.addEventListener('load', () => {

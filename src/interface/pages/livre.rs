@@ -28,6 +28,8 @@ pub fn Livre() -> impl IntoView {
     // exactement à un fonctionnement.
     let _preferences = fournir_preferences();
 
+    let edition = crate::interface::arbre::sous_l_edition();
+
     view! {
         <Suspense fallback=|| ()>
             {move || Suspend::new(async move {
@@ -78,16 +80,28 @@ pub fn Livre() -> impl IntoView {
 
                             <PageDeLecture
                                 liste=true
-                                fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
-                                // **Pas de rappel.** Il portait « Genèse » en
-                                // capitales espacées au-dessus du titre —
-                                // l'appareil d'une page d'édition. L'app met le
-                                // second nom **sous** le titre, petit, avec le
-                                // nom hébreu : c'est ce que fait le chapeau.
+                                fil=vec![crate::interface::arbre::maillon_de_la_bible()]
+                                // **Le second nom change de place selon le
+                                // registre, et une seule fois.**
                                 //
-                                // Le fil d'Ariane reste : il tient la place du
-                                // « ‹ » de l'app, qui est une pile native que
-                                // le web n'a pas.
+                                // Sous l'app il est *sous* le titre, petit, avec
+                                // le nom hébreu — c'est ce que fait le chapeau,
+                                // et l'app n'a pas de rappel. Sous l'édition il
+                                // remonte en capitales espacées au-dessus du
+                                // titre, comme `main` : « GENÈSE », puis
+                                // « Bereshit ».
+                                //
+                                // Il n'est donc jamais écrit deux fois — le
+                                // chapeau le tait quand le rappel le porte.
+                                //
+                                // Le fil d'Ariane reste des deux côtés : il tient
+                                // la place du « ‹ » de l'app, qui est une pile
+                                // native que le web n'a pas.
+                                rappel=if edition {
+                                    francais.clone().unwrap_or_default()
+                                } else {
+                                    String::new()
+                                }
                                 titre=livre.titre.clone()
                                 // **Le chapeau tient sur une ligne**, comme
                                 // chez l'app. Il portait le nom hébreu en corps
@@ -100,10 +114,11 @@ pub fn Livre() -> impl IntoView {
                                 // versets reste — c'est une mesure du chantier,
                                 // et elle n'existe pas chez elle — mais il
                                 // rejoint la même ligne que l'hébreu.
-                                chapeau=Box::new(move || {
+                                chapeau=Some(Box::new(move || {
                                     view! {
                                         <p class="m-0 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                                             {francais
+                                                .filter(|_| !edition)
                                                 .map(|francais| {
                                                     view! {
                                                         <span class="italic text-encre-douce">
@@ -124,7 +139,7 @@ pub fn Livre() -> impl IntoView {
                                         </p>
                                     }
                                         .into_any()
-                                })
+                                }))
                             >
                                 <ListeDUnites livre=livre.id unites=livre.unites />
                             </PageDeLecture>
@@ -158,7 +173,7 @@ fn Absent() -> impl IntoView {
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
+            fil=vec![crate::interface::arbre::maillon_de_la_bible()]
             rappel="Le corpus"
             titre="Ce livre n'est pas encore là"
         >

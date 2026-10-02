@@ -43,6 +43,12 @@ pub fn Lire() -> impl IntoView {
     // priorités. La carte se pose après, comme le bouton « aA ».
     let position = Resource::new(|| (), |_| async { ma_position().await });
 
+    // **Sous quel registre.** L'édition présente le corpus, l'app l'ouvre — et
+    // c'est tout l'écart que l'auteur a relevé le 2 octobre 2026 en mettant les
+    // deux écrans côte à côte : *« pour l'UI de la liseuse je veux vraiment la
+    // prod »*.
+    let edition = crate::interface::arbre::sous_l_edition();
+
     view! {
         <Tete
             // Même règle qu'au lexique : « Lire » nomme une action dans une
@@ -60,26 +66,37 @@ pub fn Lire() -> impl IntoView {
             chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
 
-        // **Ni œil-de-bœuf ni chapeau.** Ils y étaient — « Le corpus », puis
-        // « Le plan entier, et ce qui en est traduit » — et ils faisaient de ce
-        // sommaire une page d'édition. L'app ouvre sa Bible sur un titre et
-        // rien d'autre : une liste ne s'introduit pas, on y revient.
+        // **Deux registres pour une même liste.**
         //
-        // Ce que le chapeau disait n'est pas perdu : « les titres se lisent,
-        // les autres attendent » est maintenant dit par la **forme** — une
-        // ligne sans chevron ne se touche pas.
-        // **Le titre est celui de l'app**, pas le mot de la navigation.
-        // « Lire » nomme une action — juste dans une barre, insuffisant en tête
-        // d'écran, où il faut dire *ce qu'on ouvre*. L'app dit « La Bible ONT »,
-        // et c'est ce que le lecteur retrouve.
+        // *Sous l'app* : ni œil-de-bœuf ni chapeau, et le titre est celui de
+        // l'écran — « La Bible ONT ». Une liste ne s'introduit pas, on y
+        // revient ; et ce que le chapeau disait, la forme le dit — une ligne
+        // sans chevron ne se touche pas.
+        //
+        // *Sous l'édition* : le rappel, le titre de la navigation et le chapeau
+        // de `main`. « Lire » suffit ici parce que la page **présente** le
+        // corpus à qui arrive de l'accueil, là où l'app s'adresse à qui revient.
         <PageDeLecture
             liste=true
-            titre="La Bible ONT"
+            rappel=if edition { "Le corpus" } else { "" }
+            titre=if edition { "Lire" } else { "La Bible ONT" }
+            chapeau=edition
+                .then(|| {
+                    Box::new(|| {
+                        view! {
+                            <p class="text-encre-douce text-pretty">
+                                "Le plan entier, et ce qui en est traduit. Les titres en or se lisent ; \
+                                 les autres attendent leur tour."
+                            </p>
+                        }
+                            .into_any()
+                    }) as leptos::children::Children
+                })
             // **La recherche est ici, et non dans la barre d'onglets.** C'est
             // la place que `BibleTab` lui donne — en haut à droite, et sur la
             // Bible seulement. Arbitré par l'auteur le 29 septembre 2026 :
             // « je veux la même tabbar ».
-            action=Box::new(|| view! { <BoutonDeRecherche /> }.into_any())
+            action=Some(Box::new(|| view! { <BoutonDeRecherche /> }.into_any()) as leptos::children::Children)
         >
             // **Avant le corpus et détachée de lui** : ce n'est pas une
             // destination de plus, c'est un signet. L'app le range de même,

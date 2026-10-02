@@ -109,9 +109,9 @@ fn Vue(ensemble: Ensemble, section: Section) -> impl IntoView {
 
         <PageDeLecture
             liste=true
-            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
+            fil=vec![crate::interface::arbre::maillon_de_la_bible()]
             titre=titre.clone()
-            chapeau=Box::new(move || {
+            chapeau=Some(Box::new(move || {
                 view! {
                     <p class="m-0 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <span class="text-[0.95em] text-encre-douce">
@@ -123,7 +123,7 @@ fn Vue(ensemble: Ensemble, section: Section) -> impl IntoView {
                     </p>
                 }
                     .into_any()
-            })
+            }))
         >
             <SommaireDUnePartie section />
         </PageDeLecture>
@@ -146,7 +146,7 @@ fn Introuvable() -> impl IntoView {
 
         <PageDeLecture
             liste=true
-            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
+            fil=vec![crate::interface::arbre::maillon_de_la_bible()]
             titre="Cette partie n'existe pas"
         >
             <p class="text-encre-douce text-pretty">

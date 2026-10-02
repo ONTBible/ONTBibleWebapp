@@ -165,7 +165,7 @@ pub fn Fiche() -> impl IntoView {
                                 // se lit, et le seul qui ne la lisait pas.
                                 rappel=if e.est_un_nom { "Nom propre" } else { "Intraduisible" }
                                 titre=titre
-                                chapeau=Box::new(move || {
+                                chapeau=Some(Box::new(move || {
                                     view! {
                                         {(!hebreu.is_empty())
                                             .then(|| {
@@ -209,7 +209,7 @@ pub fn Fiche() -> impl IntoView {
                                             })}
                                     }
                                         .into_any()
-                                })
+                                }))
                             >
                                 <Blocs blocs=e.definition />
                                 {(!f.occurrences.is_empty())

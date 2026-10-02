@@ -62,6 +62,8 @@ pub fn Passage() -> impl IntoView {
     // fiche est un commentaire, elle n'a pas d'appareil critique à retirer.
     let preferences = fournir_preferences();
 
+    let edition = crate::interface::arbre::sous_l_edition();
+
     // La sélection est installée **par la page**, comme les réglages, et pour
     // la même raison : c'est elle qui décide qu'on lit du corpus, donc c'est
     // elle qui ouvre la possibilité d'en désigner des versets. Une fiche du
@@ -271,6 +273,68 @@ pub fn Passage() -> impl IntoView {
                                 .into_any()
                         });
 
+                        // ── Les outils de l'écran, construits une fois ───────
+                        //
+                        // Le « aA », et le banc de la carte de partage en
+                        // développement.
+                        //
+                        // **Le banc est au niveau de la page** et non dans la
+                        // barre de sélection, où il avait le défaut de ce qu'il
+                        // mesure : cette barre n'apparaît qu'après un clic, donc
+                        // un banc posé dedans demande la main qu'on n'a pas.
+                        //
+                        // Il compose sur les trois premiers versets, ce qui donne
+                        // un passage de longueur crédible — un verset seul
+                        // tomberait toujours dans le premier palier de taille, et
+                        // on ne verrait jamais les quatre autres.
+                        let outils: leptos::children::Children = Box::new(move || {
+                            view! {
+                                {
+                                    #[cfg(debug_assertions)]
+                                    {
+                                        let (apercu, ou) = banc;
+                                        view! {
+                                            <crate::interface::design::image_de_partage::BancDeLaCarte
+                                                texte=apercu
+                                                renvoi=ou
+                                            />
+                                        }
+                                            .into_any()
+                                    }
+                                    #[cfg(not(debug_assertions))]
+                                    {
+                                        ().into_any()
+                                    }
+                                }
+                                <ReglagesDeLecture preferences />
+                            }
+                                .into_any()
+                        });
+
+                        // L'un des deux logements, jamais les deux : voir le
+                        // commentaire posé sur les props de `PageDeLecture`.
+                        let (barre, action): (
+                            Option<leptos::children::Children>,
+                            Option<leptos::children::Children>,
+                        ) = if edition {
+                            (None, Some(outils))
+                        } else {
+                            (
+                                Some(Box::new(move || {
+                                    view! {
+                                        <BarreDeLecture
+                                            chemin=chemin_du_livre
+                                            pastille=pastille
+                                        >
+                                            {outils()}
+                                        </BarreDeLecture>
+                                    }
+                                        .into_any()
+                                })),
+                                None,
+                            )
+                        };
+
                         view! {
                             <Tete
                                 titre=titre_indexable(&chapitre, &p.livre_francais, &en_avant)
@@ -280,7 +344,7 @@ pub fn Passage() -> impl IntoView {
 
                             <PageDeLecture
                                 fil=vec![
-                                    (crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string()),
+                                    crate::interface::arbre::maillon_de_la_bible(),
                                     (
                                         crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &p.livre_id),
                                         p.livre_titre.clone(),
@@ -311,53 +375,45 @@ pub fn Passage() -> impl IntoView {
                                 //
                                 // La balise `<title>` portait déjà le nom ONT,
                                 // et les deux concordent enfin.
-                                titre=chapitre.titre.clone()
-                                chapeau=chapeau
-                                // La barre du haut de l'app : la pastille à
-                                // gauche, « aA » à droite. Elle prend la place
-                                // du fil, que `PageDeLecture` tait alors.
-                                barre=Box::new(move || {
-                                    view! {
-                                        <BarreDeLecture
-                                            chemin=chemin_du_livre
-                                            pastille=pastille
-                                        >
-                                            // **Le banc de la carte de partage**, en
-                                // développement seulement.
                                 //
-                                // Il est **au niveau de la page** et non dans
-                                // la barre de sélection, où il avait le défaut
-                                // de ce qu'il mesure : cette barre n'apparaît
-                                // qu'après un clic, donc un banc posé dedans
-                                // demande la main qu'on n'a pas.
-                                //
-                                // Il compose sur les trois premiers versets, ce
-                                // qui donne un passage de longueur crédible —
-                                // un verset seul tomberait toujours dans le
-                                // premier palier de taille, et on ne verrait
-                                // jamais les quatre autres.
-                                {
-                                    #[cfg(debug_assertions)]
-                                    {
-                                        let (apercu, ou) = banc;
-                                        view! {
-                                            <crate::interface::design::image_de_partage::BancDeLaCarte
-                                                texte=apercu
-                                                renvoi=ou
-                                            />
-                                        }
-                                            .into_any()
-                                    }
-                                    #[cfg(not(debug_assertions))]
-                                    {
-                                        ().into_any()
-                                    }
+                                // **Et c'est l'app qui tranche ainsi, donc son
+                                // arbre seul.** Sous l'édition, le titre reprend
+                                // `nom_d_unite` : il n'y a pas de pastille
+                                // au-dessus pour redire le livre, le fil le dit
+                                // — et le registre choisi doit se retrouver là
+                                // où le lecteur vient de le toucher.
+                                titre=if edition {
+                                    nom_d_unite(chapitre.titre.clone(), chapitre.numero)
+                                } else {
+                                    Signal::derive({
+                                        let titre = chapitre.titre.clone();
+                                        move || titre.clone()
+                                    })
                                 }
-                                <ReglagesDeLecture preferences />
-                                        </BarreDeLecture>
-                                    }
-                                        .into_any()
-                                })
+                                chapeau=Some(chapeau)
+                                // **Deux logements pour les mêmes outils.**
+                                //
+                                // Sous l'app, le « aA » vit dans la barre du
+                                // haut, à droite d'une pastille de renvoi — le
+                                // dessin d'iOS 26, deux capsules qui flottent.
+                                // La barre prend alors la place du fil, que
+                                // `PageDeLecture` tait.
+                                //
+                                // Sous l'édition, il n'y a pas de pastille à
+                                // porter : le fil dit le livre, et c'est sa
+                                // fonction. Le « aA » passe donc dans `action`,
+                                // la place d'un seul objet en haut à droite — la
+                                // même que le bouton de recherche de la Bible.
+                                //
+                                // ==Les outils sont construits une fois et
+                                // rangés ailleurs ; ils ne sont pas écrits deux
+                                // fois.== Le banc de la carte de partage ne se
+                                // consomme qu'une fois — c'est un `FnOnce` —,
+                                // donc deux branches qui le rendraient chacune
+                                // ne compileraient pas. C'est le compilateur qui
+                                // tient la règle ici.
+                                barre=barre
+                                action=action
                             >
                                 <BarreDeSelection
                                     selection=choix
@@ -610,7 +666,7 @@ fn Absent() -> impl IntoView {
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![(crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()), "Bible".to_string())]
+            fil=vec![crate::interface::arbre::maillon_de_la_bible()]
             rappel="Le corpus"
             titre="Ce passage n'est pas encore là"
         >

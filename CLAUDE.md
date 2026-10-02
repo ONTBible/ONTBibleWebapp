@@ -3812,6 +3812,140 @@ rangée sous `cfg(hydrate)` n'y serait **jamais exécutée**. C'est un décideur
 pur, il se mesure sans navigateur, et le silence de l'avertissement est le prix
 de cette mesure.
 
+## 8 duodecies. Deux habillages — le 30 septembre et le 2 octobre 2026
+
+**L'auteur est revenu sur le §8 undecies**, après avoir mis la production et la
+webapp côte à côte :
+
+> « en vrai quand je regarde la prod et que je regarde la liseuse et que je
+> compare avec la webapp je me dis que finalement la liseuse est peut-être
+> mieux — je devrais laisser la possibilité au lecteur de choisir entre les
+> deux, peut-être que certains ne seront pas de mon avis, qui sait »
+
+Puis, précisé : **deux arbres d'adresses complets**, un sélecteur dans « Vous ».
+
+```
+/fr/liseuse/…   l'édition — l'en-tête du site, le pied, le fil d'Ariane
+/fr/webapp/…    l'application — cinq onglets, barre latérale, capsules
+```
+
+Et les trois pages qui ne sont d'aucun arbre restent à la racine, puisqu'elles
+ne sont pas du corpus : `/fr/l-app`, `/fr/le-pourquoi`,
+`/fr/ce-que-l-ont-n-est-pas`.
+
+### Pourquoi deux arbres et non une préférence qui repeint
+
+Le premier montage rendait **les deux chromes dans un même document** et en
+masquait un. Mesuré : **+166 Ko par page** et deux requêtes lancées pour une
+barre que le lecteur ne verrait jamais — `display: none` cache la peinture, il
+n'annule ni la sérialisation ni les ressources.
+
+L'auteur l'a écarté sur un argument d'ingénieur — *« je ne suis pas sûr que
+c'est une bonne décision de juste peindre »* — et il a tranché la suite :
+
+> « je veux que l'URL soit toujours exacte : si quelqu'un me partage un lien et
+> que mes préférences sont par défaut, donc webapp sur mobile et liseuse sur
+> desktop, alors **l'URL s'aligne sur mon rendu** »
+
+D'où le **307** de `main.rs::alignement`. Il est temporaire et non permanent, et
+les deux mots comptent : la cible dépend du lecteur, donc aucun cache partagé ne
+doit la retenir. Les anciennes adresses, elles, prennent un **308** — leur cible
+est fixe, et un 301 autoriserait le client à retomber en `GET`, ce qui casserait
+les fonctions serveur de `/api/`, qui sont des `POST`.
+
+### Le canonique est la liseuse
+
+Arbitré par l'auteur. Un lien partagé, un résultat de moteur et le fichier
+d'association d'iOS désignent `/fr/liseuse/…` ; la préférence du lecteur corrige
+**à l'arrivée**, jamais dans le lien qu'on lui a envoyé.
+
+> ==Ce que le lecteur préfère se règle où il arrive, pas dans ce qu'on lui
+> envoie.== Autrement, un lien ne veut plus dire la même chose selon qui l'a
+> posé.
+
+### La composition, elle, est **un seul rendu et deux feuilles**
+
+**Corrigé le 2 octobre 2026**, et c'est le reproche qu'il a formulé en mettant
+deux captures côte à côte : *« t'as laissé le rendu de la webapp, t'as juste
+enlevé l'aside bar — pour l'UI de la liseuse je veux vraiment la prod »*.
+
+Les deux arbres avaient bien leur chrome, et le **corps des pages** était resté
+celui de l'app : cartes grises arrondies, chevrons, mesure de 46 rem, animations
+d'arrivée, ni rappel ni chapeau.
+
+`PageDeLecture` pose **`ecran-edition`** ou **`ecran-app`** sur son conteneur, et
+la feuille descend. Les composants profonds — `Groupe`, `Ligne`,
+`EnteteDeSection` — n'ont rien à savoir de l'arbre : ils rendent une fois.
+
+> ==Dupliquer un rendu coûte ; le restyler ne coûte rien.==
+
+Et c'est rendu par le serveur : juste au premier octet, pour un moteur comme
+pour un lecteur sans JavaScript.
+
+| | l'édition | l'app |
+|---|---|---|
+| le cadre | `Bloc` sans prop — voûte, filet, 38 rem | `nu` et `page` — fond plat, 46 rem |
+| la liste | des filets, pas de carte ; pas de chevron | la carte d'iOS, chevron par ligne |
+| le titre de ligne | **en or**, dans la fonte du corps | en encre, Jost demi-gras |
+| la ligne | titre et renvoi sur **une** ligne de base | empilés et tronqués, pour le pas régulier |
+| l'en-tête du corpus | le signe de la **montagne**, en `::before` | un en-tête de section |
+| le titre de page | rappel en capitales, titre, chapeau | un grand titre serré, et rien |
+| l'entrée | aucune animation | `ONTApparition` — l'écran glisse |
+
+### Cinq règles tirées du restylage, et aucune ne se devine
+
+- **Un drapeau qui ne vaut que sous une condition se borne là où il est lu.**
+  `liste` est un registre de l'app ; il est éteint dans `PageDeLecture` par
+  `liste && sous_l_app`, et non par `liste=!edition` chez les neuf appelants —
+  sinon la dixième page l'oublie, et rien ne le dit.
+- **Une règle qui pose « puisque X le dit déjà » ne vaut que là où X existe.**
+  L'or avait quitté les titres de liste le 29 septembre *parce que le chevron
+  les annonce*. L'édition n'a pas de chevron : l'or y revient, et la classe
+  `nom-d-unite` est le point où la feuille reprend la main.
+- **Un ornement qui n'existe que dans un habillage appartient à la feuille.**
+  La montagne est un `::before` sur l'en-tête d'ensemble, pas un `<span>` que
+  l'app rendrait vide.
+- **Une propriété logique dans un îlot bidirectionnel s'inverse.** `ms-2.5` sur
+  un `<span dir="rtl">` pose sa marge **à droite** : le nom hébreu se soudait au
+  titre latin — « Bereshitבְּרֵאשִׁית » — et l'écart tombait de l'autre côté. C'est
+  le §8 bis rejoué, et le défaut existait **dans les deux arbres**.
+- **Un vide qui occupe la place d'un contenu n'est pas une absence.** `rappel`,
+  `chapeau`, `barre` et `action` n'existent que sous un arbre : les trois
+  derniers sont passés en `optional_no_strip`, le premier filtre la chaîne vide.
+  Un `Children` qui ne rend rien laisserait quand même son conteneur et sa marge.
+
+### Le banc d'erreurs mesure **l'arbre qu'il obtient**, pas celui qu'il vise
+
+`scripts/banc-erreurs.html` prend `?arbre=liseuse|webapp`. Et il ne suffit pas
+de changer l'adresse de départ : le serveur aligne l'URL sur la préférence, donc
+un banc lancé sur `/fr/liseuse/bible` depuis un simulateur d'iPhone se retrouvait
+à mesurer la webapp — **en affichant « arbre : liseuse » en tête**.
+
+La préférence vit à **deux endroits** : le cookie `ont.habillage`, que le serveur
+lit, et `ont.lecture.habillage` dans `localStorage`, que le script d'avant-rendu
+relit et réécrit par-dessus à chaque page. Le banc pose les deux.
+
+> ==Un banc qui annonce ce qu'il visait, et non ce qu'il a obtenu, ment à la
+> seule ligne qu'on lit.==
+
+    ATTENTE=34 ./scripts/sim.sh '/banc-erreurs.html?arbre=liseuse'
+
+Relevé le 2 octobre : **onze navigations sous l'édition, dix sous l'app, aucune
+erreur et aucune navigation morte.**
+
+### Ce qu'il faut refaire après toute retouche du rendu
+
+- `cargo test --features ssr` — 209 épreuves, et chercher `FAILED` autant que
+  `ok` : *un filtre qui ne peut pas dire non ne dit rien.*
+- `./scripts/verifier-composition.py` — 31 pages, les deux arbres.
+- le banc **sur les deux arbres**, pas à la fin mais après chaque modification.
+- **la comparaison des deux HTML servis**, qui est ce qui a trouvé l'écart :
+  compter `voute`, `max-w-mesure`, `arrivee`, `entete-d-ensemble`.
+
+> ==Un restylage qui corrige un écran et en déplace un autre n'a rien corrigé.==
+> Après chaque étape, `/fr/webapp/bible` doit rendre exactement ce qu'il rendait
+> — la webapp est la référence demandée le 21 septembre, et elle ne bouge pas.
+
 ## 9. Ce qui reste à trancher
 
 - Le **texte de la page auteur** — le jet est écrit, il attend sa relecture.
