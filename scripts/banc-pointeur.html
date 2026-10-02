@@ -165,10 +165,14 @@ setTimeout(() => {
   // On le clique et l'on relit son `aria-pressed` — l'état que le composant
   // écrit, et non une classe qu'on devinerait.
   // Le « aA » : est-il atteignable là où il se dessine ?
-  const aa = [...d.querySelectorAll('button[aria-label="Réglages de lecture"]')][0];
+  // `?sans-aa=1` laisse la feuille fermée : on veut parfois **regarder** la page
+  // après le clic, et un voile plein écran la cache.
+  const aa = p.get('sans-aa') === '1'
+    ? null
+    : [...d.querySelectorAll('button[aria-label="Réglages de lecture"]')][0];
   if (!aa) {
     dire('');
-    dire('✗ bouton « aA » absent du document');
+    if (p.get('sans-aa') !== '1') dire('✗ bouton « aA » absent du document');
   } else {
     const r = aa.getBoundingClientRect();
     const dessus = d.elementFromPoint(Math.round(r.left + r.width / 2),
