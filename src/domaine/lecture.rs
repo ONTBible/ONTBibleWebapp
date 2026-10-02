@@ -614,7 +614,30 @@ impl Default for Preferences {
             interligne: Theme::INTERLIGNE_PAR_DEFAUT,
             coupure: false,
             fonte: Fonte::Literata,
-            habillage: Habillage::Application,
+            // **`Auto`, et il a fallu le mesurer pour s'en apercevoir.**
+            //
+            // Ce champ valait `Application`, alors que le type dit le contraire
+            // à deux lignes de sa définition — « `Auto` : c'est le défaut » — et
+            // que tout le §8 duodecies en dépend. Un lecteur neuf avait donc
+            // « L'application » cochée dans « Vous », jamais « Selon
+            // l'appareil » : sur un grand écran, `/fr/liseuse/…` se faisait
+            // renvoyer vers la webapp, et la préférence se figeait au premier
+            // chargement.
+            //
+            // Les deux chemins divergeaient en silence : un `ont.lecture`
+            // **sans** la clé retombe sur `Habillage::default()`, donc `Auto` ;
+            // **aucun** `ont.lecture` passe par ici, donc `Application`. Le même
+            // lecteur voyait deux sites selon qu'il avait déjà réglé autre
+            // chose.
+            //
+            // ==Un défaut écrit deux fois est un défaut qu'on peut contredire,
+            // et le second exemplaire n'a aucune raison d'être relu.==
+            //
+            // Trouvé le 2 octobre 2026 en vidant le profil d'un simulateur iPad
+            // et en relevant ce que la page réécrit toute seule. L'auteur avait
+            // la même lecture : *« j'ai l'impression que par défaut on est
+            // application dans les settings et pas en selon appareil »*.
+            habillage: Habillage::Auto,
         }
     }
 }
@@ -650,8 +673,9 @@ impl Preferences {
             fonte: Fonte::Literata,
             // Sans effet, comme le thème et le corps : une carte de partage
             // n'a pas de barres à montrer ni d'en-tête à poser. La valeur est
-            // là parce que la structure l'exige, et le défaut est le bon.
-            habillage: Habillage::Application,
+            // là parce que la structure l'exige, et le défaut est le bon —
+            // c'est-à-dire celui du type, depuis qu'il l'est aussi plus haut.
+            habillage: Habillage::Auto,
         }
     }
 }
@@ -791,6 +815,50 @@ fn resserrer_texte(texte: &str, premier: bool, dernier: bool) -> String {
 
 #[cfg(test)]
 mod tests {
+    /// Un lecteur qui n'a rien réglé laisse l'appareil décider.
+    ///
+    /// `Preferences::default()` posait `Application` quand le type dit `Auto`
+    /// deux lignes sous sa définition. « Selon l'appareil » n'était donc jamais
+    /// en vigueur : sur un grand écran, `/fr/liseuse/…` se faisait renvoyer
+    /// vers la webapp, et la préférence se figeait au premier chargement.
+    ///
+    /// Trouvé le 2 octobre 2026 en vidant le profil d'un simulateur et en
+    /// relevant ce que la page réécrit toute seule.
+    #[test]
+    fn un_lecteur_neuf_sur_grand_ecran_voit_l_edition() {
+        // La propriété est écrite par son **effet**, et non par l'égalité des
+        // deux défauts : c'est ce qu'un lecteur obtient qui s'était inversé, et
+        // une épreuve qui compare deux constantes ne dit pas ce qu'elle protège.
+        assert_eq!(
+            Preferences::default().habillage.resoudre(true),
+            Arbre::Liseuse,
+            "sur un grand écran, un lecteur qui n'a rien réglé doit voir l'édition"
+        );
+        assert_eq!(
+            Preferences::default().habillage.resoudre(false),
+            Arbre::Webapp,
+            "sur un téléphone, le même lecteur doit voir l'app"
+        );
+    }
+
+    /// Les deux chemins qui mènent à un habillage par défaut disent la même
+    /// chose.
+    ///
+    /// Un `ont.lecture` **sans** la clé retombe sur `Habillage::default()` ;
+    /// **aucun** `ont.lecture` passe par `Preferences::default()`. Les deux
+    /// valeurs ont divergé pendant tout le chantier des deux arbres, et le même
+    /// lecteur voyait deux sites selon qu'il avait déjà réglé autre chose.
+    ///
+    /// ==Un défaut écrit deux fois est un défaut qu'on peut contredire.==
+    #[test]
+    fn les_deux_defauts_d_habillage_concordent() {
+        assert_eq!(
+            Preferences::default().habillage,
+            Habillage::default(),
+            "le défaut des préférences doit être celui du type"
+        );
+    }
+
     /// La sérialisation d'un habillage **est** la clé que le script relit.
     ///
     /// Le script d'avant-rendu lit `ont.lecture` et compare `o.habillage` aux

@@ -4054,6 +4054,58 @@ commentaire disait que la mécanique était « tombée avec le déplacement, le 
 n'étant plus dans le coin qu'occupe la barre de sélection ». Sous l'édition il y
 est de nouveau : les deux raisons valent, celle de propos comme celle de place.
 
+### « Selon l'appareil » n'était jamais le défaut
+
+**Corrigé le 2 octobre 2026**, et c'est le défaut qui faisait croire aux deux
+autres. `Preferences::default()` posait `habillage: Application` — quand le type,
+deux lignes sous sa définition, écrit « `Auto` : c'est le défaut ».
+
+Conséquence, sur **tout lecteur neuf** :
+
+- « Vous → L'habillage » montrait « L'application » cochée, jamais « Selon
+  l'appareil » ;
+- sur un grand écran, `/fr/liseuse/…` se faisait **renvoyer vers la webapp** —
+  l'alignement du §ci-dessus faisant exactement son travail sur une préférence
+  fausse ;
+- et la préférence se **figeait** au premier chargement, puisque le site
+  réécrit `ont.lecture` avec ce qu'il croit être l'état.
+
+**Les deux chemins divergeaient en silence.** Un `ont.lecture` *sans* la clé
+retombe sur `Habillage::default()`, donc `Auto` ; *aucun* `ont.lecture` passe par
+`Preferences::default()`, donc `Application`. Le même lecteur voyait deux sites
+selon qu'il avait déjà réglé autre chose.
+
+> ==Un défaut écrit deux fois est un défaut qu'on peut contredire, et le second
+> exemplaire n'a aucune raison d'être relu.==
+
+Deux épreuves le tiennent : `un_lecteur_neuf_sur_grand_ecran_voit_l_edition`,
+écrite par l'**effet** — ce qu'un lecteur obtient, et non l'égalité de deux
+constantes — et `les_deux_defauts_d_habillage_concordent`, qui ferme la
+divergence des chemins.
+
+#### Il a fallu un iPad pour le voir
+
+L'auteur a créé le simulateur **« Web iPadOS »** ce jour-là, et `sim.sh` prend
+désormais `SIM="Web iPadOS"`. Avant lui, toutes les captures de cet outil se
+faisaient sur un écran de téléphone, donc **sous `lg`** — là où `Auto` résout
+vers l'app de toute façon, et où le défaut est donc invisible.
+
+    SIM="Web iPadOS" ./scripts/sim.sh /fr/liseuse/bible
+
+> ==Un défaut qui ne se produit que dans une taille d'écran ne se voit pas dans
+> l'autre, et un outil qui n'a qu'une taille conclut toujours sur le site
+> entier.==
+
+Et le relevé qui tranche a demandé une mesure de plus : **vider le profil avant
+de charger** (`?neuf=1` du banc du pointeur). Une préférence enregistrée explique
+presque tout, et l'on ne sait pas qui l'a écrite — c'est le seul moyen de
+distinguer *un choix du lecteur* de *quelque chose que le site écrit tout seul*.
+
+```text
+avant : url obtenue /fr/webapp/…   cookie=webapp   habillage:"application"
+après : url obtenue /fr/liseuse/…  cookie=liseuse  habillage:"auto"
+```
+
 ### Deux bancs, parce qu'un clic peut échouer de deux façons
 
 **Le banc d'erreurs annonçait deux arbres sains pendant que l'auteur voyait des

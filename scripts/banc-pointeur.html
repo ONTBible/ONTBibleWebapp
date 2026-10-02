@@ -70,6 +70,15 @@ if (arbre) {
 // ==Un banc qui ne peut pas prendre la taille du cas mesuré ne mesure que
 // l'autre.== `?large=1` donne au cadre 1440 px de viewport et le réduit à
 // l'écran : la page croit être sur un Mac, et les requêtes média avec elle.
+// **Repartir d'un lecteur qui n'a jamais rien réglé.** Une préférence
+// enregistrée explique presque tout — et l'on ne sait pas qui l'a écrite. Vider
+// avant de charger est le seul moyen de distinguer *un choix du lecteur* de
+// *quelque chose que le site écrit tout seul*.
+if (p.get('neuf') === '1') {
+  try { localStorage.removeItem('ont.lecture'); } catch (e) {}
+  document.cookie = 'ont.habillage=;path=/;max-age=0';
+  dire('profil vidé : ont.lecture et ont.habillage');
+}
 const large = p.get('large') === '1';
 if (large) {
   f.style.width = '1440px';
@@ -103,6 +112,15 @@ setTimeout(() => {
   dire('hauteur du document : ' + d.documentElement.scrollHeight + ' px');
   const L = w.innerWidth, H = w.innerHeight;
   dire('fenêtre du cadre : ' + L + ' × ' + H + '  défilé à ' + w.scrollY);
+  // **Ce que la page voit pour décider de son habillage.** `grand_ecran()` lit
+  // cette requête exacte, et `Habillage::Auto` en dépend entièrement : à faux,
+  // le client remplace l'adresse par celle de l'autre arbre.
+  dire('min-width 64rem : ' + w.matchMedia('(min-width: 64rem)').matches
+       + '  — racine : ' + w.getComputedStyle(d.documentElement).fontSize);
+  dire('cookie : ' + (d.cookie || '(aucun)'));
+  try {
+    dire('ont.lecture : ' + (w.localStorage.getItem('ont.lecture') || '(absent)'));
+  } catch (e) { dire('ont.lecture : illisible'); }
   for (const part of [0.1, 0.25, 0.4, 0.55, 0.7, 0.85]) {
     const y = Math.round(H * part);
     const ligne = [];
