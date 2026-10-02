@@ -141,7 +141,15 @@ setInterval(() => {
     // remplace le contenu et laisse la page où elle était. Mesurer depuis le
     // haut ne verrait jamais le défaut — `scrollY` y vaut zéro avant comme
     // après. ==Une mesure qui part de l'état attendu ne peut pas le démentir.==
-    if (lien) { w.scrollTo(0, 2000); }
+    // **En `instant`, et c'est le piège de `porte.rs` rejoué par le banc.**
+    // `scroll-behavior: smooth` est posé sur `html`, et `scrollTo` en hérite :
+    // la descente du banc était encore en cours quand le clic partait, et les
+    // deux animations se battaient. Le relevé final rendait 2000 — c'est-à-dire
+    // la position que l'instrument lui-même défendait.
+    //
+    // ==Un banc qui pilote la page doit le faire sans animation : sinon il
+    // mesure sa propre inertie.==
+    if (lien) { w.scrollTo({ top: 2000, behavior: 'instant' }); }
     if (lien) { lien.click(); dire('clic → ' + r + '  (depuis y=' + Math.round(w.scrollY) + ')'); }
     else { dire('pas de lien vers ' + r + ' (url=' + w.location.pathname + ')'); }
     const avant = chargements;
@@ -163,7 +171,13 @@ setInterval(() => {
              + '  y=' + y
              + (!change ? '  (même page)' : y > 40 ? '  ⚠ pas remonté' : ''));
       } catch(e){}
-    }, 900);
+    // **1600 ms et non 900.** Le retour en haut d'une page qu'on touche alors
+    // qu'on y est déjà est **doux** — c'est le geste d'iOS, et on doit voir la
+    // page revenir. Relevé trop tôt, il paraît n'avoir pas eu lieu.
+    //
+    // ==Une mesure prise avant la fin de ce qu'elle mesure rend toujours
+    // l'ancien état, et rien ne distingue cette réponse d'un défaut.==
+    }, 1600);
   } catch (e) { dire('clic impossible : ' + e); }
 }, 1800);
 </script>

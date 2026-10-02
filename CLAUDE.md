@@ -4266,13 +4266,47 @@ dans le comptage des marqueurs, et Leptos n'en pose pas les mêmes des deux côt
 > ne se monte pas — c'est la forme de `fournir_l_arbre()`, et c'est celle à
 > reprendre.
 
-#### Ce qui reste, et qui n'est pas un défaut
+#### Toucher la page où l'on est remonte aussi
 
-Toucher l'onglet de la page où l'on est **déjà** ne remonte pas : le chemin ne
-change pas, donc rien ne se réveille. L'app le fait — c'est le geste d'iOS — et
-le site ne le fait pas encore. Le banc distingue désormais les deux cas :
-==une garde doit distinguer « ça n'a pas marché » de « il n'y avait rien à
-faire ».==
+Demandé dans la foulée. Le chemin ne change pas, donc l'effet ci-dessus ne se
+réveille jamais et le lien ne fait visiblement **rien** — ce qui se lit comme un
+lien cassé, pas comme un lien sans objet.
+
+> ==Le seul geste qui n'a pas d'effet par construction est celui qui demande là
+> où l'on est ; c'est précisément celui à qui il faut en donner un.==
+
+Trois conditions, et chacune écarte un faux positif : **même hôte**, **même
+chemin *et* même chaîne de requête** — `…/bereshit-1?v=5` depuis `…/bereshit-1`
+est un autre endroit, et le routeur ne change pourtant pas le `pathname` —, et
+**pas d'ancre**.
+
+Celui-ci est **doux** à l'inverse du précédent : on ne quitte pas la page, on la
+voit revenir, et ce mouvement est ce qui dit que le geste a été pris. La feuille
+porte déjà `smooth` et le repasse à `auto` sous `prefers-reduced-motion` : il
+suffit de **ne rien forcer**.
+
+##### Deux fausses pistes, et c'est l'instrument qui mentait
+
+Le banc rendait `y=2000` après le clic, sans erreur. On a soupçonné le **délai**
+— le mouvement est doux, on l'a cru inachevé — puis la **propagation** : le
+routeur pouvait arrêter le clic avant `window`, et l'écouteur est passé en phase
+de capture, avec un commentaire qui l'expliquait très bien.
+
+Ni l'un ni l'autre. **C'était le banc** : il descendait à 2000 px par un
+`scrollTo` qui hérite du `scroll-behavior: smooth` de la feuille, donc sa
+descente était encore en cours quand le clic partait. Le relevé final rendait la
+position que l'instrument lui-même défendait.
+
+> ==Un banc qui pilote la page doit le faire sans animation : sinon il mesure sa
+> propre inertie.== C'est le piège de `porte.rs`, rejoué par l'outil au lieu du
+> produit.
+
+Et la capture a été **retirée puis mesurée à nouveau** : la bulle suffit.
+
+> ==Une correction qui accompagne un succès n'est pas une correction prouvée ;
+> il faut la retirer pour savoir.== Sans ce retour en arrière, le dépôt gardait
+> une complexité et une raison fausse — et la raison se serait relue comme une
+> mesure.
 
 ### Le pied revient sous la webapp — elle n'avait aucune sortie
 

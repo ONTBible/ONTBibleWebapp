@@ -34,6 +34,10 @@
 //! pour un chapitre. C'est le piège que `porte.rs` a payé en 2026 : *la position
 //! demandée doit redevenir la position obtenue.*
 
+// `Effect` et `window_event_listener` ne servent que du côté du navigateur :
+// l'import est borné comme le corps de la fonction, faute de quoi le serveur le
+// compile pour rien et le signale.
+#[cfg(feature = "hydrate")]
 use leptos::prelude::*;
 
 /// Remonte en haut à chaque changement de chemin, sauf aux trois cas ci-dessus.
@@ -111,6 +115,81 @@ pub fn remonter_en_haut() {
             options.set_left(0.0);
             options.set_behavior(web_sys::ScrollBehavior::Instant);
             fenetre.scroll_to_with_scroll_to_options(&options);
+        });
+
+        // ── Toucher la page où l'on est déjà remonte aussi ────────────────
+        //
+        // C'est le geste d'iOS, et l'app le fait : on touche l'onglet courant,
+        // la vue revient en haut. Sur le site, le chemin ne change pas — donc
+        // l'effet ci-dessus ne se réveille jamais, et le lien ne fait
+        // visiblement **rien**. Un lien qui ne fait rien se lit comme un lien
+        // cassé, pas comme un lien sans objet.
+        //
+        // ==Le seul geste qui n'a pas d'effet par construction est celui qui
+        // demande là où l'on est ; c'est précisément celui à qui il faut en
+        // donner un.==
+        //
+        // ## Trois conditions, et chacune écarte un faux positif
+        //
+        // - **même hôte**, sinon on remonterait en partant du site ;
+        // - **même chemin *et* même chaîne de requête.** `…/bereshit-1?v=5`
+        //   depuis `…/bereshit-1` est un autre endroit, et le routeur ne change
+        //   pourtant pas le `pathname` : comparer le seul chemin ferait remonter
+        //   un lecteur qu'on envoie au verset cinq ;
+        // - **pas d'ancre**, qui demande explicitement un autre endroit.
+        //
+        // ## Et celui-ci est **doux**, à l'inverse du précédent
+        //
+        // On ne quitte pas la page : on la voit revenir, et ce mouvement est ce
+        // qui dit que le geste a été pris. La feuille porte déjà
+        // `scroll-behavior: smooth` sur `html` et le repasse à `auto` sous
+        // `prefers-reduced-motion` (§5) — il suffit donc de **ne rien forcer**,
+        // et le réglage du lecteur est respecté sans qu'on ait à le relire.
+        // ## Il a fallu deux fausses pistes pour arriver à cette ligne
+        //
+        // Le banc rendait `y=2000` après le clic, sans erreur. On a d'abord
+        // soupçonné **le délai** — le mouvement est doux, on l'a cru inachevé —,
+        // puis la **propagation** : le routeur traite le clic d'un `<A>`, il
+        // pouvait l'arrêter avant `window`. L'écouteur est donc passé en phase
+        // de capture, avec un commentaire qui expliquait très bien pourquoi.
+        //
+        // Ni l'un ni l'autre. **C'était le banc** : il descendait à 2000 px par
+        // un `scrollTo` qui hérite du `scroll-behavior: smooth` de la feuille,
+        // donc sa descente était encore en cours quand le clic partait. Les deux
+        // animations se battaient, et le relevé final rendait la position que
+        // l'instrument lui-même défendait — le piège de `porte.rs`, rejoué par
+        // l'outil au lieu du produit.
+        //
+        // La capture a ensuite été **retirée et mesurée à nouveau** : la bulle
+        // suffit. ==Une correction qui accompagne un succès n'est pas une
+        // correction prouvée ; il faut la retirer pour savoir.== Sans ce
+        // retour en arrière, le dépôt aurait gardé une complexité et une raison
+        // fausse — et la raison aurait été relue comme une mesure.
+        let _ = window_event_listener(leptos::ev::click, move |evenement| {
+            use wasm_bindgen::JsCast;
+
+            let Some(ancre) = evenement
+                .target()
+                .and_then(|cible| cible.dyn_into::<web_sys::Element>().ok())
+                .and_then(|element| element.closest("a").ok().flatten())
+                .and_then(|element| element.dyn_into::<web_sys::HtmlAnchorElement>().ok())
+            else {
+                return;
+            };
+
+            let Some(fenetre) = web_sys::window() else {
+                return;
+            };
+            let ici = fenetre.location();
+
+            let meme_hote = ancre.host() == ici.host().unwrap_or_default();
+            let meme_chemin = ancre.pathname() == ici.pathname().unwrap_or_default();
+            let meme_requete = ancre.search() == ici.search().unwrap_or_default();
+            let sans_ancre = ancre.hash().is_empty() || ancre.hash() == "#";
+
+            if meme_hote && meme_chemin && meme_requete && sans_ancre {
+                fenetre.scroll_to_with_x_and_y(0.0, 0.0);
+            }
         });
     }
 }
