@@ -3374,3 +3374,31 @@ select,
 .ecran-edition .carte-de-liste > li > label {
   padding-inline: 0;
 }
+
+/* ── Une rangée qui défile sans le dire ──────────────────────────────────────
+ *
+ * `ONTSegments` emploie `ViewThatFits` : la rangée entière d'abord, la même qui
+ * défile quand elle ne tient plus. Le navigateur fait la même chose seul —
+ * `overflow-x: auto` ne défile que si le contenu dépasse — à une différence
+ * près : il affiche une barre.
+ *
+ * L'app n'en montre pas (`scrollIndicators(.hidden)`), et il faut la retirer
+ * ici aussi : sur une barre d'actions de deux lignes de haut, elle en mangerait
+ * une bonne part et se lirait comme un élément de l'interface.
+ *
+ * ==Ce qui dit qu'une rangée défile n'est pas une barre, c'est une tuile coupée
+ * au bord.== Le découpage du conteneur s'en charge, et il le dit mieux.
+ *
+ * `overscroll-behavior-x: contain` en plus : sans lui, arriver au bout du rail
+ * poursuit le geste sur la page — ou sur l'historique du navigateur, qui recule
+ * d'une page. Un glissement horizontal dans une barre d'outils ne doit pas
+ * pouvoir quitter la lecture.
+ */
+.rail-horizontal {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.rail-horizontal::-webkit-scrollbar {
+  display: none;
+}

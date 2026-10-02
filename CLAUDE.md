@@ -4235,14 +4235,39 @@ tiennent pas sur une ligne de téléphone.
 > actions.== Celles qui sortaient du cadre étaient injoignables, sans que rien ne
 > le dise.
 
-La rangée se **replie** désormais : `basis-[6.5rem]` donne la largeur visée,
-`flex-1` laisse les tuiles s'étaler quand il y a la place. Six sur une ligne
-au-delà de 28 rem, trois puis trois en dessous, et chaque libellé entier.
+**La rangée défile**, et c'est la forme d'`ONTSegments` — l'auteur l'a demandée
+ainsi : *« j'aurais plutôt voulu une rangée scrollable à l'horizontale, comme ce
+qu'il y a dans l'app dans l'onglet Lexique ».* Un premier jet la repliait sur
+deux lignes ; ça marchait, et ce n'était pas la forme de l'app.
 
-Sans `basis`, `flex-1` seul vaut `flex-basis: 0 %` : les tuiles se tassent sur
-une ligne quoi qu'il arrive, et le repli ne se déclenche jamais. Les **quatre**
-tuiles la portent — *Noter*, *Image* et *Partager* l'avaient oubliée, et un
-repli à largeurs inégales se lit comme un défaut de mise en page.
+Son commentaire nomme le cas, et il nomme l'auteur :
+
+> au premier cran d'accessibilité — celui où Gloire lit — « Intraduisibles »
+> prenait toute la largeur et les trois autres tombaient à « V », « T », « S ».
+> Trois portes devenues illisibles : ce n'est plus une troncature, c'est une
+> disparition.
+
+Là-bas c'est `ViewThatFits` : la rangée entière d'abord, la même qui défile quand
+elle ne tient plus. **Ici le navigateur le fait seul** — `overflow-x: auto` avec
+des tuiles en `min-w-max` ne défile que si c'est nécessaire. ==Aucune mesure,
+aucun seuil deviné== : la même propriété, obtenue par la disposition plutôt que
+par une branche.
+
+Et c'est `min-w-max` qui décide, pas le conteneur : sans lui, `flex-1` vaut
+`flex-basis: 0 %` et autorise la tuile à descendre sous son texte — les libellés
+se tassent et débordent. ==Ce qui décide du défilement n'est pas le conteneur,
+c'est le plancher de ce qu'il porte.== Les **quatre** tuiles le portent.
+
+La barre de défilement est masquée, comme l'app masque la sienne : sur deux
+lignes de haut elle en mangerait une bonne part. ==Ce qui dit qu'une rangée
+défile n'est pas une barre, c'est une tuile coupée au bord.== Et
+`overscroll-behavior-x: contain` empêche le geste de poursuivre sur l'historique
+du navigateur, qui reculerait d'une page.
+
+Mesuré : six sur une ligne à 956 px **sans défilement**, et à 402 px la rangée
+défile avec `PARTA…` coupé au bord. Le banc du pointeur a gagné `?etroit=402`
+pour ça — ==un banc doit pouvoir prendre la plus petite taille du cas, pas
+seulement la sienne.==
 
 Et ça tient **à tous les crans d'agrandissement**, ce qui n'est pas un détail
 ici : l'auteur monte le corps du texte pour voir, et un dessin qui ne tient qu'à

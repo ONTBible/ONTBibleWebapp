@@ -102,6 +102,18 @@ if (regle) {
 // va voir ailleurs. C'est le seul moyen de mesurer ce qu'une page **laisse**
 // derrière elle — une place retenue ne se lit pas sur la page qui l'écrit.
 const puis = p.get('puis');
+// `?etroit=402` : la largeur d'un iPhone Pro, imposée au cadre. Le simulateur
+// en fait 956 — assez pour que six tuiles d'actions tiennent, donc assez pour
+// ne jamais voir le défaut qu'on mesure.
+//
+// ==Un banc doit pouvoir prendre la plus petite taille du cas, pas seulement la
+// sienne.==
+const etroit = parseInt(p.get('etroit') || '0', 10);
+if (etroit > 0) {
+  f.style.width = etroit + 'px';
+  f.style.margin = '0 auto';
+  f.style.display = 'block';
+}
 const large = p.get('large') === '1';
 if (large) {
   f.style.width = '1440px';
