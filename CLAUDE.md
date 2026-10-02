@@ -1445,6 +1445,71 @@ aperçu faux coûte plus qu'un aperçu absent :
   témoin, l'aperçu montre le style du dernier redémarrage complet et l'on
   débat d'un rendu qui n'est pas celui du code.
 
+### Construire en deux temps **en développement** tue l'hydratation
+
+**Trouvé le 21 septembre 2026, et c'est l'auteur qui l'a vu** — « je suis sur le
+serveur local et quand je tape sur les liens y a pas de redirection, c'est
+normal ? » Non.
+
+```text
+A hydration error occurred while trying to hydrate an element
+defined at src/interface/app.rs — the framework expected a marker
+node, but found this instead: [object HTMLElement]
+panicked at tachys-0.2.18/src/hydration.rs:216
+RuntimeError: Unreachable code should not be executed
+              (evaluating 'wasm.hydrate()')
+```
+
+Le WASM meurt au démarrage. **La page s'affiche quand même** — c'est le rendu du
+serveur, et il est juste — mais plus rien n'est vivant : le routeur ne prend
+aucun lien, les réglages ne commutent rien, la feuille « aA » n'apparaît pas.
+
+La cause est la **façon de lancer**, pas le code :
+
+```
+✗  cargo leptos build --frontend-only     puis, à la main,
+   cargo build --features ssr --bin ontbible
+   ./target/debug/ontbible
+
+✓  cargo leptos watch        ou  cargo leptos serve
+```
+
+Les deux moitiés doivent être construites **ensemble**. Séparées, le serveur et
+le WASM ne s'accordent plus sur les marqueurs d'hydratation, et le second refuse
+l'arbre du premier.
+
+**Le deux-temps n'est pas une erreur en soi** : `scripts/deployer.sh` le fait
+délibérément, parce que le linker d'Apple ne sait pas lier ce binaire (§8
+quater). Mais là le serveur est **croisé-compilé d'un coup** pour Linux, depuis
+la même source, par `cargo lambda`. Ce n'est pas le même geste.
+
+#### Ce que ça a coûté, et pourquoi c'est la même leçon que trois autres
+
+Le serveur fautif tenait le port 3000. **L'auteur travaillait dessus sans le
+savoir** : il a cliqué, rien n'a répondu, et il a cru que son site était cassé.
+
+Et le diagnostic a d'abord accusé le mauvais coupable — la fusion du jour, parce
+qu'elle était récente et qu'elle touchait `app.rs`. **Les deux changements ont
+été retirés un par un, et l'erreur a persisté.** C'est ce retrait qui a innocenté
+la fusion ; sans lui, on aurait « corrigé » du code sain.
+
+> ==Une panne qui apparaît juste après un changement n'est pas une panne
+> causée par ce changement. Retirer le suspect est plus court que de
+> raisonner sur lui.==
+
+Et la famille est celle des trois autres pièges de ce §7 bis : **ce qui est
+servi n'est pas ce qui est compilé.** Les empreintes qui ne changent pas, la
+feuille que le navigateur garde, l'aperçu qui charge la mauvaise feuille — et
+maintenant un WASM qui ne correspond pas à son serveur. À chaque fois on mesure
+un artefact en croyant mesurer le produit.
+
+#### Le symptôme à reconnaître
+
+La page est belle, le texte est là, un moteur l'indexerait — **et rien ne
+répond au doigt**. Ne pas chercher dans le composant : vérifier d'abord la
+console du navigateur, où l'erreur est explicite, et relancer par
+`cargo leptos watch` avant toute autre chose.
+
 ### Et le navigateur gardait quand même l'ancienne feuille
 
 **Corrigé le 16 août 2026**, et c'est le troisième piège de cette section — le
@@ -1797,8 +1862,23 @@ CloudFront ──┬── /pkg/*  /images/*  /fontes/*  /robots.txt ──▶  
 Un seul geste : `./scripts/deployer.sh`. Il construit, pousse, applique,
 invalide.
 
-**Mesuré** : 75 ms par page à chaud, 378 ms à froid. WASM 1 275 Ko en
-`application/wasm`, première visite ~700 Ko sur le fil, visites suivantes 0.
+**Mesuré le 2 octobre 2026**, sur le déployé : 67 à 97 ms au premier octet selon
+la page. WASM **2 489 Ko** en `application/wasm`, **828 Ko sur le fil** une fois
+compressé en brotli par CloudFront ; visites suivantes 0, le nom portant
+l'empreinte. La feuille fait 12 Ko sur le fil, le JS 7,5.
+
+Le relevé d'août disait « 1 275 Ko, ~700 Ko sur le fil » : le WASM a **doublé**
+pendant le chantier des deux arbres, et le fil n'a gagné que dix-huit pour cent —
+brotli absorbe une bonne part de ce qu'on ajoute. Le chiffre est tenu à jour ici
+plutôt que laissé derrière : ==un nombre périmé dans un document de reprise ne se
+lit pas comme périmé, il se lit comme une mesure.==
+
+**Et ce qu'on voit en développement n'est pas ce que voit un lecteur.** Le même
+WASM pèse **12 Mo** servi par `cargo leptos watch` — quinze fois le fil de
+production : le profil `dev` ne passe ni par `opt-level = 'z'`, ni par `lto`, ni
+par `wasm-opt`, et le serveur local ne compresse pas. Une page qui paraît lente à
+s'animer en local peut n'avoir aucun défaut.
+
 Coût attendu : 0 € jusqu'à des dizaines de milliers de visites, ~2 €/mois si le
 palier gratuit disparaissait. Une alerte de budget à 5 $ en prévision — c'est
 la seule chose qui voie venir un abus, qui ne se manifeste par aucune erreur.
@@ -2775,7 +2855,9 @@ tout allait bien.
 - la **position de lecture** — le backend la porte, le site ne la suit pas
   encore. C'est dans `SyncDuBackend::pousser` qu'elle entrera, où la clé est
   aujourd'hui omise plutôt que mise à `null` ;
-- l'action **Image** de l'app, qui rend un carré de 1080 px.
+- l'action **Image** est faite — `design/image_de_partage.rs`, un carré de
+  1080 px composé sur un `<canvas>`. Ce qui reste d'elle est plus bas, au
+  §8 undecies : le clic n'a jamais été déclenché par une main.
 
 ## 8 decies. Trois contrats arrêtés, et rien de construit — le 11 septembre 2026
 
@@ -3134,17 +3216,1384 @@ iOS, et tenue par un cliquet à double sens — une valeur qui s'améliore fait
   n'est ni l'une ni l'autre valeur : c'est qu'il en faut deux.** Le site n'en a
   qu'une, et c'est là qu'il faut commencer.
 
+### La seconde échelle — le corps du texte
+
+**L'app en porte deux, et son code dit pourquoi en nommant l'auteur :**
+
+> Un lecteur atteint de kératocône monte le corps du texte très haut pour lire,
+> et n'a aucune raison de faire enfler du même geste une barre latérale qui lui
+> mangerait la place où ce texte s'affiche.
+
+| | l'app | le site |
+|---|---|---|
+| l'interface | ⌘+ / ⌘−, sept crans de 0,85 à 1,50 | le zoom du navigateur |
+| le corps du texte | un curseur, **11 à 28**, défaut 19 | `--lecture` |
+
+Le site n'avait que la première — et par chance elle était déjà juste : la
+feuille est tout entière en `rem`, donc la taille de police par défaut du
+navigateur et son zoom commandent déjà, ce qui est le rôle que `@ScaledMetric`
+tient là-bas.
+
+**C'est la même leçon que `readingWidth 700` contre `pageWidth 850`, et elle est
+arrivée deux fois le même jour : le site a un réglage là où l'app en a deux.**
+
+`--lecture` vaut `corps / 19`. Au défaut il vaut 1, donc `calc(x * 1)` rend `x`
+— mesuré : l'aperçu du cran par défaut est **identique à l'octet** à celui
+d'avant le portage. Une taille absolue aurait demandé de choisir laquelle, et le
+site en a deux : la prose à 21 px, le corpus à `--text-lg`.
+
+Il n'est lu que par `.liseuse`. Ni la navigation, ni le fil d'Ariane, ni le
+panneau lui-même ne bougent — **c'est la moitié du sujet, et c'est la moitié
+qu'on oublie.**
+
+#### L'amplitude réelle est un facteur 9,6, pas un réglage de confort
+
+Relevée par la session iOS, vérifiée ici contre la table publiée d'Apple pour
+`.body` : le curseur et le Dynamic Type se **multiplient**.
+
+```
+le plus petit   11 × 0,82  =   9,1 pt
+le défaut       19 × 1,00  =  19,0 pt
+le plus grand   28 × 3,12  =  87,3 pt
+```
+
+Ce qu'il faut en retenir n'est pas les bornes mais le rapport : **à 87 pt, une
+mise en page à deux colonnes n'existe plus**, et la comparaison de l'accueil est
+la pièce qui porte tout le site. Une épreuve de typographie se fait donc aux
+**deux bouts**, jamais au milieu.
+
+### Les sept fontes de lecture
+
+Le site n'en offrait aucune, et ce §défendait la décision. Elle était plus
+fragile qu'elle n'en avait l'air : **une fonte n'est pas un goût quand on lit
+mal.** L'œil qui bute sur une romane à fort contraste ne bute pas sur une
+linéale, et c'est mesurable sur la vitesse de lecture, pas sur l'opinion.
+
+Six familles embarquées — Literata, EB Garamond, Spectral, Source Serif 4,
+Newsreader, Jost — **en trois coupes chacune**, plus Georgia que le système
+fournit. Les trois coupes comptent : l'app note qu'« une famille amputée de son
+italique se résout quand même, en pente simulée », et chez nous la
+translittération du niveau 3 **est** en italique.
+
+Chaque ligne du menu se compose dans la fonte qu'elle propose — une ligne qui
+dit « Spectral » en Literata ne dit rien. Le piège : `[data-fonte='x'] .liseuse`
+est une **descendance**, et une ligne de menu porte les deux sur le *même*
+élément. Six lignes composaient juste, la septième non.
+
+### La navigation de la liseuse
+
+Le site portait la navigation d'une **édition**. La liseuse porte maintenant
+celle de l'app : barre latérale au-delà de `lg`, barre d'onglets en bas en
+dessous.
+
+**La règle est venue d'une réserve de la session macOS, pas de son accord :**
+
+> Ma barre est toujours là, et c'est cette constance qui la rend invisible. Une
+> barre qui apparaît et disparaît selon la section devient au contraire une
+> chose qu'on **surveille**.
+
+D'où : *le passage est un acte du lecteur, pas une conséquence de l'URL* — et le
+site a déjà cet acte, c'est le portail de l'accueil.
+
+**Trois destinations, deux absences assumées.** Qahal et Chuqqot ne sont pas de
+la chrome à porter, ce sont des fonctionnalités à écrire ; les poser en onglets
+vides ferait ce que ce dépôt s'interdit depuis le badge App Store. « Reprendre »
+attend la position de lecture (§8 nonies).
+
+Le compte est **épinglé en bas** de la barre latérale : *ce n'est pas une
+destination parmi les livres, c'est qui regarde.*
+
+Le bouton « aA » se posait dessus. Le premier calage déclarait la hauteur **sur
+la barre** — et une propriété personnalisée n'est visible que de ses
+descendants, or le bouton est un frère. Le jeton est sur `:root`, et c'est la
+barre qui s'y conforme : le nombre ne décrit plus la géométrie d'un autre
+élément, il *est* la géométrie.
+
+### Les surlignages — une dette payée sans qu'on la répare
+
+Le site portait les cinq pastels **de jour** de l'app, posés sur une nuit
+d'aubergine. Sa garde inscrivait la dette avec son propre diagnostic — « ce sont
+les six couleurs à la fois : soit l'opacité, soit un marquage qui s'ajusterait
+au fond réel. Un chantier, pas un correctif ».
+
+**Le chantier était fait ailleurs.** L'app a rendu `highlight` fonction du
+thème, avec une palette de nuit à teinte et saturation conservées.
+
+| | avant | après |
+|---|---|---|
+| `ink` | 4,01 | **7,77** |
+| `inkStrong` | 5,38 | **10,42** |
+| `inkSoft` | 2,29 | **4,43** |
+| `accentuation` | 2,30 | **4,46** |
+| `accent` | 3,67 | **7,10** |
+| `shem` | 2,29 | **4,44** |
+
+> ==C'est le meilleur argument qu'on ait pour ce portage : il ne tient pas
+> seulement les deux dépôts d'accord, il **rapporte les corrections du
+> voisin**.== Personne ici n'a cherché ce gain, personne là-bas ne savait que le
+> site en avait besoin.
+
+### L'icône et les rayons
+
+Le fond de `ONT.icon` est `display-p3:0.23945, 0.11440, 0.14897` — converti en
+sRGB, **exactement `#421B26`**. Les deux dépôts y étaient d'accord sans le
+savoir. La composition, non : la montagne occupe 66,7 % du côté chez elle contre
+72 ici, et elle est **remontée de 3,66 %** — une montagne centrée
+géométriquement paraît basse, sa masse étant en bas.
+
+Les quatre rayons d'`ONTRadius` sont des jetons. Celui de la feuille valait
+l'épreuve : *« à 22, la carte du Mac se lisait comme une boîte de dialogue, pas
+comme une feuille »* — et le panneau « aA » du site était à 22.
+
+### L'écran de lecture, porté le 29 septembre 2026
+
+Il composait encore comme une page d'édition. Cinq écarts, tous relevés dans
+`ChapterView.swift` et `ONTTypography.swift`, jamais à l'œil.
+
+| | l'app | le site, avant |
+|---|---|---|
+| interligne du verset | celui du corps | `leading-loose`, soit **2** |
+| barre du haut | pastille de renvoi + « aA », en verre | fil d'Ariane + « aA » flottant en bas |
+| en-tête d'unité | français *italique* · hébreu · renvoi, puis **filet d'or** | le renvoi seul, sous le nom ONT |
+| titre d'unité | `chapter.title` — « Bereshit 3 » | le registre — « Chapitre 3 » |
+| intertitre | corps **× 1,25**, Jost SemiBold, **`brandInk`** | le palier d'édition, `inkStrong` |
+
+**L'interligne était une contradiction du site avec lui-même** : le §5 mesure
+1,68 et dit pourquoi — *plus le corps grandit, moins il a besoin d'air
+proportionnel*. Le verset compose **au-dessus** du corps, il en demandait donc
+moins. La lecture suivie avait déjà été corrigée pour cette raison exacte ; le
+mode d'étude était resté.
+
+**La barre est deux capsules qui flottent, pas un bandeau.** C'est le dessin
+d'iOS 26, et il se lit dans le Swift plutôt que sur une capture : `.ontVerre(dans:
+Capsule())` est posé sur la pastille elle-même. La pastille est une **porte**,
+comme chez l'app — un lien vers la liste des unités là où elle ouvre un
+sélecteur modal.
+
+**« aA » a remonté.** Le site le posait en bas *en croyant copier l'app*, qui
+le met en `ONTPlacement.principale`, c'est-à-dire en haut à droite. Le bas
+n'était d'ailleurs plus libre depuis la barre d'onglets : deux rustines
+tenaient une place que trois objets se disputaient. L'argument d'origine ne
+demandait pas « en bas » mais « toujours atteignable » — la barre est `sticky`.
+
+**Le titre d'unité est un revirement**, et sa raison est structurelle : l'app
+emploie le registre dans sa **liste** (`stub.label(french:)`) et `chapter.title`
+dans son **en-tête**, parce que les deux ne répondent pas à la même question —
+une liste dit *lequel*, un en-tête dit *lequel c'est*. « Chapitre 3 » est un
+rang, et un rang seul ne nomme rien une fois qu'on est dedans.
+
+**Et le corps a fini par bouger — le 29 septembre 2026, sur sa demande.** Le
+verset composait à `--text-lg`, un cran au-dessus des 21 px que le §5 mesure.
+C'était le dernier écart de densité avec l'app, qui compose son corpus **au
+corps** : les versets d'ici tenaient trois lignes là où les siens en tenaient
+quatre.
+
+La règle du §5 — *« il a demandé plus grand deux fois : ne pas redescendre sans
+qu'il le demande »* — a été tenue : la question lui a été posée deux fois, et la
+ligne n'a bougé qu'après. Elle ne redescend pas **sous** ce qu'il a demandé,
+elle y atterrit : 21 px est sa valeur, et `--text-lg` était un supplément que
+personne n'avait décidé.
+
+### La feuille de prononciation — le 29 septembre 2026
+
+`dist/prononciation.json` était émis depuis le même pipeline et
+`pipeline::PrononciationFile` décrivait déjà sa forme ; le site n'avait ni la
+feuille ni le pavé qui l'ouvre.
+
+**Rien n'est composé ici** : le titre et les blocs viennent de
+`lexique/prononciation.md`. C'est la règle de l'app, mot pour mot — écrire ici
+une explication de la prononciation en ferait une seconde source, qui
+divergerait du vault à la première correction. Et ils arrivent en **blocs**,
+donc l'or, la terre brûlée et les liens vers les fiches viennent sans rendu.
+
+**Une page, là où l'app a une feuille**, et c'est la seule chose qui change.
+Une `.sheet` est modale, sans adresse ; une page se partage, se met en signet,
+s'indexe, et le retour du navigateur la referme. La question de la session iOS
+était la bonne — *ce qui doit rester modal* — et celle-ci ne demande rien.
+
+Le pavé porte l'**aplat de marque**, `brandInk` avec `onBrandAccent` dessus :
+le seul autre emploi de l'aplat est le bouton de connexion, et les deux disent
+« ceci n'est pas du corpus, c'est l'app qui te parle ». D'où
+`--color-sur-marque-accent`, qui **ne se déduit pas** de `marque-encre` : la
+paire s'inverse selon le thème — aubergine sur or, ou or sur nuit.
+
+Il est en **Jost**, pas dans la fonte de lecture : l'app a mesuré que sa fonte
+d'affichage, faite pour un titre d'une ligne, disloque ce libellé dès qu'il se
+replie — au premier cran d'agrandissement.
+
+### La double mesure — `readingWidth` contre `pageWidth`
+
+La session macOS l'avait désignée comme le point de départ, et la leçon n'est
+ni l'une ni l'autre valeur : **il en faut deux**. *« Une liste ne se lit pas
+comme une phrase : l'œil n'y court pas d'un bout à l'autre, il saute d'un
+intitulé à sa valeur. »* Le site n'en avait qu'une, et un sommaire de soixante-
+dix livres composait sur la mesure d'un verset — compteur à trois centimètres
+de son titre.
+
+`--container-page: 46rem`, et c'est le **rapport** de l'app qui est repris, pas
+sa valeur : notre mesure vaut 38 rem parce que le corps vaut 21 px (§5), et
+reporter 850 pt casserait ce lien. `--container-large` garde le sien — la
+comparaison de l'accueil, où deux colonnes de prose tiennent côte à côte.
+
+`Bloc` calcule désormais sa classe **en une fois** : à trois prétendants sur
+`max-width`, deux peuvent être vrais ensemble, et c'est encore l'ordre de la
+feuille qui trancherait. Le piège que son propre commentaire raconte.
+
+### La barre latérale porte le corpus, et « Reprendre » y est
+
+**Le corpus n'était pas un contournement du Mac.** La session macOS déconseille
+de copier sa barre, et elle a raison sur le **dessin** : ses trois
+contournements — sélection à l'accent du système, ⌘= sans effet, largeur
+indéclarable — n'existent pas sur le web. Mais son propre commentaire dit que
+l'iPad montre la même chose : *« Sur l'iPad il est toujours visible »*.
+
+Un rayon par corpus **peuplé** — jamais un en-tête suivi de rien, qui
+annoncerait un rayon vide. Le pli passe par `<details>`, réponse du web à
+`Section(isExpanded:)` : sans JavaScript, au clavier, et il porte son témoin.
+Le Mac a dû dessiner le sien parce que le style `sidebar` n'en affiche aucun.
+
+Le corpus défile ; le compte reste épinglé dessous, et c'est maintenant qu'il y
+a de quoi défiler que cette place se justifie visiblement.
+
+**« Reprendre » existait déjà, à un composant près.** Le module de navigation
+écrivait qu'il manquait parce que « le site ne suit pas encore la position de
+lecture ». Il la suit : `retenir_la_position` est appelée à l'ouverture de
+chaque unité depuis que le compte existe, et `ma_position` la relit — la page
+du compte l'affichait même. C'était vrai à l'écriture du §8 nonies, et c'est
+resté écrit après avoir cessé de l'être.
+
+Ce n'est pas une destination de plus : l'app le dit d'un mot — *« les trois
+suivantes sont des lieux ; celle-ci est un signet »* — et c'est ce qui lui vaut
+sa carte, avant le corpus et détachée de lui.
+
+**Et elle ne demande plus de compte. Corrigé le 2 octobre 2026**, sur décision de
+l'auteur. Ce paragraphe disait qu'elle se **tait** sans compte, *lire sans compte
+étant le cas normal du site, et « connectez-vous pour reprendre » ferait de la
+lecture une chose qu'on mérite.*
+
+L'argument visait le **message**, et il a été appliqué à la **fonctionnalité**.
+La retirer entièrement faisait exactement ce qu'on voulait éviter — par omission
+au lieu de le dire, ce qui est pire : rien n'avertissait.
+
+> ==Une place gardée sur l'appareil ne demande rien et ne révèle rien : elle ne
+> le quitte pas.== Le backend note que les marques d'un lecteur de Bible,
+> rattachées à une identité, révèlent des convictions religieuses — article 9 du
+> RGPD. Un signet qui n'est rattaché à personne ne porte pas cette charge.
+
+`interface/position.rs` la garde sous `ont.position`, à côté de `ont.lecture` et
+séparée d'elle : des réglages se perdent sans conséquence, une place se perd une
+fois. Elle s'écrit partout où `retenir_la_position` s'écrit — à l'ouverture d'une
+unité, puis à chaque verset franchi.
+
+**Le compte change de rôle : il ne donne plus la reprise, il la transporte.** Des
+deux places, la plus fraîche l'emporte, et c'est `updated_at` qui tranche — la
+règle du backend reprise telle quelle, les deux sources datant en millisecondes.
+Choisir une source qui gagne toujours aurait tort la moitié du temps : le compte
+est en retard sur l'appareil qu'on tient, l'appareil est en retard sur celui
+qu'on vient de quitter.
+
+Le signal part à `None` des deux côtés — le serveur ne voit pas le stockage du
+navigateur — et se remplit après l'hydratation : c'est le patron du bouton
+« aA », et il n'y a pas de désaccord.
+
+**Et ça se mesurait mal avant.** `adresse_de_retour()` renvoie vers
+`https://ontbible.com/fr/compte/retour` : on ne peut pas se connecter en local,
+donc « Reprendre » n'était **jamais** visible sur un serveur de développement.
+Une fonctionnalité qu'aucun état local ne rend est du code écrit, pas du code
+testé — la règle du §8 quinquies, appliquée à un compte au lieu d'un booléen.
+
+Relevé par le banc du pointeur, profil vidé, sans aucun compte :
+
+```text
+page : /fr/liseuse/bible/bereshit/bereshit-3
+on va voir /fr/liseuse/bible …
+« Reprendre » : PRÉSENTE → …/bereshit/bereshit-3?v=1  « Bereshit 3:1 »
+```
+
+Le banc a gagné `?puis=<chemin>` pour ça : charger une page, la laisser écrire,
+puis aller voir ailleurs. ==Une place retenue ne se lit pas sur la page qui
+l'écrit.==
+
+### Qahal est ouvert, Chuqqot reste fermé — et le partage se mesure
+
+Ce dépôt écartait les deux ensemble, « des fonctionnalités à écrire et non de
+la chrome à porter ». Juste pour l'une, faux pour l'autre — et deux minutes
+dans `dist/` le tranchaient.
+
+- **Qahal** n'attend rien. L'app le dit : *« structure posée, sans serveur »* —
+  le verset du jour, que le site porte déjà et par la même fonction de la date,
+  plus l'annonce de ce qui vient. Tout ce qui suppose d'autres lecteurs y est
+  **annoncé sans être simulé**, « un faux fil d'activité donnant une idée
+  fausse de ce qui existe ». Il ouvre la barre, comme chez elle : la Kenesset
+  est le rassemblement des textes, le Qahal celui des lecteurs ;
+- **Chuqqot** attend le vault. `dist/chuqqot.json` est bien émis, et ses
+  `entries` sont **vides**.
+
+Une phrase de l'app a été refaite plutôt que reprise : elle clôt son annonce
+par « la lecture fonctionne entièrement hors ligne », ce qui est faux ici — le
+site n'a délibérément pas de *service worker* (§8 quinquies). Ce qu'elle promet
+vraiment se dit sans rien perdre : la lecture ne demande aucun compte.
+
+C'est le §8 quinquies pris à l'envers — **une contrainte qu'on se transmet
+entre sessions doit être datée ou revérifiée**.
+
+### La webapp a son adresse, et la barre a ses cinq onglets
+
+**Le 29 septembre 2026, l'auteur a resserré la demande** : « je veux un fork de
+l'app pour la webapp », « je veux la même tabbar », « je ne veux plus voir
+/fr/lire, je veux /fr/webapp, même dans la nav du site ».
+
+#### L'adresse a bougé, et rien de ce qui pointait l'ancienne n'est tombé
+
+`/fr/lire` → `/fr/webapp`. C'était la seule partie risquée :
+`/fr/lire/{livre}/{unité}?v=1-3` est **la route des liens partagés depuis
+l'app** (§4). Deux garde-fous, et il fallait les deux.
+
+Une **redirection permanente** couvre `/fr/lire` et tout ce qui est dessous,
+chaîne de requête comprise — perdre `?v=1-3` rendrait le passage entier là où
+le lien désignait trois lignes. Elle rend un **308** et non un 301 : le premier
+préserve la méthode, le second autorise le client à retomber en `GET`, ce qui
+casserait les fonctions serveur de `/api/`, qui sont des `POST`.
+
+Le fichier d'**association d'app** déclare désormais **deux** chemins. Retirer
+l'ancien casserait tous les liens partagés jusqu'ici — ils ouvriraient le site
+dans le **navigateur** au lieu de l'app, et le défaut serait silencieux des deux
+côtés : iOS ne relit ce fichier qu'à l'installation, Apple le met en cache sur
+son propre CDN.
+
+> **Ils ne se périment pas tout seuls.** Un lien partagé vit dans une
+> conversation, un signet, un message archivé ; il n'y a pas de date après
+> laquelle on saurait qu'aucun ne circule plus. Cette liste ne se raccourcit
+> que sur une décision, jamais par ménage.
+
+**Mesuré, et ça a corrigé la session iOS** : c'est **le site** qui sert ce
+fichier depuis la bascule des domaines du 13 août — `via: CloudFront`, et
+`/llms.txt` répond sur le même hôte. Elle croyait que son backend le servait,
+donc que la mise en ligne attendait une revue Apple. Elle n'attend que la fusion
+d'ici.
+
+#### La barre porte les cinq de l'app
+
+**La recherche n'est plus un onglet** : elle est un bouton de barre, en haut à
+droite, et **sur la Bible seulement** — la place que `BibleTab` lui donne.
+L'arbitrage avait été pris dans l'autre sens, sur un argument de la session iOS :
+sa barre est une contrainte de plateforme — cinq onglets, Chuqqot prend le
+cinquième —, donc le site, qui n'a pas la contrainte, pouvait garder le sien.
+L'auteur a tranché autrement, et *une contrainte qui produit le bon dessin reste
+le bon dessin*.
+
+**Chuqqot ouvre, avec son écran d'attente.** Ce dépôt l'écartait au motif
+qu'« une bannière n'a que deux états justes ». L'argument tombe sur un fait :
+**l'app a l'onglet et montre un écran d'attente**. Ce n'est donc pas une branche
+qu'aucun état du site ne rend.
+
+Son texte dit **pourquoi** l'écran est vide, et l'app avait payé le défaut que
+le site allait refaire : son premier état disait « ils ne sont pas encore
+écrits » alors que sept l'étaient. *« Le défaut n'était pas l'écran vide, c'était
+l'écran qui mentait. »* Il ne compte pas les chuqqot en attente — « quatorze sont
+écrites » se périmerait à la première validation.
+
+#### Trois écrans sortaient de la webapp
+
+Et c'est le défaut que rien ne montre : une destination déclare son chemin dans
+la navigation, et la page le rend à sa façon quatre cents lignes plus loin.
+
+| | ce qu'elle rendait | ce qu'un toucher donnait |
+|---|---|---|
+| **Vous** | `Entete` + `Bloc` | plus de barre, plus de thème, l'en-tête du site vitrine |
+| **Rechercher** | un `Hero` plein écran | la même chose, et **causé par la correction du matin** |
+
+La règle du §8 undecies n'a pas bougé et c'est elle qui tranche : **les pages de
+la liseuse sont exactement celles qui emploient `PageDeLecture`.** Le thème les
+suit alors par construction, sans table de chemins à tenir d'accord.
+
+Le §8 undecies excluait d'ailleurs la recherche du thème, *« elle porte une
+ouverture, et un bouton Chercher en or qui disparaît sur du clair »*. L'argument
+était juste et il est devenu faux le jour où l'on y est arrivé depuis
+l'intérieur de la liseuse.
+
+#### « Vous » refait sur les sections de `YouTab`
+
+Le fond n'était pas un fork, seulement la coquille.
+
+- **les boutons de connexion** étaient cerclés en capitales espacées — la forme
+  réservée à une *seconde* voie, pour l'action principale de l'écran. Aplat de
+  marque, pleine largeur, empilés ;
+- **l'échec s'ajoute à l'explication, il ne la remplace pas.** L'app a payé
+  cher : son message effaçait la seule phrase qui dit que le compte est
+  facultatif, et un examinateur de l'App Store a cru l'app cassée le 19 août
+  2026. Le site avait la même forme sous un autre nom — erreur en tête de page,
+  phrase qui rassure quatre écrans plus bas ;
+- **le registre entre**, et c'est le plus gros manque. L'app l'a sorti des
+  réglages de lecture *délibérément* : il y était rangé « entre la disposition
+  des versets et la taille du texte », c'est-à-dire avec la typographie, alors
+  qu'il change **ce que les livres sont appelés**. Il garde sa place dans la
+  feuille « aA » ; il a sa carte là où l'on décide ;
+- **« Le corpus » et « Crédits »** — et les crédits ne sont pas de la politesse :
+  les fontes sont sous OFL, qui veut que la licence parte avec. Un fichier posé à
+  côté d'une fonte satisfait la lettre ; le nommer dans l'interface satisfait ce
+  que la lettre protège.
+
+#### Les deux réglages de lecture qui manquaient
+
+**Couper les mots.** Le site posait `hyphens: auto` en dur : allumée pour tout
+le monde, sans moyen de l'éteindre. C'est un réglage chez l'app, et sa raison
+vaut doublement ici — *« la césure hache les mots, et qui grossit le texte pour
+le voir se retrouve avec plus de coupures, pas moins »*. `manual` plutôt que
+`none` : on retire l'automatisme, pas la possibilité.
+
+**L'interligne.** L'app compte un **supplément** (`.lineSpacing` s'ajoute à
+l'interligne naturel de la fonte), la CSS compte un **total**. Les deux ne se
+convertissent pas. Ce qui se transpose est le **défaut et l'amplitude** : au
+cran 5, la valeur rendue est exactement **1,68** — celle du §5 —, et chaque cran
+vaut un dixième, de 1,38 à 2,18.
+
+C'était la condition : *un curseur dont le cran du milieu déplacerait la valeur
+documentée changerait la composition de tout le monde pour offrir un réglage à
+quelques-uns.*
+
+En **dixièmes entiers** et non en flottant : `Preferences` reste `Eq`, la
+sérialisation est exacte — `0.7` peut revenir de `localStorage` en
+`0.7000000000000001` —, et deux réglages identiques se reconnaissent.
+
+### Les symboles — Phosphor, parce que les SF ne peuvent pas venir
+
+**Demandé par l'auteur le 29 septembre 2026**, puis cherché à sa demande.
+
+Les SF Symbols sont hors de portée, et la raison n'est pas technique : leur
+licence les réserve aux logiciels **tournant sur les plateformes Apple**. Un
+site web n'en est pas un, quel que soit l'appareil qui l'ouvre.
+
+Iconoir, Remix, Lucide, Heroicons, Tabler, Feather sont tous libres et tous **en
+contour seul**. **Phosphor** (MIT, sans attribution exigée) est la seule qui
+porte **le plein et le contour sur la même silhouette** — ce dont la barre
+d'onglets a besoin, l'app employant `book.closed.fill`, `person.2.fill`,
+`square.stack.3d.up.fill`. Elle dessine en **aplats** et non en traits, comme
+les SF.
+
+`scripts/porter-les-symboles.py` les tire et engendre `symboles.rs`. Il **ne
+choisit pas** les correspondances : elles sont dans une table, avec le nom du
+symbole de l'app en regard, pour que le choix se **relise** au lieu de se
+deviner.
+
+Une garde a servi tout de suite : `stack-fill` porte **trois** tracés, une
+feuille par strate. La première version collait le premier — une seule feuille,
+c'est-à-dire un symbole *plausible et faux*, celui qu'on ne regarde pas deux
+fois.
+
+**Et le plein va sur les cinq, pas seulement sur l'actif.** Le réflexe était de
+le réserver à l'onglet courant. Mis côte à côte avec l'app, c'est faux : elle
+emploie `.fill` partout et ne distingue l'actif que par sa capsule. Ça se tient,
+et le site le tenait déjà sans le savoir — *« ici c'est le fond qui tient le rôle
+du semi-gras »*. Une capsule n'est pas une couleur, c'est une forme.
+
+#### Les trois marques de connexion viennent d'Ionicons
+
+Même script, grille 512, monochromes. L'app portait trois provenances pour trois
+boutons — `apple.logo`, un `g.circle.fill` qui **n'est pas** le G de Google, et
+trois chevrons pour GitHub.
+
+**Google demande son mark en quatre couleurs**, et aucune variante monochrome
+officielle n'existe — mesuré côté app, cinq sources du kit essayées. C'est donc
+un écart **connu**, et il coûte moins ici : un site n'est relu par personne.
+
+**Asymétrie voulue, tranchée par l'auteur** : l'app garde `apple.logo` des SF,
+qui est le mark sanctionné sur une plateforme Apple ; le site prend les trois
+chez Ionicons, n'ayant pas accès au premier. C'est là que la ressemblance au
+pixel s'arrête, et c'est juste — le bouton Apple d'une app et celui d'un site
+n'ont pas à être le même objet.
+
+### L'image de partage — ce que ce dépôt disait impossible
+
+`selection_de_versets.rs` écrivait : *« Image, qui rend un carré de 1080 px,
+demande un rendu que le navigateur ne fait pas gratuitement »*. C'est faux, et
+la phrase avait le tort d'**avoir l'air d'une mesure** : personne ne l'a
+rouverte pendant des semaines.
+
+Un `<canvas>` compose et `toBlob` rend un PNG — quatre drapeaux `web-sys`,
+aucune bibliothèque, aucune requête. Ce qui aurait coûté, ce sont les fontes, et
+elles sont déjà là.
+
+Les mesures viennent de `ONTVerseCard` : côté 1080, marge 90, filet d'or de 3,
+renvoi à 40, signature à 38, interligne à 0,42 du corps, et les cinq paliers de
+taille **grossiers volontairement** — *« une taille calculée au caractère près
+donnerait des images qui ne se ressemblent pas d'un partage à l'autre »*.
+
+Elle montre **le corps seul**, ni gloses ni hébreu, et c'est le meilleur
+argument de tout ce portage : *l'appareil critique appartient à la liseuse, où
+il est consultable et attribué. Sorti de là, il devient une affirmation sans
+recours.* D'où le renvoi et le nom de la traduction sur la carte — une image qui
+circule doit dire d'où elle vient.
+
+`TextMetrics` est le drapeau le moins évident et le plus nécessaire : `fillText`
+ne va pas à la ligne, donc le pliage se fait à la main en mesurant mot à mot.
+
+**Ce qui s'éprouve et ce qui ne s'éprouve pas** : les paliers sortent du rendu et
+sont tenus par deux épreuves — les bornes de l'app, exclusives, et la
+**monotonie**, qui se vérifie sans connaître les valeurs. Le reste demande un
+canvas, donc un navigateur.
+
+> **Une phrase qui écarte quelque chose doit dire ce qui la rendrait fausse.**
+> « Le navigateur ne le fait pas » ne se vérifie nulle part ; « il faut quatre
+> drapeaux `web-sys` » se vérifie en une compilation.
+
+### La navigation se figeait — le 29 septembre 2026
+
+**« Au bout d'un moment la nav de la tabbar se fige. »** C'est la **troisième**
+fois que ce dépôt paie cette panne, avec trois causes différentes, et les trois
+se sont présentées par la même phrase : une construction en deux temps (§7 bis),
+un `<p>` dans un `<p>` (§8 bis), et celle-ci.
+
+La panique du WASM ne laisse **aucune trace ailleurs** : le serveur ne la voit
+pas, la page reste affichée et juste, elle s'indexe — seule l'interactivité
+meurt. On la cherche alors dans le composant qu'on vient d'écrire, où il n'y a
+rien.
+
+`scripts/banc-erreurs.html` la nomme en une ligne. Il charge le site dans un
+cadre de même origine, accroche `error`, `unhandledrejection` et
+`console.error`, puis **clique dix vrais liens** — un `pushState` synthétique ne
+réveillerait pas ce routeur, un clic sur une ancre du document, si. Chaque clic
+est suivi de l'URL obtenue : *un « clic → » sans « url= » qui suit est une
+navigation morte.*
+
+    ATTENTE=34 ./scripts/sim.sh /banc-erreurs.html
+
+#### Deux causes, la seconde cachée derrière la première
+
+    panicked at reactive_graph/traits.rs:394
+    you tried to access a reactive value … but it has already been disposed
+    RuntimeError: Unreachable code should not be executed
+
+Les barres créaient un `Signal::derive` par destination, **dans la boucle de
+rendu** : il appartenait donc à la portée réactive du moment, que la navigation
+détruit — pendant que les closures d'attribut, elles, sont réévaluées.
+
+Dessous, la vraie : le chemin **arrivait en prop**, et `#[prop(into)]` crée un
+signal possédé par la portée de l'**appelant**, c'est-à-dire la page. Les barres
+lisent maintenant `use_location()` elles-mêmes, qui rend le mémo du routeur.
+
+> ==Un signal traverse mal une frontière de composant quand les deux n'ont pas
+> la même durée de vie.== La barre survit aux pages ; son chemin doit venir de
+> ce qui leur survit aussi. Et rien de réactif ne se crée dans une boucle de
+> rendu.
+
+**« Au bout d'un moment » voulait dire *à la quatrième navigation*.** Une panne
+qu'on décrit par une durée est presque toujours une panne qu'on décrit par un
+compte.
+
+#### Et la garde de composition ne voyait pas les pages neuves
+
+Sa liste nommait encore `/fr/lire/*`, qui **redirige** depuis le déménagement :
+elle contrôlait des renvois de trois lignes et annonçait « 12 pages, aucune
+imbrication interdite ». Les cinq écrans écrits ce jour-là n'y étaient pas.
+
+> Une garde qui ne visite pas une page ne dit rien d'elle — et son décompte
+> final se lit comme si elle avait tout vu. C'est la forme la plus coûteuse :
+> elle rassure exactement là où elle ne regarde pas.
+
+Elle en visite dix-huit. Et la correction typographique qu'elle a réclamée a
+failli coûter la compilation : la première passe appliquait la règle à la
+**ligne entière**, donc à `move || !ouvert.get()`, où elle a posé une espace
+fine insécable devant le `!`. *Une règle de composition n'a rien à faire hors
+d'une chaîne.*
+
 ### Ce qui reste de la webapp
 
-- la **typographie** — `ONTTypography.swift`, six styles, six familles
-  embarquées dans `app/Resources/Fonts/` ;
-- les **métriques** — `ONTMetrics.swift` : pilule 999, surlignage 6, bloc 18,
-  carte 22, feuille 34 ;
-- les **composants** et la **navigation** — `RootView.swift`, les onglets
-  Qahal / Bible / Lexique / Chuqqot / Vous ;
-- l'**icône** — `app/ONT.icon`, un paquet Icon Composer ;
-- les **cinq couleurs de surlignage**, qui ne sont pas dans les vingt rôles et
-  restent littérales dans `main.css`.
+- **Chuqqot** — l'onglet suit le jour où le vault écrit sa première chuqqah.
+  Le pipeline émet déjà `dist/chuqqot.json` ; il n'y a pas de code à écrire
+  d'avance, et il ne **faut** pas en écrire : une branche qu'aucun état du site
+  ne rend n'est pas du code testé (§8 quinquies) ;
+- la part **communautaire** du Qahal — elle demande un serveur, et l'app ne
+  l'a pas non plus ;
+- l'**écran de réglages** de « Vous » renvoie à la Bible, où la feuille « aA »
+  s'ouvre. Le site n'a pas d'écran de réglages à lui, et lui en fabriquer un
+  ferait une seconde copie des mêmes bascules ;
+- « **Options de partage** » de l'app n'a pas d'équivalent : elle règle l'action
+  *Image*, qui existe désormais mais sans réglage ;
+- l'**image de partage n'a pas été cliquée** — et le 29 septembre 2026 cet écart
+  a été réduit à ce qu'un navigateur seul peut encore dire.
+
+  Ce qui est éprouvé sans lui : la composition, au banc `?carte` ; les cinq
+  paliers de taille, contre `ONTShareImage.size` ; et le **nom du fichier**, qui
+  ne l'était pas.
+
+  Ce qui restait de `telecharger` après ça tient en deux causes d'échec, toutes
+  deux **écartées par mesure et non par confiance** : `to_data_url` refuse une
+  toile trop grande — celle-ci fait 1 080², soit 1,17 Mpx contre les 16,8 que
+  Safari accepte — et il refuse une toile *contaminée* par une image d'origine
+  croisée : `composer` ne contient aucun `draw_image`, mesuré, donc la
+  contamination est impossible et non improbable. La troisième — l'absence de
+  contexte 2D — est la seule qui reste, et le bouton la **dit** au lieu de ne
+  rien faire.
+
+  ==Ce qu'un navigateur dirait encore n'est donc pas « est-ce que ça marche »,
+  c'est « à quoi ça ressemble dans le dossier de téléchargements ».== C'est un
+  jugement, pas une mesure, et il appartient à l'auteur.
+
+### Le nom du fichier, et l'écart qu'aucun portage ne pouvait rapporter
+
+L'app ne nomme **aucun** fichier : `ActionTile("Image")` passe un `UIImage` à la
+feuille de partage, et iOS s'en charge. Un téléchargement de navigateur, lui,
+*doit* porter un nom — c'est donc une décision propre au web, qu'on ne trouve en
+lisant le Swift ni écrite ni absente, mais **hors sujet**.
+
+Elle s'était donc prise par défaut, dans un `replace` écrit au fil de la plume :
+« Bereshit 3:1-3 » devenait `Bereshit-3-1-3.png`, où **un seul signe portait
+trois rôles** — l'espace du livre, le deux-points du verset, le tiret de la
+plage. Le lecteur qui retrouve ce fichier ne sait plus s'il tient *Bereshit 3,
+versets 1 à 3* ou *Bereshit 3:1, verset 3*.
+
+C'est la faute de `chiffres.rs` rejouée un étage plus bas : une forme juste dans
+son contexte — un identifiant sans espace — employée là où c'est la lisibilité
+qui compte. Le nom est `Bereshit 3 v1-3.png` désormais : le deux-points devient
+le **`v` des renvois abrégés**, les espaces restent — un nom de fichier en porte
+sans difficulté sur les trois systèmes, et ce sont eux qui gardent les mots
+séparés.
+
+Et le filtrage est écrit **contre la classe** : `/` termine un chemin sous Unix,
+Windows refuse en plus `\ : * ? " < > |`. Aucun ne peut sortir d'un renvoi
+aujourd'hui — les identifiants de livres sont des translittérations de l'hébreu
+—, et c'est précisément pourquoi personne ne le vérifierait le jour où un titre
+composé en porterait un. Un nom tronqué à la barre oblique donne un
+téléchargement dans un dossier qui n'existe pas, et le navigateur ne dit rien.
+
+Deux détails de forme, chacun payé par une épreuve qu'on a fait rougir :
+
+- **le deux-points n'est pas dans la liste des interdits**, et il ne faut pas
+  l'y remettre : le `replace` l'a déjà consommé, donc ce bras serait
+  inatteignable. Un bras mort dans une liste de caractères interdits est
+  exactement ce qui fait croire qu'un cas est couvert ;
+- **les caractères de contrôle vont à l'espace, pas au tiret.** Un caractère
+  invisible remplacé par un signe visible ferait apparaître une ponctuation que
+  le renvoi ne porte pas.
+
+La fonction vit **hors de `cfg(hydrate)`**, avec un `allow(dead_code)` que son
+commentaire justifie : la CI compile et teste avec `ssr`, donc une fonction
+rangée sous `cfg(hydrate)` n'y serait **jamais exécutée**. C'est un décideur
+pur, il se mesure sans navigateur, et le silence de l'avertissement est le prix
+de cette mesure.
+
+## 8 duodecies. Deux habillages — le 30 septembre et le 2 octobre 2026
+
+**L'auteur est revenu sur le §8 undecies**, après avoir mis la production et la
+webapp côte à côte :
+
+> « en vrai quand je regarde la prod et que je regarde la liseuse et que je
+> compare avec la webapp je me dis que finalement la liseuse est peut-être
+> mieux — je devrais laisser la possibilité au lecteur de choisir entre les
+> deux, peut-être que certains ne seront pas de mon avis, qui sait »
+
+Puis, précisé : **deux arbres d'adresses complets**, un sélecteur dans « Vous ».
+
+```
+/fr/liseuse/…   l'édition — l'en-tête du site, le pied, le fil d'Ariane
+/fr/webapp/…    l'application — cinq onglets, barre latérale, capsules
+```
+
+Et les trois pages qui ne sont d'aucun arbre restent à la racine, puisqu'elles
+ne sont pas du corpus : `/fr/l-app`, `/fr/le-pourquoi`,
+`/fr/ce-que-l-ont-n-est-pas`.
+
+### Pourquoi deux arbres et non une préférence qui repeint
+
+Le premier montage rendait **les deux chromes dans un même document** et en
+masquait un. Mesuré : **+166 Ko par page** et deux requêtes lancées pour une
+barre que le lecteur ne verrait jamais — `display: none` cache la peinture, il
+n'annule ni la sérialisation ni les ressources.
+
+L'auteur l'a écarté sur un argument d'ingénieur — *« je ne suis pas sûr que
+c'est une bonne décision de juste peindre »* — et il a tranché la suite :
+
+> « je veux que l'URL soit toujours exacte : si quelqu'un me partage un lien et
+> que mes préférences sont par défaut, donc webapp sur mobile et liseuse sur
+> desktop, alors **l'URL s'aligne sur mon rendu** »
+
+D'où le **307** de `main.rs::alignement`. Il est temporaire et non permanent, et
+les deux mots comptent : la cible dépend du lecteur, donc aucun cache partagé ne
+doit la retenir. Les anciennes adresses, elles, prennent un **308** — leur cible
+est fixe, et un 301 autoriserait le client à retomber en `GET`, ce qui casserait
+les fonctions serveur de `/api/`, qui sont des `POST`.
+
+### Le canonique est la liseuse
+
+Arbitré par l'auteur. Un lien partagé, un résultat de moteur et le fichier
+d'association d'iOS désignent `/fr/liseuse/…` ; la préférence du lecteur corrige
+**à l'arrivée**, jamais dans le lien qu'on lui a envoyé.
+
+> ==Ce que le lecteur préfère se règle où il arrive, pas dans ce qu'on lui
+> envoie.== Autrement, un lien ne veut plus dire la même chose selon qui l'a
+> posé.
+
+### La composition, elle, est **un seul rendu et deux feuilles**
+
+**Corrigé le 2 octobre 2026**, et c'est le reproche qu'il a formulé en mettant
+deux captures côte à côte : *« t'as laissé le rendu de la webapp, t'as juste
+enlevé l'aside bar — pour l'UI de la liseuse je veux vraiment la prod »*.
+
+Les deux arbres avaient bien leur chrome, et le **corps des pages** était resté
+celui de l'app : cartes grises arrondies, chevrons, mesure de 46 rem, animations
+d'arrivée, ni rappel ni chapeau.
+
+`PageDeLecture` pose **`ecran-edition`** ou **`ecran-app`** sur son conteneur, et
+la feuille descend. Les composants profonds — `Groupe`, `Ligne`,
+`EnteteDeSection` — n'ont rien à savoir de l'arbre : ils rendent une fois.
+
+> ==Dupliquer un rendu coûte ; le restyler ne coûte rien.==
+
+Et c'est rendu par le serveur : juste au premier octet, pour un moteur comme
+pour un lecteur sans JavaScript.
+
+| | l'édition | l'app |
+|---|---|---|
+| le cadre | `Bloc` sans prop — voûte, filet, 38 rem | `nu` et `page` — fond plat, 46 rem |
+| la liste | des filets, pas de carte ; pas de chevron | la carte d'iOS, chevron par ligne |
+| le titre de ligne | **en or**, dans la fonte du corps | en encre, Jost demi-gras |
+| la ligne | titre et renvoi sur **une** ligne de base | empilés et tronqués, pour le pas régulier |
+| l'en-tête du corpus | le signe de la **montagne**, en `::before` | un en-tête de section |
+| le titre de page | rappel en capitales, titre, chapeau | un grand titre serré, et rien |
+| l'entrée | aucune animation | `ONTApparition` — l'écran glisse |
+
+### Cinq règles tirées du restylage, et aucune ne se devine
+
+- **Un drapeau qui ne vaut que sous une condition se borne là où il est lu.**
+  `liste` est un registre de l'app ; il est éteint dans `PageDeLecture` par
+  `liste && sous_l_app`, et non par `liste=!edition` chez les neuf appelants —
+  sinon la dixième page l'oublie, et rien ne le dit.
+- **Une règle qui pose « puisque X le dit déjà » ne vaut que là où X existe.**
+  L'or avait quitté les titres de liste le 29 septembre *parce que le chevron
+  les annonce*. L'édition n'a pas de chevron : l'or y revient, et la classe
+  `nom-d-unite` est le point où la feuille reprend la main.
+- **Un ornement qui n'existe que dans un habillage appartient à la feuille.**
+  La montagne est un `::before` sur l'en-tête d'ensemble, pas un `<span>` que
+  l'app rendrait vide.
+- **Une propriété logique dans un îlot bidirectionnel s'inverse.** `ms-2.5` sur
+  un `<span dir="rtl">` pose sa marge **à droite** : le nom hébreu se soudait au
+  titre latin — « Bereshitבְּרֵאשִׁית » — et l'écart tombait de l'autre côté. C'est
+  le §8 bis rejoué, et le défaut existait **dans les deux arbres**.
+- **Un vide qui occupe la place d'un contenu n'est pas une absence.** `rappel`,
+  `chapeau`, `barre` et `action` n'existent que sous un arbre : les trois
+  derniers sont passés en `optional_no_strip`, le premier filtre la chaîne vide.
+  Un `Children` qui ne rend rien laisserait quand même son conteneur et sa marge.
+
+### Le sommaire se déplie sous l'édition
+
+**Tranché le 2 octobre 2026, après le restylage** : *« et du coup finalement
+liste tous les livres comme sur la prod »*.
+
+Les deux arbres ne montrent donc pas la même chose, et c'est cohérent avec ce
+qui les sépare :
+
+- **l'app navigue en quatre temps** — la Bible, une partie, un livre, une unité.
+  C'est la forme d'un écran qu'on parcourt au pouce : une liste courte où
+  l'avancement se lit en regard, « Torah 1/6 » ;
+- **l'édition est une table des matières** : les soixante-dix livres d'un coup,
+  groupés par ensemble puis par partie. L'**ampleur est le propos** — quelques
+  titres en or au milieu de soixante-sept en encre atténuée disent l'état du
+  chantier sans une phrase.
+
+> ==Un sommaire d'application cache pour qu'on choisisse vite ; un sommaire
+> d'édition montre pour qu'on mesure.== Le même contenu, deux gestes.
+
+Mesuré : **70 lignes sous l'édition, 9 sous l'app.** `/fr/<arbre>/bible/partie/…`
+reste servie des deux côtés — plus rien n'y mène depuis l'édition, et un lien
+déjà partagé continue d'ouvrir quelque chose.
+
+**Et le massif y a repris son rapport.** Le `::before` fixait `width: 2rem`
+**et** `height: 1.1em` : un masque en `contain` garde ses proportions *dans* sa
+boîte, donc le logomark — 502 sur 249 — s'y réduisait de moitié. `main` ne
+donnait qu'un `w-8` et laissait l'`aspect-ratio` de l'utilitaire `massif` faire
+le reste.
+
+> ==Fixer les deux dimensions d'une image à rapport fixe, c'est en perdre une.==
+
+### Les interactions d'une app s'arrêtent aux pages de corpus
+
+**Corrigé le 2 octobre 2026**, et c'est l'auteur qui l'a vu :
+
+> « je veux que le site réagisse aux interactions de souris normalement sur les
+> pages qui sont à la racine de /fr/, mais qu'elles restent bloquées comme elles
+> le sont maintenant sur les pages /fr/<chrome>/ »
+
+`user-select: none`, `-webkit-touch-callout: none` et
+`-webkit-tap-highlight-color: transparent` étaient posés sur **`body`**, donc sur
+tout le site. L'argument du bloc est entier et il vaut : dans une app, on ne
+sélectionne pas le texte à la main, on touche un verset et la barre propose ce
+qu'on peut en faire. Mais il ne vaut **que** là où cette barre existe.
+
+Sur l'accueil, « Le pourquoi », « Ce que l'ONT n'est pas » et les pages légales,
+rien ne remplaçait le geste retiré : on ne pouvait ni surligner une phrase pour
+la relire, ni copier un passage pour le citer.
+
+> ==Une interaction qu'on retire doit être remplacée là où on la retire, et
+> nulle part ailleurs.==
+
+Les sélecteurs sont `.ecran-app`, `.ecran-edition` — le corps d'une page de
+corpus — **et `chrome-d-app`**, les barres de la webapp, qui vivent *hors* de ce
+conteneur : sans elles, un glissement sur les onglets sélectionnerait « Qahal
+Bible Lexique ». Sous l'édition, l'en-tête et le pied du site n'y sont pas, et
+c'est juste : ce sont les pièces du site, pas de l'app.
+
+Le défaut a vécu deux semaines parce qu'il **ne casse rien** — la page s'affiche,
+les liens marchent, et l'on n'essaie de sélectionner du texte que lorsqu'on en a
+envie. C'est la famille du §5 : *la page ne casse pas, elle est seulement plus
+pauvre, et rien ne dit qu'elle devrait l'être moins.*
+
+### Le « aA » a deux places, une par chrome
+
+**Rendu à l'édition le 2 octobre 2026**, sur la capture de production que
+l'auteur a mise à côté : *« le btn est en bas à droite, remets-le au bon endroit
+en liseuse »*.
+
+Il avait remonté le 29 septembre, et l'argument tenait **sous l'app** : elle le
+met en `ONTPlacement.principale`, en haut à droite, et sa barre d'onglets occupe
+désormais le bas — « deux rustines tenaient une place que trois objets se
+disputaient ».
+
+Sous l'édition, il n'y a pas de barre d'onglets, et l'argument d'origine du
+§8 bis reprend sa force entière : *un chapitre fait jusqu'à quarante-six versets,
+et l'on décide d'éteindre les gloses au milieu de la lecture ; un réglage qu'il
+faut remonter chercher n'en est plus un.*
+
+> ==Un argument dérivé d'une contrainte meurt avec elle.== Ce qui avait fait
+> remonter le bouton n'est pas une règle de dessin, c'est une barre — et un
+> chrome qui ne l'a pas n'hérite pas de la conséquence.
+
+| | l'édition | l'app |
+|---|---|---|
+| le bouton | flottant, bas à droite, `size-14` cerclé d'or | une capsule de verre dans la barre, `size-9` |
+| la feuille | croît depuis le bas à droite | depuis le haut à droite |
+| la zone sûre | `calc(1.5rem + env(safe-area-inset-bottom))` | portée par la barre |
+
+**Deux reprises de plus, et les deux viennent de la production** — *« regarde
+vraiment la prod et récupère »* :
+
+- **le libellé suit la boîte.** `main` écrit `text-xl` dans un cercle de
+  `size-14` ; la capsule de l'app fait `size-9` et prend `text-base`. Reporter la
+  taille sans la boîte donnait un « aA » perdu au milieu d'un grand disque.
+  ==Une taille de contenu reprise sans sa boîte n'est pas une valeur portée,
+  c'est une valeur déplacée.==
+- **et le bouton ne répondait ni au survol ni au clic.** Sous l'édition il
+  atterrit dans la rangée de `action`, qui porte `pointer-events-none` pour que
+  sa largeur vide ne prenne pas les clics de toute la colonne. Or cette
+  annulation **descend** : `BoutonDeRecherche` la rétablissait sur lui-même, le
+  « aA » ne le faisait pas.
+
+  **La première correction était pire que le défaut.** `[&>*]:pointer-events-auto`
+  sur la rangée, pour rendre le pointeur à tous ses enfants d'un coup — et
+  `ReglagesDeLecture` en rend **trois** : un voile plein écran, le bouton, la
+  feuille. Le voile reste monté en permanence, pour qu'on puisse animer sa
+  fermeture, et fermé il ne vit que par son `pointer-events-none`. Les deux
+  utilitaires ayant la même spécificité, c'est l'ordre de la feuille qui a
+  tranché : le voile reprenait le pointeur et avalait les clics de **la page
+  entière**, invisible.
+
+  ==Rendre en bloc ce qu'on a annulé en bloc suppose que tous les enfants
+  voulaient la même chose.== Celui-là comptait sur l'annulation.
+
+  La correction juste est celle de `main` : sous l'édition, `ReglagesDeLecture`
+  n'entre pas dans `action` du tout — il est rendu **dans le corps de la page**,
+  et se place lui-même en `fixed`.
+
+  ==Un élément qui se positionne lui-même n'a rien à gagner dans un conteneur de
+  mise en page, et il y hérite de tout ce que ce conteneur décide.==
+
+  Trouvé par le banc du pointeur, qui a relevé `div.fixed.inset-0.z-40.bg-nuit/70`
+  aux six hauteurs sondées : le défaut ne se voyait pas, puisque le voile est
+  transparent.
+
+Mesuré au banc du pointeur, après correction : `« aA » 56×56 à 876,1120`,
+`pointer-events: auto` sur le bouton **et** sur son parent, clic reçu,
+`aria-expanded` à `true`. Et sur le verset : `sous le pointeur : em ✓ dans le
+verset`, `user-select: none`, `aria-pressed` de `false` à `true`, barre de
+sélection présente — c'est-à-dire le régime de la production.
+
+La feuille suit le bouton, et ce n'est pas un détail : *une feuille qui pousse du
+coin opposé à celui qu'on vient de toucher ne se lit plus comme venant de là.*
+
+Et l'effacement pendant une sélection retrouve sa **seconde** raison. Son
+commentaire disait que la mécanique était « tombée avec le déplacement, le bouton
+n'étant plus dans le coin qu'occupe la barre de sélection ». Sous l'édition il y
+est de nouveau : les deux raisons valent, celle de propos comme celle de place.
+
+### « Selon l'appareil » n'était jamais le défaut
+
+**Corrigé le 2 octobre 2026**, et c'est le défaut qui faisait croire aux deux
+autres. `Preferences::default()` posait `habillage: Application` — quand le type,
+deux lignes sous sa définition, écrit « `Auto` : c'est le défaut ».
+
+Conséquence, sur **tout lecteur neuf** :
+
+- « Vous → L'habillage » montrait « L'application » cochée, jamais « Selon
+  l'appareil » ;
+- sur un grand écran, `/fr/liseuse/…` se faisait **renvoyer vers la webapp** —
+  l'alignement du §ci-dessus faisant exactement son travail sur une préférence
+  fausse ;
+- et la préférence se **figeait** au premier chargement, puisque le site
+  réécrit `ont.lecture` avec ce qu'il croit être l'état.
+
+**Les deux chemins divergeaient en silence.** Un `ont.lecture` *sans* la clé
+retombe sur `Habillage::default()`, donc `Auto` ; *aucun* `ont.lecture` passe par
+`Preferences::default()`, donc `Application`. Le même lecteur voyait deux sites
+selon qu'il avait déjà réglé autre chose.
+
+> ==Un défaut écrit deux fois est un défaut qu'on peut contredire, et le second
+> exemplaire n'a aucune raison d'être relu.==
+
+Deux épreuves le tiennent : `un_lecteur_neuf_sur_grand_ecran_voit_l_edition`,
+écrite par l'**effet** — ce qu'un lecteur obtient, et non l'égalité de deux
+constantes — et `les_deux_defauts_d_habillage_concordent`, qui ferme la
+divergence des chemins.
+
+#### Il a fallu un iPad pour le voir
+
+L'auteur a créé le simulateur **« Web iPadOS »** ce jour-là, et `sim.sh` prend
+désormais `SIM="Web iPadOS"`. Avant lui, toutes les captures de cet outil se
+faisaient sur un écran de téléphone, donc **sous `lg`** — là où `Auto` résout
+vers l'app de toute façon, et où le défaut est donc invisible.
+
+    SIM="Web iPadOS" ./scripts/sim.sh /fr/liseuse/bible
+
+> ==Un défaut qui ne se produit que dans une taille d'écran ne se voit pas dans
+> l'autre, et un outil qui n'a qu'une taille conclut toujours sur le site
+> entier.==
+
+Et le relevé qui tranche a demandé une mesure de plus : **vider le profil avant
+de charger** (`?neuf=1` du banc du pointeur). Une préférence enregistrée explique
+presque tout, et l'on ne sait pas qui l'a écrite — c'est le seul moyen de
+distinguer *un choix du lecteur* de *quelque chose que le site écrit tout seul*.
+
+```text
+avant : url obtenue /fr/webapp/…   cookie=webapp   habillage:"application"
+après : url obtenue /fr/liseuse/…  cookie=liseuse  habillage:"auto"
+```
+
+### En « Versets à la suite », aucun verset ne se sélectionnait
+
+**Corrigé le 2 octobre 2026**, et c'est la cause de tout ce que l'auteur voyait :
+*« sur l'iPad j'arrive à sélectionner un verset, sur le Safari de mon MacBook
+non »*, puis *« ça fonctionne en 127.0.0.1, mais pas en localhost »*.
+
+Les deux dispositions ne rendaient pas le même objet. La lecture **séparée**
+pose un `<div>` avec `role="button"`, `on:click`, `cursor-pointer` et les classes
+d'état ; la lecture **suivie** posait un `<span>` qui n'avait rien de tout ça.
+
+Un lecteur qui avait allumé « Versets à la suite » perdait donc le surlignage, la
+note, la copie, l'image et le partage — et le curseur ne changeait même pas au
+survol, donc **rien ne lui disait qu'il avait perdu quelque chose**.
+
+> ==Deux dispositions du même texte sont deux façons de le poser, pas deux
+> façons de s'en servir.== Un réglage de mise en page qui retire une
+> fonctionnalité n'est plus un réglage de mise en page.
+
+Les trois états — l'estompage des voisins, la teinte d'un surlignage, le
+surlignage lui-même — vivaient en trois fermetures écrites sur place dans la
+seule branche qui les avait. Ils sont dans `etats()` désormais, à côté de
+`gestes()`, et les deux branches les appellent : *deux exemplaires d'une même
+règle finissent par en dire deux différentes, et celui qu'on ne regarde pas est
+celui qui dérive.*
+
+Le pointillé de sélection est d'ailleurs **mieux en flux** qu'en blocs : posé sur
+la décoration de texte, il épouse les retours à la ligne. Et
+`box-decoration-clone` vaut maintenant pour tout ce qui se peint — le fond d'un
+verset désigné **comme** celui d'un surlignage, qui sans lui recevrait un seul
+rectangle à cheval sur ses trois lignes.
+
+#### Pourquoi deux origines donnaient deux réponses
+
+`localhost` et `127.0.0.1` sont **deux origines distinctes** pour un navigateur :
+`localStorage` et cookies séparés. L'auteur avait « Versets à la suite » allumé
+sur l'une et pas sur l'autre — d'où un site qui marchait d'un côté et pas de
+l'autre, à serveur identique.
+
+Vérifié avant de chercher ailleurs : les deux hôtes servent le **même octet**
+(252 275), les mêmes en-têtes, le même WASM.
+
+> ==Un réglage par origine fait deux sites de la même adresse.== Quand « ça
+> marche ici et pas là » et que le serveur sert le même octet, ce n'est pas le
+> site qui diffère, c'est ce que le navigateur a retenu de lui.
+
+D'où `?neuf=1` et `?regle=<clé>=<valeur>` au banc du pointeur : vider le profil
+d'une origine, ou **imposer un réglage** que le serveur ne rend jamais — il rend
+toujours les défauts, et c'est le navigateur qui recompose après hydratation.
+
+```text
+avant : réglage continu=true → versets sélectionnables 0,  curseur pointeur 6
+après : réglage continu=true → versets sélectionnables 34, curseur pointeur 40
+```
+
+### Le curseur de taille faisait enfler l'interface
+
+**Corrigé le 2 octobre 2026** : *« le modificateur de taille de texte ne doit pas
+impacter l'interface, seulement le corps du texte — j'ai vu que quand
+j'augmentais le texte, les boutons OAuth grossissaient aussi ».*
+
+Le §8 undecies l'avait pourtant écrit, et c'est resté vrai **à moitié** :
+
+> il n'est lu que par `.liseuse`. Ni la navigation, ni le fil d'Ariane, ni le
+> panneau lui-même ne bougent — c'est la moitié du sujet, et c'est la moitié
+> qu'on oublie.
+
+`.liseuse` pose une **taille de police**, donc tout ce qu'elle contient en
+hérite. `PageDeLecture` la posait sur les douze pages du gabarit : les boutons de
+connexion, les cartes de « Vous », les rangées de réglages enflaient avec le
+corps — c'est-à-dire exactement la chrome que le commentaire du gabarit dit de
+protéger.
+
+> ==Une règle qu'on énonce pour un conteneur ne vaut que pour ce qu'on met
+> dedans.== Le gabarit la posait au bon endroit ; ce qu'il y mettait n'était pas
+> toujours du texte à lire.
+
+Le prop `corpus` la borne aux quatre pages qui portent du texte : un **passage**,
+une **fiche**, la **prononciation**, les extraits d'une **recherche**. Un
+sommaire, le lexique, « Vous » et les réglages portent des noms et des
+commandes.
+
+Son défaut est `false`, et c'est voulu : ==un réglage qui agrandit l'interface se
+remarque tout de suite ; un corpus qui n'a pas grandi se remarque aussi, et l'on
+sait alors quoi corriger.== L'oubli dans ce sens se voit ; dans l'autre, il passe
+pour une mise en page.
+
+#### La garde a menti deux fois avant de dire vrai
+
+`verifier-composition.py` refuse désormais `.liseuse` sur une page d'interface
+**et** son absence sur une page de corpus. Elle a fallu la corriger deux fois :
+
+- elle cherchait la chaîne « liseuse », qui est dans le **canonique** de chaque
+  page (`ontbible.com/fr/liseuse/…`) et dans le script d'avant-rendu, lequel
+  porte les deux racines d'arbres. Toutes les pages de la webapp rougissaient.
+  ==Un nom qui sert aussi d'adresse ne se cherche pas comme un mot.== ;
+- puis elle attrapait le **sélecteur de fonte**, qui pose la classe sur chacun
+  de ses boutons pour que chaque ligne du menu se compose dans la fonte qu'elle
+  propose. Elle y est légitime. La garde vise donc `<div class="liseuse` — le
+  gabarit pose un `div`, le sélecteur des `button`.
+
+Et `/fr/<arbre>/bible/partie/<id>` a la même forme qu'un passage sans en être
+un : c'est la liste des livres d'une partie.
+
+### La barre de sélection débordait du cadre
+
+**Corrigé le 2 octobre 2026**, sur une capture à 402 points : `PARTAGER` était
+coupé en plein mot, `TOUT` et `EFFACER` tombaient hors du cadre.
+
+`flex-1` n'y pouvait rien : il répartit ce qui reste, mais un élément flexible ne
+descend pas sous la largeur de son contenu tant qu'on ne l'y autorise pas — et
+l'y autoriser aurait tronqué les mots. Six libellés en capitales espacées ne
+tiennent pas sur une ligne de téléphone.
+
+> ==Une rangée d'actions qui déborde ne perd pas de la place : elle perd des
+> actions.== Celles qui sortaient du cadre étaient injoignables, sans que rien ne
+> le dise.
+
+**La rangée défile**, et c'est la forme d'`ONTSegments` — l'auteur l'a demandée
+ainsi : *« j'aurais plutôt voulu une rangée scrollable à l'horizontale, comme ce
+qu'il y a dans l'app dans l'onglet Lexique ».* Un premier jet la repliait sur
+deux lignes ; ça marchait, et ce n'était pas la forme de l'app.
+
+Son commentaire nomme le cas, et il nomme l'auteur :
+
+> au premier cran d'accessibilité — celui où Gloire lit — « Intraduisibles »
+> prenait toute la largeur et les trois autres tombaient à « V », « T », « S ».
+> Trois portes devenues illisibles : ce n'est plus une troncature, c'est une
+> disparition.
+
+Là-bas c'est `ViewThatFits` : la rangée entière d'abord, la même qui défile quand
+elle ne tient plus. **Ici le navigateur le fait seul** — `overflow-x: auto` avec
+des tuiles en `min-w-max` ne défile que si c'est nécessaire. ==Aucune mesure,
+aucun seuil deviné== : la même propriété, obtenue par la disposition plutôt que
+par une branche.
+
+Et c'est `min-w-max` qui décide, pas le conteneur : sans lui, `flex-1` vaut
+`flex-basis: 0 %` et autorise la tuile à descendre sous son texte — les libellés
+se tassent et débordent. ==Ce qui décide du défilement n'est pas le conteneur,
+c'est le plancher de ce qu'il porte.== Les **quatre** tuiles le portent.
+
+La barre de défilement est masquée, comme l'app masque la sienne : sur deux
+lignes de haut elle en mangerait une bonne part. ==Ce qui dit qu'une rangée
+défile n'est pas une barre, c'est une tuile coupée au bord.== Et
+`overscroll-behavior-x: contain` empêche le geste de poursuivre sur l'historique
+du navigateur, qui reculerait d'une page.
+
+Mesuré : six sur une ligne à 956 px **sans défilement**, et à 402 px la rangée
+défile avec `PARTA…` coupé au bord. Le banc du pointeur a gagné `?etroit=402`
+pour ça — ==un banc doit pouvoir prendre la plus petite taille du cas, pas
+seulement la sienne.==
+
+Et ça tient **à tous les crans d'agrandissement**, ce qui n'est pas un détail
+ici : l'auteur monte le corps du texte pour voir, et un dessin qui ne tient qu'à
+la taille par défaut ne tient pas (§8 undecies).
+
+### Changer de page ne remontait pas en haut
+
+**Corrigé le 2 octobre 2026** : *« quand on navigue, ça change de page mais ça ne
+ramène pas en haut de la page, c'est un gros problème d'UX »*.
+
+Un navigateur remonte de lui-même quand il **charge** un document. Un routeur en
+SPA ne charge rien : il remplace le contenu et laisse la page où elle était. On
+touche « Lexique » au bas d'un chapitre de vingt-deux mille pixels, et l'on
+arrive au milieu du lexique, sans titre ni repère.
+
+> ==Ce qu'un navigateur faisait gratuitement, un routeur doit le refaire à la
+> main — et son absence ne lève aucune erreur.==
+
+**Trois cas où il ne faut pas remonter**, et aucun ne se devine :
+
+- **le premier rendu** — le navigateur vient de poser la page, et il restaure
+  lui-même la position quand on rouvre un onglet ;
+- **une adresse qui porte une ancre** : `#installer` demande un endroit précis ;
+- **un retour en arrière.** ==Un retour n'est pas une navigation vers une page,
+  c'est une navigation vers un *moment*== — et le défilement en fait partie. Le
+  drapeau vient d'un écouteur `popstate`, qui est émis **avant** que le routeur
+  ne mette le chemin à jour.
+
+Et le saut est **instantané** : `scroll-behavior: smooth` est sur `html` (§5) et
+`scrollTo` en hérite. Sans `instant`, changer de page lancerait un défilement
+doux sur toute la hauteur du document qu'on quitte. C'est le piège que
+`porte.rs` a payé — *la position demandée doit redevenir la position obtenue.*
+
+#### Un composant qui ne rend rien n'est pas gratuit
+
+Écrit en composant rendant `view! { <></> }`, il a **tué l'hydratation** :
+
+```text
+the framework expected a marker node, but found this instead: [object HTMLElement]
+panicked at tachys/src/hydration.rs:216
+```
+
+Cinquième fois dans ce dépôt, et le banc l'a nommé en une passe : dix clics, et
+l'URL ne bougeait plus de `/fr/liseuse/bible`. Un composant vide occupe une place
+dans le comptage des marqueurs, et Leptos n'en pose pas les mêmes des deux côtés.
+
+> ==Ce qui ne rend rien ne doit pas se rendre.== Un effet de bord s'appelle, il
+> ne se monte pas — c'est la forme de `fournir_l_arbre()`, et c'est celle à
+> reprendre.
+
+#### Toucher la page où l'on est remonte aussi
+
+Demandé dans la foulée. Le chemin ne change pas, donc l'effet ci-dessus ne se
+réveille jamais et le lien ne fait visiblement **rien** — ce qui se lit comme un
+lien cassé, pas comme un lien sans objet.
+
+> ==Le seul geste qui n'a pas d'effet par construction est celui qui demande là
+> où l'on est ; c'est précisément celui à qui il faut en donner un.==
+
+Trois conditions, et chacune écarte un faux positif : **même hôte**, **même
+chemin *et* même chaîne de requête** — `…/bereshit-1?v=5` depuis `…/bereshit-1`
+est un autre endroit, et le routeur ne change pourtant pas le `pathname` —, et
+**pas d'ancre**.
+
+Celui-ci est **doux** à l'inverse du précédent : on ne quitte pas la page, on la
+voit revenir, et ce mouvement est ce qui dit que le geste a été pris. La feuille
+porte déjà `smooth` et le repasse à `auto` sous `prefers-reduced-motion` : il
+suffit de **ne rien forcer**.
+
+##### Deux fausses pistes, et c'est l'instrument qui mentait
+
+Le banc rendait `y=2000` après le clic, sans erreur. On a soupçonné le **délai**
+— le mouvement est doux, on l'a cru inachevé — puis la **propagation** : le
+routeur pouvait arrêter le clic avant `window`, et l'écouteur est passé en phase
+de capture, avec un commentaire qui l'expliquait très bien.
+
+Ni l'un ni l'autre. **C'était le banc** : il descendait à 2000 px par un
+`scrollTo` qui hérite du `scroll-behavior: smooth` de la feuille, donc sa
+descente était encore en cours quand le clic partait. Le relevé final rendait la
+position que l'instrument lui-même défendait.
+
+> ==Un banc qui pilote la page doit le faire sans animation : sinon il mesure sa
+> propre inertie.== C'est le piège de `porte.rs`, rejoué par l'outil au lieu du
+> produit.
+
+Et la capture a été **retirée puis mesurée à nouveau** : la bulle suffit.
+
+> ==Une correction qui accompagne un succès n'est pas une correction prouvée ;
+> il faut la retirer pour savoir.== Sans ce retour en arrière, le dépôt gardait
+> une complexité et une raison fausse — et la raison se serait relue comme une
+> mesure.
+
+### Le pied revient sous la webapp — elle n'avait aucune sortie
+
+**Corrigé le 2 octobre 2026** : *« quand je suis en webapp je n'ai aucun moyen de
+retourner à la home page autrement que par l'URL, donc il faut ramener le
+footer »*.
+
+Il s'effaçait sous la webapp, au motif qu'« aucune app ne met "La Bible ONT /
+Liseuse · Lexique" sous une barre d'onglets ». C'est vrai d'une app — **et une
+app est le site entier, alors que la webapp n'en est qu'une partie.** L'accueil,
+« Le pourquoi », « Ce que l'ONT n'est pas » et les pages légales devenaient donc
+injoignables autrement qu'en tapant l'adresse.
+
+Mesuré : **un seul** lien vers `/fr` dans tout l'arbre, la marque en tête de la
+barre latérale — `hidden lg:flex`, donc **absente sur téléphone**, et muette
+partout ailleurs : une marque ne dit pas « accueil ».
+
+> ==Une ressemblance qu'on porte jusqu'à retirer une sortie n'est plus une
+> ressemblance, c'est une impasse.==
+
+**Et la marque du pied mène enfin quelque part.** Elle était un `<div>` inerte
+depuis le premier jour — *« un manquement que j'ai remarqué depuis le début du
+site mais j'ai oublié de te le signaler »*. C'est la convention la plus ancienne
+du web, et un lecteur l'essaie **avant** de chercher un lien nommé ; qu'elle ne
+réponde pas ne se lit pas comme une absence, mais comme une page qui ne marche
+pas.
+
+> ==Un signe dont l'usage est acquis n'a pas besoin d'être annoncé, mais il a
+> besoin de répondre.==
+
+C'est la règle du §5 sur les liens de prose prise par l'autre bout : là, le trait
+manquait à un lien ; ici, le lien manquait à un signe qu'on prend pour un lien.
+
+Le logomark et le nom sont **dans la même ancre** — deux moitiés du même objet, et
+deux liens côte à côte vers la même adresse donneraient deux arrêts au clavier
+pour un seul geste. L'`aria-label` porte la destination : le texte visible est en
+capitales espacées, qu'un lecteur d'écran épelle lettre par lettre.
+
+**Le dégagement sous les barres est posé par le pied lui-même**, et il le faut :
+elles sont en `fixed`, le contenu s'en écarte par `pb-24 lg:ps-[16.5rem]`, mais
+le pied est rendu par `App`, **hors** de ce conteneur. Sans le même retrait il
+passerait sous la barre latérale sur un grand écran et sous les onglets sur un
+téléphone.
+
+> ==Ce qu'un `fixed` libère, chacun doit se l'ajouter : il ne pousse personne.==
+
+Et il est rendu **sans condition** plutôt que sous un second `<Show>` : ce
+fichier a payé deux pannes d'hydratation le 30 septembre, et la forme la plus
+sûre est celle qui ne branche pas. Vérifié au banc : dix navigations sous la
+webapp, toutes par le routeur, aucune erreur.
+
+### « Reprendre » prend la DA du hero — sous la webapp seulement
+
+**Arbitré par l'auteur le 2 octobre 2026** : *« sur la webapp récupère la DA du
+hero de vocalisation, mais sur la liseuse laisse comme elle est »*.
+
+`ONTHero` est **le pavé d'appel en tête d'onglet** chez l'app, et son commentaire
+porte une décision du 13 septembre : *« la DA du hero de prononciation vaut pour
+les deux »* — la feuille de prononciation dans le Lexique **et la reprise de
+lecture dans la Bible**. Il le justifie par l'arrivée : un hero *doit se voir
+d'un coup d'œil en arrivant*, donc il est doré et plein. Et *un onglet a un hero
+ou n'en a pas ; il n'en a jamais deux.*
+
+Le site avait déjà la moitié du portage — `CarteDePrononciation` est l'aplat de
+marque — et l'autre moitié lui manquait : `CarteDeReprise` était une carte de
+surface, c'est-à-dire la **variante approximative** que l'app avait justement
+supprimée en nommant le composant.
+
+| | la webapp | l'édition |
+|---|---|---|
+| fond | `bg-marque-encre`, `text-sur-marque-accent` | `bg-surface`, encre ordinaire |
+| hauteur | plancher de `4.75rem` | la hauteur du contenu |
+| le titre | demi-gras | `font-medium` |
+| le second niveau | la même encre à **85 %** | `text-encre-douce` |
+| la flèche | l'encre du pavé | l'accent |
+
+**L'opacité et non une encre atténuée**, et c'est une mesure de l'app reprise au
+mot : sur un aplat doré, `text-encre-douce` part du fond de l'**écran** et rend un
+gris qui n'a rien à voir avec l'or.
+
+**Et l'édition ne la prend pas**, parce qu'elle n'a pas la grammaire qui la
+justifie. On n'y arrive pas sur un onglet : on y arrive par un en-tête, un rappel
+en capitales et un titre. Un aplat de marque y pèserait plus que le titre de la
+page — et le site ne l'emploie qu'à deux endroits, le bouton de connexion et la
+feuille de prononciation, tous deux pour dire *« ceci n'est pas du corpus, c'est
+l'app qui te parle »*.
+
+> ==Une DA se porte avec la grammaire qui la justifie, pas toute seule.==
+
+### `attr:` sur un élément natif entre dans le nom de l'attribut
+
+**Corrigé le 2 octobre 2026.** Les versets portaient `attr:data-verset=numero`,
+et le document servi portait un attribut nommé — littéralement —
+`attr:data-verset`, trente-quatre fois par chapitre.
+
+`attr:` est la syntaxe des **composants** : il dit « passe ceci à l'élément que
+tu rends ». Sur un élément natif, Leptos n'a rien à transmettre et écrit le nom
+tel quel. Tous les autres `attr:` du dépôt sont posés sur un `<A>` du routeur, où
+ils sont justes ; ces deux-là étaient sur un `<span>` et un `<div>`.
+
+**Rien ne s'en plaignait.** Le HTML reste valide, la page s'affiche, elle
+s'indexe — et seul `query_selector_all("[data-verset]")` rend une liste vide.
+Donc `suivre_la_lecture` ne relevait **jamais** la position, et « Reprendre » ne
+pouvait pas se mettre à jour.
+
+> ==Une faute de syntaxe qui se compile devient une donnée fausse, et une donnée
+> fausse ne lève rien.==
+
+C'est la famille du §5 — l'échelle qui s'inverse, les liens non soulignés : la
+page ne casse pas, elle est seulement plus pauvre, et rien ne dit qu'elle devrait
+l'être moins. Ni le compilateur, ni un test de rendu, ni l'œil ne la rencontrent ;
+elle ne se voit **que dans le document servi**.
+
+`verifier-composition.py` refuse donc tout préfixe de Leptos — `attr:`, `prop:`,
+`on:`, `class:`, `style:` — trouvé dans un attribut des 31 pages. La garde a été
+éprouvée sur cinq cas dont on connaît la réponse, dont deux qui doivent la faire
+rougir : *une mesure qui confirme ce qu'on espère doit être éprouvée par un cas
+dont on connaît la réponse.*
+
+### Deux bancs, parce qu'un clic peut échouer de deux façons
+
+**Le banc d'erreurs annonçait deux arbres sains pendant que l'auteur voyait des
+pages gelées.** Il tenait un `clic →` suivi d'une `url=` pour une navigation
+réussie — et c'est faux : si le WASM est mort, le clic sur une `<a href>` fait
+une navigation **native**, le document se recharge, et l'URL obtenue est
+exactement celle qu'on attendait.
+
+> ==Un symptôme et son absence peuvent produire la même mesure. Ce qui les
+> sépare ici est le *moyen* du changement, pas son résultat.==
+
+Il compte donc les `load` de son cadre : un routeur vivant change l'URL **sans**
+recharger, et chaque chargement après le premier est un aveu. Chaque ligne porte
+`(routeur)` ou `(RECHARGÉ)`.
+
+Relevé le 2 octobre, après le restylage : **onze navigations sous l'édition et
+dix sous l'app, toutes par le routeur, aucune erreur.** C'est ce qui a innocenté
+l'hydratation et envoyé chercher ailleurs.
+
+**`scripts/banc-pointeur.html` répond à l'autre moitié de la question.** Un WASM
+vivant ne garantit pas qu'un clic atteigne sa cible : une couche `fixed`
+transparente, un `sticky` qui s'étale, une animation qui finit sans rendre la
+main — tout cela avale les événements sans rien montrer.
+
+    ATTENTE=20 ./scripts/sim.sh '/banc-pointeur.html?arbre=liseuse&page=/fr/liseuse/bible'
+
+Il sonde `elementFromPoint` à six hauteurs et vérifie qu'un lien du corps reçoit
+bien son propre clic. ==Un clic qui n'arrive pas et un gestionnaire qui ne
+répond pas produisent le même silence :== il faut un banc pour chacun.
+
+**Son cadre fait la hauteur d'un écran, et c'est une leçon à lui seul.** À
+160 px, les six hauteurs tombaient toutes dans l'en-tête : le banc rendait six
+fois le même élément, et l'on en concluait que la page entière était un
+`<header>`. *Un instrument dont la fenêtre est plus petite que ce qu'il mesure
+ne mesure que son propre bord.*
+
+### Le banc d'erreurs mesure **l'arbre qu'il obtient**, pas celui qu'il vise
+
+`scripts/banc-erreurs.html` prend `?arbre=liseuse|webapp`. Et il ne suffit pas
+de changer l'adresse de départ : le serveur aligne l'URL sur la préférence, donc
+un banc lancé sur `/fr/liseuse/bible` depuis un simulateur d'iPhone se retrouvait
+à mesurer la webapp — **en affichant « arbre : liseuse » en tête**.
+
+La préférence vit à **deux endroits** : le cookie `ont.habillage`, que le serveur
+lit, et `ont.lecture.habillage` dans `localStorage`, que le script d'avant-rendu
+relit et réécrit par-dessus à chaque page. Le banc pose les deux.
+
+> ==Un banc qui annonce ce qu'il visait, et non ce qu'il a obtenu, ment à la
+> seule ligne qu'on lit.==
+
+    ATTENTE=34 ./scripts/sim.sh '/banc-erreurs.html?arbre=liseuse'
+
+Relevé le 2 octobre : **onze navigations sous l'édition, dix sous l'app, aucune
+erreur et aucune navigation morte.**
+
+### Ce qu'il faut refaire après toute retouche du rendu
+
+- `cargo test --features ssr` — 209 épreuves, et chercher `FAILED` autant que
+  `ok` : *un filtre qui ne peut pas dire non ne dit rien.*
+- `./scripts/verifier-composition.py` — 31 pages, les deux arbres.
+- le banc **sur les deux arbres**, pas à la fin mais après chaque modification.
+- **la comparaison des deux HTML servis**, qui est ce qui a trouvé l'écart :
+  compter `voute`, `max-w-mesure`, `arrivee`, `entete-d-ensemble`.
+
+> ==Un restylage qui corrige un écran et en déplace un autre n'a rien corrigé.==
+> Après chaque étape, `/fr/webapp/bible` doit rendre exactement ce qu'il rendait
+> — la webapp est la référence demandée le 21 septembre, et elle ne bouge pas.
 
 ## 9. Ce qui reste à trancher
 

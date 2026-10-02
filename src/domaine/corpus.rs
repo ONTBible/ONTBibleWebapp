@@ -75,6 +75,33 @@ pub enum Bloc {
     Filet,
 }
 
+/// La feuille qui explique **comment se prononce ce qui est écrit**.
+///
+/// ## Pourquoi elle existe
+///
+/// Le corpus écrit `chokhmah`, `malʾakh`, `Chanokh` — et rien dans la graphie
+/// n'avertit le lecteur quand il se trompe. L'auteur lui-même prononçait
+/// *Chanokh* « cha-no-q » : les deux consonnes fausses, aucun signe pour le
+/// lui dire. Une translittération sans diacritiques est faite pour **remonter
+/// à la lettre**, jamais pour guider la bouche.
+///
+/// ## Elle ne se compose pas ici
+///
+/// Son titre et ses blocs viennent de `lexique/prononciation.md`, par le
+/// pipeline. Le site les affiche et s'arrête là — c'est la règle que l'app
+/// s'est donnée, mot pour mot : *« écrire ici une explication de la
+/// prononciation en ferait une seconde source, qui divergerait du vault à la
+/// première correction »*.
+///
+/// Et elle arrive en **blocs**, pas en markdown : le rendu pose alors l'or des
+/// intraduisibles et la terre brûlée des noms propres sans une ligne de code
+/// de plus, avec leurs liens vers les fiches.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Prononciation {
+    pub titre: String,
+    pub blocs: Vec<Bloc>,
+}
+
 /// Le sous-titre d'un chapitre : ce que la tradition en dit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SousTitre {
@@ -254,6 +281,21 @@ pub struct Entree {
     pub rendu: String,
     /// Les formes attestées, quand elles diffèrent du lemme.
     pub formes: Vec<String>,
+    /// Vrai quand le corpus **marque** ce mot — `**mot**`, rendu en or.
+    ///
+    /// C'est le `tagged` du pipeline, et il sépare les deux espèces que le
+    /// lexique réunit : cent cinq mots laissés debout dans le texte, et
+    /// cinquante-cinq **traduits dans le corps** mais dont le rendu est fixé
+    /// une fois pour toutes.
+    ///
+    /// Le site le jetait. Il n'en avait pas l'usage tant que son lexique était
+    /// une liste ; il en a un depuis qu'il offre les segments de l'app —
+    /// « Intraduisibles », « Vocabulaire fixé », « Tout », « Shemot ».
+    ///
+    /// **Faux sur un Shem**, qui n'est ni l'un ni l'autre : un nom propre n'est
+    /// pas un mot qu'on a renoncé à traduire, c'est un mot qui n'en demande
+    /// pas.
+    pub marque: bool,
     /// Vrai quand la fiche nomme un **Shem** — un porteur — et non un
     /// intraduisible.
     ///

@@ -100,6 +100,17 @@ mod tests {
         let verset = VersetDuJour::new(&HorlogeFigee(0), &v)
             .aujourd_hui()
             .unwrap();
-        assert_eq!(verset.chemin(), "/fr/lire/bereshit/bereshit-1?v=1");
+        // Le chemin est **celui de l'arbre canonique** : un verset du jour part
+        // dans un aperçu de messagerie, et c'est l'adresse officielle du texte
+        // qu'on veut y voir.
+        assert_eq!(
+            verset.chemin(),
+            crate::domaine::chemins::unite_au_verset(
+                crate::domaine::lecture::Arbre::CANONIQUE,
+                "bereshit",
+                "bereshit-1",
+                "1",
+            )
+        );
     }
 }

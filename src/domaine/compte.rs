@@ -21,11 +21,16 @@ use serde::{Deserialize, Serialize};
 
 /// Chez qui le lecteur prouve son identité.
 ///
-/// L'ordre est celui du site : Google, Apple, GitHub. Ce n'est pas un goût —
-/// Google est le seul dont le client est **déjà** en « Application Web » chez le
-/// backend, donc le seul qui ne demande qu'une adresse de retour de plus. Apple
-/// exige un Services ID à créer, et GitHub une seconde application, son portail
-/// n'acceptant qu'une adresse de retour par client.
+/// ## L'ordre des variantes n'est pas l'ordre d'affichage
+///
+/// Celui-ci est l'ordre dans lequel les trois ont été **branchés** : Google
+/// d'abord, seul dont le client était déjà en « Application Web » chez le
+/// backend, donc le seul qui ne demandait qu'une adresse de retour de plus.
+/// Apple exigeait un Services ID, GitHub une adresse de retour de plus sur son
+/// application existante.
+///
+/// C'est de l'histoire, et elle ne décide de rien à l'écran : voir
+/// [`Fournisseur::tous`], qui porte l'ordre d'affichage et sa raison.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Fournisseur {
     Google,
@@ -70,9 +75,24 @@ impl Fournisseur {
         }
     }
 
-    /// Tous, dans l'ordre d'affichage.
+    /// Tous, **dans l'ordre d'affichage** — celui de l'app.
+    ///
+    /// `AuthProvider.allCases` là-bas, et son commentaire dit pourquoi Apple
+    /// ouvre : *« la revue App Store l'exige dès qu'un autre fournisseur tiers
+    /// est proposé. Ce n'est pas une préférence, c'est une règle de
+    /// publication. »*
+    ///
+    /// **Cette règle ne s'applique pas ici** — un site n'est relu par
+    /// personne —, et l'ordre est quand même le sien. C'est une demande de
+    /// l'auteur du 29 septembre 2026, et elle se tient : un lecteur qui passe
+    /// du téléphone au site doit retrouver ses boutons à la même place. Un
+    /// ordre différent sur les deux écrans se lit comme deux produits.
+    ///
+    /// Le site portait Google en tête, et c'était l'ordre du **branchement**
+    /// recopié dans l'affichage — un accident d'implémentation devenu une
+    /// composition.
     pub fn tous() -> [Self; 3] {
-        [Self::Google, Self::Apple, Self::Github]
+        [Self::Apple, Self::Google, Self::Github]
     }
 
     /// Vrai quand le flux exige un vérificateur PKCE.

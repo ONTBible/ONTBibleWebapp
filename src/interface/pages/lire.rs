@@ -1,10 +1,12 @@
 use leptos::prelude::*;
 
-use crate::api::sommaire;
-use crate::interface::design::{fournir_preferences, PageDeLecture, Sommaire};
+use crate::api::{ma_position, sommaire};
+use crate::interface::design::{
+    fournir_preferences, BoutonDeRecherche, CarteDeReprise, PageDeLecture, Sommaire,
+};
 use crate::interface::tete::Tete;
 
-/// `/fr/lire` — le sommaire du corpus.
+/// `/fr/webapp` — le sommaire du corpus.
 ///
 /// C'est la porte de la liseuse, et la première page du site où l'on ne
 /// **dit** pas ce qu'est l'ONT : on le montre en donnant le plan entier. Trois
@@ -31,29 +33,105 @@ pub fn Lire() -> impl IntoView {
 
     let plan = Resource::new_blocking(|| (), |_| async { sommaire().await });
 
+    // **La position, et une ressource séparée du plan.** Le sommaire est le
+    // même pour tout le monde et se met en cache au bord ; la position
+    // appartient au lecteur et ne doit jamais y entrer. Les fondre en une
+    // seule réponse rendrait le plan incachable pour gagner un aller-retour.
+    //
+    // Elle n'est pas `blocking` : le plan est ce qu'on vient chercher, et
+    // retarder le premier octet du corpus pour un signet inverserait les
+    // priorités. La carte se pose après, comme le bouton « aA ».
+    let position = Resource::new(|| (), |_| async { ma_position().await });
+
+    // **La place retenue sur cet appareil**, qui n'attend aucun compte.
+    //
+    // Elle part à `None` des deux côtés — le serveur ne voit pas le stockage du
+    // navigateur — et se remplit après l'hydratation. Les deux rendus partent
+    // donc du même état, et seul le second bouge : c'est le patron du bouton
+    // « aA », et il n'y a pas de désaccord à l'hydratation.
+    let locale = RwSignal::new(None::<crate::domaine::surlignage::Position>);
+    Effect::new(move |_| locale.set(crate::interface::position::lire()));
+
+    // **Sous quel registre.** L'édition présente le corpus, l'app l'ouvre — et
+    // c'est tout l'écart que l'auteur a relevé le 2 octobre 2026 en mettant les
+    // deux écrans côte à côte : *« pour l'UI de la liseuse je veux vraiment la
+    // prod »*.
+    let edition = crate::interface::arbre::sous_l_edition();
+
     view! {
         <Tete
             // Même règle qu'au lexique : « Lire » nomme une action dans une
             // navigation, il ne nomme pas un contenu pour un moteur.
             titre="Lire le corpus hébreu et araméen"
-            description="Le corpus de La Bible ONT — les soixante-dix livres du Kenesset et \
-                         de la Berit Hadashah, et l'état de leur restitution."
-            chemin="/fr/lire"
+            // Le total aussi vient du pipeline : le plan du corpus se
+            // remanie, et une description qui l'écrit à la main mentirait au
+            // premier remaniement — dans un résultat de recherche, là où
+            // personne ne la relit.
+            description=format!(
+                "Le corpus de La Bible ONT — les {} livres du Kenesset et de la Berit \
+                 Hadashah, et l'état de leur restitution.",
+                crate::domaine::nombres::en_lettres(env!("CORPUS_LIVRES").parse().unwrap_or(0)),
+            )
+            chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
 
+        // **Deux registres pour une même liste.**
+        //
+        // *Sous l'app* : ni œil-de-bœuf ni chapeau, et le titre est celui de
+        // l'écran — « La Bible ONT ». Une liste ne s'introduit pas, on y
+        // revient ; et ce que le chapeau disait, la forme le dit — une ligne
+        // sans chevron ne se touche pas.
+        //
+        // *Sous l'édition* : le rappel, le titre de la navigation et le chapeau
+        // de `main`. « Lire » suffit ici parce que la page **présente** le
+        // corpus à qui arrive de l'accueil, là où l'app s'adresse à qui revient.
         <PageDeLecture
-            rappel="Le corpus"
-            titre="Lire"
-            chapeau=Box::new(|| {
-                view! {
-                    <p class="text-encre-douce text-pretty">
-                        "Le plan entier, et ce qui en est traduit. Les titres en or se lisent ; \
-                         les autres attendent leur tour."
-                    </p>
-                }
-                    .into_any()
-            })
+            liste=true
+            rappel=if edition { "Le corpus" } else { "" }
+            titre=if edition { "Lire" } else { "La Bible ONT" }
+            chapeau=edition
+                .then(|| {
+                    Box::new(|| {
+                        view! {
+                            <p class="text-encre-douce text-pretty">
+                                "Le plan entier, et ce qui en est traduit. Les titres en or se lisent ; \
+                                 les autres attendent leur tour."
+                            </p>
+                        }
+                            .into_any()
+                    }) as leptos::children::Children
+                })
+            // **La recherche est ici, et non dans la barre d'onglets.** C'est
+            // la place que `BibleTab` lui donne — en haut à droite, et sur la
+            // Bible seulement. Arbitré par l'auteur le 29 septembre 2026 :
+            // « je veux la même tabbar ».
+            action=Some(Box::new(|| view! { <BoutonDeRecherche /> }.into_any()) as leptos::children::Children)
         >
+            // **Avant le corpus et détachée de lui** : ce n'est pas une
+            // destination de plus, c'est un signet. L'app le range de même,
+            // dans sa propre section.
+            <Suspense fallback=|| ()>
+                {move || Suspend::new(async move {
+                    let du_compte = position.await.ok().flatten();
+                    view! {
+                        {move || {
+                            // **Le compte transporte la place, il ne la donne
+                            // plus.** La plus fraîche des deux l'emporte, et
+                            // c'est `updated_at` qui tranche — la règle du
+                            // backend, reprise telle quelle.
+                            //
+                            // Sans rien des deux côtés, la carte se tait : il
+                            // n'y a rien à reprendre, et le dire serait un
+                            // reproche.
+                            crate::interface::position::la_plus_fraiche(
+                                    du_compte.clone(),
+                                    locale.get(),
+                                )
+                                .map(|position| view! { <CarteDeReprise position /> })
+                        }}
+                    }
+                })}
+            </Suspense>
             <Suspense fallback=|| ()>
                 {move || Suspend::new(async move {
                     match plan.await {

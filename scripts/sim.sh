@@ -4,6 +4,19 @@
 #
 #     ./scripts/sim.sh /fr                      → /tmp/ont-sim/fr.png
 #     ./scripts/sim.sh /fr/l-auteur auteur.png
+#     SIM="Web iPadOS" ./scripts/sim.sh /fr     → la même page en large
+#
+# ## Deux appareils, parce qu'il y a deux mises en page
+#
+# **« Web »** est un iPhone : c'est le format responsif, sous `lg`.
+# **« Web iPadOS »** est un iPad, et c'est le plus proche d'un bureau qu'on
+# ait — au-delà de 1024 px, donc là où la barre latérale remplace les onglets
+# et où le site compose sur deux colonnes.
+#
+# L'auteur a créé le second le 2 octobre 2026, et il manquait : toutes les
+# mesures de cet outil s'étaient faites sur un écran de téléphone, donc **sous
+# `lg`**, en concluant chaque fois sur le site entier. ==Un banc qui ne peut pas
+# prendre la taille du cas mesuré ne mesure que l'autre.==
 #
 # ## Pourquoi cet outil compte
 #
@@ -26,14 +39,18 @@ CHEMIN="${1:-/fr}"
 SORTIE="${2:-/tmp/ont-sim/$(echo "${CHEMIN#/}" | tr '/' '-' | sed 's/^$/accueil/').png}"
 SERVEUR="http://127.0.0.1:3000"
 
-# On prend le simulateur nommé « Web » s'il existe, sinon le premier démarré :
-# les autres portent l'app ONT, et y ouvrir Safari les sortirait de leur état.
-APPAREIL=$(xcrun simctl list devices booted -j \
+# On prend le simulateur que `SIM` nomme — « Web » par défaut —, sinon le
+# premier démarré : les autres portent l'app ONT, et y ouvrir Safari les
+# sortirait de leur état.
+APPAREIL=$(SIM="${SIM:-Web}" xcrun simctl list devices booted -j \
   | python3 -c '
-import json, sys
+import json, os, sys
 appareils = [a for liste in json.load(sys.stdin)["devices"].values() for a in liste]
-web = [a for a in appareils if a["name"] == "Web"]
-choisi = (web or appareils)
+voulu = os.environ.get("SIM", "Web")
+nomme = [a for a in appareils if a["name"] == voulu]
+if not nomme and voulu != "Web":
+    raise SystemExit(f"aucun simulateur démarré nommé « {voulu} »")
+choisi = nomme or appareils
 if not choisi:
     raise SystemExit("aucun simulateur démarré")
 print(choisi[0]["udid"])')

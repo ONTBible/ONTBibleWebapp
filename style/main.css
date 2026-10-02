@@ -11,6 +11,13 @@
    avant même le `@source` qui suit.                                         */
 @import "./jetons.css";
 
+/* Les ressorts de l'app, engendrés par `scripts/porter-les-ressorts.py`.
+
+   Quatre courbes résolues et échantillonnées en `linear()`, avec la durée à
+   laquelle chacune est visuellement arrivée. Le web n'a pas de ressort ; il a
+   `linear()`, qui prend une suite de points — et un ressort s'échantillonne.  */
+@import "./mouvement.css";
+
 /* Les gabarits sont écrits en Rust : c'est là que Tailwind doit chercher les
    classes. Sans cette ligne il ne verrait aucun gabarit et produirait une
    feuille vide — panne silencieuse, la page s'afficherait sans style.
@@ -153,6 +160,25 @@
   --color-or: var(--ont-accent);
   --color-accent: var(--ont-accent);
 
+  /* L'encre de la marque — `brandInk`. Ce n'est pas l'accent, et le
+     distinguer compte : sur un thème clair elle vaut l'aubergine `#421B26`,
+     sur un thème sombre elle vaut l'or. C'est l'encre des en-têtes de section
+     chez l'app, et le site les peignait en accent — donc en or sur du
+     parchemin, où ils se confondaient avec les mots d'or du corpus. */
+  --color-marque-encre: var(--ont-brandInk);
+
+  /* Ce qui s'écrit **sur** l'aplat de marque — `onBrandAccent`. Il ne se
+     déduit pas de `marque-encre` : sur les peaux claires l'aplat est
+     l'aubergine et le texte est l'or, sur les sombres l'aplat est l'or et le
+     texte est la nuit. La paire s'inverse, et c'est l'app qui l'a mesurée.
+
+     `onBrand` existe à côté chez elle — le texte plein sur le même aplat,
+     `#FAF5EB` là où `onBrandAccent` vaut `#CDBE83`. Le site ne porte que le
+     second : c'est celui de ses deux emplois d'aplat, la carte de
+     prononciation et le bouton de connexion. Le jour où un troisième demande
+     le texte plein, il se prend dans `jetons.css`, qui l'a déjà.          */
+  --color-sur-marque-accent: var(--ont-onBrandAccent);
+
   /* Les filets. C'est `separator` chez l'app, et ce n'est pas la même recette
      selon le thème : de l'or à 18 % sur une nuit — où un gris paraîtrait sale
      sur une teinte chaude —, de l'encre à 10 % sur du parchemin, où c'est le
@@ -237,6 +263,25 @@
      ligne suivante. La mesure large reprend `ONTLayout.readingWidth` — 700
      points, la largeur de lecture de l'app sur iPad. */
   --container-mesure: 38rem;
+
+  /* **La seconde mesure — celle d'une page, pas d'une phrase.**
+
+     L'app en porte deux, et la session macOS a insisté pour que la leçon ne
+     soit ni l'une ni l'autre valeur : `readingWidth 700` borne la prose,
+     `pageWidth 850` borne une page — listes, cartes, réglages. *« Une liste
+     ne se lit pas comme une phrase : l'œil n'y court pas d'un bout à l'autre,
+     il saute d'un intitulé à sa valeur. »*
+
+     Le site n'en avait qu'une, et c'est elle qui bornait ses listes : un
+     sommaire de soixante-dix livres composait sur la mesure d'un verset, avec
+     le compteur à trois centimètres de son titre au lieu d'être au bord.
+
+     Le rapport est celui de l'app — 850/700 —, appliqué à notre mesure plutôt
+     que sa valeur reportée : la nôtre vaut 38 rem parce que le corps vaut
+     21 px (§5), et recopier 850 pt casserait ce lien. `--container-large`,
+     lui, garde son emploi : c'est la comparaison de l'accueil, où deux
+     colonnes de prose doivent tenir côte à côte.                           */
+  --container-page: 46rem;
   --container-large: 52rem;
 
   /* La marque, dans l'en-tête. Elle **suit la même interpolation que le
@@ -251,9 +296,825 @@
      tombe de 56 % à 39 % sur téléphone, et le grand écran ne bouge pas. */
   --container-marque: clamp(9.5rem, 7.53rem + 8.09vw, 14rem);
 
-  /* `ONTRadius.card` — 22 points. */
+  /* ── Les rayons, et ils viennent tous d'`ONTRadius` ──────────────────────
+
+     Le site en citait un seul, `card`. Les quatre y sont maintenant, avec les
+     mots de l'app à côté — parce qu'un rayon sans sa raison se retouche au
+     jugé, et que celui de la feuille a une raison qu'on ne devinerait pas.  */
+
+  /* `ONTRadius.highlight` — 6 points, « juste assez pour adoucir l'angle ». */
+  --radius-surlignage: 0.375rem;
+
+  /* `ONTRadius.block` — 18 points. Les blocs secondaires. */
+  --radius-bloc: 1.125rem;
+
+  /* `ONTRadius.card` — 22 points. Les cartes de premier plan. */
   --radius-carte: 1.375rem;
 
+  /* `ONTRadius.feuille` — 34 points, et le nombre est mesuré, pas choisi :
+
+     > Mesuré sur la feuille système d'iPadOS 27, qui arrondit à ~40 pt : à 22,
+     > la carte du Mac se lisait comme une boîte de dialogue, pas comme une
+     > feuille. 34 et non 40 : la carte du Mac est bordée d'air, pas d'un bord
+     > d'écran, et le plein 40 y paraissait gonflé.
+
+     Le panneau « aA » du site était à 22 — il se lisait comme une boîte de
+     dialogue, exactement le défaut que l'app décrit. */
+  --radius-feuille: 2.125rem;
+
+}
+
+/* ═══ La seconde échelle — le corps de la traduction ═══════════════════════
+
+   **L'app en porte deux, et les confondre est un contresens.** Son code le dit
+   en nommant l'auteur :
+
+   > Un lecteur atteint de kératocône monte le corps du texte très haut pour
+   > lire, et n'a aucune raison de faire enfler du même geste une barre
+   > latérale qui lui mangerait la place où ce texte s'affiche.
+
+   | | l'app | le site |
+   |---|---|---|
+   | l'interface | ⌘+ / ⌘−, sept crans | le zoom du navigateur |
+   | le corps du texte | un curseur, 11 à 28 | `--lecture`, ci-dessous |
+
+   La première était déjà juste ici sans qu'on l'ait cherchée : la feuille est
+   tout entière en `rem`, donc la taille de police par défaut du navigateur et
+   son zoom commandent déjà — c'est le rôle que `@ScaledMetric` tient là-bas.
+   Ce qui manquait est la seconde.
+
+   ── Pourquoi un facteur et non une taille ─────────────────────────────────
+
+   `--lecture` vaut `corps / 19`, où 19 est le défaut du curseur de l'app. À 19
+   il vaut **exactement 1**, et `calc(x * 1)` rend `x` — donc rien ne bouge d'un
+   pixel tant que le lecteur n'a pas touché au réglage. C'est la même sûreté que
+   le portage des couleurs : le défaut est l'état d'avant, à l'identique.
+
+   Une taille absolue aurait demandé de choisir *quelle* taille, et le site en a
+   deux — la prose à 21 px, le corpus à `--text-lg`. Un facteur les emporte
+   toutes les deux sans avoir à trancher entre elles.
+
+   ── Ce qu'il ne touche pas, et c'est la moitié du sujet ───────────────────
+
+   Rien hors de la liseuse. Ni la navigation, ni le fil d'Ariane, ni la marque,
+   ni le bouton « aA » lui-même — qui doit rester atteignable quand le corps est
+   à son maximum, pas grandir avec lui.                                       */
+
+:root {
+  --lecture: 1;
+}
+
+/* Le cadre de lecture. Tout ce qu'il contient hérite de cette taille, donc
+   tout suit le réglage : la prose d'une fiche, une glose, un verset en lecture
+   suivie. Au facteur 1 c'est `--text-base`, c'est-à-dire ce dont la page
+   héritait déjà. */
+.liseuse {
+  font-size: calc(var(--text-base) * var(--lecture));
+}
+
+/* Un verset en mode d'étude, qui compose plus grand que la prose. Il portait
+   `text-lg` en dur ; il porte la même valeur, multipliée. */
+.corps-de-lecture {
+  /* **Le corps, et non le palier au-dessus.**
+
+     Il composait à `--text-lg`, soit un cran de plus que les 21 px que le §5
+     mesure et défend. C'était le dernier écart de densité avec l'app, qui
+     compose son corpus **au corps** : mes versets tenaient donc trois lignes
+     là où les siens en tenaient quatre.
+
+     Le §5 dit « il a demandé plus grand deux fois : ne pas redescendre sans
+     qu'il le demande », et cette ligne a attendu qu'il le demande — elle lui a
+     été posée deux fois avant de bouger. Elle ne redescend d'ailleurs pas
+     **sous** ce qu'il a demandé : elle y atterrit exactement. 21 px est la
+     valeur du §5 ; `--text-lg` était un supplément que personne n'avait
+     décidé.
+
+     Et le lecteur a le curseur : la plage 11–28 part de là, au lieu de partir
+     d'un cran plus haut.                                                   */
+  font-size: calc(var(--text-base) * var(--lecture));
+
+  /* **L'interligne du lecteur.** Au cran par défaut, `--interligne` vaut
+     exactement les 1,68 que le §5 a mesurés — donc le repli couvre le rendu du
+     serveur, qui ne connaît pas les réglages, et la valeur documentée reste
+     celle de tout le monde. */
+  line-height: var(--interligne, 1.68);
+}
+
+/* ── Le curseur de taille ──────────────────────────────────────────────────
+
+   Un `input[type=range]` est le seul élément d'interface que ni Tailwind ni le
+   préflux ne peignent : il garde le dessin du système, bleu, avec un rail gris
+   — sur une nuit d'aubergine, c'est la seule pièce du site qui ne soit pas du
+   site.
+
+   Il se peint en deux fois, et il faut les deux : WebKit et Firefox n'exposent
+   pas les mêmes pseudo-éléments, et **une règle qui nomme les deux d'un coup
+   est ignorée en entier** par chacun des deux. Elles sont donc séparées,
+   volontairement dupliquées.
+
+   La hauteur du pouce est à 22 px et non à 16 : c'est la cible du doigt, et ce
+   réglage est cherché par quelqu'un qui ne lit pas encore confortablement.     */
+
+.curseur::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-filet);
+}
+
+.curseur::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-filet);
+}
+
+.curseur::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9.5px; /* (3 − 22) / 2, pour centrer le pouce sur le rail */
+  border-radius: 999px;
+  background: var(--color-accent);
+  border: 0;
+}
+
+.curseur::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  border: 0;
+}
+
+/* ── La hauteur de la barre d'onglets ──────────────────────────────────────
+
+   Le bouton « aA » et sa feuille se posent **au-dessus** de la barre. Le
+   réflexe est d'écrire sa hauteur dans leur calage — et c'est le nombre magique
+   que le §5 a déjà payé sur `--hauteur-entete` : *un nombre magique qui décrit
+   la géométrie d'un autre élément est toujours faux quelque part.*
+
+   ── Le premier jet la déclarait sur la barre, et ça ne pouvait pas marcher ──
+
+   Une propriété personnalisée n'est visible que de l'élément qui la déclare et
+   de ses **descendants**. Le bouton est un frère de la barre, pas un enfant :
+   il n'aurait rien lu, serait retombé sur le repli, et se serait posé sur la
+   barre exactement comme avant.
+
+   ── Ce qui rend le jeton honnête ───────────────────────────────────────────
+
+   Il est sur `:root`, et **c'est la barre qui s'y conforme** — elle prend cette
+   hauteur au lieu de la dicter. Le nombre ne décrit donc plus la géométrie d'un
+   autre élément : il *est* la géométrie, et les trois pièces la lisent.
+
+   Au-delà de `lg` il retombe à zéro : la barre passe à gauche, et le bouton
+   revient au bas de l'écran sans qu'aucune requête média ne le dise.
+
+   **La limite, dite plutôt que masquée** : c'est un plancher, pas une mesure.
+   Si le lecteur monte beaucoup la taille de police de son navigateur, les
+   libellés de la barre peuvent la faire croître au-delà, et le bouton s'en
+   rapprocherait. On préfère ça à une hauteur figée qui tronquerait « Chercher ».
+*/
+
+:root {
+  --barre-d-onglets: 4.25rem;
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --barre-d-onglets: 0px;
+  }
+}
+
+/* La carte d'une liste groupée.
+
+   Sur `parchemin`, `surface` et `background` ne diffèrent que de cinq valeurs
+   — l'app les distingue par une **ombre**, pas par la couleur. Sans elle, la
+   carte ne se détache pas et la liste redevient des bandes posées sur la page,
+   c'est-à-dire ce qu'on venait de quitter.
+
+   Très basse et très diffuse : ce qu'on veut n'est pas un relief mais le
+   soupçon d'un bord.                                                        */
+.carte-de-liste {
+  box-shadow: 0 1px 2px -1px rgb(0 0 0 / 0.1), 0 2px 8px -4px rgb(0 0 0 / 0.08);
+}
+
+/* La barre flotte : elle n'impose plus sa hauteur, elle la **déclare**. Le
+   jeton reste la vérité — le bouton « aA » et la feuille le lisent — mais la
+   capsule ne s'y conforme plus, puisqu'elle se dimensionne sur son contenu et
+   que ses marges font partie de sa hauteur apparente. */
+.barre-d-onglets {
+  min-height: calc(var(--barre-d-onglets) + env(safe-area-inset-bottom));
+}
+
+/* ═══ Le verre ════════════════════════════════════════════════════════════
+
+   ## Ce qui est reproductible, et ce qui ne l'est pas
+
+   Le *Liquid Glass* d'Apple fait quatre choses : il floute et sature ce qui
+   passe derrière, il **réfracte** — la lumière se courbe au bord —, il porte
+   un reflet spéculaire sur son arête, et il s'adapte à ce qu'il recouvre.
+
+   Trois sur quatre se font en CSS. La quatrième, la réfraction, demande
+   `backdrop-filter: url(#filtre)` sur un `feDisplacementMap` — et **seul
+   Chromium expose les filtres SVG à `backdrop-filter`**. Safari retombe
+   silencieusement sur un flou simple. C'est-à-dire : l'auteur, qui travaille
+   sur Safari, et tout iOS, ne verraient rien de la seule partie qui coûte.
+
+   ## Et on ne l'ajoute pas non plus pour Chrome
+
+   `backdrop-filter` rééchantillonne tout ce qui passe derrière, à chaque
+   image. Y empiler un déplacement SVG ajoute **une seconde passe de
+   rastérisation sur toute la surface**.
+
+   Ce dépôt a déjà payé exactement ça, et le §5 le raconte : le grain de pierre
+   du portail se rejouait à chaque image, le défilement tombait à huit images
+   par seconde, et il a fallu trois corrections pour comprendre que le coût
+   était dans la rastérisation et non dans le style. La barre d'onglets est
+   **fixe au-dessus d'un texte qui défile** : c'est le pire cas possible.
+
+   On fait donc le verre sans la réfraction, et on le dit — plutôt que de
+   livrer un effet invisible chez celui qui l'a demandé et coûteux chez les
+   autres.
+
+   ## Ce qui reste, et ce qui fait le verre
+
+   Le flou seul donne du plastique dépoli. Ce qui le rend *verre* est
+   l'**arête** : une lumière en haut, une ombre en bas, très fines. C'est
+   l'épaisseur du matériau qu'on voit par la tranche, et c'est elle que l'œil
+   lit comme du verre.
+
+   La saturation compte autant : le verre d'Apple **ravive** ce qu'il floute.
+   Sans elle, un fond coloré passe derrière en gris de brouillard.           */
+
+.verre {
+  /* **Le verre est la pièce la plus chère du défilement.**
+
+     `backdrop-filter` rééchantillonne tout ce qui passe derrière, à chaque
+     image. Sur une barre fixe ou collante, c'est *à chaque image du
+     défilement* — et la zone rééchantillonnée est celle que le compositeur
+     croit nécessaire, pas celle de la barre.
+
+     `contain: paint` la borne à sa propre boîte. Aucun changement à l'écran :
+     la barre ne peint déjà rien au-delà. C'est la même correction que le
+     portique du seuil, où l'étalement d'une ombre faisait réserver une couche
+     de plusieurs dizaines de milliers de pixels de côté.
+
+     C'est ce qui sépare un défilement qui « colle au doigt » d'un défilement
+     qui traîne d'une image ou deux : iOS Safari donne la physique du système —
+     une page ne peut pas en ajouter, seulement cesser de la gêner. */
+  contain: paint;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  box-shadow:
+    /* L'arête haute — la lumière qui entre par la tranche. */
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+    /* L'arête basse — l'ombre de l'épaisseur. */
+    inset 0 -1px 0 color-mix(in srgb, black 14%, transparent),
+    /* Le décollement : ce qui dit qu'il flotte au-dessus et non qu'il est posé
+       dedans. Très basse et très large — on veut un soupçon, pas un relief. */
+    0 4px 20px -6px color-mix(in srgb, black 30%, transparent);
+}
+
+/* Sans `backdrop-filter`, le fond devient opaque plutôt que de laisser lire le
+   texte à travers une transparence que rien ne floute. Un verre qui ne floute
+   pas n'est pas du verre : c'est une vitre sale posée sur le texte.          */
+@supports not (backdrop-filter: blur(1px)) {
+  .verre {
+    background-color: var(--color-surface);
+  }
+}
+
+/* ═══ Les interactions d'une app, et pas davantage ═════════════════════════
+
+   Dans une app iOS, on ne sélectionne pas le texte à la main : on touche un
+   verset, et la barre propose ce qu'on peut en faire. Le site laissait faire
+   les deux — et les deux se gênent, puisque le glissement qui sélectionne est
+   aussi celui qui fait défiler.
+
+   Trois déclarations, et chacune retire un geste de navigateur :
+
+   - `user-select: none` — plus de sélection à la souris ni de curseur en I.
+     Ce qu'on veut copier passe par le geste de l'app : toucher le verset, puis
+     « Copier ». C'est plus étroit, et c'est **le même geste des deux côtés** ;
+   - `-webkit-touch-callout: none` — plus de loupe ni de menu long-toucher sur
+     iOS. C'était le plus visible : un appui maintenu sur un verset ouvrait le
+     menu du système par-dessus la barre de sélection de l'app ;
+   - `-webkit-tap-highlight-color: transparent` — plus de voile gris au
+     toucher. Il double l'enfoncement qu'on vient de dessiner, en moins beau et
+     en retard d'une image.
+
+   **Les champs restent sélectionnables**, et il le faut : on corrige une
+   recherche mal tapée en y revenant, et un profil ne se remplit pas sans
+   pouvoir effacer un mot.                                                  */
+
+/* **Et elles s'arrêtent aux pages de corpus. Corrigé le 2 octobre 2026.**
+ *
+ * Ces trois déclarations étaient sur `body`, donc sur **tout le site** —
+ * l'accueil, « Le pourquoi », « Ce que l'ONT n'est pas », les pages légales. Or
+ * ce sont des pages qu'on lit comme un site : on y surligne une phrase à la
+ * souris pour la relire, on en copie un passage pour le citer. Rien n'y
+ * remplaçait le geste retiré, puisqu'il n'y a pas de barre de sélection hors du
+ * corpus.
+ *
+ * L'auteur l'a dit en une phrase : *« je veux que le site réagisse aux
+ * interactions de souris normalement sur les pages qui sont à la racine de
+ * /fr/, mais qu'elles restent bloquées comme elles le sont maintenant sur les
+ * pages /fr/<chrome>/ »*.
+ *
+ * ==Une interaction qu'on retire doit être remplacée là où on la retire, et
+ * nulle part ailleurs.== L'argument du bloc ci-dessus est entier — il ne valait
+ * simplement que pour la liseuse, et il était posé sur le document.
+ *
+ * Les deux sélecteurs, et il faut les deux : `.ecran-*` est le corps d'une page
+ * de corpus, `chrome-d-app` les barres de la webapp, qui vivent **hors** de ce
+ * conteneur. Sous l'édition, l'en-tête et le pied du site n'y sont pas — et
+ * c'est juste, ce sont les pièces du site, pas de l'app.
+ *
+ * Le défaut ne s'est pas vu pendant deux semaines parce qu'il ne casse rien :
+ * la page s'affiche, les liens marchent, et l'on n'essaie de sélectionner du
+ * texte que lorsqu'on en a envie. C'est la famille des défauts du §5 — l'échelle
+ * qui s'inverse, les liens non soulignés : *la page ne casse pas, elle est
+ * seulement plus pauvre, et rien ne dit qu'elle devrait l'être moins.* */
+.ecran-app,
+.ecran-edition,
+.chrome-d-app {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ═══ L'arrivée en cascade ══════════════════════════════════════════════════
+
+   `ONTApparition` : l'élément part **huit points plus bas**, transparent, et
+   remonte au ressort `pop`, décalé par son rang. Son commentaire dit tout :
+   *sans mouvement d'entrée, un écran **apparaît** ; avec, il **arrive**.*
+
+   Le site ne l'avait nulle part. Les onglets se remplaçaient d'un coup, ce qui
+   se lit comme un rechargement — exactement ce que la webapp n'est pas.
+
+   ## Le rang se donne en CSS, pas en Rust
+
+   `--rang` sur l'élément, lu par le délai. Une liste de soixante-dix livres
+   n'a pas à compter jusqu'à soixante-dix : la borne est à douze, comme chez
+   l'app. Au-delà, l'œil ne suit plus la cascade — il voit un écran qui met du
+   temps à se remplir.
+
+   ## Et elle ne rejoue pas à chaque bascule d'onglet
+
+   Elle est portée par une **animation**, donc elle se joue au montage de
+   l'élément et pas davantage. Un onglet qu'on retrouve ne la rejoue que s'il a
+   été démonté — ce qui est le cas ici, chaque page se montant à neuf.       */
+
+/* **`backwards` et non `both`, et ça vaut d'être expliqué.**
+
+   `both` garde la dernière image appliquée **pour toujours** — donc un
+   `transform: translateY(0)` posé à demeure. Un transform, même identité,
+   fait de l'élément le **bloc conteneur de ses descendants `fixed`** : la
+   feuille des réglages se positionnait alors par rapport à la page entière au
+   lieu de l'écran, et partait à `y = 23726` sur un chapitre long. Le bouton
+   « aA » répondait — `aria-expanded` passait bien à vrai —, la feuille
+   existait, et personne ne la voyait jamais.
+
+   Mesuré au banc, parce que rien d'autre ne pouvait le dire : le bouton
+   marche, la feuille est dans le document, et le défaut est une coordonnée.
+
+   `backwards` applique la première image **pendant le délai** — ce qu'on veut,
+   l'élément ne doit pas clignoter avant son tour — puis rend l'élément à ses
+   styles normaux une fois l'animation finie. Aucun transform ne reste. */
+.arrivee {
+  animation: arrivee var(--pop-duree) var(--pop) backwards;
+  animation-delay: calc(min(var(--rang, 0), var(--cascade-borne)) * var(--cascade-pas));
+}
+
+/* L'empilement et le dépilement — la transition d'une `NavigationStack`.
+
+   L'écran qui **arrive** glisse depuis le côté d'où il vient. Celui qui part,
+   non : Leptos l'a démonté avant que le suivant ne se monte, et le garder
+   demanderait deux arbres vivants — deux pages de corpus, deux hydratations,
+   un `Suspense` qui ne sait plus lequel il suspend. L'œil suit ce qui entre,
+   et c'est la moitié qui porte le sens.
+
+   Le glissement est **court** — 22 % de la largeur — et non pleine page : à
+   pleine page il devient un carrousel, et l'on attend la fin au lieu de lire.
+   C'est le même arbitrage que la caméra du portail, qui arrive à 1 au lieu de
+   dépasser.                                                                */
+.empile {
+  animation: empile var(--ressort-duree) var(--ressort) backwards;
+}
+
+.depile {
+  animation: depile var(--ressort-duree) var(--ressort) backwards;
+}
+
+@keyframes empile {
+  from {
+    opacity: 0;
+    transform: translateX(22%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes depile {
+  from {
+    opacity: 0;
+    transform: translateX(-18%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes arrivee {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Le mouvement d'entrée est celui qui gêne le plus : il part tout seul, sans
+   qu'on l'ait demandé. */
+@media (prefers-reduced-motion: reduce) {
+  .arrivee,
+  .empile,
+  .depile {
+    animation: none;
+  }
+}
+
+/* ═══ Ce qui se presse s'enfonce, ce qui se survole se teinte ═══════════════
+
+   ## D'où ça vient
+
+   `ONTInteraction.swift`, et son en-tête raconte pourquoi il existe : le
+   3 septembre 2026, il n'y avait **aucun état de pression** dans l'app du Mac
+   — vingt-quatre boutons « plain », et un clic qui ne répondait rien entre
+   l'enfoncement et l'action. L'auteur, qui est designer, a demandé la
+   micro-animation *partout*, « limite trop ».
+
+   Le site avait le même défaut sous une autre forme : chaque pièce portait son
+   propre `active:scale-95` ou son `hover:-translate-y-px`, choisis un par un.
+   Trois échelles différentes coexistaient, et rien ne disait laquelle était la
+   règle.
+
+   ## Les deux valeurs viennent de là-bas, pas de l'œil
+
+       pression    échelle 0,97   opacité 0,82   ressort vif
+       ligne large échelle 0,985                 — 3 % seraient une embardée
+       survol      voile d'encre à 7 %           levée 1,012 si « soulevé »
+
+   ## Pourquoi `:has(:active)` et pas seulement `:active`
+
+   Un `<A>` du routeur porte souvent son contenu dans un enfant ; le survol et
+   la pression doivent se lire sur l'objet entier, pas sur le mot qu'on a
+   touché. `:active` seul laisserait une ligne dont seul le libellé s'enfonce.
+
+   ## Le survol ne vaut que là où il y a un curseur
+
+   `@media (hover: hover)` : sur un écran tactile, `:hover` **colle** après le
+   toucher — l'élément reste teinté jusqu'au toucher suivant, ce qui se lit
+   comme une sélection qu'on n'a pas faite. C'est le défaut le plus courant
+   d'un site porté depuis un bureau.                                        */
+
+.presse,
+.presse--ligne,
+.survol {
+  transition:
+    transform var(--ressort-vif-duree) var(--ressort-vif),
+    opacity var(--ressort-vif-duree) var(--ressort-vif),
+    background-color var(--ressort-vif-duree) var(--ressort-vif);
+}
+
+.presse:active,
+.presse:has(:active) {
+  transform: scale(0.97);
+  opacity: 0.82;
+}
+
+/* Une ligne large bouge moins : à sa taille, trois pour cent seraient une
+   embardée. C'est `ONTPresse(echelle: 0.985)`, et l'app lui donne son propre
+   nom — `.ontLigne`.
+
+   **Elle s'emploie seule, jamais avec `.presse`.** Les deux écrivent
+   `transform` : posées ensemble, elles se départagent par l'ordre de la
+   feuille et non par l'intention — le piège de `Bloc` et de `max-w-mesure`,
+   rejoué. Ça « marchait », `.presse--ligne` étant écrite après ; ça aurait
+   cessé de marcher le jour où l'on réordonne ce fichier, sans que rien ne le
+   dise. */
+.presse--ligne:active,
+.presse--ligne:has(:active) {
+  transform: scale(0.985);
+  opacity: 0.82;
+}
+
+@media (hover: hover) {
+  .survol:hover {
+    background-color: color-mix(in srgb, var(--color-encre) 7%, transparent);
+  }
+
+  /* La levée, pour ce qui est une **carte** ou une case. Pas pour une longue
+     ligne, qu'un centième ferait trembler sur toute sa largeur. */
+  .survol--souleve:hover {
+    transform: scale(1.012);
+  }
+}
+
+/* Le mouvement est un réglage système, pas un goût : il déclenche des
+   vertiges chez une partie des lecteurs. */
+@media (prefers-reduced-motion: reduce) {
+  .presse,
+  .survol {
+    transition: none;
+  }
+
+  .presse:active,
+  .presse:has(:active),
+  .presse--ligne:active,
+  .presse--ligne:has(:active),
+  .survol--souleve:hover {
+    transform: none;
+  }
+}
+
+/* ── La bascule d'un onglet ────────────────────────────────────────────────
+
+   Ce qu'iOS fait, et qu'on ne voit qu'en le perdant : la capsule ne *paraît*
+   pas sous l'onglet touché, elle s'y **pose** — elle arrive un peu trop
+   grande et se range. Le symbole suit du même mouvement.
+
+   C'est `ressortVif` chez l'app, et le dépassement est dans la courbe : deux
+   pour cent au-delà de la cible. Il ne se remarque pas ; c'est son absence qui
+   se remarque, et qui fait dire « rigide » — le mot exact de la planche-contact
+   du 3 septembre, où quatorze vues du Mac ont été comparées à l'iPad.
+
+   ── Pourquoi une transition et non une animation ──────────────────────────
+
+   Une `animation` ne rejoue pas quand une classe change sur un élément qui
+   reste en place : il faudrait le démonter. Une `transition`, si — et c'est
+   exactement ce qui se passe ici, où le routeur change l'attribut sans
+   toucher au nœud.
+
+   ── Ce qui est animé, et rien d'autre ─────────────────────────────────────
+
+   `transform`, `background-color`, `color`. Les deux dernières ne sont pas
+   composées par le GPU, mais elles portent sur une pastille de quatre-vingts
+   pixels : la règle du §5 vise une scène qui couvre l'écran, pas ça.       */
+
+/* Le segment choisi — même ressort que l'onglet, même raison. */
+.segment {
+  transition:
+    background-color var(--ressort-duree) var(--ressort),
+    color var(--ressort-duree) var(--ressort);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segment {
+    transition: none;
+  }
+}
+
+.onglet {
+  transition:
+    background-color var(--ressort-vif-duree) var(--ressort-vif),
+    color var(--ressort-vif-duree) var(--ressort-vif);
+}
+
+.onglet .signe {
+  transition: transform var(--ressort-vif-duree) var(--ressort-vif);
+}
+
+/* Le symbole de l'onglet choisi arrive un peu trop grand et se range — le
+   dépassement de la courbe fait le reste. Six pour cent : au-delà on voit un
+   effet, en deçà on ne voit rien. */
+.onglet[aria-current='page'] .signe {
+  transform: scale(1.06);
+}
+
+/* Le mouvement est un réglage système, pas un goût : il déclenche des vertiges
+   chez une partie des lecteurs. */
+@media (prefers-reduced-motion: reduce) {
+  .onglet,
+  .onglet .signe {
+    transition: none;
+  }
+  .onglet[aria-current='page'] .signe {
+    transform: none;
+  }
+}
+
+/* ═══ L'ouverture ═════════════════════════════════════════════════════════
+
+   La montagne qu'un trait de lumière révèle — le mouvement composé par
+   l'auteur, **rapatrié** et non réinventé.
+
+   ## Il est né ici
+
+   `ONTBibleApp/app/Marque/ouverture/logomark-sweep.jsx` : une composition web,
+   en CSS, dont `ONTSplash.swift` est le portage. Son README dit pourquoi elle
+   est gardée :
+
+   > Une animation portée dans un autre langage **perd sa source** si on ne la
+   > garde pas. Le Swift dit *ce que* le mouvement fait ; ces fichiers disent
+   > *ce qu'il devait faire*.
+
+   Le site est donc le seul des trois à ne rien porter : il reprend l'original.
+
+   ## Les trois temps, tels qu'ils sont déclarés
+
+       scène      durée   courbe           ce qu'elle fait
+       ────────────────────────────────────────────────────────────────
+       Attente    1,1 s   easeOutCubic     le logomark sort de la pénombre
+       Balayage   2,8 s   easeInOutSine    le front va de −0,22 à 1,22
+       Repos      1,6 s   easeOutQuad      la rémanence retombe de 0,8 à 0
+                  ─────
+                  5,5 s
+
+   **Le front naît et meurt hors du cadre** — de −0,22 à 1,22 —, donc on ne le
+   voit jamais apparaître ni s'éteindre.
+
+   ## La lueur est cinq ombres portées, pas un halo
+
+   12, 34, 80, 160 et 300 px. C'est l'empilement qui la fait décroître avec la
+   distance ; une seule ombre large donnerait un halo uniforme, qui se lit
+   comme un flou et non comme de la lumière.
+
+   Et elle est le `drop-shadow` **de la partie éclairée elle-même** : la
+   lumière quitte la silhouette sans jamais la dupliquer.
+
+   ## Le fond reste sombre, et ce n'est pas un choix de peau
+
+   Toute la lumière passe par `mix-blend-mode: screen`, qui n'a **aucun effet**
+   sur un fond clair. Sur du parchemin, le balayage serait invisible et la
+   montagne plate. L'ouverture est donc la même pour tout le monde — et elle
+   est en `nuit`, qui appartient déjà à la palette, plutôt qu'en noir de
+   circonstance.
+
+   ## Ce qui est animé
+
+   `transform` et `opacity`, dans des `@keyframes`. Le balayage déplace une
+   bande par `translateX` au lieu de bouger un `background-position` : c'est
+   la règle du §5, tirée du portail — *une propriété de plus, et la scène
+   retombe sur le fil principal.*                                            */
+
+/* Déjà entrée dans cette session : elle ne se peint jamais.
+
+   `display: none` et non une opacité nulle — une ouverture invisible mais
+   montée garderait ses cinq `drop-shadow` et son masque, donc son coût de
+   rastérisation, à chaque page d'une session entière. */
+.deja-entre .ouverture {
+  display: none;
+}
+
+.ouverture {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(120% 100% at 50% 55%, #16150f 0%, var(--color-nuit) 70%);
+  animation: ouverture-sortie 0.6s ease-out 5.5s forwards;
+}
+
+/* La marque. **Un peu plus d'un tiers de la largeur**, et le plafond ne mord
+   que sur tablette : à 36 % de 393 pt un téléphone donne 141 pt, la borne ne
+   sert jamais. Une grande dalle ne demande pas une grande marque — elle
+   demande plus de vide autour, et c'est ce vide qui la pose. */
+.ouverture-marque {
+  position: relative;
+  width: min(36vw, 225px);
+  aspect-ratio: 502 / 249;
+  isolation: isolate;
+}
+
+.ouverture-marque > * {
+  position: absolute;
+  inset: 0;
+  /* Le même masque que le signe de section et les massifs — par son chemin,
+     comme eux. QuickLook refuse un masque par chemin, mais l'ouverture ne se
+     juge pas sur une capture : elle se juge en mouvement. */
+  -webkit-mask: url("/images/logomark.svg") center / contain no-repeat;
+  mask: url("/images/logomark.svg") center / contain no-repeat;
+}
+
+/* La montagne dans la pénombre — elle est toujours là, elle ne s'allume pas. */
+.ouverture-sombre {
+  background: #3a3527;
+}
+
+/* Elle sort de la pénombre pendant l'attente, puis la rémanence la reprend. */
+.ouverture-montee {
+  background: var(--color-or);
+  mix-blend-mode: screen;
+  opacity: 0.2;
+  animation:
+    ouverture-montee 1.1s cubic-bezier(0.215, 0.61, 0.355, 1) forwards,
+    ouverture-remanence 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 3.9s forwards;
+}
+
+/* La partie éclairée : une bande qui traverse, masquée par la montagne. Sa
+   lueur est son propre `drop-shadow`. */
+.ouverture-lumiere {
+  mix-blend-mode: screen;
+  opacity: 0;
+  filter:
+    drop-shadow(0 0 12px rgb(255 240 200 / 1)) drop-shadow(0 0 34px rgb(255 240 200 / 0.95))
+    drop-shadow(0 0 80px rgb(255 240 200 / 0.8)) drop-shadow(0 0 160px rgb(255 240 200 / 0.6))
+    drop-shadow(0 0 300px rgb(255 240 200 / 0.42));
+  animation: ouverture-allumage 3.6s ease-in-out 0.8s forwards;
+}
+
+.ouverture-bande {
+  position: absolute;
+  inset: 0;
+  width: 220%;
+  background-image: linear-gradient(
+    100deg,
+    rgb(205 190 131 / 0) 32%,
+    rgb(233 214 141 / 0.95) 44%,
+    #fffaf0 50%,
+    rgb(233 214 141 / 0.95) 56%,
+    rgb(205 190 131 / 0) 68%
+  );
+  /* De −0,22 à 1,22 de la largeur : le front naît et meurt hors du cadre. */
+  animation: ouverture-balayage 2.8s cubic-bezier(0.445, 0.05, 0.55, 0.95) 1.1s forwards;
+}
+
+@keyframes ouverture-montee {
+  to {
+    opacity: 0.42;
+  }
+}
+
+@keyframes ouverture-remanence {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 0.42;
+  }
+}
+
+@keyframes ouverture-allumage {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ouverture-balayage {
+  from {
+    transform: translateX(-77%);
+  }
+  to {
+    transform: translateX(43%);
+  }
+}
+
+@keyframes ouverture-sortie {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* **Le balayage disparaît entièrement**, et la montagne paraît simplement. Ce
+   réglage ne relève pas du goût : il sert ceux que le mouvement rend malades,
+   et un balayage « seulement plus doux » ne les soulagerait pas. */
+@media (prefers-reduced-motion: reduce) {
+  .ouverture {
+    animation: ouverture-sortie 0.4s ease-out 0.9s forwards;
+  }
+  .ouverture-montee {
+    opacity: 0.42;
+    animation: none;
+  }
+  .ouverture-lumiere {
+    display: none;
+  }
 }
 
 /* ═══ Les fontes ═══════════════════════════════════════════════════════════
@@ -315,6 +1176,152 @@
   unicode-range: U+0590-05FF, U+FB1D-FB4F, U+200F, U+2066-2069;
 }
 
+/* ── Les six familles de lecture ───────────────────────────────────────────
+
+   Le lecteur choisit sa fonte, comme dans l'app. Trois coupes par famille, et
+   les trois comptent : sans l'italique déclarée, le navigateur **penche la
+   romane à la main** — et la translittération du niveau 3 est précisément en
+   italique. Une famille incomplète abîmerait la pièce que la liseuse existe
+   pour montrer.
+
+   Literata, EB Garamond et Jost sont déclarées plus haut : elles servaient
+   déjà. Georgia n'est déclarée nulle part — le système la fournit.          */
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Spectral-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Spectral-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Spectral-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/SourceSerif4-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Newsreader-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fontes/Newsreader-Italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fontes/Newsreader-SemiBold.woff2") format("woff2");
+}
+
+/* ── Ce que chaque choix met dans `--font-corps` ───────────────────────────
+
+   Même mécanique que les peaux — un attribut sur la racine — avec une
+   différence qui compte : la variable se redéclare **sous `.liseuse`**, pas
+   sur la racine.
+
+   C'est le même bornage que le thème, et pour la même raison : le choix du
+   lecteur vaut là où il lit, pas sur les pages qui parlent du corpus. « Le
+   pourquoi » et la page de l'auteur gardent Literata, qui est une décision de
+   l'édition (§5) — et le verset cité sur l'accueil la garde aussi, puisqu'il y
+   est une démonstration et non une lecture.
+
+   Le bornage se lit dans le sélecteur au lieu d'une table : `.liseuse` n'existe
+   que dans la liseuse, donc la règle ne peut pas déborder.
+
+   ── Les deux sélecteurs, et pourquoi il en faut deux ──────────────────────
+
+   `[data-fonte='x'] .liseuse` est une **descendance** : elle exige que la
+   classe soit *sous* l'attribut. Vrai sur la racine, faux sur une ligne du
+   menu, qui porte les deux sur le même élément — et une ligne qui dit « Jost »
+   en Literata ne dit rien.
+
+   Le défaut s'est vu sur un rendu du panneau : six lignes composées dans leur
+   propre lettre, et Jost en romane. On lit six fois ce qu'on attend, et la
+   septième passe.
+
+   ── Le repli ──────────────────────────────────────────────────────────────
+
+   Chaque pile garde un repli système de la même *classe* — une romane derrière
+   une romane, une linéale derrière une linéale : si le woff2 n'arrive pas, la
+   page reste composée dans la bonne voix au lieu de sauter d'un genre à
+   l'autre.                                                                   */
+
+[data-fonte='literata'].liseuse,
+[data-fonte='literata'] .liseuse {
+  --font-corps: "Literata", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='eb-garamond'].liseuse,
+[data-fonte='eb-garamond'] .liseuse {
+  --font-corps: "EB Garamond", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='spectral'].liseuse,
+[data-fonte='spectral'] .liseuse {
+  --font-corps: "Spectral", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='source-serif'].liseuse,
+[data-fonte='source-serif'] .liseuse {
+  --font-corps: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='newsreader'].liseuse,
+[data-fonte='newsreader'] .liseuse {
+  --font-corps: "Newsreader", "Iowan Old Style", Georgia, serif;
+}
+[data-fonte='jost'].liseuse,
+[data-fonte='jost'] .liseuse {
+  --font-corps: "Jost", "Helvetica Neue", sans-serif;
+}
+[data-fonte='georgia'].liseuse,
+[data-fonte='georgia'] .liseuse {
+  --font-corps: Georgia, "Iowan Old Style", serif;
+}
+
+
 /* ═══ La base ══════════════════════════════════════════════════════════════ */
 
 @layer base {
@@ -371,8 +1378,40 @@
   /* La césure épouse le français grâce à `lang="fr"` sur <html> ; sans elle,
      une mesure étroite creuse des lézards entre les mots. */
   p {
-    hyphens: auto;
+    /* **Le lecteur décide**, et il ne le pouvait pas.
+
+       C'était `auto` en dur : la césure était allumée pour tout le monde, sans
+       moyen de l'éteindre. L'app en fait un réglage — « Couper les mots » —, et
+       sa raison vaut doublement sur un site dont l'auteur lit à 0,6/10 : *qui
+       grossit le texte pour le voir se retrouve avec plus de coupures, pas
+       moins.*
+
+       Le défaut est `manual`, comme chez elle. `manual` et non `none` : le
+       premier laisse vivre un trait d'union conditionnel qu'on poserait
+       soi-même, le second l'ignorerait aussi. On retire l'automatisme, pas la
+       possibilité.                                                          */
+    hyphens: var(--coupure, manual);
     margin-block-end: --spacing(6);
+  }
+
+  /* **Mais elle ne vaut que pour de la prose.**
+
+     Elle est faite pour un paragraphe qui court sur dix lignes, où un lézard
+     se voit et où un mot coupé ne se remarque pas. Dans une note de deux
+     lignes sous une carte, c'est l'inverse exact : il n'y a pas de lézard à
+     éviter, et « ar-rivent » saute aux yeux — un mot coupé dans une phrase
+     courte se lit comme un défaut de rendu.
+
+     `hyphens: manual` et non `none` : la première laisse vivre un trait d'union
+     conditionnel qu'on poserait soi-même dans un mot long, la seconde
+     l'ignorerait aussi. On retire l'automatisme, pas la possibilité.
+
+     Relevé à l'œil sur une capture de l'onglet « Vous », pas dans le code :
+     la règle est dans la feuille, la note est dans un composant, et rien ne
+     met les deux côte à côte. */
+  .note-courte,
+  .note-courte p {
+    hyphens: manual;
   }
 
   /* Le rythme vertical appartient au document, pas aux composants : sans lui,
@@ -1961,11 +3000,32 @@
  * de la barre, où c'est la couleur elle-même qu'on montre.
  */
 :root {
-  --surlignage-or: #E8C973;
-  --surlignage-olive: #B8C787;
-  --surlignage-ciel: #9EC7DE;
-  --surlignage-rose: #EBADAD;
-  --surlignage-violet: #C7B3DE;
+  /* **Les cinq viennent de l'app, et elles suivent le thème.**
+
+     Le site portait les cinq pastels **de jour** — ceux que l'app avait
+     choisis pour du parchemin — posés sur une nuit d'aubergine. L'app a corrigé
+     ça de son côté et le site ne le savait pas : sa garde inscrivait la dette,
+     avec son propre diagnostic, « ce sont les six couleurs à la fois, donc soit
+     l'opacité, soit un marquage qui s'ajusterait au fond réel — un chantier,
+     pas un correctif ».
+
+     Le chantier était fait ailleurs. Leur palette de nuit garde la teinte et la
+     saturation — c'est elle qui fait qu'on reconnaît « le bleu » et « le rose »
+     l'un de l'autre à travers cinq surlignages — et descend la clarté jusqu'à
+     ce que **tous** les marquages tiennent 4,6:1 sur **les deux** fonds
+     sombres, pas seulement le plus clément.
+
+     Et ils ont écarté ce que ce dépôt aurait essayé en premier : baisser
+     l'opacité. Mesuré chez eux — sur fond clair on plafonne à 2,9 même à 0,12,
+     parce que le coupable y est l'or à 3,11 *sans aucun surlignage* ; et sur
+     fond sombre il faudrait 0,12, où le surlignage ne se détache plus du fond
+     que de 1,25:1. On aurait un surlignage invisible pour sauver un mot
+     lisible.                                                                 */
+  --surlignage-or: var(--ont-surlignage-or);
+  --surlignage-olive: var(--ont-surlignage-olive);
+  --surlignage-ciel: var(--ont-surlignage-ciel);
+  --surlignage-rose: var(--ont-surlignage-rose);
+  --surlignage-violet: var(--ont-surlignage-violet);
   --surlignage-opacite: 0.38;
 }
 
@@ -1977,4 +3037,368 @@
     var(--teinte) calc(var(--surlignage-opacite) * 100%),
     transparent
   );
+}
+
+/* ── Le châssis d'iPhone — `/fr/l-app` ────────────────────────────────────────
+ *
+ * La page d'acquisition montre l'écran de lecture de l'app dans un châssis, et
+ * ce châssis avait deux défauts que l'œil ne signale pas.
+ *
+ * **Son rayon était fixe.** Écrit `rounded-[1.9rem]`, il valait 13,6 % de la
+ * largeur sur téléphone et 10,6 % sur grand écran, là où un appareil garde un
+ * rapport constant — celui de l'iPhone est d'environ 15,4 %. C'est exactement
+ * la faute que le module dénonce trois lignes plus haut pour la Dynamic Island,
+ * et qu'il n'avait pas vue pour le coin qui l'entoure.
+ *
+ * **Et un `border-radius` en pourcentage ne la corrigeait pas.** Un pourcentage
+ * s'y lit sur deux axes — la largeur pour le rayon horizontal, la hauteur pour
+ * le vertical — donc `15.4%` sur un objet deux fois plus haut que large dessine
+ * une **ellipse**, pas un coin d'appareil. Il faut une longueur, calculée sur
+ * une seule dimension, et c'est ce que `--chassis` donne.
+ *
+ * Toutes les mesures dérivent donc de ce seul nombre, et le châssis peut
+ * changer trois fois de taille sans qu'aucune d'elles cesse d'être juste :
+ *
+ *     bord        2,6 % du châssis
+ *     rayon écran 15,4 % de l'écran, soit 14,6 % du châssis
+ *     rayon coque le précédent plus le bord, soit 17,2 %
+ *
+ * ## Le cadre est un dégradé, parce qu'un aplat n'a pas d'épaisseur
+ *
+ * Il était en `nuit` uni : deux valeurs identiques de part et d'autre du filet,
+ * donc rien qui dise qu'il y a de la matière. Le dégradé parcourt la rampe —
+ * `surface-haute`, `nuit`, `aubergine` — de sorte que le cadre capte la lumière
+ * en haut à gauche et la perd en bas à droite. **Aucune couleur nouvelle** : la
+ * teinte reste à 343°, comme tout le site.
+ */
+.chassis {
+  position: relative;
+  width: var(--chassis);
+  padding: calc(var(--chassis) * 0.026);
+  border-radius: calc(var(--chassis) * 0.172);
+  background: linear-gradient(
+    146deg,
+    color-mix(in srgb, var(--color-surface-haute) 74%, var(--color-or) 9%) 0%,
+    var(--color-surface) 26%,
+    var(--color-nuit) 50%,
+    var(--color-aubergine) 76%,
+    var(--color-nuit) 100%
+  );
+  /* Le filet d'or reste, et il passe à l'intérieur : posé en `border`, il
+   * s'ajouterait à la largeur et fausserait toutes les fractions ci-dessus. */
+  box-shadow:
+    0 26px 52px -12px color-mix(in srgb, var(--color-nuit) 75%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-or) 22%, transparent);
+}
+
+.chassis-ecran {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: calc(var(--chassis) * 0.146);
+}
+
+/* ── Les commandes ────────────────────────────────────────────────────────────
+ *
+ * Cinq saillies, aux places de l'appareil : le bouton Action et les deux
+ * volumes à gauche, la veille et la commande d'appareil photo à droite. Elles
+ * sont **en fraction de la hauteur** parce que c'est la hauteur qui les situe,
+ * et en fraction du châssis pour leur épaisseur.
+ *
+ * Elles ne sont pas un ornement : ce sont elles qui font qu'on lit « un
+ * téléphone » plutôt que « une plaque aux coins ronds ». Un cadre sans elles
+ * est une forme ; avec elles, c'est un objet qu'on a déjà tenu.
+ */
+.chassis-touche {
+  position: absolute;
+  width: calc(var(--chassis) * 0.018);
+  border-radius: calc(var(--chassis) * 0.006);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-aubergine) 62%, var(--color-or) 14%),
+    var(--color-surface) 55%,
+    var(--color-aubergine)
+  );
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--color-or) 26%, transparent);
+}
+
+.chassis-touche--g {
+  left: calc(var(--chassis) * -0.011);
+}
+
+.chassis-touche--d {
+  right: calc(var(--chassis) * -0.011);
+}
+
+/* ── Le reflet ────────────────────────────────────────────────────────────────
+ *
+ * Un pan de lumière en diagonale, qui meurt au tiers. Il dit que la dalle est
+ * du verre et non du papier — et il s'arrête tôt, parce qu'un reflet qui
+ * traverse l'écran entier devient un voile sur le texte, c'est-à-dire sur le
+ * sujet que ce châssis est là pour montrer.
+ *
+ * Il ne prend pas le clic, et il est `aria-hidden` côté balisage.
+ */
+.chassis-reflet {
+  position: absolute;
+  inset: calc(var(--chassis) * 0.026);
+  border-radius: calc(var(--chassis) * 0.146);
+  pointer-events: none;
+  background: linear-gradient(
+    116deg,
+    rgb(255 252 246 / 0.15) 0%,
+    rgb(255 252 246 / 0.05) 15%,
+    rgb(255 252 246 / 0) 33%
+  );
+}
+
+/* ── L'édition compose autrement que l'app ───────────────────────────────────
+ *
+ * **Demandé par l'auteur le 2 octobre 2026**, après avoir mis la production et
+ * la webapp côte à côte : *« t'as laissé le rendu de la webapp, t'as juste
+ * enlevé l'aside bar — pour l'UI de la liseuse je veux vraiment la prod »*.
+ *
+ * Ce qu'il a tranché : **même structure, même navigation, deux compositions.**
+ * On voit les parties puis les livres dans les deux arbres ; ce qui change est
+ * la façon de les dessiner.
+ *
+ * ## Un seul rendu, deux feuilles
+ *
+ * `PageDeLecture` pose `ecran-app` ou `ecran-edition` sur son conteneur, et
+ * tout descend d'ici. Les composants de liste — `Groupe`, `Ligne`,
+ * `EnteteDeSection` — n'ont rien à savoir de l'arbre.
+ *
+ * ==Ce n'est pas la double peinture retirée le 30 septembre.== Celle-là mettait
+ * deux chromes dans un même document : cent soixante-six kilo-octets de DOM
+ * mort et deux requêtes par page, pour un chrome que le lecteur ne voyait pas.
+ * Ici il y a **un seul rendu** et deux habillages — rien n'est dupliqué, rien
+ * n'est masqué, aucune requête en trop.
+ *
+ * > Dupliquer un rendu coûte ; le restyler ne coûte rien.
+ *
+ * Et c'est servi par le serveur : juste au premier octet, pour un moteur comme
+ * pour un lecteur sans JavaScript.
+ */
+
+/* ── Les listes : des filets, pas des cartes ─────────────────────────────────
+ *
+ * L'app groupe ses lignes dans une carte — un aplat de `surface`, des coins
+ * arrondis, le tout détaché du fond. C'est le dessin d'une liste d'iOS, et il
+ * est juste là-bas : une carte dit « ceci est un groupe qu'on touche ».
+ *
+ * L'édition ne groupe pas, elle **sépare** : un filet fin sous chaque ligne, et
+ * rien autour. C'est le dessin d'une table des matières imprimée, où la page
+ * elle-même tient lieu de fond. `main` le faisait ainsi —
+ * `border-b border-filet/40` sous chaque livre, sans aplat ni arrondi.
+ */
+.ecran-edition .carte-de-liste {
+  background: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+/* ── La ligne : un filet, pas une rangée qu'on touche ────────────────────────
+ *
+ * Trois écarts avec l'app, et chacun répond à la même question — *qu'est-ce que
+ * cette ligne promet ?*
+ *
+ * - **le retrait part du bord**, parce qu'il n'y a plus de carte dont il
+ *   faudrait s'écarter. `main` posait son filet bord à bord de la mesure ;
+ * - **le titre passe à l'or.** Dans l'app c'est le chevron qui dit « ceci
+ *   mène quelque part » ; sans lui, c'est la couleur qui le dit — et l'or est
+ *   déjà, partout sur le site, ce qui promet une destination ;
+ * - **la graisse tombe et la fonte revient au corps.** Un sommaire imprimé ne
+ *   met pas ses entrées en demi-gras : il les aligne. Jost en gras sur soixante
+ *   lignes fait une liste d'application, ce qui est juste là-bas et faux ici.
+ *
+ * L'air monte en conséquence — `py-3.5` contre `py-2.5` : une liste d'app serre
+ * pour en montrer plus d'un coup de pouce, une édition respire.
+ */
+.ecran-edition .carte-de-liste > li {
+  padding-inline-start: 0;
+}
+
+.ecran-edition .carte-de-liste .filet {
+  padding-block: --spacing(3.5);
+  padding-inline-end: 0;
+  /* 40 % contre 50 % — la valeur de `main`. */
+  border-bottom-color: color-mix(in srgb, var(--color-filet) 40%, transparent);
+}
+
+.ecran-edition .carte-de-liste > li > a {
+  color: var(--color-accent);
+}
+
+.ecran-edition .carte-de-liste .filet .font-titre {
+  font-family: var(--font-corps);
+  font-weight: 400;
+  font-size: 1em;
+}
+
+/* **Le chevron s'en va.** Il dit « cette ligne mène quelque part », ce qu'une
+ * liste d'app doit annoncer parce qu'on y touche sans regarder. Dans une
+ * édition, l'or le dit déjà — et `main` n'en portait aucun. */
+.ecran-edition .chevron {
+  display: none;
+}
+
+/* ── Le signe de la montagne sur les titres d'ensemble ───────────────────────
+ *
+ * `main` le posait dans son sommaire : un massif d'aubergine à gauche du nom de
+ * l'ensemble, large de deux rem. Il ne décore pas — il dit qu'on entre dans le
+ * corpus, et c'est le seul endroit du site où la marque revient en petit.
+ *
+ * La classe de l'utilitaire est **`massif`** et non `signe-montagne` ; ici c'est
+ * un pseudo-élément, pour que l'édition n'ait pas à ajouter un `<span>` que
+ * l'app rendrait vide. ==Un ornement qui n'existe que dans un habillage
+ * appartient à la feuille, pas au balisage.==
+ *
+ * Il est posé sur le `<p>` du titre et non sur son conteneur : le conteneur
+ * porte aussi la glose, et un pseudo-élément en tête d'un parent flex se
+ * placerait au-dessus des deux lignes au lieu de se tenir devant la première.
+ */
+.ecran-edition .entete-d-ensemble {
+  /* `main` donnait `mb-20` entre deux ensembles et `mb-10` sous le titre. Ce
+     qui compte est le rapport : l'ensemble se détache plus que ses lignes. */
+  margin-block: --spacing(16) --spacing(5);
+  padding-inline: 0;
+}
+
+.ecran-edition .entete-d-ensemble:first-child {
+  margin-top: 0;
+}
+
+.ecran-edition .entete-d-ensemble > p {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-xl);
+  font-weight: 400;
+  /* `main` écrivait `text-encre-vive` *par-dessus* la règle `h2`, qui met les
+     titres en or. Un titre d'ensemble n'est pas un intraduisible : il nomme une
+     part du corpus, et l'or ici promettrait une fiche. */
+  color: var(--color-encre-vive);
+}
+
+.ecran-edition .entete-d-ensemble > p::before {
+  content: '';
+  display: block;
+  width: 2rem;
+  flex-shrink: 0;
+  margin-inline-end: 1rem;
+  background-color: var(--color-accent);
+  mask: url('/images/logomark.svg') no-repeat center / contain;
+  -webkit-mask: url('/images/logomark.svg') no-repeat center / contain;
+  /* **Le rapport, et non une hauteur.** Un masque en `contain` garde ses
+     proportions *dans* sa boîte : lui donner `2rem` de large et `1.1em` de haut
+     revient à l'enfermer dans un carré presque, où il se réduit à la moitié de
+     sa largeur. Le massif fait 502 sur 249 — c'est la valeur de l'utilitaire
+     `massif`, et `main` s'en remettait à elle avec un simple `w-8`.
+
+     ==Fixer les deux dimensions d'une image à rapport fixe, c'est en perdre
+     une.== */
+  aspect-ratio: 502 / 249;
+}
+
+.ecran-edition .ensemble-du-corpus {
+  margin-bottom: --spacing(16);
+}
+
+.ecran-edition .ensemble-du-corpus:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Une ligne d'édition tient sur une seule ligne de base ───────────────────
+ *
+ * L'app empile : le titre, puis sa précision en dessous, chacun tronqué. C'est
+ * ce qui donne à une liste son **pas régulier** — le repère qui permet de
+ * balayer soixante entrées sans les lire, et il vaut une troncature.
+ *
+ * Une table des matières ne se balaie pas, elle se parcourt : le renvoi se lit
+ * *avec* le titre — « Chapitre 1 · 1:1 — 2:3 » —, pas en dessous. Et rien n'y
+ * est tronqué : une entrée coupée par des points de suspension serait, dans une
+ * table, une entrée qu'on ne peut pas trouver.
+ *
+ * `flex-wrap` plutôt qu'une ligne forcée : sur un écran étroit, le renvoi passe
+ * dessous de lui-même. ==Un repli qui se produit tout seul vaut mieux qu'un
+ * seuil qu'il faut choisir.==
+ */
+.ecran-edition .carte-de-liste .filet > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 1rem;
+  row-gap: --spacing(1);
+}
+
+.ecran-edition .carte-de-liste .filet > div:first-child > div {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* **L'or revient au titre.** Dans l'app, c'est le chevron qui promet une
+ * destination, et le titre reste en encre pour que soixante lignes ne crient
+ * pas toutes ensemble. Sans chevron, la promesse n'a plus de porteur : l'or la
+ * reprend, comme il la porte partout ailleurs sur le site.
+ *
+ * Le `Terme` doré de `Parashah` n'en souffre pas : il était déjà de cette
+ * couleur, et c'est précisément ce que `main` rendait. */
+.ecran-edition .nom-d-unite {
+  color: var(--color-accent);
+}
+
+/* La pastille de brouillon reprend la forme de `MentionBrouillon` : cerclée et
+ * en terre brûlée, non remplie de gris. Dans une liste d'app, une réserve doit
+ * s'effacer derrière ce qu'elle qualifie ; dans une table des matières, elle
+ * **est** l'information — c'est la seule chose qui distingue une entrée d'une
+ * autre une fois qu'on a lu son numéro. */
+.ecran-edition .pastille {
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--color-accentuation) 30%, transparent);
+  color: var(--color-accentuation);
+}
+
+/* ── Plus de carte, donc plus de retrait de carte ────────────────────────────
+ *
+ * Les retraits de `liste_groupee` mesurent une marge **intérieure** : ils
+ * écartent le texte du bord d'un aplat arrondi. Sans aplat, ils n'écartent plus
+ * de rien — ils décalent, et un décalage sans cause se lit comme une erreur
+ * d'alignement.
+ *
+ * On les reprend donc à la source plutôt que de les compenser ailleurs :
+ * l'en-tête de section, le pied, et l'étiquette d'un choix s'alignent sur la
+ * mesure, comme le titre de la page.
+ */
+.ecran-edition .entete-de-section,
+.ecran-edition .note-courte,
+.ecran-edition .carte-de-liste > li > label {
+  padding-inline: 0;
+}
+
+/* ── Une rangée qui défile sans le dire ──────────────────────────────────────
+ *
+ * `ONTSegments` emploie `ViewThatFits` : la rangée entière d'abord, la même qui
+ * défile quand elle ne tient plus. Le navigateur fait la même chose seul —
+ * `overflow-x: auto` ne défile que si le contenu dépasse — à une différence
+ * près : il affiche une barre.
+ *
+ * L'app n'en montre pas (`scrollIndicators(.hidden)`), et il faut la retirer
+ * ici aussi : sur une barre d'actions de deux lignes de haut, elle en mangerait
+ * une bonne part et se lirait comme un élément de l'interface.
+ *
+ * ==Ce qui dit qu'une rangée défile n'est pas une barre, c'est une tuile coupée
+ * au bord.== Le découpage du conteneur s'en charge, et il le dit mieux.
+ *
+ * `overscroll-behavior-x: contain` en plus : sans lui, arriver au bout du rail
+ * poursuit le geste sur la page — ou sur l'historique du navigateur, qui recule
+ * d'une page. Un glissement horizontal dans une barre d'outils ne doit pas
+ * pouvoir quitter la lecture.
+ */
+.rail-horizontal {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.rail-horizontal::-webkit-scrollbar {
+  display: none;
 }

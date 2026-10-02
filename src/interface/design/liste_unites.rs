@@ -2,7 +2,8 @@ use leptos::prelude::*;
 
 use crate::api::UniteDto;
 use crate::interface::design::reglages_de_lecture::preferences;
-use crate::interface::design::{MentionBrouillon, Terme};
+use crate::interface::design::Terme;
+use crate::interface::design::{EnteteDeSection, Groupe, Ligne, Pastille};
 
 /// Les unités d'un livre.
 ///
@@ -36,43 +37,64 @@ use crate::interface::design::{MentionBrouillon, Terme};
 #[component]
 pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
     view! {
-        <ul class="m-0 list-none p-0">
+        // **Le gabarit de l'app, depuis le 29 septembre 2026.** Les unités
+        // vivaient à plat, avec la mention « brouillon » en pastille dorée
+        // bordée sur sa propre ligne — elle y pesait autant que le titre, alors
+        // qu'elle dit une réserve. Chez l'app, elle est petite, grise, et
+        // **dans** la ligne.
+        // **L'en-tête du groupe**, que l'app pose au-dessus de sa carte —
+        // `Section(french ? "Chapitres" : "Parashiot")` dans `BibleTab`.
+        //
+        // Il est **sobre** et non en encre de marque : chez elle c'est un
+        // en-tête de `Section` que le système compose, gris et petit, là où
+        // « Kenesset » est un nom de corpus qu'elle dessine elle-même. Les
+        // deux ne disent pas la même chose — l'un nomme une part du corpus,
+        // l'autre étiquette une pile de lignes.
+        {
+            let entete = nom_des_unites();
+            view! { <EnteteDeSection sobre=true>{move || entete.get()}</EnteteDeSection> }
+        }
+        <Groupe>
             {unites
                 .into_iter()
                 .map(|unite| {
+                    let reference = unite.reference.clone();
+                    let versets = unite.versets;
+                    let brouillon = unite.brouillon;
+                    let nom = libelle(&unite);
                     view! {
-                        <li class="border-b border-filet/40 last:border-0">
-                            <a
-                                href=format!("/fr/lire/{livre}/{}", unite.id)
-                                class="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 py-4 no-underline"
-                            >
-                                {libelle(&unite)}
-
-                                {unite
-                                    .reference
+                        <Ligne
+                            chemin=Some(crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &livre, &unite.id))
+                            titre=Box::new(move || nom.into_any())
+                            sous_titre=Box::new(move || {
+                                reference
                                     .map(|reference| {
                                         view! {
-                                            <span class="chiffres-tableau text-[0.86em] text-encre-douce">
-                                                {reference}
-                                            </span>
+                                            <span class="chiffres-tableau">{reference}</span>
                                         }
-                                    })}
-
-                                // Le compte de versets pousse le reste à
-                                // gauche et se pose au bout de la ligne.
-                                <span class="chiffres-tableau ms-auto text-[0.8em] text-encre-douce">
-                                    {unite.versets} " v."
-                                </span>
-
-                                {unite
-                                    .brouillon
-                                    .then(|| view! { <MentionBrouillon breve=true /> })}
-                            </a>
-                        </li>
+                                    })
+                                    .into_any()
+                            })
+                            // **La pastille de l'app, pas celle du site.**
+                            // `MentionBrouillon` est dorée et bordée : elle
+                            // pesait autant que le titre de la ligne, alors
+                            // qu'elle dit une réserve. Chez l'app elle est
+                            // petite et grise, et elle s'efface derrière ce
+                            // qu'elle qualifie.
+                            pastille=Box::new(move || {
+                                brouillon
+                                    .then(|| view! { <Pastille>"brouillon"</Pastille> })
+                                    .into_any()
+                            })
+                            valeur=Box::new(move || {
+                                view! { <span class="chiffres-tableau">{versets} " v."</span> }
+                                    .into_any()
+                            })
+                        />
                     }
                 })
                 .collect_view()}
-        </ul>
+        </Groupe>
     }
 }
 
@@ -88,21 +110,54 @@ pub fn ListeDUnites(livre: String, unites: Vec<UniteDto>) -> impl IntoView {
 ///
 /// Une introduction — rang zéro — garde son titre : elle n'a pas de rang à
 /// afficher, et « Chapitre 0 » ne voudrait rien dire.
+/// ## L'or a quitté le titre de ligne le 29 septembre 2026
+///
+/// « Chapitre 7 » s'écrivait en or. C'était la convention du site — l'or dit ce
+/// qui se touche — et elle avait un sens tant que rien d'autre ne le disait.
+///
+/// Dans une liste de l'app, **le chevron le dit**, et le titre reste en encre.
+/// Garder les deux fait crier une liste entière : soixante lignes d'or, où
+/// l'or ne distingue plus rien puisqu'il est partout. C'est la règle du §5 sur
+/// les liens — *rendre le trait à toutes les ancres soulignerait aussi les
+/// intraduisibles, et un chapitre entier se retrouverait souligné mot après
+/// mot* — appliquée un étage plus haut.
+///
+/// **`Parashah` garde le sien**, et c'est justement la différence : lui n'est
+/// pas or parce qu'il se touche, il est or parce que c'est un **intraduisible**
+/// et qu'il ouvre sa fiche. Une fois le titre en encre, cet or redevient
+/// lisible comme ce qu'il est.
+///
+/// ## Et il revient sous l'édition — le 2 octobre 2026
+///
+/// L'argument ci-dessus a une prémisse, et elle est fausse dans l'autre arbre :
+/// *le chevron le dit*. L'édition n'en a pas — elle ne dessine pas des rangées
+/// qu'on touche au pouce, elle dresse une table des matières —, donc plus rien
+/// ne dirait qu'une entrée mène quelque part.
+///
+/// La classe `nom-d-unite` est le point où la feuille reprend la main. Elle ne
+/// décide rien ici : elle **nomme** ce qui est en jeu, pour que la décision se
+/// prenne une fois, dans l'habillage.
+///
+/// ==Une règle qui pose « puisque X le dit déjà » ne vaut que là où X existe.==
+/// Celle-ci avait été écrite sans arbre alternatif ; elle n'était pas fausse,
+/// elle était incomplète.
 fn libelle(unite: &UniteDto) -> impl IntoView {
     let titre = unite.titre.clone();
     let n = unite.numero;
     let prefs = preferences();
     move || {
         if n == 0 {
-            return view! { <span class="text-accent">{titre.clone()}</span> }.into_any();
+            return view! { <span class="nom-d-unite text-encre-vive">{titre.clone()}</span> }
+                .into_any();
         }
         if prefs.get().francais {
-            return view! { <span class="text-accent">{MOT_RECU}" "{n}</span> }.into_any();
+            return view! { <span class="nom-d-unite text-encre-vive">{MOT_RECU}" "{n}</span> }
+                .into_any();
         }
         view! {
-            <span>
+            <span class="nom-d-unite text-encre-vive">
                 <Terme lemme="parashah">{MOT_ONT}</Terme>
-                <span class="text-accent">" " {n}</span>
+                " " {n}
             </span>
         }
         .into_any()
@@ -149,6 +204,28 @@ fn libelle(unite: &UniteDto) -> impl IntoView {
 /// produire d'un écran à l'autre, en plus grand.
 const MOT_RECU: &str = "Chapitre";
 const MOT_ONT: &str = "Parashah";
+
+/// Les mêmes au pluriel, pour l'en-tête du groupe.
+///
+/// **Celui de l'ONT n'est pas régulier**, et c'est le vault qui le fixe au
+/// §2.5 : le pluriel de *parashah* prend la marque hébraïque `-ot`, pas le `s`
+/// français. Écrire « Parashahs » franciserait un intraduisible — exactement
+/// ce que le réglage cherche à défaire. `LibelleDUnite.pluriel` dit la même
+/// chose côté app, avec le même commentaire.
+const PLURIEL_RECU: &str = "Chapitres";
+const PLURIEL_ONT: &str = "Parashiot";
+
+/// L'en-tête du groupe des unités — « Chapitres » ou « Parashiot ».
+pub fn nom_des_unites() -> Signal<String> {
+    let prefs = preferences();
+    Signal::derive(move || {
+        if prefs.get().francais {
+            PLURIEL_RECU.to_string()
+        } else {
+            PLURIEL_ONT.to_string()
+        }
+    })
+}
 
 /// Le nom d'une unité **en texte**, dans le registre choisi.
 ///

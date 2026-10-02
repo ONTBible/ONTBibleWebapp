@@ -39,7 +39,7 @@ pub fn Terme(
 ) -> impl IntoView {
     match lemme {
         Some(lemme) => view! {
-            <Lien href=format!("/fr/lexique/{lemme}")>
+            <Lien href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), &lemme)>
                 <span class="font-semibold text-accent">{children()}</span>
             </Lien>
         }

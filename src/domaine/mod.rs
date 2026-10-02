@@ -10,9 +10,11 @@
 //! l'extérieur — lire un fichier, connaître l'heure — appartient aux couches
 //! au-dessus, qui lui passent le résultat.
 
+pub mod chemins;
 pub mod compte;
 pub mod corpus;
 pub mod lecture;
+pub mod nombres;
 pub mod profil;
 pub mod recherche;
 pub mod selection;

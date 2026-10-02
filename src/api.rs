@@ -189,7 +189,11 @@ pub async fn passage(livre: String, unite: String) -> Result<Option<PassageDto>,
         indice
             .and_then(|i| ordre.get(i))
             .map(|c: &&crate::domaine::corpus::Chapitre| VoisinDto {
-                chemin: format!("/fr/lire/{livre}/{}", c.id),
+                chemin: crate::domaine::chemins::unite(
+                    crate::domaine::lecture::Arbre::CANONIQUE,
+                    &livre,
+                    &c.id,
+                ),
                 titre: c.titre.clone(),
                 numero: c.numero,
             })
@@ -243,6 +247,12 @@ pub struct ResumeDto {
     pub titre: String,
     pub hebreu: String,
     pub rendu: String,
+    /// Vrai quand le corpus **marque** ce mot — `**mot**`, rendu en or.
+    ///
+    /// Elle voyage jusqu'à l'index parce que le lexique y offre les segments de
+    /// l'app : « Intraduisibles » sont les marqués, « Vocabulaire fixé » les
+    /// autres. Sans ce champ, les deux segments montreraient la même liste.
+    pub marque: bool,
     /// L'espèce de l'entrée — un nom propre, ou un intraduisible.
     ///
     /// Elle voyage jusqu'à l'index parce que **la teinte en dépend**, et que la
@@ -264,9 +274,25 @@ pub async fn lexique() -> Result<Vec<ResumeDto>, ServerFnError> {
             titre: e.titre.clone(),
             hebreu: e.hebreu.clone(),
             rendu: e.rendu.clone(),
+            marque: e.marque,
             est_un_nom: e.est_un_nom,
         })
         .collect())
+}
+
+/// La feuille de prononciation, qui ouvre le lexique.
+///
+/// **Elle traverse le domaine telle quelle**, comme l'arbre du corpus et pour
+/// la même raison (voir l'en-tête de ce module) : la recopier en transport
+/// ferait deux descriptions du même arbre de blocs à tenir d'accord, et une
+/// `Prononciation` n'a aucun invariant que la sérialisation pourrait violer.
+///
+/// `None` quand le pipeline ne l'émet pas encore — le site se compile contre
+/// le `dist/` qu'il trouve.
+#[server(prefix = "/api", endpoint = "prononciation")]
+pub async fn prononciation() -> Result<Option<crate::domaine::corpus::Prononciation>, ServerFnError>
+{
+    Ok(glossaire()?.prononciation().cloned())
 }
 
 /// Une fiche et ses renvois.

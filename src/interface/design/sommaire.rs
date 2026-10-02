@@ -2,6 +2,7 @@ use leptos::prelude::*;
 
 use crate::domaine::corpus::{Conteneur, Ensemble, EntreeDeLivre, Section};
 use crate::interface::design::reglages_de_lecture::preferences;
+use crate::interface::design::{EnteteDeSection, Groupe, Ligne};
 
 /// Le sommaire du corpus — les 70 livres, écrits ou non.
 ///
@@ -34,118 +35,217 @@ use crate::interface::design::reglages_de_lecture::preferences;
 /// D'où deux traitements distincts, et c'est délibéré : un simple intertitre
 /// pour ce qui **regroupe**, une césure marquée pour ce qui **fracture**. Une
 /// césure partout ne marquerait plus rien.
+/// ## Le gabarit est celui de l'app depuis le 29 septembre 2026
+///
+/// Le sommaire composait une **édition** : un grand titre d'ensemble avec le
+/// signe de la montagne, un intertitre de section, puis des lignes à plat avec
+/// le nom hébreu à droite. L'app compose une **liste** : un en-tête de section
+/// sur deux lignes, puis une carte arrondie où chaque ligne porte son chevron.
+///
+/// L'auteur a comparé les deux écrans et tranché : « je veux aussi une copie de
+/// l'UI ». Ce qui suit emploie donc `liste_groupee`, et ce qui a disparu est
+/// une décision, pas un oubli :
+///
+/// - **le paragraphe d'introduction** — une liste s'ouvre, elle ne s'introduit
+///   pas. Il vivait sur la page, pas dans ce composant ;
+/// - **le signe de la montagne** devant chaque ensemble — il faisait de
+///   l'en-tête un titre d'affiche, là où l'app en fait un repère ;
+/// - **le nom hébreu à droite de chaque ligne** — il tenait la place de la
+///   valeur, qui chez l'app porte l'avancement. Il passe sous le titre, avec le
+///   second nom.
+/// ## Il liste des **parties**, pas des livres — depuis le 29 septembre 2026
+///
+/// L'app navigue en quatre temps : la Bible, une section, un livre, une unité.
+/// Le site en avait trois — soixante-dix livres posés d'un coup, groupés par
+/// intertitres.
+///
+/// La différence n'est pas de mise en page, c'est de **nature**. L'app présente
+/// les sections comme des destinations, avec leur avancement en regard :
+/// « Torah 1/6 », « Nevi'im 0/20 ». On choisit un rayon, puis un livre. Le site
+/// demandait de balayer soixante-dix entrées pour trouver les six qui ont du
+/// texte — et il le demandait sur la **première page** de la liseuse.
+///
+/// Cet écart ne se voyait dans aucune comparaison de jetons. Il a fallu mettre
+/// les deux écrans côte à côte, ce que l'auteur avait demandé : *« passe ton
+/// temps à faire des comparaisons des screens »*.
+/// ## Et l'édition déplie tout — le 2 octobre 2026
+///
+/// L'auteur a tranché une seconde fois, après avoir vu le sommaire restylé :
+/// *« et du coup finalement liste tous les livres comme sur la prod »*.
+///
+/// Les deux arbres ne listent donc pas la même chose, et c'est cohérent avec ce
+/// qui les sépare :
+///
+/// - **l'app navigue en quatre temps** — la Bible, une partie, un livre, une
+///   unité. C'est la forme d'un écran qu'on parcourt au pouce : une liste courte
+///   où l'avancement se lit en regard, « Torah 1/6 » ;
+/// - **l'édition est une table des matières.** Elle tient sur une page qu'on
+///   déroule, montre les soixante-dix livres d'un coup, et c'est **l'ampleur qui
+///   est le propos** — quelques titres en or au milieu de soixante-sept en encre
+///   atténuée disent l'état du chantier sans une phrase.
+///
+/// ==Un sommaire d'application cache pour qu'on choisisse vite ; un sommaire
+/// d'édition montre pour qu'on mesure.== Le même contenu, et deux gestes
+/// différents.
+///
+/// La page d'une partie reste servie sous les deux arbres : plus rien n'y mène
+/// depuis l'édition, mais un lien déjà partagé continue d'ouvrir quelque chose.
 #[component]
 pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
+    let edition = crate::interface::arbre::sous_l_edition();
+
     ensembles
         .into_iter()
         .map(|ensemble| {
+            let titre = ensemble.titre.clone();
+            let francais = ensemble.francais.clone();
+            let glose = ensemble.glose.clone();
+            let sections = ensemble.sections;
             view! {
-                <section class="mb-20 last:mb-0">
-                    <h2 class="mb-10 flex items-center gap-4 text-encre-vive">
-                        <span class="massif w-8 shrink-0 text-accent"></span>
-                        {ensemble.titre}
-                    </h2>
-                    {sous_titre(ensemble.francais.clone(), ensemble.glose.clone(), "mb-8 -mt-6")}
-
-                    {ensemble
-                        .sections
-                        .into_iter()
-                        .map(|section| {
-                            view! {
-                                <div class="mb-12 last:mb-0">
-                                    <h3 class="mb-1 text-sm uppercase tracking-capitales text-accent">
-                                        {section.titre.clone()}
-                                    </h3>
-                                    {sous_titre(section.francais.clone(), section.glose.clone(), "mb-5")}
-                                    <ul class="m-0 list-none p-0">
-                                        {disposer(section)
-                                            .into_iter()
-                                            .map(|element| {
-                                                let livre = match element {
-                                                    Element::Entete(c) => {
-                                                        return entete(c).into_any();
-                                                    }
-                                                    Element::Livre(l) => l,
-                                                };
-                                                let nom = livre.titre.clone();
-                                                // Le second nom suit le registre choisi. Un livre
-                                                // sans glose garde son pont : *Marqus* est un nom
-                                                // d'homme, « Marc » est tout ce qu'il y a à dire.
-                                                let second = {
-                                                    let fr = livre.francais.clone();
-                                                    let gl = livre.glose.clone();
-                                                    let prefs = preferences();
-                                                    Signal::derive(move || {
-                                                        if prefs.get().francais {
-                                                            fr.clone()
-                                                        } else {
-                                                            gl.clone().unwrap_or_else(|| fr.clone())
-                                                        }
-                                                    })
-                                                };
-                                                let francais = second;
-                                                let hebreu = livre.hebreu.clone();
-                                                // Le nom hébreu n'est lu par
-                                                // personne à voix haute ici : il
-                                                // double le titre latin, et un
-                                                // lecteur d'écran le prononcerait
-                                                // deux fois.
-                                                let cote = view! {
-                                                    <span
-                                                        aria-hidden="true"
-                                                        dir="rtl"
-                                                        lang="he"
-                                                        class="font-hebreu text-[0.95em] text-encre-douce"
-                                                    >
-                                                        {hebreu}
-                                                    </span>
-                                                };
-                                                view! {
-                                                    <li class="border-b border-filet/40 last:border-0">
-                                                        {if livre.ecrit {
-                                                            view! {
-                                                                <a
-                                                                    href=format!("/fr/lire/{}", livre.id)
-                                                                    class="flex items-baseline justify-between gap-4 py-3.5 no-underline"
-                                                                >
-                                                                    <span class="text-accent">
-                                                                        {nom}
-                                                                        <span class="ms-2.5 text-[0.86em] text-encre-douce">
-                                                                            {francais}
-                                                                        </span>
-                                                                    </span>
-                                                                    {cote}
-                                                                </a>
-                                                            }
-                                                                .into_any()
-                                                        } else {
-                                                            view! {
-                                                                <div class="flex items-baseline justify-between gap-4 py-3.5 text-encre-douce">
-                                                                    <span>
-                                                                        {nom}
-                                                                        <span class="ms-2.5 text-[0.86em] opacity-70">
-                                                                            {francais}
-                                                                        </span>
-                                                                    </span>
-                                                                    {cote}
-                                                                </div>
-                                                            }
-                                                                .into_any()
-                                                        }}
-                                                    </li>
-                                                }
-                                                    .into_any()
-                                            })
-                                            .collect_view()}
-                                    </ul>
-                                </div>
-                            }
-                        })
-                        .collect_view()}
+                <section class="ensemble-du-corpus mb-8 last:mb-0">
+                    <EnteteDeSection ensemble=true glose=Box::new({
+                        let f = francais.clone();
+                        let g = glose.clone();
+                        move || sous_titre(f, g, "").into_any()
+                    })>{titre}</EnteteDeSection>
+                    {if edition {
+                        sections
+                            .into_iter()
+                            .map(rayon_deplie)
+                            .collect_view()
+                            .into_any()
+                    } else {
+                        view! {
+                            <Groupe>
+                                {sections.into_iter().map(ligne_de_partie).collect_view()}
+                            </Groupe>
+                        }
+                            .into_any()
+                    }}
                 </section>
             }
         })
         .collect_view()
+}
+
+/// Une partie, dépliée — son intertitre, puis tous ses livres.
+///
+/// L'intertitre est un `<h3>` en capitales espacées et en or, comme `main` :
+/// c'est la forme que le site réserve à ce qui **range** sans être une
+/// destination. Il n'est pas cliquable, et c'est juste — la partie n'a plus de
+/// page à ouvrir depuis ici, puisque ses livres sont déjà là.
+///
+/// Les livres passent par [`ligne_de_sommaire`], la même fonction que la page
+/// d'une partie : les en-têtes de conteneur et la césure du *Ḥurban* viennent
+/// avec, sans qu'on ait à les redire.
+fn rayon_deplie(section: Section) -> AnyView {
+    let titre = section.titre.clone();
+    let second = sous_titre(section.francais.clone(), section.glose.clone(), "mb-5");
+
+    view! {
+        <div class="mb-12 last:mb-0">
+            <h3 class="mb-1 text-sm uppercase tracking-capitales text-accent">{titre}</h3>
+            {second}
+            <Groupe>
+                {disposer(section).into_iter().map(ligne_de_sommaire).collect_view()}
+            </Groupe>
+        </div>
+    }
+    .into_any()
+}
+
+/// Une partie du corpus, en une ligne.
+///
+/// **L'avancement est la valeur de droite**, comme chez l'app — « 1/6 ». C'est
+/// ce que le chapeau du sommaire disait en prose (« les titres se lisent, les
+/// autres attendent ») et que la forme dit mieux : un lecteur voit d'un coup
+/// où il y a du texte, sans lire une ligne.
+fn ligne_de_partie(section: Section) -> AnyView {
+    let id = section.id.clone();
+    let titre = section.titre.clone();
+    let ecrits = section.livres.iter().filter(|l| l.ecrit).count();
+    let total = section.livres.len();
+    let second = sous_titre(section.francais.clone(), section.glose.clone(), "");
+
+    view! {
+        <Ligne
+            // Une partie sans aucun livre écrit reste **atteignable** : son
+            // plan est le propos. C'est la règle du sommaire d'origine, et elle
+            // ne change pas — « l'ampleur *est* le propos ».
+            chemin=Some(crate::domaine::chemins::partie(crate::interface::arbre::arbre_maintenant(), &id))
+            titre=Box::new(move || titre.into_any())
+            sous_titre=Box::new(move || second.into_any())
+            valeur=Box::new(move || {
+                view! { <span class="chiffres-tableau">{ecrits} "/" {total}</span> }.into_any()
+            })
+        />
+    }
+    .into_any()
+}
+
+/// Les livres d'une partie — l'étage que `Partie` rend.
+///
+/// Il reprend les en-têtes de conteneur du sommaire d'origine : c'est ici
+/// qu'ils comptent, puisque c'est ici que les livres se lisent. Le *Ḥurban* et
+/// sa césure vivent dans une partie, pas sur la première page.
+#[component]
+pub fn SommaireDUnePartie(section: Section) -> impl IntoView {
+    view! {
+        <Groupe>
+            {disposer(section).into_iter().map(ligne_de_sommaire).collect_view()}
+        </Groupe>
+    }
+}
+
+/// Une entrée du sommaire — un livre, ou l'en-tête du conteneur qui s'ouvre.
+fn ligne_de_sommaire(element: Element) -> AnyView {
+    let livre = match element {
+        Element::Entete(c) => return entete(c).into_any(),
+        Element::Livre(l) => l,
+    };
+
+    let nom = livre.titre.clone();
+    let hebreu = livre.hebreu.clone();
+    // Le second nom suit le registre choisi. Un livre sans glose garde son
+    // pont : *Marqus* est un nom d'homme, « Marc » est tout ce qu'il y a à dire.
+    let second = sous_titre(livre.francais.clone(), livre.glose.clone(), "");
+
+    view! {
+        <Ligne
+            chemin=livre.ecrit.then(|| crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &livre.id))
+            titre=Box::new(move || {
+                view! {
+                    {nom}
+                    // Le nom hébreu double le titre latin : un lecteur d'écran
+                    // le prononcerait deux fois.
+                    //
+                    // **`ml-` et non `ms-`, et c'est le piège du `dir`.** Une
+                    // marge logique se résout dans la direction de **l'élément
+                    // qui la porte** : sur un `span` en `rtl`, `margin-inline-
+                    // start` est à **droite**. L'écart se posait donc après le
+                    // mot hébreu, et le titre latin s'y soudait —
+                    // « Bereshitבְּרֵאשִׁית », exactement le défaut que le §8 bis
+                    // raconte pour le lexique.
+                    //
+                    // ==Une propriété logique dans un îlot bidirectionnel
+                    // s'inverse par rapport à la ligne qui le contient.== Ici on
+                    // veut un écart du côté du texte latin, donc du côté
+                    // physique gauche, donc une propriété physique.
+                    <span
+                        aria-hidden="true"
+                        dir="rtl"
+                        lang="he"
+                        class="ml-2.5 font-hebreu text-[0.9em] font-normal text-encre-douce"
+                    >
+                        {hebreu}
+                    </span>
+                }
+                    .into_any()
+            })
+            sous_titre=Box::new(move || second.into_any())
+        />
+    }
+    .into_any()
 }
 
 /// Ce que le sommaire pose l'un après l'autre : un livre, ou l'en-tête du

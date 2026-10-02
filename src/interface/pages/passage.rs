@@ -4,12 +4,12 @@ use leptos_router::hooks::{use_params_map, use_query_map};
 use crate::api::passage;
 use crate::domaine::selection;
 use crate::interface::design::{
-    fournir_marques, fournir_preferences, fournir_selection, nom_d_unite, BarreDeSelection, Blocs,
-    MentionBrouillon, PageDeLecture, ReglagesDeLecture,
+    fournir_marques, fournir_preferences, fournir_selection, nom_d_unite, BarreDeLecture,
+    BarreDeSelection, Blocs, MentionBrouillon, PageDeLecture, ReglagesDeLecture,
 };
 use crate::interface::tete::Tete;
 
-/// `/fr/lire/{livre}/{unité}` — un passage.
+/// `/fr/webapp/{livre}/{unité}` — un passage.
 ///
 /// ## La route la plus sensible du site
 ///
@@ -61,6 +61,8 @@ pub fn Passage() -> impl IntoView {
     // la possibilité d'en éteindre les niveaux. Le lexique n'en a pas — une
     // fiche est un commentaire, elle n'a pas d'appareil critique à retirer.
     let preferences = fournir_preferences();
+
+    let edition = crate::interface::arbre::sous_l_edition();
 
     // La sélection est installée **par la page**, comme les réglages, et pour
     // la même raison : c'est elle qui décide qu'on lit du corpus, donc c'est
@@ -129,6 +131,11 @@ pub fn Passage() -> impl IntoView {
         // ouvre et referme sans rien lire, et elle est le seul écrit d'un
         // navigateur qui n'exécute pas notre wasm.
         {
+            // **Les deux écritures vont de pair.** Celle du compte transporte la
+            // place d'un appareil à l'autre ; celle du navigateur la garde ici,
+            // et c'est la seule qui existe pour un lecteur sans compte —
+            // c'est-à-dire le cas normal du site.
+            crate::interface::position::retenir(&livre, &unite, &titre, 1);
             let (livre, unite, titre) = (livre.clone(), unite.clone(), titre.clone());
             leptos::task::spawn_local(async move {
                 let _ = crate::api::retenir_la_position(livre, unite, titre, 1).await;
@@ -149,11 +156,6 @@ pub fn Passage() -> impl IntoView {
                     Ok(Some(p)) => {
                         let chapitre = p.chapitre;
                         let brouillon = chapitre.statut.est_provisoire();
-                        let reference = chapitre
-                            .sous_titre
-                            .as_ref()
-                            .and_then(|s| s.reference.clone());
-
                         // La description d'aperçu est le **texte** des versets
                         // désignés quand le lien en désigne : c'est ce que la
                         // personne a partagé, et c'est donc ce qu'une messagerie
@@ -183,62 +185,269 @@ pub fn Passage() -> impl IntoView {
                         let rang = chapitre.numero;
                         let chapitre_id = chapitre.id.clone();
 
-                        let renvoi = reference.clone();
-                        let livre_titre = p.livre_titre.clone();
+                        // **La pastille de renvoi, composée comme l'app la
+                        // compose** — `ChapterView::pastille` : le titre du
+                        // livre, un point médian, et le **rang nu**.
+                        //
+                        // Nu, et c'est une correction que l'app a déjà payée :
+                        // sa pastille disait « Bereshit · Parashah 1 », deux
+                        // fois plus long pour une information que le lecteur a
+                        // lui-même réglée — et la place manquant, iOS tronquait
+                        // le texte à *rien*. Le rang, lui, change à chaque
+                        // unité.
+                        //
+                        // Une introduction n'a pas de rang : elle garde son
+                        // titre, comme le `guard chapter.n > 0` de l'app.
+                        let pastille = if rang == 0 {
+                            chapitre.titre.clone()
+                        } else {
+                            format!("{} · {rang}", p.livre_titre)
+                        };
+                        let chemin_du_livre = crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &p.livre_id);
+
+                        // Relevé **avant** le rendu : le `view!` consomme le
+                        // chapitre, et le banc en a besoin.
+                        #[cfg(debug_assertions)]
+                        let banc = (
+                            chapitre
+                                .versets()
+                                .take(3)
+                                .map(|v| v.corps())
+                                .collect::<Vec<_>>()
+                                .join(" "),
+                            format!("{} 1-3", chapitre.titre),
+                        );
+
+                        // **Le pont de navigation, et il en manquait les deux
+                        // tiers.**
+                        //
+                        // `ChapterView::header` en pose trois pièces sur une
+                        // ligne : le nom **français** en italique, le nom
+                        // **hébreu**, et le renvoi reçu en chiffres de chasse
+                        // fixe. Le site n'en portait qu'une, et il l'avait
+                        // fausse — il écrivait « Bereshit 1:1 — 2:3 », c'est-à-
+                        // dire la désignation ONT, que le titre juste au-dessus
+                        // venait de donner. Le commentaire de l'app dit
+                        // exactement ce qu'il ne faut pas faire : *« le nom
+                        // français et le renvoi biblique, jamais la
+                        // désignation principale »* (§2.6 du vault).
+                        //
+                        // Ce pont sert à **retrouver un passage qu'on connaît
+                        // sous un autre nom**. Le redire sous le nom qu'on
+                        // vient de lire ne le construit pas.
+                        let sous_titre = chapitre.sous_titre.clone();
                         let chapeau = Box::new(move || {
                             view! {
-                                {renvoi
-                                    .map(|r| {
+                                {sous_titre
+                                    .map(|st| {
                                         view! {
-                                            <p class="chiffres-tableau mb-4 text-encre-douce">
-                                                {livre_titre} " " {r}
+                                            <p class="mb-5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 text-encre-douce">
+                                                <span class="italic">{st.francais}</span>
+                                                // L'hébreu s'isole : sans
+                                                // `dir`, le renvoi latin qui le
+                                                // suit se réordonne autour de
+                                                // lui. Sur un `span` en ligne,
+                                                // et non sur le bloc — sinon
+                                                // toute la ligne s'aligne à
+                                                // droite (§8 bis).
+                                                <span
+                                                    dir="rtl"
+                                                    lang="he"
+                                                    class="font-hebreu not-italic"
+                                                >
+                                                    {st.hebreu}
+                                                </span>
+                                                {st
+                                                    .reference
+                                                    .map(|r| {
+                                                        view! {
+                                                            <span class="chiffres-tableau">{r}</span>
+                                                        }
+                                                    })}
                                             </p>
                                         }
                                     })}
                                 {brouillon.then(|| view! { <MentionBrouillon /> })}
+                                // **Le filet d'or**, que l'app pose sous son
+                                // en-tête — `GoldRule()`, juste après le
+                                // sous-titre et avant le premier bloc. C'est
+                                // lui qui fait de ces trois lignes un en-tête
+                                // et non le début du texte.
+                                <hr class="mt-6 border-0 border-t border-accent/40" />
                             }
                                 .into_any()
                         });
+
+                        // ── Les outils de l'écran, construits une fois ───────
+                        //
+                        // Le « aA », et le banc de la carte de partage en
+                        // développement.
+                        //
+                        // **Le banc est au niveau de la page** et non dans la
+                        // barre de sélection, où il avait le défaut de ce qu'il
+                        // mesure : cette barre n'apparaît qu'après un clic, donc
+                        // un banc posé dedans demande la main qu'on n'a pas.
+                        //
+                        // Il compose sur les trois premiers versets, ce qui donne
+                        // un passage de longueur crédible — un verset seul
+                        // tomberait toujours dans le premier palier de taille, et
+                        // on ne verrait jamais les quatre autres.
+                        let outils: leptos::children::Children = Box::new(move || {
+                            view! {
+                                {
+                                    #[cfg(debug_assertions)]
+                                    {
+                                        let (apercu, ou) = banc;
+                                        view! {
+                                            <crate::interface::design::image_de_partage::BancDeLaCarte
+                                                texte=apercu
+                                                renvoi=ou
+                                            />
+                                        }
+                                            .into_any()
+                                    }
+                                    #[cfg(not(debug_assertions))]
+                                    {
+                                        ().into_any()
+                                    }
+                                }
+                                <ReglagesDeLecture preferences />
+                            }
+                                .into_any()
+                        });
+
+        // **Un seul des deux logements, et sous l'édition c'est la page.**
+                        //
+                        // *Sous l'app* : la barre du haut, où le « aA » est une
+                        // capsule à droite d'une pastille de renvoi — le dessin
+                        // d'iOS 26.
+                        //
+                        // *Sous l'édition* : rien de tout ça. `ReglagesDeLecture`
+                        // se pose lui-même en `fixed` au coin bas-droit, et c'est
+                        // ainsi que `main` le rendait — **dans le corps de la
+                        // page**, pas dans une rangée d'outils.
+                        //
+                        // Le passer par `action` paraissait plus propre et ne
+                        // l'était pas : cette rangée porte `pointer-events-none`
+                        // pour que sa largeur vide ne vole pas les clics de la
+                        // colonne, et l'annulation descend. Le bouton n'y
+                        // répondait ni au survol ni au clic.
+                        //
+                        // ==Un élément qui se positionne lui-même n'a rien à
+                        // gagner dans un conteneur de mise en page, et il y hérite
+                        // de tout ce que ce conteneur décide.==
+                        let (barre, outils_de_la_page): (
+                            Option<leptos::children::Children>,
+                            Option<leptos::children::Children>,
+                        ) = if edition {
+                            (None, Some(outils))
+                        } else {
+                            (
+                                Some(Box::new(move || {
+                                    view! {
+                                        <BarreDeLecture
+                                            chemin=chemin_du_livre
+                                            pastille=pastille
+                                        >
+                                            {outils()}
+                                        </BarreDeLecture>
+                                    }
+                                        .into_any()
+                                })),
+                                None,
+                            )
+                        };
 
                         view! {
                             <Tete
                                 titre=titre_indexable(&chapitre, &p.livre_francais, &en_avant)
                                 description=description
-                                chemin=format!("/fr/lire/{}/{}", p.livre_id, chapitre.id)
+                                chemin=crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &p.livre_id, &chapitre.id)
                             />
 
                             <PageDeLecture
+                                corpus=true
                                 fil=vec![
-                                    ("/fr/lire".to_string(), "Lire".to_string()),
+                                    crate::interface::arbre::maillon_de_la_bible(),
                                     (
-                                        format!("/fr/lire/{}", p.livre_id),
+                                        crate::domaine::chemins::livre(crate::interface::arbre::arbre_maintenant(), &p.livre_id),
                                         p.livre_titre.clone(),
                                     ),
                                 ]
-                                // Le nom **dans le registre du lecteur**, et non
-                                // le nom ONT brut. Sans ça, on touche
-                                // « Chapitre 2 » au sommaire et l'on arrive sur
-                                // une page intitulée « Bereshit 2 » : deux
-                                // écrans, un seul calcul, l'autre oublié.
+                                // **Le nom de l'unité, et non son rang dans le
+                                // registre du lecteur.** Ce prop portait
+                                // `nom_d_unite` — « Chapitre 3 » —, et
+                                // l'argument était l'accord avec le sommaire :
+                                // *on touche « Chapitre 2 » au sommaire, on ne
+                                // doit pas arriver sur « Bereshit 2 ».*
                                 //
-                                // La balise `<title>` ci-dessus garde le nom
-                                // ONT, elle : rendue par le serveur, qui ne
-                                // connaît pas les préférences, et employée pour
-                                // le référencement et le partage — deux usages
-                                // où un nom stable vaut mieux qu'un nom juste.
-                                titre=nom_d_unite(chapitre.titre.clone(), chapitre.numero)
-                                chapeau=chapeau
+                                // **L'app tranche l'inverse, et elle le tranche
+                                // deux fois.** Sa liste emploie bien le
+                                // registre — `stub.label(french:)` dans
+                                // `BibleTab` — mais son en-tête de lecture pose
+                                // `chapter.title` tel quel. Les deux écrans ne
+                                // disent donc pas la même chose **parce qu'ils
+                                // ne répondent pas à la même question** : une
+                                // liste dit *lequel*, un en-tête dit *lequel
+                                // c'est*. « Chapitre 3 » est un rang, et un
+                                // rang seul ne nomme rien une fois qu'on est
+                                // dedans — le livre a disparu de l'écran.
+                                //
+                                // La pastille le répète juste au-dessus, et
+                                // l'app le répète aussi : c'est la redite d'une
+                                // adresse, celle qu'on relit sans la lire.
+                                //
+                                // La balise `<title>` portait déjà le nom ONT,
+                                // et les deux concordent enfin.
+                                //
+                                // **Et c'est l'app qui tranche ainsi, donc son
+                                // arbre seul.** Sous l'édition, le titre reprend
+                                // `nom_d_unite` : il n'y a pas de pastille
+                                // au-dessus pour redire le livre, le fil le dit
+                                // — et le registre choisi doit se retrouver là
+                                // où le lecteur vient de le toucher.
+                                titre=if edition {
+                                    nom_d_unite(chapitre.titre.clone(), chapitre.numero)
+                                } else {
+                                    Signal::derive({
+                                        let titre = chapitre.titre.clone();
+                                        move || titre.clone()
+                                    })
+                                }
+                                chapeau=Some(chapeau)
+                                // **Deux logements pour les mêmes outils.**
+                                //
+                                // Sous l'app, le « aA » vit dans la barre du
+                                // haut, à droite d'une pastille de renvoi — le
+                                // dessin d'iOS 26, deux capsules qui flottent.
+                                // La barre prend alors la place du fil, que
+                                // `PageDeLecture` tait.
+                                //
+                                // Sous l'édition, il n'y a pas de pastille à
+                                // porter : le fil dit le livre, et c'est sa
+                                // fonction. Le « aA » passe donc dans `action`,
+                                // la place d'un seul objet en haut à droite — la
+                                // même que le bouton de recherche de la Bible.
+                                //
+                                // ==Les outils sont construits une fois et
+                                // rangés ailleurs ; ils ne sont pas écrits deux
+                                // fois.== Le banc de la carte de partage ne se
+                                // consomme qu'une fois — c'est un `FnOnce` —,
+                                // donc deux branches qui le rendraient chacune
+                                // ne compileraient pas. C'est le compilateur qui
+                                // tient la règle ici.
+                                barre=barre
                             >
-                                <ReglagesDeLecture preferences />
+                                // Sous l'édition, les outils se rendent ici —
+                                // ils se placent en `fixed`, donc leur place
+                                // dans le document ne décide de rien d'autre
+                                // que de ce dont ils héritent.
+                                {outils_de_la_page.map(|outils| outils())}
                                 <BarreDeSelection
                                     selection=choix
                                     livre=livre_pour_renvoi
                                     chapitre=rang
-                                    chemin=format!(
-                                        "/fr/lire/{}/{}",
-                                        p.livre_id,
-                                        chapitre_id,
-                                    )
+                                    chemin=crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &p.livre_id, &chapitre_id)
                                     textes=textes
                                     livre_id=p.livre_id.clone()
                                     unite_id=chapitre_id.clone()
@@ -480,12 +689,13 @@ fn Absent() -> impl IntoView {
         <Tete
             titre="Passage introuvable"
             description="Ce passage n'a pas encore été restitué."
-            chemin="/fr/lire"
+            chemin=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())
         />
         <leptos_meta::Meta name="robots" content="noindex, follow" />
 
         <PageDeLecture
-            fil=vec![("/fr/lire".to_string(), "Lire".to_string())]
+                                corpus=true
+            fil=vec![crate::interface::arbre::maillon_de_la_bible()]
             rappel="Le corpus"
             titre="Ce passage n'est pas encore là"
         >
@@ -613,6 +823,7 @@ fn suivre_la_lecture(livre: String, unite: String, titre: String) {
             if verset == 0 {
                 return;
             }
+            crate::interface::position::retenir(&livre, &unite, &titre, verset);
             let (livre, unite, titre) = (livre.clone(), unite.clone(), titre.clone());
             leptos::task::spawn_local(async move {
                 let _ = crate::api::retenir_la_position(livre, unite, titre, verset).await;

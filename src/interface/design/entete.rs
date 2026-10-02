@@ -42,9 +42,26 @@ use crate::interface::design::image;
 /// écran de téléphone. Elle se vérifie au simulateur (`scripts/sim.sh`), jamais
 /// à l'œil sur un grand écran.
 #[component]
-pub fn Entete() -> impl IntoView {
+pub fn Entete(
+    /// Une classe de plus sur l'élément racine — l'habillage, et rien d'autre.
+    ///
+    /// **Elle ne s'enveloppe pas.** Un `<div>` posé autour de ce composant tue
+    /// l'hydratation : Leptos compte des marqueurs, et une enveloppe les fait
+    /// tomber ailleurs. Mesuré le 30 septembre 2026, deux fois de suite et à
+    /// deux endroits — `navigation_de_la_liseuse.rs:312`, puis `bloc.rs:106`.
+    ///
+    /// ==Un habillage se pose sur l'élément, jamais autour de lui.==
+    #[prop(optional, into)]
+    classe: Option<&'static str>,
+) -> impl IntoView {
     view! {
-        <header class="relative z-20 flex flex-col items-center gap-5 px-6 pt-8 text-center sm:gap-6 sm:pt-10">
+        <header class=move || {
+            format!(
+                "{} relative z-20 flex flex-col items-center gap-5 px-6 pt-8 text-center \
+                 sm:gap-6 sm:pt-10",
+                classe.unwrap_or_default(),
+            )
+        }>
             // ── L'accès au compte ─────────────────────────────────────────────
             //
             // **Posé à part de la navigation, et pas dedans.** Deux raisons, et
@@ -85,7 +102,7 @@ pub fn Entete() -> impl IntoView {
             // c'est la disposition d'une barre de navigation d'app, où le geste
             // de gauche et celui de droite encadrent le titre.
             <A
-                href="/fr/rechercher"
+                href=crate::domaine::chemins::rechercher(crate::interface::arbre::arbre_maintenant())
                 attr:class="absolute start-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:start-6 sm:top-8 sm:text-xs"
                 attr:aria-label="Rechercher dans le corpus"
             >
@@ -103,7 +120,7 @@ pub fn Entete() -> impl IntoView {
                 <span class="hidden sm:inline">"Chercher"</span>
             </A>
             <A
-                href="/fr/compte"
+                href=crate::domaine::chemins::compte(crate::interface::arbre::arbre_maintenant())
                 attr:class="absolute end-4 top-6 flex items-center gap-2 rounded-full border border-filet px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.09em] text-encre-douce no-underline transition-colors hover:border-or/50 hover:text-accent sm:end-6 sm:top-8 sm:text-xs"
                 attr:aria-label="Votre compte"
             >
@@ -146,8 +163,8 @@ pub fn Entete() -> impl IntoView {
                 // corpus. Tant qu'ils manquaient, la liseuse existait sans
                 // qu'aucun lien n'y mène — on y arrivait en tapant une adresse,
                 // ou par le renvoi du verset du jour. Ce n'était pas un chemin.
-                <A href="/fr/lire" attr:class=LIEN>"Lire"</A>
-                <A href="/fr/lexique" attr:class=LIEN>"Lexique"</A>
+                <A href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()) attr:class=LIEN>"Liseuse"</A>
+                <A href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant()) attr:class=LIEN>"Lexique"</A>
                 <A href="/fr/le-pourquoi" attr:class=LIEN>"Le pourquoi"</A>
                 <A href="/fr/ce-que-l-ont-n-est-pas" attr:class=LIEN>"Ce que l'ONT n'est pas"</A>
                 <A href="/fr/l-app" attr:class=LIEN>"L'app"</A>

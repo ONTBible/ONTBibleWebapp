@@ -638,10 +638,51 @@ jobs:
       - name: Vérifier
         run: |
           sleep 10
-          for chemin in /fr /fr/lire /.well-known/apple-app-site-association; do
+          for chemin in /fr /fr/liseuse/bible /fr/webapp/bible \
+                        /.well-known/apple-app-site-association; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' "https://ontbible.com$chemin")
             printf '%-46s %s\n' "$chemin" "$code"
             [ "$code" = "200" ] || exit 1
+          done
+
+          # ## Le lien déjà partagé, et ce qu'un `curl` sans `-L` mesure
+          #
+          # `/fr/lire` était dans la liste ci-dessus, en 200, et le déménagement
+          # de la liseuse vers `/fr/webapp` l'a rendue **fausse en production** :
+          # elle rougirait sur un site parfaitement sain. Corrigée.
+          #
+          # Mais elle ne disparaît pas de ce fichier, parce que c'est la route
+          # des **liens déjà partagés** — dans le fichier d'association d'iOS,
+          # dans les messageries de ceux qui ont partagé un passage, dans l'index
+          # de deux moteurs. Elle doit rediriger, pas répondre.
+          #
+          # Et ce qu'on vérifie ici n'est pas ce qu'`eprouver` vérifie : là-bas
+          # c'est **le serveur** qui redirige ; ici la réponse peut aussi venir
+          # de CloudFront, qui porte déjà les trois renvois de domaine du §4. Un
+          # `-L` suivrait la chaîne et rendrait 200 quelle que soit sa longueur :
+          # ==il faut mesurer le premier saut, pas la destination finale.==
+          for depuis in /fr/lire /fr/lire/bereshit/bereshit-1 /fr/webapp /fr/qahal; do
+            lu=$(curl -sS -o /dev/null -D - "https://ontbible.com$depuis" \
+                 | tr -d '\r' \
+                 | awk 'tolower($1) ~ /^http/{c=$2} tolower($1)=="location:"{l=$2} END{print c" "l}')
+            # Les trois âges mènent tous à l'arbre canonique, sous `bible`
+            # pour ce qui vient du corpus.
+            case "$depuis" in
+              /fr/lire*)   cible="/fr/liseuse/bible${depuis#/fr/lire}" ;;
+              /fr/webapp*) cible="/fr/liseuse/bible${depuis#/fr/webapp}" ;;
+              *)           cible="/fr/liseuse${depuis#/fr}" ;;
+            esac
+            printf '%-46s %s (attendu « 308 …%s »)\n' "$depuis" "$lu" "$cible"
+            # La comparaison porte sur la **fin** du `location`, et non sur son
+            # égalité : un serveur a le droit d'écrire la cible en relatif comme
+            # en absolu, et le nôtre la rend relative — mais un jour où un
+            # intermédiaire la rendrait absolue, une garde qui exige l'égalité
+            # rougirait sur un site sain. C'est la cible qu'on vérifie, pas sa
+            # forme d'écriture.
+            case "$lu" in
+              "308 $cible" | "308 https://ontbible.com$cible") ;;
+              *) exit 1 ;;
+            esac
           done
 
       # ── Qu'un déploiement qui tombe se voie ──────────────────────────────

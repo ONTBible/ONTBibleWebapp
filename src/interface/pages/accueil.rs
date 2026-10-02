@@ -130,7 +130,7 @@ pub fn Accueil() -> impl IntoView {
             </p>
             <LegendeNiveaux />
             <p class="mt-10">
-                <Bouton href="/fr/lexique">"Les intraduisibles"</Bouton>
+                <Bouton href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())>"Les intraduisibles"</Bouton>
             </p>
         </Bloc>
 
@@ -138,7 +138,25 @@ pub fn Accueil() -> impl IntoView {
         <Bloc eclaire=true large=true>
             <TitreDeSection numero="IV" titre="Où en est la restitution" />
             <p>
-                "Trois livres sur soixante-dix. Le compte est public, et il est tenu par le "
+                // **Le compte vient du pipeline**, il ne s'écrit pas ici.
+                //
+                // Il était en dur — « Trois livres » — alors que le vault en
+                // porte cinq. Sur la phrase que le lecteur lit en premier.
+                // `design/chiffres.rs` portait l'avertissement à quelques
+                // lignes de là.
+                //
+                // Ce qui manquait n'était pas la règle mais le **moyen** :
+                // `Chiffres` rend des chiffres dans une grille, ce qui est
+                // juste pour un tableau de bord et faux au milieu d'une
+                // phrase. Vingt lignes de `domaine::nombres` le règlent.
+                {crate::domaine::nombres::en_lettres_capitale(
+                    env!("CORPUS_LIVRES_ECRITS").parse().unwrap_or(0),
+                )}
+                " livres sur "
+                {crate::domaine::nombres::en_lettres(
+                    env!("CORPUS_LIVRES").parse().unwrap_or(0),
+                )}
+                ". Le compte est public, et il est tenu par le "
                 "pipeline lui-même — ces chiffres viennent du corpus, ils ne sont pas "
                 "recopiés à la main."
             </p>
@@ -148,7 +166,7 @@ pub fn Accueil() -> impl IntoView {
                 "Une unité qui ne l'est pas est un brouillon, et le dit."
             </p>
             <p class="mt-8">
-                <Bouton href="/fr/lire" principal=true>"Entrer dans le corpus"</Bouton>
+                <Bouton href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant()) principal=true>"Entrer dans le corpus"</Bouton>
             </p>
         </Bloc>
 

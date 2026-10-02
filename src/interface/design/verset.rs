@@ -15,7 +15,21 @@ use crate::domaine::texte::{CibleDuNiveauTrois, Noeud, Verset as VersetDomaine};
 #[component]
 pub fn Verset(verset: VersetDomaine) -> impl IntoView {
     view! {
-        <p class="font-corps text-lg leading-loose text-pretty">
+        // **L'interligne est celui du site, et il l'était déjà sur le papier.**
+        //
+        // Ce paragraphe portait `leading-loose` — 2 —, là où le §5 mesure 1,68
+        // et dit pourquoi : *plus le corps grandit, moins il a besoin d'air
+        // proportionnel pour que l'œil retrouve la ligne suivante.* Le verset
+        // compose à `--text-lg`, donc **au-dessus** du corps : il en demandait
+        // moins, pas plus.
+        //
+        // La lecture suivie avait déjà été corrigée pour cette raison exacte,
+        // et le mode d'étude était resté — si bien que le site était plus aéré
+        // là où il prétend serrer.
+        //
+        // Ce qui sépare deux versets en mode d'étude est leur **marge**, pas
+        // l'air entre leurs lignes.
+        <p class="font-corps corps-de-lecture text-pretty">
             <span
                 aria-hidden="true"
                 class="me-[0.35em] align-[0.55em] text-[0.62em] text-accent"
@@ -210,7 +224,7 @@ fn rendre_la_translitteration(mot: &str, cible: Option<&CibleDuNiveauTrois>) -> 
     };
     let mot = mot.to_string();
     view! {
-        <a href=format!("/fr/lexique/{lemme}") class=teinte>
+        <a href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), lemme) class=teinte>
             <i>{mot}</i>
         </a>
     }
@@ -223,7 +237,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
 
         Noeud::Intraduisible { mot, lemme } => view! {
             <a
-                href=format!("/fr/lexique/{lemme}")
+                href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), lemme)
                 class="font-semibold text-accent decoration-accent/40"
             >
                 {mot.clone()}
@@ -237,7 +251,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         // de quoi le lecteur apprendrait deux gestes pour un seul.
         Noeud::Shem { mot, lemme } => view! {
             <a
-                href=format!("/fr/lexique/{lemme}")
+                href=crate::domaine::chemins::fiche(crate::interface::arbre::arbre_maintenant(), lemme)
                 class="font-semibold text-shem decoration-shem/40"
             >
                 {mot.clone()}
@@ -248,7 +262,7 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
         // **Coloré, pas cliquable — et ce n'est pas un oubli.**
         //
         // Le site n'a pas de section chuqqot : son espace d'adresses va de
-        // `/fr/lire` à `/fr/lexique`, et rien entre les deux. Un
+        // `/fr/webapp` à `/fr/lexique`, et rien entre les deux. Un
         // `<a href="/fr/chuqqot/…">` mènerait à un 404 — un mot coloré qui
         // n'ouvre rien, exactement ce que le pipeline refuse en laissant une
         // translittération inerte plutôt que de l'envoyer vers une fiche
@@ -287,8 +301,8 @@ fn rendre_un(noeud: &Noeud) -> AnyView {
                 // verset à l'arrivée. Rien à inventer : la page sait le faire
                 // depuis le premier jour, pour les liens venus de l'app.
                 let vers = match c.verset {
-                    Some(n) => format!("/fr/lire/{}/{}?v={n}", c.livre, c.unite),
-                    None => format!("/fr/lire/{}/{}", c.livre, c.unite),
+                    Some(n) => crate::domaine::chemins::unite_au_verset(crate::interface::arbre::arbre_maintenant(), &c.livre, &c.unite, &n.to_string()),
+                    None => crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &c.livre, &c.unite),
                 };
                 view! {
                     <a href=vers class="text-renvoi underline decoration-dotted">
@@ -852,8 +866,8 @@ mod origines {
     #[test]
     fn le_site_est_interne_et_rendu_en_chemin() {
         assert_eq!(
-            classer("https://ontbible.com/fr/lire/bereshit/bereshit-1"),
-            Destination::Interne("/fr/lire/bereshit/bereshit-1".into())
+            classer("https://ontbible.com/fr/webapp/bereshit/bereshit-1"),
+            Destination::Interne("/fr/webapp/bereshit/bereshit-1".into())
         );
         assert_eq!(
             classer("https://ontbible.com"),
@@ -936,8 +950,8 @@ mod origines {
             Destination::Interne("/fr/lexique".into())
         );
         assert_eq!(
-            classer("/fr/lire/bereshit/bereshit-1?v=1:2"),
-            Destination::Interne("/fr/lire/bereshit/bereshit-1?v=1:2".into())
+            classer("/fr/webapp/bereshit/bereshit-1?v=1:2"),
+            Destination::Interne("/fr/webapp/bereshit/bereshit-1?v=1:2".into())
         );
     }
 }

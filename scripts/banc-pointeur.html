@@ -1,0 +1,283 @@
+<!doctype html><meta charset="utf-8">
+<title>Banc — qui reçoit le pointeur</title>
+<style>
+ body{background:#18090D;color:#CFC5B9;font:16px/1.5 -apple-system,system-ui;margin:0;padding:12px}
+ h1{font-size:15px;color:#D87994;margin:0 0 8px}
+ pre{white-space:pre-wrap;word-break:break-word;font-size:12px;margin:0 0 8px;
+     background:#261016;padding:8px;border-radius:8px}
+ iframe{width:100%;height:1200px;border:1px solid #35151E;border-radius:8px}
+ /* **Le cadre doit faire la hauteur d'un écran, sinon la sonde ment.**
+    À 160 px, les cinq hauteurs relevées tombaient toutes dans l'en-tête : le
+    banc rendait cinq fois le même élément et l'on en concluait que la page
+    entière était un `<header>`. Un instrument dont la fenêtre est plus petite
+    que ce qu'il mesure ne mesure que son propre bord. */
+</style>
+<h1>BANC — ce n'est pas le site</h1>
+<!--
+  Qui reçoit le pointeur, à chaque hauteur de la page.
+
+  ## Pourquoi il existe
+
+  « Le site ne réagit pas aux interactions de souris sous /fr/<chrome>/, et il
+  réagit à la racine. » Le banc des erreurs répondait que l'hydratation est
+  vivante et que les onze navigations passent par le routeur. Les deux sont
+  vrais : **un WASM vivant ne garantit pas qu'un clic atteigne sa cible.**
+
+  Un élément transparent posé par-dessus — une couche `fixed`, un `sticky` qui
+  s'étale, une animation qui finit sans rendre la main — avale les événements
+  sans rien montrer. Aucune erreur, aucun symptôme à l'écran, et le lecteur
+  conclut que la page est gelée.
+
+  ==Un clic qui n'arrive pas et un gestionnaire qui ne répond pas produisent le
+  même silence.== Celui-ci mesure le premier.
+
+  `elementFromPoint` rend l'élément **le plus haut** à une position donnée,
+  après `pointer-events`. S'il rend autre chose que ce qu'on voit, on tient le
+  voleur, avec son nom.
+
+  ## Comment s'en servir
+
+      cp scripts/banc-pointeur.html target/site/
+      ATTENTE=30 ./scripts/sim.sh '/banc-pointeur.html?page=/fr/liseuse/bible'
+
+  Il porte son étiquette en rouge — règle du §7 bis : un outil qui imite le
+  produit doit porter sa marque.
+-->
+<pre id="j">…</pre>
+<iframe id="f"></iframe>
+<script>
+const j = document.getElementById('j'), f = document.getElementById('f');
+const lignes = [];
+function dire(t){ lignes.push(t); j.textContent = lignes.join('\n'); }
+
+const p = new URLSearchParams(location.search);
+const page = p.get('page') || '/fr/liseuse/bible';
+// **Repartir d'un lecteur qui n'a jamais rien réglé.** Une préférence
+// enregistrée explique presque tout — et l'on ne sait pas qui l'a écrite. Vider
+// avant de charger est le seul moyen de distinguer *un choix du lecteur* de
+// *quelque chose que le site écrit tout seul*.
+if (p.get('neuf') === '1') {
+  try { localStorage.removeItem('ont.lecture'); } catch (e) {}
+  document.cookie = 'ont.habillage=;path=/;max-age=0';
+  dire('profil vidé : ont.lecture et ont.habillage');
+}
+// **`neuf` passe avant `arbre`, et l'ordre est la règle.** Écrit après, il
+// effaçait la préférence que `arbre` venait de poser : le banc demandait la
+// webapp, obtenait la liseuse — l'alignement faisant son travail sur un profil
+// vide — et annonçait la webapp en tête.
+//
+// ==Deux effets qui touchent le même état ne se composent que dans un sens.==
+const arbre = p.get('arbre');
+if (arbre) {
+  try {
+    const o = JSON.parse(localStorage.getItem('ont.lecture') || '{}');
+    o.habillage = arbre === 'liseuse' ? 'edition' : 'application';
+    localStorage.setItem('ont.lecture', JSON.stringify(o));
+  } catch (e) {}
+  document.cookie = 'ont.habillage=' + arbre + ';path=/;max-age=600;samesite=lax';
+}
+// **Et il faut pouvoir mesurer une fenêtre de bureau.** Un iframe prend la
+// largeur de l'écran du simulateur — 956 px —, donc toutes les mesures faites
+// ici restaient **sous `lg`**. Un défaut qui ne se produit qu'au-delà de
+// 1024 px ne pouvait pas y entrer, et l'on concluait « tout va bien » en
+// n'ayant jamais regardé la moitié des cas.
+//
+// ==Un banc qui ne peut pas prendre la taille du cas mesuré ne mesure que
+// l'autre.== `?large=1` donne au cadre 1440 px de viewport et le réduit à
+// l'écran : la page croit être sur un Mac, et les requêtes média avec elle.
+// Un réglage de lecture imposé avant le chargement, pour mesurer une
+// disposition que le serveur ne rend jamais : il rend toujours les défauts, et
+// c'est le navigateur qui recompose après hydratation.
+const regle = p.get('regle');
+if (regle) {
+  try {
+    const o = JSON.parse(localStorage.getItem('ont.lecture') || '{}');
+    const [cle, valeur] = regle.split('=');
+    o[cle] = valeur === 'true';
+    localStorage.setItem('ont.lecture', JSON.stringify(o));
+    dire('réglage imposé : ' + cle + '=' + o[cle]);
+  } catch (e) { dire('réglage impossible : ' + e); }
+}
+// `?puis=<chemin>` : on charge la page demandée, on la laisse écrire, puis on
+// va voir ailleurs. C'est le seul moyen de mesurer ce qu'une page **laisse**
+// derrière elle — une place retenue ne se lit pas sur la page qui l'écrit.
+const puis = p.get('puis');
+// `?etroit=402` : la largeur d'un iPhone Pro, imposée au cadre. Le simulateur
+// en fait 956 — assez pour que six tuiles d'actions tiennent, donc assez pour
+// ne jamais voir le défaut qu'on mesure.
+//
+// ==Un banc doit pouvoir prendre la plus petite taille du cas, pas seulement la
+// sienne.==
+const etroit = parseInt(p.get('etroit') || '0', 10);
+if (etroit > 0) {
+  f.style.width = etroit + 'px';
+  f.style.margin = '0 auto';
+  f.style.display = 'block';
+}
+const large = p.get('large') === '1';
+if (large) {
+  f.style.width = '1440px';
+  f.style.height = '900px';
+  f.style.transformOrigin = 'top left';
+  f.style.transform = 'scale(' + (document.body.clientWidth / 1440).toFixed(4) + ')';
+  f.style.marginBottom = (900 * (document.body.clientWidth / 1440) - 900) + 'px';
+}
+dire('page : ' + page + (large ? '  (fenêtre 1440×900)' : '  (fenêtre du simulateur)'));
+f.src = page;
+
+// Le nom lisible d'un élément : sa balise, son id, ses classes utiles.
+function nommer(e) {
+  if (!e) return '(rien)';
+  const cls = (e.className && e.className.baseVal !== undefined
+    ? e.className.baseVal : e.className || '').toString().trim().split(/\s+/)
+    .filter(c => c && !/^(text|font|m[btlrxy]?-|p[btlrxy]?-|flex|grid|gap|w-|h-|min-|max-|items|justify|leading|tracking|truncate|shrink|inline)/.test(c))
+    .slice(0, 4).join('.');
+  return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (cls ? '.' + cls : '');
+}
+
+// **Huit secondes.** L'ouverture de la liseuse dure 6,1 s et tient l'écran
+// entier pendant ce temps — c'est voulu, et la mesurer dirait seulement qu'elle
+// est là. On sonde après.
+setTimeout(() => {
+  const w = f.contentWindow, d = w.document;
+  dire('url obtenue : ' + w.location.pathname);
+  // On descend dans le corps : en haut, c'est l'en-tête qui répond partout, et
+  // c'est juste.
+  w.scrollTo(0, 700);
+  dire('hauteur du document : ' + d.documentElement.scrollHeight + ' px');
+  const L = w.innerWidth, H = w.innerHeight;
+  dire('fenêtre du cadre : ' + L + ' × ' + H + '  défilé à ' + w.scrollY);
+  // **Ce que la page voit pour décider de son habillage.** `grand_ecran()` lit
+  // cette requête exacte, et `Habillage::Auto` en dépend entièrement : à faux,
+  // le client remplace l'adresse par celle de l'autre arbre.
+  dire('min-width 64rem : ' + w.matchMedia('(min-width: 64rem)').matches
+       + '  — racine : ' + w.getComputedStyle(d.documentElement).fontSize);
+  dire('cookie : ' + (d.cookie || '(aucun)'));
+  dire('versets sélectionnables : ' + d.querySelectorAll('[role="button"][aria-pressed]').length
+       + '  — curseur pointeur : ' + d.querySelectorAll('.cursor-pointer').length);
+  try {
+    dire('ont.lecture : ' + (w.localStorage.getItem('ont.lecture') || '(absent)'));
+  } catch (e) { dire('ont.lecture : illisible'); }
+  for (const part of [0.1, 0.25, 0.4, 0.55, 0.7, 0.85]) {
+    const y = Math.round(H * part);
+    const ligne = [];
+    for (const px of [0.25, 0.5, 0.75]) {
+      ligne.push(nommer(d.elementFromPoint(Math.round(L * px), y)));
+    }
+    dire('y=' + String(y).padStart(4) + '  ' + ligne.join('   |   '));
+  }
+  // Et le test qui tranche : un lien du corps reçoit-il son propre clic ?
+  const lien = d.querySelector('main a[href^="/fr/"], a[href^="/fr/"]');
+  if (lien) {
+    const r = lien.getBoundingClientRect();
+    const dessus = d.elementFromPoint(Math.round(r.left + r.width / 2),
+                                      Math.round(r.top + r.height / 2));
+    const atteint = lien.contains(dessus) || dessus === lien;
+    dire('');
+    dire('premier lien : ' + lien.getAttribute('href'));
+    dire('  au-dessus de lui : ' + nommer(dessus));
+    dire(atteint ? '  ✓ il reçoit son clic' : '  ✗ VOLÉ — le clic ne l\'atteint pas');
+  } else {
+    dire('aucun lien trouvé');
+  }
+
+  // ── Le verset se sélectionne-t-il ? ────────────────────────────────────
+  //
+  // Le clic est pris par le conteneur du verset, qui porte `role="button"`.
+  // On le clique et l'on relit son `aria-pressed` — l'état que le composant
+  // écrit, et non une classe qu'on devinerait.
+  // Le « aA » : est-il atteignable là où il se dessine ?
+  // `?sans-aa=1` laisse la feuille fermée : on veut parfois **regarder** la page
+  // après le clic, et un voile plein écran la cache.
+  const aa = p.get('sans-aa') === '1'
+    ? null
+    : [...d.querySelectorAll('button[aria-label="Réglages de lecture"]')][0];
+  if (!aa) {
+    dire('');
+    if (p.get('sans-aa') !== '1') dire('✗ bouton « aA » absent du document');
+  } else {
+    const r = aa.getBoundingClientRect();
+    const dessus = d.elementFromPoint(Math.round(r.left + r.width / 2),
+                                      Math.round(r.top + r.height / 2));
+    const ok = aa.contains(dessus) || dessus === aa;
+    dire('');
+    dire('« aA » : ' + Math.round(r.width) + '×' + Math.round(r.height)
+         + ' à ' + Math.round(r.left) + ',' + Math.round(r.top));
+    dire('  pointer-events : ' + w.getComputedStyle(aa).pointerEvents
+         + ' — parent : ' + w.getComputedStyle(aa.parentElement).pointerEvents);
+    dire(ok ? '  ✓ il reçoit son clic' : '  ✗ VOLÉ par ' + nommer(dessus));
+    // **Le clic vient en dernier, et c'est une leçon d'instrument.** Ouvrir la
+    // feuille pose un voile plein écran : toute sonde qui suit le trouve, lui
+    // et rien d'autre. Un premier relevé a ainsi annoncé « le lien est volé »
+    // en décrivant l'état que le banc venait lui-même de créer.
+    //
+    // ==Une mesure qui modifie la page doit passer après celles qui la
+    // lisent.==
+    setTimeout(() => {
+      aa.click();
+      setTimeout(() => dire('  après clic : aria-expanded=' + aa.getAttribute('aria-expanded')), 400);
+    }, 1200);
+  }
+
+  if (puis) {
+    dire('');
+    dire('on va voir ' + puis + ' …');
+    f.src = puis;
+    f.addEventListener('load', () => setTimeout(() => {
+      const dd = f.contentWindow.document;
+      const carte = [...dd.querySelectorAll('a')]
+        .find(a => a.textContent.includes('Reprendre'));
+      dire('« Reprendre » : ' + (carte
+        ? 'PRÉSENTE → ' + carte.getAttribute('href') + '  « '
+          + carte.textContent.replace('Reprendre', '').trim() + ' »'
+        : 'absente'));
+    }, 2500), { once: true });
+    return;
+  }
+
+  const v = d.querySelector('[role="button"][aria-pressed]');
+  if (!v) {
+    dire('');
+    dire('✗ aucun verset cliquable dans le document (role=button + aria-pressed)');
+    const tous = d.querySelectorAll('[role="button"]');
+    dire('  role=button trouvés : ' + tous.length);
+  } else {
+    dire('');
+    // Ce qu'un vrai clic de souris rencontre, et sous quel régime de sélection.
+    const rv = v.getBoundingClientRect();
+    const sur = d.elementFromPoint(Math.round(rv.left + rv.width / 2),
+                                   Math.round(rv.top + Math.min(rv.height / 2, 20)));
+    dire('verset : ' + Math.round(rv.width) + '×' + Math.round(rv.height));
+    dire('  sous le pointeur : ' + nommer(sur)
+         + (v.contains(sur) || sur === v ? '  ✓ dans le verset' : '  ✗ HORS du verset'));
+    dire('  user-select : ' + w.getComputedStyle(v).userSelect
+         + ' — webkitUserSelect : ' + (w.getComputedStyle(v).webkitUserSelect || '—'));
+    dire('  aria-pressed=' + v.getAttribute('aria-pressed'));
+    // **Un vrai clic part du nœud sous le pointeur**, et remonte. `v.click()`
+    // part de l'élément qu'on vise : il déclenche le gestionnaire même si
+    // quelque chose le recouvre, et même si le garde du composant aurait
+    // écarté la cible réelle — `cible_est_un_lien` regarde `event.target`.
+    //
+    // ==Un clic synthétique posé sur sa cible prouve que le gestionnaire
+    // existe, pas qu'on peut l'atteindre.==
+    // **Un seul clic, et relu après coup.**
+    //
+    // Le premier jet en envoyait deux — un depuis le nœud sous le pointeur,
+    // un sur l'élément visé — puis relisait l'attribut. Or `basculer` est une
+    // bascule : le second défaisait le premier, et le banc rapportait
+    // `aria-pressed=false` en décrivant l'état qu'il venait de produire.
+    //
+    // ==Deux mesures qui modifient la même chose ne se complètent pas, elles
+    // s'annulent.== Et la lecture synchrone qui suivait un clic rendait
+    // toujours l'ancienne valeur, l'attribut n'étant écrit qu'au tour suivant.
+    const cible = sur || v;
+    cible.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+    setTimeout(() => {
+      dire('  clic depuis ' + nommer(cible)
+           + ' → aria-pressed=' + v.getAttribute('aria-pressed'));
+      const barre = d.querySelector('[aria-label*="élection"], .barre-de-selection');
+      dire('  barre de sélection : ' + (barre ? 'présente' : 'absente'));
+    }, 600);
+  }
+}, 8000);
+</script>

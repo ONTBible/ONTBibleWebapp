@@ -172,7 +172,7 @@ pub fn BarreDeSelection(
     livre: String,
     /// Le rang de l'unité. Zéro pour une introduction, qui n'en porte pas.
     chapitre: u32,
-    /// Le chemin de la page, sans paramètre — « /fr/lire/bereshit/bereshit-1 ».
+    /// Le chemin de la page, sans paramètre — « /fr/webapp/bereshit/bereshit-1 ».
     #[prop(into)]
     chemin: String,
     /// Le texte de chaque verset, par numéro. Sert à ce qu'on copie.
@@ -288,7 +288,36 @@ pub fn BarreDeSelection(
                         }
                     })}
 
-                <div class="flex items-stretch">
+                // **Ce qui ne tient pas défile, plutôt que de se tronquer.**
+                //
+                // Six libellés en capitales espacées ne tiennent pas sur une
+                // ligne de 402 points : `PARTAGER` était coupé en plein mot, et
+                // `TOUT` comme `EFFACER` tombaient hors du cadre.
+                //
+                // ==Une rangée d'actions qui déborde ne perd pas de la place :
+                // elle perd des actions.== Celles qui sortaient du cadre étaient
+                // injoignables, sans que rien ne le dise.
+                //
+                // C'est la forme d'`ONTSegments`, et son commentaire nomme le
+                // cas : *« au premier cran d'accessibilité — celui où Gloire
+                // lit — "Intraduisibles" prenait toute la largeur et les trois
+                // autres tombaient à V, T, S. Trois portes devenues illisibles :
+                // ce n'est plus une troncature, c'est une disparition. »*
+                //
+                // Là-bas c'est `ViewThatFits` : la rangée entière d'abord, la
+                // même qui défile quand elle ne tient plus. **Ici le navigateur
+                // le fait seul** — `overflow-x-auto` avec des tuiles qui ne
+                // descendent pas sous leur contenu ne défile que si c'est
+                // nécessaire. ==Aucune mesure, aucun seuil deviné== : c'est la
+                // même propriété, obtenue par la disposition plutôt que par une
+                // branche.
+                //
+                // Un premier jet repliait la rangée sur deux lignes. Ça marchait
+                // et ce n'était pas la forme de l'app, que l'auteur a demandée :
+                // *« j'aurais plutôt voulu une rangée scrollable à
+                // l'horizontale, comme ce qu'il y a dans l'app dans l'onglet
+                // Lexique ».*
+                <div class="rail-horizontal flex items-stretch overflow-x-auto">
                     // « Noter » n'apparaît que sur **un seul** verset, et l'app
                     // dit pourquoi : « Une note se rattache à un verset : le
                     // domaine ne sait pas en porter une sur un intervalle, et
@@ -299,7 +328,7 @@ pub fn BarreDeSelection(
                             view! {
                                 <button
                                     type="button"
-                                    class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                    class="flex-1 min-w-max rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                                     class=("invisible", move || selection.with(|s| s.len() != 1))
                                     on:click=move |_| note_ouverte.set(true)
                                 >
@@ -312,6 +341,22 @@ pub fn BarreDeSelection(
                         texte=Callback::new(move |()| texte_partage())
                         efface_apres=true
                         selection
+                    />
+                    // **L'image**, que ce module disait impossible.
+                    //
+                    // Son propre commentaire écrivait « Image demande un rendu
+                    // que le navigateur ne fait pas gratuitement ». Un
+                    // `<canvas>` le fait, sans bibliothèque et sans requête :
+                    // la phrase avait le tort d'avoir l'air d'une mesure.
+                    //
+                    // Le texte est celui du partage — donc **le corps seul**,
+                    // déjà dépouillé de ses niveaux. C'est la règle de l'app et
+                    // c'est la meilleure raison de tout ce portage : sorti de
+                    // la liseuse, l'appareil critique devient une affirmation
+                    // sans recours.
+                    <crate::interface::design::ImageDePartage
+                        texte=Signal::derive(move || texte_partage())
+                        renvoi=Signal::derive(move || renvoi_courant())
                     />
                     <ActionDePartage
                         texte=Callback::new(move |()| texte_partage())
@@ -441,12 +486,21 @@ fn FeuilleDeNote(
 /// Elles se partagent la largeur à parts égales (`flex-1`), comme le
 /// `.frame(maxWidth: .infinity)` de chacune côté Swift. C'est ce qui fait que la
 /// barre ne se réorganise pas quand une action apparaît ou disparaît.
+///
+/// **`min-w-max` en plus, et c'est lui qui fait défiler.** Sans lui, `flex-1`
+/// vaut `flex-basis: 0 %` et autorise la tuile à descendre sous la largeur de
+/// son texte : les libellés se tassent et débordent du cadre. Avec lui, une
+/// tuile ne passe jamais sous son contenu — donc la rangée dépasse, donc elle
+/// défile, et seulement quand il le faut.
+///
+/// ==Ce qui décide du défilement n'est pas le conteneur, c'est le plancher de ce
+/// qu'il porte.==
 #[component]
 fn ActionSimple(libelle: &'static str, au_clic: Callback<(), ()>) -> impl IntoView {
     view! {
         <button
             type="button"
-            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:bg-aubergine/40 hover:text-encre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="flex-1 min-w-max rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-encre-douce transition-colors hover:bg-aubergine/40 hover:text-encre focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             on:click=move |_| au_clic.run(())
         >
             {libelle}
@@ -500,7 +554,7 @@ fn ActionDeSelection(
     view! {
         <button
             type="button"
-            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="flex-1 min-w-max rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-live="polite"
             on:click=au_clic
         >
@@ -561,7 +615,7 @@ fn ActionDePartage(texte: Callback<(), String>, lien: Callback<(), String>) -> i
     view! {
         <button
             type="button"
-            class="flex-1 rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="flex-1 min-w-max rounded-xl px-2 py-2 text-sm uppercase tracking-capitales text-accent transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-live="polite"
             on:click=au_clic
         >

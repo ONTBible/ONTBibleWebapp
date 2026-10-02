@@ -8,11 +8,14 @@
 //! espacement, ni taille.
 
 pub mod app;
+pub mod arbre;
 pub mod association;
 #[cfg(feature = "ssr")]
 pub mod compte;
 pub mod compte_public;
+pub mod defilement;
 pub mod design;
 pub mod echantillon;
 pub mod pages;
+pub mod position;
 pub mod tete;

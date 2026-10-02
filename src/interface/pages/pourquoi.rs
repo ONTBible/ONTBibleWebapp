@@ -913,7 +913,7 @@ pub fn Pourquoi() -> impl IntoView {
                 "debout, en hébreu, plutôt que de choisir entre deux mots faux."
             </p>
             <p class="mt-8">
-                <Lien href="/fr/lexique">"Les cent cinq intraduisibles, avec leur champ complet"</Lien>
+                <Lien href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())>"Les cent cinq intraduisibles, avec leur champ complet"</Lien>
             </p>
         </Bloc>
 
@@ -1240,7 +1240,7 @@ pub fn Pourquoi() -> impl IntoView {
             </p>
 
             <div class="mt-12 flex flex-wrap gap-4">
-                <Lien href="/fr/lire">"Entrer dans le corpus"</Lien>
+                <Lien href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())>"Entrer dans le corpus"</Lien>
                 <Lien href="/fr/ce-que-l-ont-n-est-pas">"Ce que l'ONT n'est pas"</Lien>
             </div>
         </Bloc>
@@ -1279,7 +1279,7 @@ fn citer(
                         view! {
                             <Citation
                                 renvoi=renvoi
-                                chemin=format!("/fr/lire/{livre}/{unite}")
+                                chemin=crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), livre, unite)
                                 versets=v
                             />
                         }

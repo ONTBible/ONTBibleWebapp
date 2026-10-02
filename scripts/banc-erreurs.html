@@ -1,0 +1,183 @@
+<!doctype html><meta charset="utf-8">
+<title>Banc — erreurs du navigateur</title>
+<style>
+ body{background:#18090D;color:#CFC5B9;font:16px/1.5 -apple-system,system-ui;margin:0;padding:12px}
+ h1{font-size:15px;color:#D87994;margin:0 0 8px}
+ pre{white-space:pre-wrap;word-break:break-word;font-size:13px;margin:0 0 8px;
+     background:#261016;padding:8px;border-radius:8px}
+ iframe{width:100%;height:220px;border:1px solid #35151E;border-radius:8px}
+</style>
+<h1>BANC — ce n'est pas le site</h1>
+<!--
+  Le banc des erreurs du navigateur.
+
+  ## Pourquoi il existe
+
+  Une panique du WASM ne laisse **aucune trace** ailleurs : le serveur ne la
+  voit pas, la page reste affichée et juste, et seule l'interactivité meurt. On
+  la cherche alors dans le composant qu'on vient d'écrire, où il n'y a rien.
+
+  C'est la troisième fois que ce dépôt paie cette panne, avec trois causes
+  différentes — une construction en deux temps, un `<p>` dans un `<p>`, et un
+  signal lu après sa destruction. Les trois se présentaient de la même façon :
+  « quand je switch de tab il se passe rien ».
+
+  ## Comment s'en servir
+
+      cp scripts/banc-erreurs.html target/site/
+      ATTENTE=34 ./scripts/sim.sh /banc-erreurs.html
+      ATTENTE=34 ./scripts/sim.sh '/banc-erreurs.html?arbre=liseuse'
+
+  Sans paramètre il mesure la webapp. **Les deux arbres se mesurent
+  séparément** : ils ne rendent ni le même chrome ni les mêmes composants, et
+  une panne d'hydratation vit dans un composant.
+
+  Il charge le site dans un cadre de même origine, y accroche `error`,
+  `unhandledrejection` et `console.error`, puis clique dix liens de la barre.
+  Chaque clic est suivi de l'URL obtenue : un `clic →` sans `url=` qui suit est
+  une navigation morte.
+
+  ## Ce qu'il ne fait pas
+
+  Il ne **pilote** pas le routeur : il clique de vrais liens du document, ce
+  qui marche, là où un `pushState` synthétique ne réveillerait rien. Et il ne
+  mesure que ce qui remonte à `window` — une erreur avalée par un `catch` lui
+  échappe.
+
+  Il porte son étiquette en rouge, et c'est la règle du §7 bis : *un outil qui
+  imite le produit doit porter sa marque.* Un banc précédent a coûté dix
+  secondes de vidéo d'un défaut qui n'existait pas.
+-->
+<pre id="j">…</pre>
+<iframe id="f"></iframe>
+<script>
+const j = document.getElementById('j'), f = document.getElementById('f');
+const lignes = [];
+function dire(t){ lignes.push(t); j.textContent = lignes.join('\n'); }
+// **L'arbre se passe en paramètre**, depuis qu'il y en a deux. Une page de
+// départ écrite en dur ne mesurait que la webapp — et c'est l'autre arbre qui
+// venait d'être restylé. Une garde qui ne visite pas une page ne dit rien
+// d'elle, et son décompte final se lit comme si elle avait tout vu.
+//
+//     ATTENTE=34 ./scripts/sim.sh '/banc-erreurs.html?arbre=liseuse'
+const arbre = new URLSearchParams(location.search).get('arbre') || 'webapp';
+// **Et il faut poser la préférence, pas seulement l'adresse.** Le serveur
+// aligne l'URL sur le cookie `ont.habillage` par un 307 : sur un simulateur
+// d'iPhone, la préférence par défaut résout vers la webapp, et un banc lancé
+// sur `/fr/liseuse/bible` se retrouvait à mesurer l'autre arbre — en affichant
+// « arbre : liseuse » en tête.
+//
+// ==Un banc qui annonce ce qu'il visait, et non ce qu'il a obtenu, ment à la
+// seule ligne qu'on lit.== D'où la préférence posée ici, et l'URL obtenue
+// relevée après chaque clic.
+//
+// **Et la préférence vit à deux endroits.** Le cookie est ce que le serveur
+// lit ; `localStorage` est ce que le script d'avant-rendu relit à chaque page
+// et réécrit par-dessus. Ne poser que le cookie, c'est le voir remplacé au
+// premier chargement — ce qui s'est produit, et le banc annonçait quand même
+// l'arbre qu'il visait.
+try {
+  const o = JSON.parse(localStorage.getItem('ont.lecture') || '{}');
+  o.habillage = arbre === 'liseuse' ? 'edition' : 'application';
+  localStorage.setItem('ont.lecture', JSON.stringify(o));
+} catch (e) { dire('localStorage inaccessible : ' + e); }
+document.cookie = 'ont.habillage=' + arbre + ';path=/;max-age=600;samesite=lax';
+dire('arbre demandé : ' + arbre + ' — cookie : ' + document.cookie);
+f.src = '/fr/' + arbre + '/bible';
+
+// **Compter les chargements, parce qu'une URL qui change ne prouve rien.**
+//
+// Un `clic →` suivi d'une `url=` était tenu pour une navigation réussie. C'est
+// faux : si le WASM est mort, le clic sur une `<a href>` fait une navigation
+// **native**, le document se recharge, et l'URL obtenue est exactement celle
+// qu'on attendait. Le banc a donc annoncé deux arbres sains le 2 octobre pendant
+// que l'auteur voyait des pages gelées.
+//
+// ==Un symptôme et son absence peuvent produire la même mesure. Ce qui les
+// sépare ici est le *moyen* du changement, pas son résultat.==
+//
+// Un routeur vivant change l'URL **sans** recharger. Chaque `load` de l'iframe
+// après le premier est donc un aveu.
+let chargements = 0;
+f.addEventListener('load', () => {
+  chargements += 1;
+  if (chargements > 1) dire('  ⚠ RECHARGEMENT — le routeur n\'a pas pris le lien');
+  const w = f.contentWindow;
+  try {
+    w.addEventListener('error', e =>
+      dire('ERREUR ' + (e.message || e.error) + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')));
+    w.addEventListener('unhandledrejection', e => dire('REJET ' + e.reason));
+    const c = w.console, orig = c.error.bind(c);
+    c.error = (...a) => { dire('console.error ' + a.map(String).join(' ')); orig(...a); };
+  } catch (e) { dire('inaccessible : ' + e); }
+});
+
+// On navigue à la main dans l'iframe, par le routeur : `history.pushState`
+// seul ne réveille pas Leptos, mais changer `location` le fait comme un lien.
+// **Les chemins viennent du document, pas d'une liste.** Une table figée se
+// périme au premier renommage de segment — et le banc annonce alors « pas de
+// lien vers … » pour des liens qui existent, sous un autre nom. On prend donc
+// les vrais liens de la barre, dans l'ordre où elle les pose, et on les
+// parcourt deux fois.
+const dansLaPage = () => [...f.contentWindow.document.querySelectorAll('nav a[href^="/fr/"]')]
+  .map(a => a.getAttribute('href'))
+  .filter((h, i, t) => t.indexOf(h) === i);
+let i = 0, routes = [];
+setInterval(() => {
+  // Relevé à la première visite, une fois la barre hydratée. Avant, elle
+  // n'existe pas : le document du serveur la porte, mais les `<A>` du routeur
+  // ne répondent qu'après.
+  if (!routes.length) {
+    try { routes = [...dansLaPage(), ...dansLaPage()].slice(0, 10); } catch(e){}
+    if (!routes.length) return;
+    dire('relevé : ' + routes.length + ' liens dans la barre');
+  }
+  if (i >= routes.length) return;
+  const r = routes[i++];
+  try {
+    const w = f.contentWindow;
+    const lien = w.document.querySelector('a[href="' + r + '"]');
+    // **On descend avant de cliquer.** Un routeur en SPA ne recharge rien : il
+    // remplace le contenu et laisse la page où elle était. Mesurer depuis le
+    // haut ne verrait jamais le défaut — `scrollY` y vaut zéro avant comme
+    // après. ==Une mesure qui part de l'état attendu ne peut pas le démentir.==
+    // **En `instant`, et c'est le piège de `porte.rs` rejoué par le banc.**
+    // `scroll-behavior: smooth` est posé sur `html`, et `scrollTo` en hérite :
+    // la descente du banc était encore en cours quand le clic partait, et les
+    // deux animations se battaient. Le relevé final rendait 2000 — c'est-à-dire
+    // la position que l'instrument lui-même défendait.
+    //
+    // ==Un banc qui pilote la page doit le faire sans animation : sinon il
+    // mesure sa propre inertie.==
+    if (lien) { w.scrollTo({ top: 2000, behavior: 'instant' }); }
+    if (lien) { lien.click(); dire('clic → ' + r + '  (depuis y=' + Math.round(w.scrollY) + ')'); }
+    else { dire('pas de lien vers ' + r + ' (url=' + w.location.pathname + ')'); }
+    const avant = chargements;
+    const ou = w.location.pathname;
+    setTimeout(() => {
+      try {
+        const y = Math.round(f.contentWindow.scrollY);
+        const ici = f.contentWindow.location.pathname;
+        // **Un clic sur la page où l'on est n'est pas une navigation.** Le
+        // chemin ne change pas, donc rien ne se réveille, et `y` reste où il
+        // était. Le signaler comme un défaut ferait chercher une panne là où il
+        // n'y a qu'un geste sans effet.
+        //
+        // ==Une garde doit distinguer « ça n'a pas marché » de « il n'y avait
+        // rien à faire ».==
+        const change = ici !== ou;
+        dire('  … url=' + ici
+             + (chargements === avant ? '  (routeur)' : '  (RECHARGÉ)')
+             + '  y=' + y
+             + (!change ? '  (même page)' : y > 40 ? '  ⚠ pas remonté' : ''));
+      } catch(e){}
+    // **1600 ms et non 900.** Le retour en haut d'une page qu'on touche alors
+    // qu'on y est déjà est **doux** — c'est le geste d'iOS, et on doit voir la
+    // page revenir. Relevé trop tôt, il paraît n'avoir pas eu lieu.
+    //
+    // ==Une mesure prise avant la fin de ce qu'elle mesure rend toujours
+    // l'ancien état, et rien ne distingue cette réponse d'un défaut.==
+    }, 1600);
+  } catch (e) { dire('clic impossible : ' + e); }
+}, 1800);
+</script>

@@ -37,6 +37,26 @@ js-sys = { version = "0.3", optional = true }
 # celles qu'on demande entrent dans le binaire wasm.
 web-sys = { version = "0.3", features = [
     "Storage",
+    # **La largeur d'écran et le cookie**, pour que le choix d'habillage
+    # s'applique tout de suite et que le serveur le lise au chargement suivant.
+    # Chaque interface du navigateur est derrière son propre drapeau : sans eux,
+    # `match_media` et `set_cookie` n'existent simplement pas.
+    "MediaQueryList",
+    "HtmlDocument",
+    # L'image de partage — un carré de 1080 px composé au `<canvas>`.
+    #
+    # Ce dépôt écrivait que « le navigateur ne le fait pas gratuitement ». Il le
+    # fait : quatre drapeaux, aucune bibliothèque, aucune requête. Ce qui aurait
+    # coûté, ce sont les fontes — et elles sont déjà là, puisque la page qui
+    # ouvre cette action les emploie.
+    #
+    # `TextMetrics` est le moins évident et le plus nécessaire : `fillText` ne
+    # va pas à la ligne, donc le pliage se fait à la main en mesurant chaque
+    # mot. Sans lui, un verset long sort du carré.
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "TextMetrics",
+    "HtmlAnchorElement",
     # Le presse-papier, pour copier un passage sélectionné. Trois drapeaux pour
     # un seul geste — `navigator.clipboard.writeText` traverse trois interfaces,
     # et chacune est derrière le sien. En oublier une ne donne pas un avertissement

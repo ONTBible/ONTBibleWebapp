@@ -42,13 +42,23 @@ pub fn Occurrences(occurrences: Vec<Occurrence>) -> impl IntoView {
                     .map(|occurrence| {
                         let chemin = match occurrence.verset {
                             Some(numero) => {
+                                // **L'ancre en plus du paramètre.** `?v=`
+                                // désigne le verset pour la page — elle le
+                                // met en avant —, `#v` l'amène sous les yeux.
+                                // Les deux ne font pas double emploi : l'un
+                                // est lu par le serveur, l'autre par le
+                                // navigateur.
                                 format!(
-                                    "/fr/lire/{}/{}?v={numero}#v{numero}",
-                                    occurrence.livre,
-                                    occurrence.chapitre,
+                                    "{}#v{numero}",
+                                    crate::domaine::chemins::unite_au_verset(
+                                        crate::interface::arbre::arbre_maintenant(),
+                                        &occurrence.livre,
+                                        &occurrence.chapitre,
+                                        &numero.to_string(),
+                                    ),
                                 )
                             }
-                            None => format!("/fr/lire/{}/{}", occurrence.livre, occurrence.chapitre),
+                            None => crate::domaine::chemins::unite(crate::interface::arbre::arbre_maintenant(), &occurrence.livre, &occurrence.chapitre),
                         };
                         // Le renvoi lisible se compose depuis l'identifiant de
                         // chapitre, qui porte déjà le livre — « bereshit-10 »

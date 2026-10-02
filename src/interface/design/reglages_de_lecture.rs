@@ -1,7 +1,9 @@
 use leptos::ev;
 use leptos::prelude::*;
+#[cfg(feature = "hydrate")]
+use wasm_bindgen::JsCast;
 
-use crate::domaine::lecture::{Preferences, Theme};
+use crate::domaine::lecture::{Fonte, Preferences, Theme};
 
 /// Où le navigateur retient les réglages.
 ///
@@ -89,7 +91,7 @@ pub fn preferences() -> Signal<Preferences> {
             // l'on peut le voir sans relire tout l'arbre.
             debug_assert!(
                 false,
-                "les réglages de lecture sont lus sans avoir été fournis : \
+                "les réglages de lecture sont lus sans avoir été fournis : \
                  appeler `fournir_preferences()` dans la page qui compose ce \
                  texte, sinon aucune bascule n'aura d'effet"
             );
@@ -184,14 +186,81 @@ fn ecrire(preferences: Preferences) {
 /// définition, puisque rien n'est encore rendu.
 #[component]
 pub fn PeauDeLaLiseuse() -> impl IntoView {
+    // **Le compteur vit des deux côtés**, et il le faut.
+    //
+    // Il était dans le bloc `hydrate`, donc à zéro sur le serveur — qui
+    // rendait alors le pied de page du site, que le navigateur retirait
+    // aussitôt. Les deux arbres auraient divergé à l'hydratation : le piège
+    // exact du banc de la carte, deux heures plus tôt.
+    //
+    // **La peau suit le chemin, et non un compteur de montage.**
+    //
+    // Il y a eu ici un compteur de pages de liseuse à l'écran. Il répondait à
+    // une vraie question — *reste-t-il une page de liseuse ?* — parce qu'en
+    // passant d'une page à l'autre, Leptos **monte la nouvelle avant de
+    // nettoyer l'ancienne** : un simple pose/retire laissait le dernier mot à
+    // la page qu'on venait de quitter, et le thème s'effaçait à chaque
+    // navigation.
+    //
+    // Le compteur réglait ça et en apportait un autre, que le banc a fini par
+    // rendre le 1er octobre 2026 :
+    //
+    // ```text
+    // At reglages_de_lecture.rs:243, you tried to access a reactive value
+    // which was defined at reglages_de_lecture.rs:268, but it has already
+    // been disposed.
+    // ```
+    //
+    // Le signal était créé par **la première page qui l'appelait**, donc dans
+    // une portée qui meurt à la navigation suivante ; le nettoyage de la page
+    // d'après lisait un signal mort, et le WASM s'arrêtait à la septième
+    // navigation.
+    //
+    // ==Un compteur de montages répond à la question « qu'est-ce qui est
+    // là ? ». Le chemin répond à « où sommes-nous ? » — et c'est la seconde
+    // qu'on posait.== Une condition tirée du chemin n'a ni ordre ni durée de
+    // vie : le serveur et le client y répondent la même chose au même instant.
     #[cfg(feature = "hydrate")]
     {
         let preferences = preferences();
-        Effect::new(move |_| poser_la_peau(Some(preferences.get().theme)));
-        // `on_cleanup` et non un effet qui s'annule : le démontage est le seul
-        // signal qui dise « cette page n'est plus à l'écran », et c'est
-        // exactement la question.
-        on_cleanup(|| poser_la_peau(None));
+        let sous_un_arbre = crate::interface::arbre::dans_un_arbre();
+
+        // **Changer d'habillage change d'adresse.** Le réglage vit dans
+        // `ont.lecture` ; le cookie et le serveur s'en chargent aux chargements
+        // suivants, mais celui qui vient de cliquer doit voir l'effet tout de
+        // suite — et sur **la même page**, pas à l'accueil de l'autre arbre.
+        //
+        // > Un réglage qui fait perdre sa place n'est pas un réglage, c'est une
+        // > sortie.
+        //
+        // On recharge plutôt qu'on ne navigue : le chrome est rendu par le
+        // serveur, donc une navigation du routeur laisserait l'ancien en place.
+        Effect::new(move |_| {
+            let vise = preferences.get().habillage.resoudre(grand_ecran());
+            let ici = leptos_router::hooks::use_location().pathname.get();
+            if crate::domaine::lecture::Arbre::du_chemin(&ici).is_some_and(|a| a != vise) {
+                poser_le_cookie(vise);
+                let cible = crate::domaine::chemins::dans(vise, &ici);
+                if let Some(fenetre) = web_sys::window() {
+                    let _ = fenetre.location().replace(&cible);
+                }
+            }
+        });
+
+        // Un seul effet, et il suit les deux : les réglages **et** le lieu.
+        // Sortir de la liseuse retire la peau sans qu'aucun nettoyage n'ait à
+        // s'exécuter dans le bon ordre.
+        Effect::new(move |_| {
+            if sous_un_arbre.get() {
+                let reglages = preferences.get();
+                poser_la_peau(Some(reglages.theme), Some(reglages.fonte));
+                poser_la_taille(reglages.corps);
+                poser_l_interligne(reglages.interligne);
+                poser_la_coupure(reglages.coupure);
+            } else {
+                poser_la_peau(None, None);
+            }
+        });
     }
     view! { <></> }
 }
@@ -212,8 +281,112 @@ pub fn PeauDeLaLiseuse() -> impl IntoView {
 ///
 /// On la **demande au navigateur** : l'attribut vient d'être posé, la feuille
 /// est chargée, `getComputedStyle` rend le `--ont-background` en vigueur.
+/// Pose le facteur de la seconde échelle sur la racine.
+///
+/// `--lecture` vaut `corps / 19` — 1 au défaut, donc `calc(x * 1)` rend `x` et
+/// rien ne bouge d'un pixel tant que le lecteur n'a pas touché au réglage.
+///
+/// **Elle ne se retire pas au démontage**, contrairement à la peau. La
+/// variable n'est lue que par `.liseuse`, qui n'existe que dans la liseuse :
+/// laissée sur la racine, elle est inerte partout ailleurs. La retirer
+/// coûterait une seconde condition sans rien protéger.
 #[cfg(feature = "hydrate")]
-fn poser_la_peau(theme: Option<Theme>) {
+/// L'interligne, en **total CSS** et non en supplément.
+///
+/// L'app compte un supplément — `.lineSpacing` s'ajoute à l'interligne naturel
+/// de la fonte —, la CSS compte la hauteur entière. Les deux ne se
+/// convertissent pas exactement, le supplément naturel de Literata n'étant pas
+/// un nombre que ce dépôt connaisse.
+///
+/// Ce qui se transpose est **le défaut et l'amplitude** : au cran 5, la valeur
+/// rendue est `1,68` — celle que le §5 a mesurée —, et chaque cran vaut un
+/// dixième. De 1,38 à 2,18, ce qui couvre l'amplitude de l'app.
+///
+/// Le défaut rend donc **exactement** ce que le site rendait avant ce réglage,
+/// et c'était la condition : un curseur dont le cran du milieu déplacerait la
+/// valeur documentée changerait la composition de tout le monde pour offrir un
+/// réglage à quelques-uns.
+#[cfg(feature = "hydrate")]
+fn poser_l_interligne(crans: u8) {
+    let Some(racine) = racine() else { return };
+    let total = 1.68 + (f64::from(crans) - f64::from(Theme::INTERLIGNE_PAR_DEFAUT)) / 10.0;
+    let _ = racine
+        .style()
+        .set_property("--interligne", &format!("{total}"));
+}
+
+/// La césure, allumée ou éteinte par le lecteur.
+///
+/// **Elle était globale**, posée sur `p` dans la feuille — donc allumée pour
+/// tout le monde, sans moyen de l'éteindre. C'est un réglage chez l'app, et sa
+/// raison vaut doublement ici : *qui grossit le texte pour le voir se retrouve
+/// avec plus de coupures, pas moins.*
+#[cfg(feature = "hydrate")]
+fn poser_la_coupure(coupe: bool) {
+    let Some(racine) = racine() else { return };
+    let _ = racine
+        .style()
+        .set_property("--coupure", if coupe { "auto" } else { "manual" });
+}
+
+/// L'élément racine, quand le navigateur est là.
+#[cfg(feature = "hydrate")]
+fn racine() -> Option<web_sys::HtmlElement> {
+    web_sys::window()
+        .and_then(|f| f.document())
+        .and_then(|d| d.document_element())
+        .and_then(|r| r.dyn_ref::<web_sys::HtmlElement>().cloned())
+}
+
+#[cfg(feature = "hydrate")]
+fn poser_la_taille(corps: u8) {
+    // **L'attribut `cfg` avait disparu**, et il y était : mon insertion s'est
+    // glissée entre lui et sa fonction, si bien qu'il gardait `racine()` et
+    // laissait celle-ci compiler côté serveur — où `web_sys` n'existe pas.
+    //
+    // Un attribut n'appartient pas au fichier, il appartient à l'élément qui
+    // le suit immédiatement. Insérer « avant une fonction » veut donc dire
+    // « avant ses attributs », et rien ne le rappelle à la lecture : les deux
+    // lignes se suivent sans qu'on voie laquelle porte l'autre.
+    let Some(racine) = racine() else { return };
+    let facteur = f64::from(corps) / f64::from(Theme::CORPS_PAR_DEFAUT);
+    let _ = racine
+        .style()
+        .set_property("--lecture", &format!("{facteur}"));
+}
+
+/// Sommes-nous sur un grand écran ? La même borne que le script de l'en-tête.
+///
+/// **64 rem et non une largeur en pixels** : la borne suit la taille de police
+/// du lecteur, comme tout le reste de la feuille. Quelqu'un qui grossit son
+/// texte a un écran proportionnellement plus petit, et c'est exactement le
+/// lecteur pour qui la barre latérale devient un couloir.
+#[cfg(feature = "hydrate")]
+fn grand_ecran() -> bool {
+    web_sys::window()
+        .and_then(|f| f.match_media("(min-width: 64rem)").ok().flatten())
+        .is_some_and(|m| m.matches())
+}
+
+/// Pose le cookie que le serveur lira au prochain chargement.
+///
+/// Un an, `samesite=lax` : il ne voyage pas sur une requête d'un autre site, et
+/// il n'a rien de sensible — c'est un choix d'affichage, pas une identité.
+#[cfg(feature = "hydrate")]
+fn poser_le_cookie(arbre: crate::domaine::lecture::Arbre) {
+    if let Some(document) = web_sys::window()
+        .and_then(|f| f.document())
+        .and_then(|d| d.dyn_into::<web_sys::HtmlDocument>().ok())
+    {
+        let _ = document.set_cookie(&format!(
+            "ont.habillage={};path=/;max-age=31536000;samesite=lax",
+            arbre.segment()
+        ));
+    }
+}
+
+#[cfg(feature = "hydrate")]
+fn poser_la_peau(theme: Option<Theme>, fonte: Option<Fonte>) {
     let Some(document) = web_sys::window().and_then(|f| f.document()) else {
         return;
     };
@@ -227,6 +400,17 @@ fn poser_la_peau(theme: Option<Theme>) {
         }
         None => {
             let _ = racine.remove_attribute("data-theme");
+        }
+    }
+    // La fonte suit la même règle que la peau — posée dans la liseuse, retirée
+    // en sortant. Son sélecteur est déjà borné par `.liseuse`, mais laisser
+    // l'attribut traîner dirait « ce lecteur a choisi ici », ce qui est faux.
+    match fonte {
+        Some(fonte) => {
+            let _ = racine.set_attribute("data-fonte", fonte.attribut());
+        }
+        None => {
+            let _ = racine.remove_attribute("data-fonte");
         }
     }
 
@@ -249,15 +433,28 @@ fn poser_la_peau(theme: Option<Theme>) {
 
 /// Les réglages de lecture — un bouton qui suit, et une feuille qui monte.
 ///
-/// ## Pourquoi il flotte
+/// ## Le bouton est dans la barre du haut, et il y a été **déplacé**
 ///
-/// Une première version posait le panneau **en haut du chapitre**. Ça ne tenait
-/// pas : un chapitre fait jusqu'à quarante-six versets, et l'on décide
-/// d'éteindre les gloses au milieu de la lecture, pas avant de l'avoir
-/// commencée. Un réglage qu'il faut remonter chercher n'en est plus un.
+/// Ce paragraphe disait « il flotte en bas », et l'argument tenait : un
+/// chapitre fait jusqu'à quarante-six versets, on éteint les gloses au milieu
+/// de la lecture, et un réglage qu'il faut remonter chercher n'en est plus un.
 ///
-/// Le bouton reste donc à portée, en bas, et la feuille monte par-dessus le
-/// texte — comme la feuille « aA » de l'app, et pour la même raison.
+/// Il y a été repris pour deux raisons, et la seconde annule la première.
+///
+/// D'abord l'app : `ChapterView` pose « aA » en `ONTPlacement.principale`,
+/// c'est-à-dire **en haut à droite**. Le site le mettait en bas en croyant
+/// copier l'app ; il copiait un geste, pas une place.
+///
+/// Ensuite la place elle-même : le bas n'est plus libre. La barre d'onglets
+/// l'occupe depuis que la liseuse porte la chrome de l'app — il a fallu
+/// dégager le bouton par-dessus elle, puis l'effacer pendant une sélection
+/// parce qu'il chevauchait la barre de partage. Deux rustines pour tenir une
+/// place que trois objets se disputaient.
+///
+/// Ce que l'argument d'origine demandait vraiment n'est pas « en bas », c'est
+/// **toujours atteignable**. La barre du haut est `sticky` : elle suit le
+/// lecteur au quarante-sixième verset comme au premier. La feuille, elle,
+/// monte toujours par-dessus le texte.
 ///
 /// ## Il porte les réglages de l'app, et rien d'autre
 ///
@@ -292,6 +489,11 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
     Effect::new(move |_| utilisable.set(true));
 
     let ouvert = RwSignal::new(false);
+
+    // **Lu une fois, et sans s'abonner.** L'habillage d'une page ne change pas
+    // sans qu'elle soit remontée : le sélecteur de « Vous » recharge, et le
+    // routeur remonte à chaque navigation.
+    let sous_l_edition = crate::interface::arbre::sous_l_edition();
 
     // Échap referme. C'est le geste attendu de tout ce qui se pose par-dessus
     // une page, et l'omettre enferme qui navigue au clavier.
@@ -335,19 +537,53 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // `active:scale-95` : le bouton s'enfonce sous le doigt. C'est
                 // le seul retour tactile qu'un navigateur laisse donner, et son
                 // absence fait douter que le clic ait été pris.
-                class="halo se-poser fixed end-6 z-50 flex size-14 items-center justify-center rounded-full border border-or/30 bg-surface-haute text-accent transition-[transform,border-color,box-shadow,opacity] duration-200 ease-out hover:border-or/60 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
-                // Il s'efface pendant une sélection, et les deux raisons
-                // comptent.
+                // **Deux places, parce que deux chromes.**
                 //
-                // La première est mécanique : la barre de sélection occupe
-                // toute la largeur en bas, ce bouton est à `1.5rem` du bas à
-                // droite — **ils se chevauchent**. Vu au simulateur, pas déduit
-                // du code : les deux valeurs sont dans deux fichiers qu'on
-                // n'ouvre pas ensemble.
+                // Sous l'app, c'est une capsule de la barre du haut, à droite
+                // d'une pastille de renvoi : le dessin d'iOS 26, et
+                // `ONTPlacement.principale` le met là.
                 //
-                // La seconde est de propos : on ne règle pas sa typographie
-                // pendant qu'on choisit des versets à partager. Laisser les
-                // deux à l'écran ferait deux actions principales, donc aucune.
+                // Sous l'édition, il **flotte en bas à droite**, comme `main` —
+                // et l'argument d'origine du §8 bis tient toujours : *un
+                // chapitre fait jusqu'à quarante-six versets, et l'on décide
+                // d'éteindre les gloses au milieu de la lecture ; un réglage
+                // qu'il faut remonter chercher n'en est plus un.* Ce qui avait
+                // fait remonter le bouton le 29 septembre est la barre
+                // d'onglets, qui occupait le bas — et l'édition n'en a pas.
+                //
+                // La zone sûre s'ajoute au retrait : sans elle, le bouton se
+                // pose sur la barre d'accueil d'un iPhone, où le geste de
+                // retour prend le clic en premier.
+                class=move || {
+                    if sous_l_edition {
+                        "halo se-poser fixed end-6 z-50 flex size-14 items-center \
+                         justify-center rounded-full border border-or/30 bg-surface-haute \
+                         text-accent transition-[transform,border-color,box-shadow,opacity] \
+                         duration-200 ease-out hover:border-or/60 active:scale-95 \
+                         focus-visible:outline focus-visible:outline-2 \
+                         focus-visible:outline-offset-2 focus-visible:outline-accent \
+                         motion-reduce:transition-none"
+                    } else {
+                        "presse verre se-poser flex size-9 items-center justify-center \
+                         rounded-full text-accent focus-visible:outline focus-visible:outline-2 \
+                         focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    }
+                }
+                style=move || {
+                    sous_l_edition.then_some("bottom: calc(1.5rem + env(safe-area-inset-bottom))")
+                }
+                // Il s'efface pendant une sélection, et il n'en reste
+                // qu'une raison sur deux.
+                //
+                // La mécanique est tombée avec le déplacement : le bouton
+                // n'est plus dans le coin qu'occupe la barre de sélection, ils
+                // ne peuvent plus se chevaucher.
+                //
+                // Celle de propos tient seule, et elle suffit : on ne règle pas
+                // sa typographie pendant qu'on choisit des versets à partager.
+                // Laisser les deux à l'écran ferait deux actions principales,
+                // donc aucune. L'app dit la même chose autrement — toute sa
+                // barre d'outils est sous `if actif`.
                 //
                 // `inert` en plus de l'opacité : un bouton transparent reste
                 // cliquable et tabulable — c'est la même règle que pour la
@@ -356,9 +592,24 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 class=("opacity-0", selection_active)
                 class=("pointer-events-none", selection_active)
                 inert=move || selection_active().then_some("")
-                style="bottom: calc(1.5rem + env(safe-area-inset-bottom))"
             >
-                <span aria-hidden="true" class="font-titre text-xl leading-none">"aA"</span>
+                // **Le libellé suit le bouton, pas l'inverse.** `main` écrit
+                // `text-xl` dans un cercle de `size-14` ; la capsule de l'app
+                // fait `size-9` et prend `text-base`. Reporter l'un dans
+                // l'autre donne un « aA » perdu au milieu d'un grand disque —
+                // ce que l'auteur a vu tout de suite : *« le texte à
+                // l'intérieur n'a pas la bonne taille »*.
+                //
+                // ==Une taille de contenu reprise sans sa boîte n'est pas une
+                // valeur portée, c'est une valeur déplacée.==
+                <span
+                    aria-hidden="true"
+                    class="font-titre leading-none"
+                    class=("text-xl", sous_l_edition)
+                    class=("text-base", !sous_l_edition)
+                >
+                    "aA"
+                </span>
             </button>
 
             <div
@@ -376,16 +627,32 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                 // pouce, et c'est de là qu'elle monte. Sur un grand écran elle
                 // se pose au-dessus du bouton, à sa largeur, et croît depuis
                 // son coin : le mouvement dit d'où elle sort.
-                class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-carte border-t border-filet bg-surface-haute px-6 pt-6 transition-[transform,opacity] duration-300 ease-out sm:inset-x-auto sm:end-6 sm:bottom-24 sm:w-96 sm:origin-bottom-right sm:rounded-carte sm:border motion-reduce:transition-none"
+                // **Elle sort du bouton, donc elle le suit.** Sur un grand
+                // écran, la feuille croît depuis son coin d'origine : ancrée en
+                // haut quand le bouton est en haut, au-dessus de lui quand il
+                // flotte en bas. Une feuille qui pousse du coin opposé à celui
+                // qu'on vient de toucher ne se lit plus comme venant de là.
+                class=move || {
+                    let commun = "fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto \
+                                  rounded-t-feuille border-t border-filet bg-surface-haute px-6 \
+                                  pt-6 transition-[transform,opacity] duration-300 ease-out \
+                                  sm:inset-x-auto sm:end-6 sm:w-96 sm:rounded-feuille sm:border \
+                                  motion-reduce:transition-none";
+                    if sous_l_edition {
+                        format!("{commun} sm:bottom-24 sm:origin-bottom-right")
+                    } else {
+                        format!("{commun} sm:bottom-auto sm:top-16 sm:origin-top-right")
+                    }
+                }
                 class=("translate-y-full", move || !ouvert.get())
                 class=("opacity-0", move || !ouvert.get())
                 class=("pointer-events-none", move || !ouvert.get())
-                class=("sm:translate-y-2", move || !ouvert.get())
+                class=("sm:-translate-y-2", move || !ouvert.get())
                 class=("sm:scale-95", move || !ouvert.get())
                 class=("translate-y-0", move || ouvert.get())
                 class=("opacity-100", move || ouvert.get())
                 class=("sm:scale-100", move || ouvert.get())
-                style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))"
+                style="padding-bottom: calc(1.5rem + var(--barre-d-onglets, 0px) + env(safe-area-inset-bottom))"
             >
                     // La poignée : c'est elle qui fait lire l'objet comme une
                     // feuille qu'on tire, et non comme une boîte qui a surgi.
@@ -407,78 +674,7 @@ pub fn ReglagesDeLecture(preferences: RwSignal<Preferences>) -> impl IntoView {
                         </button>
                     </div>
 
-                    <Groupe titre="Thème">
-                        <ChoixDeTheme preferences />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Les quatre peaux de l'application, à l'identique. Mystique est née "
-                        "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
-                        "téléphone ; les trois autres font le chemin inverse."
-                    </p>
-
-                    <Groupe titre="Disposition">
-                        <Bascule
-                            libelle="Versets à la suite"
-                            actif=Signal::derive(move || preferences.get().continu)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.continu = v);
-                            }
-                        />
-                    </Groupe>
-                    <p class=NOTE>
-                        "À la suite, les versets coulent en prose et leurs numéros passent en "
-                        "exposant — c'est la lecture suivie. En blocs, chaque verset se tient "
-                        "seul : c'est le mode d'étude."
-                    </p>
-
-                    <Groupe titre="Nom des livres">
-                        <Bascule
-                            libelle="Le français reçu"
-                            actif=Signal::derive(move || preferences.get().francais)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.francais = v);
-                            }
-                        />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Allumé, les livres portent le nom qu'on leur connaît — « Apocalypse », "
-                        "« la Loi », « Actes des Apôtres ». Éteint, ils portent ce que leur nom "
-                        "hébreu veut dire : « le machazeh de Yohanan », « la Fondation », « les "
-                        "gevurot de YHWH par ses neviim »."
-                    </p>
-                    <p class=NOTE>
-                        "L'écart entre les deux n'est pas une nuance de traduction. La torah est "
-                        "l'instruction qui vise ; le grec l'a rendue par nomos, le code qui "
-                        "contraint, et le français en a hérité « la Loi »."
-                    </p>
-                    <p class=NOTE>
-                        "Ce réglage est une béquille, et il est allumé pour qu'on puisse marcher "
-                        "avant de savoir. En l'éteignant, des mots apparaissent que vous n'avez "
-                        "peut-être jamais lus — parashah, par exemple, la division que le scribe "
-                        "hébreu traçait en laissant un blanc, mille ans avant qu'on numérote des "
-                        "chapitres. Ils sont en or : ils se touchent, et ils expliquent."
-                    </p>
-
-                    <Groupe titre="Niveaux du texte">
-                        <Bascule
-                            libelle="Gloses"
-                            actif=Signal::derive(move || preferences.get().gloses)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.gloses = v);
-                            }
-                        />
-                        <Bascule
-                            libelle="Translittération et hébreu"
-                            actif=Signal::derive(move || preferences.get().niveau_3)
-                            au_changement=move |v| {
-                                preferences.update(|p| p.niveau_3 = v);
-                            }
-                        />
-                    </Groupe>
-                    <p class=NOTE>
-                        "Le corps de la traduction reste toujours visible. Les gloses "
-                        "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
-                    </p>
+                    <LesReglages preferences />
             </div>
         </Show>
     }
@@ -575,6 +771,178 @@ fn ChoixDeTheme(preferences: RwSignal<Preferences>) -> impl IntoView {
     }
 }
 
+/// Le curseur de taille — **les bornes de celui de l'app**, 11 à 28.
+///
+/// ## Pourquoi un curseur et pas deux boutons
+///
+/// L'app emploie `Slider(in: 11...28, step: 1)`, et le geste compte : on
+/// cherche une taille en regardant le texte bouger, pas en comptant des
+/// appuis. Dix-huit crans au bouton, ce sont dix-sept allers-retours entre le
+/// doigt et l'œil.
+///
+/// Les deux « A » qui l'encadrent sont ceux d'iOS. Ils ne sont pas décoratifs :
+/// ils disent le **sens** du curseur sans un mot, et ils le disent à qui ne
+/// lit pas encore confortablement la page — ce qui est précisément le lecteur
+/// qui cherche ce réglage.
+///
+/// ## Ce qu'il touche
+///
+/// `--lecture`, et rien d'autre. La variable n'est lue que par `.liseuse` : ni
+/// la navigation, ni le fil d'Ariane, ni ce panneau ne bougent. C'est la règle
+/// de l'app, et sa raison est écrite là-bas — *un lecteur atteint de
+/// kératocône monte le corps du texte très haut pour lire, et n'a aucune raison
+/// de faire enfler du même geste une barre latérale.*
+/// Le menu des fontes — **les sept de l'app**, et chacune s'écrit dans la sienne.
+///
+/// ## Une ligne qui se compose dans ce qu'elle propose
+///
+/// C'est le même principe que les pastilles de thème, appliqué à la lettre :
+/// une ligne qui dit « Spectral » en Literata ne dit rien. Chaque ligne porte
+/// donc son propre `data-fonte` **et** la classe `liseuse` — parce que c'est là
+/// que la règle vit —, et se lit dans la fonte qu'elle offre.
+///
+/// Le nom seul ne suffirait pas à choisir : « Newsreader » ne dit rien à qui
+/// n'est pas typographe. La note de l'app est donc reprise **mot pour mot** —
+/// elle a été écrite pour ça, et un lecteur qui passe du téléphone au site doit
+/// retrouver les mêmes phrases.
+#[component]
+fn ChoixDeFonte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    view! {
+        <div role="radiogroup" aria-label="Fonte" class="mt-1 flex flex-col">
+            {Fonte::TOUTES
+                .into_iter()
+                .map(|fonte| {
+                    let actif = Signal::derive(move || preferences.get().fonte == fonte);
+                    view! {
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked=move || actif.get().to_string()
+                            on:click=move |_| preferences.update(|p| p.fonte = fonte)
+                            data-fonte=fonte.attribut()
+                            class="liseuse -mx-2 flex items-baseline gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-aubergine/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class=("text-accent", move || actif.get())
+                            class=("text-encre", move || !actif.get())
+                        >
+                            // Le nom, dans sa propre lettre. `font-corps` lit
+                            // `--font-corps`, que le `data-fonte` de ce bouton
+                            // vient de redéclarer pour son sous-arbre.
+                            <span class="font-corps text-base leading-none">{fonte.libelle()}</span>
+                            <span class="flex-1 text-sm leading-tight text-encre-douce">
+                                {fonte.note()}
+                            </span>
+                            // La coche, à la fin : elle confirme, elle n'annonce
+                            // pas. Masquée à l'oreille — `aria-checked` le dit
+                            // déjà, et le redire ferait « coché, coché ».
+                            <span
+                                aria-hidden="true"
+                                class="w-3 text-accent"
+                                class=("opacity-0", move || !actif.get())
+                            >"·"</span>
+                        </button>
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
+}
+
+#[component]
+fn TailleDuTexte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    let corps = Signal::derive(move || preferences.get().corps);
+
+    view! {
+        <div class="mt-1 flex items-center gap-3">
+            // Les deux repères. `aria-hidden` : « A » et « A » à l'oreille ne
+            // disent rien, et le curseur porte déjà son nom.
+            <span aria-hidden="true" class="font-corps text-sm leading-none text-encre-douce">
+                "A"
+            </span>
+            <input
+                type="range"
+                min=Theme::CORPS_MINIMUM.to_string()
+                max=Theme::CORPS_MAXIMUM.to_string()
+                step="1"
+                aria-label="Taille du texte"
+                // La valeur **et** le texte de la valeur : un lecteur d'écran
+                // annoncerait « 19 » sans dire de quoi, là où « 19 points »
+                // situe. C'est l'unité de l'app, et elle est la même ici.
+                aria-valuetext=move || format!("{} points", corps.get())
+                prop:value=move || corps.get().to_string()
+                on:input=move |evenement| {
+                    let brut = event_target_value(&evenement);
+                    if let Ok(valeur) = brut.parse::<u8>() {
+                        // Le serrage est ici **et** dans le script de l'en-tête :
+                        // un `<input>` se pilote au clavier, et rien n'empêche
+                        // une valeur hors bornes d'arriver par un autre chemin.
+                        let valeur = valeur.clamp(Theme::CORPS_MINIMUM, Theme::CORPS_MAXIMUM);
+                        preferences.update(|p| p.corps = valeur);
+                    }
+                }
+                class="curseur h-6 flex-1 cursor-pointer appearance-none bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            />
+            <span aria-hidden="true" class="font-corps text-2xl leading-none text-encre-douce">
+                "A"
+            </span>
+        </div>
+    }
+}
+
+/// Le curseur d'interligne — le second de la section « Corps ».
+///
+/// ## Ses repères ne sont pas deux « A »
+///
+/// Celui de la taille en porte deux, petit et grand, et c'est lisible : la
+/// chose réglée *est* la taille d'une lettre. L'interligne ne se montre pas
+/// dans une lettre — il se montre dans **l'écart entre deux**. Les repères sont
+/// donc deux jeux de traits, serrés puis espacés, ce que l'app dessine de la
+/// même façon.
+///
+/// ## Et il compte des crans, pas des dixièmes
+///
+/// La valeur voyage en entier — neuf crans, comme le `step: 0.1` de l'app. Le
+/// texte annoncé au lecteur d'écran, lui, dit le résultat : « interligne 1,68 »
+/// situe, « cran 5 » ne dit rien.
+#[component]
+fn InterligneDuTexte(preferences: RwSignal<Preferences>) -> impl IntoView {
+    let crans = Signal::derive(move || preferences.get().interligne);
+    let total =
+        move || 1.68 + (f64::from(crans.get()) - f64::from(Theme::INTERLIGNE_PAR_DEFAUT)) / 10.0;
+
+    view! {
+        <div class="mt-3 flex items-center gap-3">
+            <span aria-hidden="true" class="flex w-4 shrink-0 flex-col gap-[2px]">
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+            </span>
+            <input
+                type="range"
+                min=Theme::INTERLIGNE_MINIMUM.to_string()
+                max=Theme::INTERLIGNE_MAXIMUM.to_string()
+                step="1"
+                aria-label="Interligne"
+                aria-valuetext=move || format!("interligne {:.2}", total())
+                prop:value=move || crans.get().to_string()
+                on:input=move |evenement| {
+                    let brut = event_target_value(&evenement);
+                    if let Ok(valeur) = brut.parse::<u8>() {
+                        let valeur = valeur
+                            .clamp(Theme::INTERLIGNE_MINIMUM, Theme::INTERLIGNE_MAXIMUM);
+                        preferences.update(|p| p.interligne = valeur);
+                    }
+                }
+                class="curseur h-6 flex-1 cursor-pointer appearance-none bg-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            />
+            <span aria-hidden="true" class="flex w-4 shrink-0 flex-col gap-[5px]">
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+                <span class="block h-px bg-encre-douce"></span>
+            </span>
+        </div>
+    }
+}
+
 #[component]
 fn Groupe(#[prop(into)] titre: String, children: Children) -> impl IntoView {
     view! {
@@ -635,7 +1003,7 @@ fn Bascule(
 ///
 /// ## Pourquoi une garde de plus, alors qu'il y a déjà un `debug_assert!`
 ///
-/// Le `debug_assert!` de [`preferences`] a trouvé la panne de `/fr/lire` — mais
+/// Le `debug_assert!` de [`preferences`] a trouvé la panne de `/fr/webapp` — mais
 /// seulement parce qu'un humain a ouvert la page en développement. Il ne s'arme
 /// **pas en `--release`**, et la CI construit en release : elle appelait cette
 /// route, recevait `200`, et l'annonçait saine. La page l'était ; le réglage,
@@ -751,5 +1119,132 @@ mod contrat {
                  `debug_assert!` ne s'arme pas et que la page rend `200`."
             );
         }
+    }
+}
+/// **Les réglages eux-mêmes**, sans la feuille qui les porte.
+///
+/// ## Pourquoi ils sont séparés
+///
+/// Ils ne vivaient que dans la feuille « aA », qui n'est montée que sur un
+/// **passage**. Conséquence, et c'est un cul-de-sac que l'auteur a trouvé :
+/// depuis la Bible, le Lexique, Qahal ou Chuqqot, **aucun moyen d'y arriver**.
+/// La ligne « Réglages de lecture » de l'onglet « Vous » menait d'ailleurs à
+/// la Bible — c'est-à-dire à un écran qui n'a pas ce bouton.
+///
+/// L'app n'a pas ce trou : `YouTab` pousse `ReadingSettingsSheet` comme une
+/// **destination**, en plus de la barre d'outils du chapitre. Deux chemins,
+/// un seul écran.
+///
+/// Le site a maintenant les deux aussi — la feuille dans un chapitre, la page
+/// `/fr/webapp/reglages` ailleurs — et **un seul jeu de bascules**. Les
+/// dupliquer aurait fait deux vérités à tenir d'accord, ce que ce dépôt paie
+/// chaque fois qu'il l'a laissé arriver.
+///
+/// ## Et ils ne demandent aucun compte
+///
+/// C'était la question de l'auteur : *« est-ce que c'est parce que je ne suis
+/// pas connecté ? »* Non. Tout vit dans `localStorage`, sous `ont.lecture`,
+/// depuis toujours — le compte ne sert qu'à retrouver ses surlignages d'un
+/// appareil à l'autre. Ce qui manquait était un **chemin**, pas un droit.
+#[component]
+pub fn LesReglages(preferences: RwSignal<Preferences>) -> impl IntoView {
+    view! {
+    <Groupe titre="Thème">
+        <ChoixDeTheme preferences />
+    </Groupe>
+    <p class=NOTE>
+        "Les quatre peaux de l'application, à l'identique. Mystique est née "
+        "ici — c'est la nuit d'aubergine du site — et elle a été portée sur le "
+        "téléphone ; les trois autres font le chemin inverse."
+    </p>
+
+    <Groupe titre="Fonte">
+        <ChoixDeFonte preferences />
+    </Groupe>
+    <p class=NOTE>
+        "Les six familles sont embarquées avec le site, en trois coupes "
+        "chacune — l'italique de la translittération est dessinée, jamais "
+        "penchée à la main. Georgia vient de votre appareil."
+    </p>
+
+    // **« Corps » chez l'app**, et les deux curseurs y vont
+    // ensemble : la taille et l'interligne se règlent l'un contre
+    // l'autre, et les séparer ferait remonter chercher le second
+    // après avoir touché le premier.
+    <Groupe titre="Corps">
+        <TailleDuTexte preferences />
+        <InterligneDuTexte preferences />
+    </Groupe>
+    <p class=NOTE>
+        "Elle ne touche que le texte, jamais la navigation ni ce panneau — "
+        "une chrome qui grandit avec le corps mange la place où ce texte "
+        "s'affiche. Le zoom du navigateur, lui, agrandit tout, et les deux "
+        "se multiplient."
+    </p>
+
+    <Groupe titre="Disposition">
+        <Bascule
+            libelle="Versets à la suite"
+            actif=Signal::derive(move || preferences.get().continu)
+            au_changement=move |v| {
+                preferences.update(|p| p.continu = v);
+            }
+        />
+        <Bascule
+            libelle="Couper les mots"
+            actif=Signal::derive(move || preferences.get().coupure)
+            au_changement=move |v| {
+                preferences.update(|p| p.coupure = v);
+            }
+        />
+    </Groupe>
+    <p class=NOTE>
+        "À la suite, les versets coulent en prose et leurs numéros passent en "
+        "exposant — c'est la lecture suivie. En blocs, chaque verset se tient "
+        "seul : c'est le mode d'étude."
+    </p>
+    <p class=NOTE>
+        "Couper les mots resserre la justification et supprime les lézardes "
+        "blanches d'une colonne étroite. Éteint par défaut : la césure hache "
+        "les mots, et qui grossit le texte pour le voir se retrouve avec plus "
+        "de coupures, pas moins."
+    </p>
+
+    // **Le registre est parti**, et ce n'est pas un retrait :
+    // il a sa carte dans « Vous ».
+    //
+    // L'app l'a sorti d'ici délibérément, et son commentaire
+    // dit pourquoi : il était rangé « entre la disposition des
+    // versets et la taille du texte », c'est-à-dire **avec la
+    // typographie**. Or il ne change pas la façon dont le texte
+    // se présente — il change **ce que les livres sont
+    // appelés**, donc le corpus tel que le lecteur le
+    // rencontre.
+    //
+    // Ses trois paragraphes d'explication pesaient ici plus que
+    // tous les autres réglages réunis, sur une feuille qu'on
+    // ouvre au milieu d'un chapitre pour éteindre une glose.
+
+
+    <Groupe titre="Niveaux du texte">
+        <Bascule
+            libelle="Gloses"
+            actif=Signal::derive(move || preferences.get().gloses)
+            au_changement=move |v| {
+                preferences.update(|p| p.gloses = v);
+            }
+        />
+        <Bascule
+            libelle="Translittération et hébreu"
+            actif=Signal::derive(move || preferences.get().niveau_3)
+            au_changement=move |v| {
+                preferences.update(|p| p.niveau_3 = v);
+            }
+        />
+    </Groupe>
+    <p class=NOTE>
+        "Le corps de la traduction reste toujours visible. Les gloses "
+        "explicitent l'implicite hébreu ; le niveau 3 donne le mot original."
+    </p>
     }
 }

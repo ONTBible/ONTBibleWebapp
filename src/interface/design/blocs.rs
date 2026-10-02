@@ -161,6 +161,54 @@ fn gestes(
     (choisi, au_clic, au_clavier)
 }
 
+/// Les trois états qu'un verset porte à l'écran, pour les deux dispositions.
+///
+/// Ils vivaient dans la branche « versets séparés », en trois fermetures
+/// écrites sur place. La lecture suivie ne les avait pas — **et c'est tout le
+/// défaut** : son `<span>` ne portait ni geste, ni état, donc aucun verset ne
+/// s'y sélectionnait et le curseur ne changeait pas.
+///
+/// ==Deux dispositions du même texte sont deux façons de le poser, pas deux
+/// façons de s'en servir.== Un réglage de mise en page qui retire une
+/// fonctionnalité n'est plus un réglage de mise en page.
+///
+/// Rendus ensemble et non recopiés : deux exemplaires d'une même règle finissent
+/// par en dire deux différentes, et celui qu'on ne regarde pas est celui qui
+/// dérive.
+#[allow(clippy::type_complexity)]
+fn etats(
+    choix: Option<Selection>,
+    marquage: Option<Marques>,
+    numero: u32,
+    choisi: impl Fn() -> bool + Copy + Send + Sync + 'static,
+) -> (
+    impl Fn() -> bool + Copy + Send + Sync + 'static,
+    impl Fn() -> Option<&'static str> + Copy + Send + Sync + 'static,
+    impl Fn() -> bool + Copy + Send + Sync + 'static,
+) {
+    // Vraie quand une sélection existe **et que ce verset n'en est pas**. C'est
+    // elle qui estompe : le verset choisi garde sa pleine opacité, ses voisins
+    // reculent.
+    let une_selection_ailleurs =
+        move || choix.is_some_and(|s| s.with(|s| !s.is_empty())) && !choisi();
+    // Le surlignage — une marque durable, donc un **fond**, là où la sélection
+    // n'a qu'un pointillé. L'app tient cette distinction et dit pourquoi : un
+    // fond ferait croire qu'on vient de surligner.
+    let teinte = move || {
+        marquage.and_then(|m| {
+            m.with(|liste| {
+                liste
+                    .iter()
+                    .find(|s| s.verse == numero && s.visible())
+                    .and_then(|s| s.couleur())
+                    .map(|c| c.teinte())
+            })
+        })
+    };
+    let surligne = move || teinte().is_some();
+    (une_selection_ailleurs, teinte, surligne)
+}
+
 fn rendre_bloc(
     bloc: BlocDeTexte,
     en_avant: &[u32],
@@ -197,6 +245,30 @@ fn rendre_bloc(
                         let ancre = format!("v{}", verset.numero);
                         let numero = verset.numero;
                         let noeuds = preparer(&verset.noeuds, p);
+                        // **La lecture suivie se sélectionne aussi. Corrigé le
+                        // 2 octobre 2026.**
+                        //
+                        // Ce `<span>` ne portait ni geste ni état : en « Versets
+                        // à la suite », aucun verset n'était sélectionnable, le
+                        // curseur ne passait pas en pointeur, et la barre ne
+                        // montait jamais. Le lecteur qui avait allumé ce réglage
+                        // perdait le surlignage, la note, la copie et l'image —
+                        // sans qu'aucun écran ne le dise.
+                        //
+                        // ==Deux dispositions du même texte sont deux façons de
+                        // le poser, pas deux façons de s'en servir.== Un réglage
+                        // de mise en page qui retire une fonctionnalité n'est
+                        // plus un réglage de mise en page.
+                        //
+                        // Le pointillé de sélection est d'ailleurs **mieux** ici
+                        // que là-bas : posé sur la décoration de texte, il
+                        // épouse les retours à la ligne, donc un verset qui
+                        // commence au milieu d'une ligne n'entraîne pas un trait
+                        // sur toute la largeur. C'est ce que dit le moteur de
+                        // rendu de l'app, et c'est en flux qu'on le vérifie.
+                        let (choisi, au_clic, au_clavier) = gestes(choix, numero);
+                        let (une_selection_ailleurs, teinte, surligne) =
+                            etats(choix, marquage, numero, choisi);
                         view! {
                             <span
                                 id=ancre
@@ -206,12 +278,49 @@ fn rendre_bloc(
                                 // porte aussi, mais un sélecteur sur `id` ramasse
                                 // tout ce qui commence par « v » ; un attribut
                                 // nommé ne ramasse que les versets.
-                                attr:data-verset=numero
+                                // **`data-verset`, et le préfixe `attr:` n'a rien à faire ici.**
+                                //
+                                // `attr:` est la syntaxe des *composants* — il dit « passe ceci à
+                                // l'élément que tu rends ». Sur un élément natif, Leptos n'a rien à
+                                // transmettre : il écrit le nom tel quel, et le document se retrouve
+                                // avec un attribut dont le préfixe fait partie du nom.
+                                //
+                                // Rien ne s'en plaint. Le HTML est valide, la page s'affiche, et seul
+                                // `query_selector_all("[data-verset]")` rend une liste vide — donc
+                                // `suivre_la_lecture` ne relevait **jamais** la position, et
+                                // « Reprendre » ne pouvait pas se mettre à jour.
+                                //
+                                // ==Une faute de syntaxe qui se compile devient une donnée fausse, et
+                                // une donnée fausse ne lève rien.==
+                                data-verset=numero
                                 class="scroll-mt-24"
                                 class=("rounded-sm", designe)
                                 class=("bg-surface", designe)
-                                class=("box-decoration-clone", designe)
+                                // `box-decoration-clone` vaut pour **tout ce qui
+                                // se peint** sur un élément en flux — le fond du
+                                // verset désigné comme celui d'un surlignage.
+                                // Sans lui, un verset qui court sur trois lignes
+                                // reçoit un seul rectangle à cheval sur les
+                                // trois au lieu d'un fond par ligne.
+                                class=(
+                                    "box-decoration-clone",
+                                    move || designe || surligne(),
+                                )
                                 class=("px-1.5", designe)
+                                class=("opacity-[0.32]", une_selection_ailleurs)
+                                class=("underline", choisi)
+                                class=("decoration-dotted", choisi)
+                                class=("decoration-accent/70", choisi)
+                                class=("underline-offset-[0.3em]", choisi)
+                                class=("decoration-2", choisi)
+                                class=("surligne", surligne)
+                                style=move || teinte().map(|t| format!("--teinte: {t}"))
+                                class=("cursor-pointer", move || choix.is_some())
+                                role=move || choix.is_some().then_some("button")
+                                tabindex=move || choix.is_some().then_some("0")
+                                aria-pressed=move || choix.is_some().then(|| choisi().to_string())
+                                on:click=au_clic
+                                on:keydown=au_clavier
                             >
                                 <span
                                     aria-hidden="true"
@@ -236,28 +345,8 @@ fn rendre_bloc(
                 let ancre = format!("v{}", verset.numero);
                 let numero = verset.numero;
                 let (choisi, au_clic, au_clavier) = gestes(choix, numero);
-                // Vraie quand une sélection existe **et que ce verset n'en est
-                // pas**. C'est elle qui estompe : le verset choisi garde sa
-                // pleine opacité, ses voisins reculent.
-                let une_selection_ailleurs = move || {
-                    choix.is_some_and(|s| s.with(|s| !s.is_empty())) && !choisi()
-                };
-                // Le surlignage — une marque durable, donc un **fond**, là où la
-                // sélection n'a qu'un pointillé. L'app tient cette distinction
-                // et dit pourquoi : un fond ferait croire qu'on vient de
-                // surligner.
-                let teinte = move || {
-                    marquage.and_then(|m| {
-                        m.with(|liste| {
-                            liste
-                                .iter()
-                                .find(|s| s.verse == numero && s.visible())
-                                .and_then(|s| s.couleur())
-                                .map(|c| c.teinte())
-                        })
-                    })
-                };
-                let surligne = move || teinte().is_some();
+                let (une_selection_ailleurs, teinte, surligne) =
+                    etats(choix, marquage, numero, choisi);
                 // La note du lecteur, sous le verset qu'elle commente. Elle vit
                 // **dans** le fond surligné, comme dans l'app : c'est la même
                 // marque, écrite en deux fois.
@@ -285,7 +374,21 @@ fn rendre_bloc(
                     // l'accueil à la mauvaise largeur — voir `bloc.rs`.
                     <div
                         id=ancre
-                        attr:data-verset=numero
+                        // **`data-verset`, et le préfixe `attr:` n'a rien à faire ici.**
+                        //
+                        // `attr:` est la syntaxe des *composants* — il dit « passe ceci à
+                        // l'élément que tu rends ». Sur un élément natif, Leptos n'a rien à
+                        // transmettre : il écrit le nom tel quel, et le document se retrouve
+                        // avec un attribut dont le préfixe fait partie du nom.
+                        //
+                        // Rien ne s'en plaint. Le HTML est valide, la page s'affiche, et seul
+                        // `query_selector_all("[data-verset]")` rend une liste vide — donc
+                        // `suivre_la_lecture` ne relevait **jamais** la position, et
+                        // « Reprendre » ne pouvait pas se mettre à jour.
+                        //
+                        // ==Une faute de syntaxe qui se compile devient une donnée fausse, et
+                        // une donnée fausse ne lève rien.==
+                        data-verset=numero
                         class="-mx-4 rounded-sm pe-4 scroll-mt-24 transition-colors"
                         class=("ps-4", move || !designe)
                         class=("ps-5", designe)
@@ -357,7 +460,33 @@ fn rendre_bloc(
         // c'est elle que suit un lecteur d'écran pour parcourir la page.
         BlocDeTexte::Titre { niveau, noeuds } => {
             let contenu = rendre(&preparer(&noeuds, p));
-            let classe = "mt-16 mb-6 text-encre-vive first:mt-0";
+            // **Les métriques de l'intertitre sont celles de l'app**, relevées
+            // dans `ONTTypography.heading` — et elles sont beaucoup plus
+            // serrées que ce que le site posait.
+            //
+            // | | app | site, avant |
+            // |---|---|---|
+            // | taille | corps **× 1,25** | l'échelle de l'édition |
+            // | fonte | Jost SemiBold | celle du corps, héritée |
+            // | couleur | **`brandInk`** | `inkStrong` |
+            //
+            // Le site prenait son `h2` d'édition, c'est-à-dire un palier
+            // calculé pour ouvrir une section de page d'essai. Dans un
+            // chapitre, un intertitre ne **commence** rien : il découpe. L'app
+            // le dit — *« ce sont eux qui font d'un chapitre une suite de
+            // scènes plutôt qu'un mur »* — et un mur ne se découpe pas avec
+            // des titres d'affiche.
+            //
+            // `1.25em` et non une valeur du barème : l'unité se mesure sur la
+            // taille **héritée**, donc sur `.liseuse`, donc sur le réglage du
+            // lecteur. Le rapport de l'app se tient alors à tous les crans,
+            // sans que rien ne le recalcule.
+            //
+            // La couleur est la **marque**, et ce n'est pas un détail de
+            // teinte : elle vaut l'aubergine sur les peaux claires et l'or sur
+            // les sombres — l'app a mesuré qu'un bordeaux posé en dur y tombait
+            // à 1,23:1. `--color-marque-encre` porte déjà le jeton porté.
+            let classe = "mt-14 mb-5 font-titre text-[1.25em] font-semibold leading-snug text-marque-encre first:mt-0";
             match niveau {
                 0..=2 => view! { <h2 class=classe>{contenu}</h2> }.into_any(),
                 3 => view! { <h3 class=classe>{contenu}</h3> }.into_any(),
@@ -550,7 +679,10 @@ mod tests {
         for p in [Preferences::default(), Preferences::nu()] {
             let html = rendre_sous(p);
             assert!(
-                html.contains("/fr/lexique/elohim"),
+                html.contains(&crate::domaine::chemins::fiche(
+                    crate::domaine::lecture::Arbre::CANONIQUE,
+                    "elohim"
+                )),
                 "le lien de la fiche doit survivre à {p:?}"
             );
         }

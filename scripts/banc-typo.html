@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><title>Banc — typographie</title>
+<style>body{background:#18090D;color:#CFC5B9;font:15px/1.6 -apple-system;margin:0;padding:12px}
+h1{font-size:14px;color:#D87994;margin:0 0 8px}pre{white-space:pre-wrap;font-size:13px;background:#261016;padding:8px;border-radius:8px}
+iframe{width:100%;height:200px;border:1px solid #35151E}</style>
+<h1>BANC — ce n'est pas le site</h1>
+<!--
+  Le banc de la typographie.
+
+  ## Pourquoi il existe
+
+  Une taille ne se lit pas dans le code : elle sort d'un `clamp` interpolé sur
+  la largeur, multiplié par `--lecture`, hérité à travers trois éléments. Et
+  elle ne se juge pas à l'œil sur une comparaison — l'app et le site se
+  capturent sur des appareils de largeurs différentes, donc le rapport apparent
+  n'est pas le rapport réel.
+
+  Ce banc lit `getComputedStyle` dans la page et rend des nombres. C'est lui qui
+  a trouvé que le titre d'unité valait **2,71 fois le corps** là où l'app le met
+  à **1,7** : l'auteur avait dit « il me semble qu'il y a un problème », et il
+  avait raison sans pouvoir dire lequel.
+
+  ## Comment s'en servir
+
+      cp scripts/banc-typo.html target/site/
+      ATTENTE=28 ./scripts/sim.sh /banc-typo.html
+
+  Les rapports à tenir, relevés dans `ONTTypography` :
+
+      titre d'unité   corps × 1,7     (display)
+      intertitre      corps × 1,25    (heading)
+      verset          corps × 1       (corpus)
+
+  ## Ce qu'il ne fait pas
+
+  Il mesure le site, jamais l'app — les valeurs de droite viennent du Swift, pas
+  d'une capture. Et il porte son étiquette en rouge : §7 bis, *un outil qui
+  imite le produit doit porter sa marque.*
+-->
+<pre id="j">…</pre>
+<iframe id="f" src="/fr/webapp/bereshit/bereshit-3"></iframe>
+<script>
+const j=document.getElementById('j'),f=document.getElementById('f');
+f.addEventListener('load',()=>setTimeout(()=>{
+ const d=f.contentWindow.document, w=f.contentWindow, L=[];
+ const cs=e=>e?w.getComputedStyle(e):null;
+ L.push('racine  font-size = '+cs(d.documentElement).fontSize);
+ L.push('body    font-size = '+cs(d.body).fontSize);
+ const v=d.querySelector('.corps-de-lecture');
+ L.push('verset  font-size = '+(v?cs(v).fontSize:'—')+'   line-height = '+(v?cs(v).lineHeight:'—'));
+ const li=d.querySelector('.liseuse');
+ L.push('liseuse font-size = '+(li?cs(li).fontSize:'—'));
+ L.push('--lecture    = '+cs(d.documentElement).getPropertyValue('--lecture'));
+ L.push('--interligne = '+cs(d.documentElement).getPropertyValue('--interligne'));
+ L.push('--text-base  = '+cs(d.documentElement).getPropertyValue('--text-base'));
+ const m=(sel,nom)=>{const e=d.querySelector(sel);
+   L.push((nom+'                ').slice(0,16)+'= '+(e?cs(e).fontSize:'—')+
+          (e?'   '+cs(e).fontWeight+'   '+cs(e).fontFamily.split(',')[0]:''));};
+ m('h1','h1 unité'); m('.liseuse h2','intertitre');
+ m('.corps-de-lecture','verset'); m('.corps-de-lecture .italic','glose');
+ m('.font-hebreu','hébreu'); m('.liseuse p.chiffres-tableau','renvoi');
+ m('.barre-d-onglets a span','onglet');
+ L.push('largeur de la fenêtre = '+w.innerWidth+' px   dpr='+w.devicePixelRatio);
+ j.textContent=L.join('\n');
+},1500));
+</script>

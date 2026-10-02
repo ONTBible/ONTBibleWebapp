@@ -7,6 +7,76 @@ divergence.
 
 ---
 
+## 29 septembre 2026, le soir — les builds de développement alertaient comme la production
+
+Un courriel de Sentry, `ONT-IOS-15` : *App Hang Fully Blocked, 12,2 à
+13,0 secondes*. Il ne venait d'aucun lecteur — `environment: debug`, donc d'un
+build posé sur l'appareil de l'auteur par `scripts/lancer-sur-*`. Sa pile
+tenait en deux `?` et *« 70 additional frame(s) were not displayed »*.
+
+**Rien n'écartait ce bruit, et rien ne pouvait l'écarter.** Trois mesures, lues
+dans `sentry-cocoa` 9.25.0 et non supposées :
+
+| où | ce qui s'y lit |
+|---|---|
+| `SentryDependencyContainer.swift:568` | le suiveur de blocages **V2 est imposé** sur iOS, sans option |
+| `SentryWatchdogTerminationLogic.swift:55` | `isSimulatorBuild` n'écarte **que** les terminaisons watchdog |
+| tout `Sources/` du SDK | **aucune** occurrence de `IsBeingTraced` — un débogueur en pause produit un blocage comme un autre |
+
+Une pause lldb, un point d'arrêt, un premier chargement non optimisé : chacun
+rend l'alerte exacte qu'on venait de recevoir.
+
+### Ce qui l'a laissé passer, et qui était déjà écrit à côté
+
+`Observability.start()` se taisait sous XCTest, et disait pourquoi :
+
+> *« chaque test qui lève une erreur polluerait le tableau de bord »*
+
+**La raison valait pour Debug depuis le début.** Elle n'y avait simplement pas
+été appliquée. La bonne question n'était pas « faut-il filtrer ? » mais « à quoi
+répond déjà la garde d'à côté ».
+
+Et le script des symboles portait un énoncé faux, qui se relisait sans qu'on le
+voie — `televerser-symboles.sh:25` : *« un build Debug ne produit pas de dSYM,
+et ses piles sont déjà lisibles »*. Vrai d'un crash Swift, dont la pile vient du
+binaire chargé. Faux d'un blocage, dont la pile vient de l'échantillonnage natif
+— d'où les soixante-dix frames muettes.
+
+### Ce qui traverse
+
+**Android porte exactement le même défaut, et il est vivant.**
+`android/app/src/main/kotlin/com/labibleont/ont/observabilite/Observabilite.kt:54` :
+
+```kotlin
+options.environment = if (BuildConfig.DEBUG) "debug" else "release"
+```
+
+Aucune garde en amont. Un `./gradlew installDebug` alerte comme la production.
+La correction iOS est dans `Observability.doitRemonter(debug:sousXCTest:arguments:)`,
+et sa forme se porte telle quelle : une fonction pure qui prend son monde en
+paramètre — c'est ce qui la rend éprouvable, `BuildConfig.DEBUG` n'étant pas
+davantage posable depuis un test que `#if DEBUG`.
+
+**Le backend ne l'a pas.** `deployer-backend.yml` ne se déclenche que sur
+`app-store`, donc `ont-api` ne reçoit que du déployé.
+
+**Le site : rien à porter.**
+
+### Et la porte, qui est le vrai enseignement
+
+Éteindre Debug sans exception aurait rendu `-corpus-absent` inerte — le
+dispositif qui fait échouer le chargement du corpus *pour de bon*, et dont le
+commentaire dit qu'il sert à *« vérifier que la chaîne de remontée fonctionne de
+bout en bout, sans fabriquer un faux événement »*. Cet argument n'existe qu'en
+Debug.
+
+Rien n'aurait échoué : le lancement se serait déroulé, l'erreur aurait bien été
+levée, et le tableau de bord serait resté vide. On aurait conclu que la chaîne
+est rompue — ou qu'elle tient.
+
+> ==Éteindre une remontée éteint aussi les contrôles qui passaient par elle.
+> Avant de couper, demander ce qui s'en servait pour rougir.==
+
 ## La règle
 
 Après **chaque** travail dans l'un des dépôts, avant de dire que c'est fini :
@@ -6228,3 +6298,483 @@ synthétique dans un cadre ne pilote pas ce routeur ; il observe.
 Ce qui est établi suffisait : le défaut a été **vu**, il ne peut plus survenir.
 La seconde propriété ne dépend d'aucune hypothèse sur l'outil qui a trouvé la
 première — c'est ce qui la rend préférable à une explication plausible.
+
+## 21 septembre 2026, le soir — la webapp, et ce qu'un portage rapporte
+
+L'auteur a demandé que la webapp soit identique en tout point à l'app. Le
+portage est fait : couleurs, thèmes, typographie, fontes, navigation, icône,
+métriques. Ce qui suit ne retient que ce qui vaut pour les trois dépôts.
+
+### Un portage ne tient pas seulement d'accord, il rapporte
+
+Le site portait les cinq pastels **de jour** de l'app, posés sur sa nuit
+d'aubergine. Sa garde inscrivait la dette depuis des semaines, avec son propre
+diagnostic : « ce sont les six couleurs à la fois — soit l'opacité, soit un
+marquage qui s'ajusterait au fond réel. Un chantier, pas un correctif. »
+
+Le chantier était fait chez le voisin. Les trois marquages les plus faibles
+passent de 2,29:1 à 4,43:1 — d'illisible à au-dessus d'AA — sans qu'une seule
+décision ait été prise ici.
+
+> ==Personne d'un côté n'a cherché ce gain, personne de l'autre ne savait qu'il
+> manquait. Un an de divergence, et chacun aurait réparé son côté — deux fois
+> le même travail, avec deux résultats différents.==
+
+### Le site a un réglage là où l'app en a deux, et c'est arrivé deux fois
+
+D'abord sur les largeurs — `readingWidth 700` borne la prose, `pageWidth 850`
+borne une page, et macOS l'a dit : *la leçon n'est ni l'une ni l'autre valeur,
+c'est qu'il en faut deux.*
+
+Puis sur les échelles. L'app règle l'interface et le corps du texte
+**séparément**, et son code dit pourquoi : *un lecteur atteint de kératocône
+monte le corps du texte très haut pour lire, et n'a aucune raison de faire
+enfler du même geste une barre latérale qui lui mangerait la place où ce texte
+s'affiche.*
+
+> ==Quand un voisin a deux réglages là où l'on en a un, la question n'est pas
+> « lequel reprendre » mais « qu'est-ce qu'il distingue que je confonds ».==
+
+### Une valeur n'est portable que si l'on sait ce qu'elle compense
+
+La session iOS a séparé, dans une même liste de six nombres, celui qui ne
+devait pas voyager : `hebrewScale = 1,08` n'est pas un rapport de hiérarchie,
+c'est une compensation de fonte — EzraSIL a un œil plus petit que Literata à
+taille égale. Sans EzraSIL servie, le 1,08 serait faux.
+
+Il se trouve que le site la sert, donc la compensation voyage. Mais la réserve
+était juste, et elle aurait coûté si elle n'avait pas été posée.
+
+### Mesurer contre la spécification n'est pas mesurer à l'exécution
+
+Deux sessions ont vérifié les multiplicateurs du Dynamic Type, et aucune ne les
+a mesurés sur un appareil : elles ont confirmé qu'ils **reproduisent la table
+publiée**. Ce sont deux affirmations différentes, et le dire coûte une ligne.
+
+> ==« J'ai vérifié » ne dit pas *contre quoi*. Une vérification qui ne nomme
+> pas sa référence se lit comme une mesure.==
+
+### Une propriété personnalisée ne se lit que vers le bas
+
+Deux fois dans la journée, sur deux dépôts de problème différents :
+
+- `[data-fonte='x'] .liseuse` est une **descendance** — vrai sur la racine,
+  faux sur une ligne de menu qui porte les deux sur le même élément. Six lignes
+  composaient juste, la septième non ;
+- une hauteur déclarée **sur** la barre d'onglets était invisible au bouton
+  flottant, qui en est le **frère**.
+
+> ==Une variable CSS descend, elle ne traverse pas. Et le jeton honnête est
+> celui auquel l'élément se conforme, pas celui qui décrit l'élément d'à
+> côté.== Un nombre qui décrit la géométrie d'un autre élément est toujours
+> faux quelque part — c'est la leçon de `--hauteur-entete`, reprise du bon côté.
+
+## 29 septembre 2026 — le site prend une dépendance de plus, et une absence se mesure
+
+L'écran de lecture de la webapp a été aligné sur celui de l'app, et deux choses
+en sortent qui ne se voient pas depuis un seul dépôt.
+
+### `dist/prononciation.json` est devenu une dépendance de compilation du site
+
+Le site l'embarque par `include_str!`, comme `corpus.json`, `glossary.json`,
+`shemot.json` et `occurrences.json`. **S'il disparaît ou change de forme, le
+site ne compile plus** — pas une page qui manque, une compilation qui échoue.
+
+C'est le comportement voulu, et c'est le même arbitrage que pour les quatre
+autres : mieux vaut une compilation qui rougit qu'un dossier de données absent
+à l'exécution. Mais il faut le savoir avant de le retirer du pipeline.
+
+La forme, elle, est tenue par `pipeline::PrononciationFile`, que les deux
+dépôts partagent — donc un renommage de champ se voit à la compilation des
+deux côtés, et non à l'affichage d'un seul.
+
+### `dist/chuqqot.json` est émis, et ses `entries` sont vides
+
+Relevé, pas déduit : le fichier existe, son tableau est de longueur zéro. Le
+pipeline fait donc son travail, et c'est le **vault** qui n'a encore écrit
+aucune chuqqah.
+
+Conséquence pour les trois : l'onglet Chuqqot existe dans l'app et pas sur le
+site, et ce n'est pas un retard de portage. Le jour où le vault en écrit une,
+c'est le site qui doit suivre — pas l'inverse.
+
+### Une contrainte transmise entre sessions doit être datée ou revérifiée
+
+Le `CLAUDE.md` du site écartait **Qahal et Chuqqot ensemble**, « des
+fonctionnalités à écrire, et non de la chrome à porter ». C'était juste pour
+l'une et faux pour l'autre : Qahal n'attend rien — l'app le dit elle-même,
+« structure posée, sans serveur », et le site porte déjà le verset du jour par
+la même fonction de la date.
+
+Deux minutes dans `dist/` tranchaient, et personne ne les avait passées parce
+que la phrase était écrite. C'est le défaut du portail GitHub de l'OAuth,
+rejoué chez nous : une contrainte de plateforme qu'on se transmet entre
+sessions se relit sans qu'on la remette en cause.
+
+> ==Une phrase qui **écarte** quelque chose doit dire ce qui la rendrait
+> fausse.== « Ce sont des fonctionnalités, pas de la chrome » ne se vérifie
+> nulle part ; « `dist/chuqqot.json` a zéro entrée » se vérifie en une
+> commande.
+
+Le même défaut, la même journée, sur le même fichier : « le site ne suit pas
+encore la position de lecture » était vrai à l'écriture du §8 nonies et faux
+depuis que le compte existe. `retenir_la_position` est appelée à chaque
+ouverture d'unité, et la page du compte affichait déjà le résultat.
+
+### Et une leçon de portage, qui vaut pour les trois
+
+Deux commentaires de l'app disaient **ne pas copier** une pièce, et les deux
+portaient sur le dessin, pas sur le contenu :
+
+- la session macOS : *« ne pas copier sa barre latérale »*, parce que le Mac la
+  dessine à la main pour contourner trois défauts d'AppKit. Mais son propre
+  code dit que l'iPad montre **le même corpus** — *« Sur l'iPad il est toujours
+  visible »*. Ce qu'il ne fallait pas copier était le contournement ;
+- `ONTPlatformes.swift` : *« que des accidents de SwiftUI »*. Un seul méritait
+  le voyage, et il avait été nommé.
+
+> ==Un « ne copie pas ça » nomme une **cause**, pas une pièce. Relire la cause
+> avant d'obéir : quand elle n'existe pas chez soi, la pièce, elle, peut
+> valoir.==
+
+## 29 septembre 2026, le soir — un compte faux, et le défaut n'était que chez nous
+
+Une lecture externe — la session MANAGER, sans notre contexte — a relevé que
+trois pages du site annonçaient « **Trois** livres sur soixante-dix » quand
+`dist/books/` en porte **cinq** depuis le 11 septembre. Corrigé, et deux cas de
+plus trouvés par la garde qui a suivi. Ce qui traverse est ailleurs.
+
+### Mesuré chez les deux voisins : ils ne portent pas ce défaut
+
+Résultat **négatif et vérifié**, parce qu'un « probablement pas » ne vaut rien :
+
+    app      les comptes d'interface viennent du modèle — `totalVerses`,
+             `glossaryCount` —, jamais d'un littéral. Les occurrences de
+             « soixante-dix livres » dans le Swift sont toutes des
+             commentaires ; le pied de YouTab ne porte aucun nombre.
+    vault    ses scripts comptent ce qu'ils parcourent.
+
+Donc rien à porter, et c'est la conclusion utile : le défaut était une
+propriété de **notre** façon d'écrire des pages — de la prose en littéraux Rust
+—, pas une propriété du projet.
+
+### Et pourtant la même fausse affirmation est déjà arrivée chez l'app
+
+`app/Captures/LISEZ-MOI.md` la raconte : *« l'affiche 04 “Trois livres sur
+soixante-dix” quand il y en a cinq depuis le 11 septembre »*. Même chiffre,
+même écart, même date de bascule — par un mécanisme entièrement différent : là
+une **capture périmée**, ici un **littéral**.
+
+> ==Une classe de défaut traverse les dépôts sans que son mécanisme traverse.==
+> Chercher chez le voisin le mécanisme qu'on vient de corriger ne trouve rien ;
+> chercher l'**affirmation fausse** le trouve.
+
+Et les deux causes profondes sont la même : une chaîne où rien ne peut rougir.
+L'app le dit de ses captures — « la garde de `soumettre.py` refuse une version
+*sans* captures ; personne ne refusait une version aux captures **fausses** ».
+Ici, l'avertissement contre ce défaut exact était écrit **trois fois**, dans
+`design/chiffres.rs`, `build.rs` et `api.rs`, et le texte est resté en dur.
+
+### Ce qui explique que personne n'ait tranché, et qui manquait au relevé
+
+`design/chiffres.rs` rend des chiffres dans une **grille tabulaire** — juste
+pour un tableau de bord, faux au milieu d'une phrase. Écrire « 5 livres sur
+70 » aurait corrigé le mensonge en abîmant la composition. **Le défaut était
+connu et resté en dur parce que le corriger demandait une pièce qui n'existait
+pas.**
+
+`domaine/nombres.rs` est cette pièce : un nombre en toutes lettres, avec les
+trois irrégularités du français et une épreuve pour chacune — le `s` de
+« quatre-vingts » qui ne vaut que seul, le « et » qui remplace le trait d'union
+à six places exactement, les deux vigésimales. Au-delà de cent elle rend les
+chiffres : le corpus n'en compte que soixante-dix, et **une règle qu'on
+n'éprouverait jamais vaut moins qu'un aveu**.
+
+**Elle n'a pas à être portée**, et la raison est intéressante : l'app affiche
+ses comptes dans une **liste de réglages**, en chiffres alignés de chasse fixe,
+parce qu'une liste se parcourt d'un intitulé à sa valeur. Le site les écrit
+**dans une phrase**. C'est la distinction que `chiffres.rs` et `nombres.rs`
+portent déjà à eux deux, et c'est la même leçon que `readingWidth` contre
+`pageWidth` : une liste ne se lit pas comme une phrase.
+
+### La garde, et pourquoi elle exclut les commentaires
+
+`aucune_page_ne_code_le_compte_des_livres` cherche un nombre en lettres à côté
+du mot « livres » dans tout `src/interface`. Les lignes de commentaire sont
+**écartées du relevé** : elles racontent le défaut, elles ne le commettent pas.
+Sans cette exception, la garde accuserait sa propre explication — et c'est
+exactement ce qui la ferait désarmer.
+
+Elle a rougi sur les trois signalées **et sur deux autres** : `livre.rs`, qui
+disait « soixante-sept des soixante-dix », c'est-à-dire 70 − 3 — donc faux sur
+le compte *et* sur la soustraction, sur la page qu'on n'atteint qu'en cherchant
+un livre absent ; et `lire.rs`, qui écrivait le total dans une `description=`,
+là où personne ne relit jamais.
+
+### La leçon d'instrument, et elle vaut pour les huit sessions
+
+    la lecture froide    trouve la CLASSE, parce qu'elle lit la PAGE
+    la garde             trouve l'ÉTENDUE, parce qu'elle lit TOUT
+
+Cinq sessions avaient le défaut sous les yeux depuis des semaines en lisant la
+**règle** au lieu de la **page**. Une lecture sans notre mémoire ne peut pas
+savoir ce qu'on a décidé, donc elle ne voit que ce qui est écrit : c'est le seul
+contrôle de la flotte **qui puisse échouer pour une autre raison que nous**.
+Les autres partagent nos prémisses, donc nos angles morts.
+
+Et la garde ajoute ce qu'aucune lecture ne donne : elle ne se fatigue pas, et
+elle ne relit pas deux fois la même page.
+
+## 29 septembre 2026, le soir — l'ordre de deux fusions, et pourquoi il n'est pas symétrique
+
+Le pipeline tient un tableau des **fichiers émis et des liseuses qui les
+lisent**, et il ne se contente pas de le déclarer : il **inspecte le source des
+consommateurs**. Une ligne qui dit « ontbible.com le lit » et un source du site
+qui ne nomme nulle part le fichier font échouer l'étape « Le corpus » — dans la
+CI du site, pas dans celle de l'app.
+
+C'est un très bon contrôle, et il a rendu ceci, mot pour mot :
+
+```text
+échec : 1 écart(s) entre ce que `dist/` porte et ce que les liseuses lisent :
+  · `prononciation.json` : ontbible.com est déclarée le lire,
+    et **son source ne le nomme nulle part**
+```
+
+### La fenêtre faisait quatre heures, et personne ne l'avait vue venir
+
+Mesuré sur `origin/dev` et sur l'historique du site, pas déduit :
+
+    dev~1   22 sept.        (Liseuse::Site, Lecture::Lacune("la feuille de
+                             prononciation n'a pas de page sur le site"))
+    dev     29 sept. 13 h 18 (Liseuse::Site, Lecture::Lit)   ← promotion #340
+    site    29 sept. 12 h 56  api.rs nomme le fichier — branche non fusionnée
+
+La déclaration n'a donc **pas** précédé la chose déclarée, et c'est la première
+chose à écarter parce que c'en a exactement l'air. Elle a vécu dix-huit jours en
+`Lacune` — une dette nommée, qui ne rougit pas — puis elle est passée à `Lit` le
+jour même où le lecteur existait. **L'ordre était juste ; ce qui a manqué est
+quatre heures.**
+
+Entre 13 h 18 et la fusion du lecteur, **toute PR partie de `main` hérite le
+rouge**, sans toucher au corpus ni au pipeline. Celle de la manageuse l'a pris en
+ne changeant qu'une page de prose.
+
+### L'invariant : la tolérance n'est pas symétrique, donc l'ordre est forcé
+
+    fusionner le lecteur, PUIS promouvoir   →  aucune fenêtre rouge
+    promouvoir, PUIS fusionner le lecteur   →  toutes les PR rouges entre les deux
+
+`Lecture::Lacune` **tolère** un lecteur qui existe déjà — il n'y a pas de garde
+qui reproche à un site de lire un fichier qu'on le dit ne pas lire. `Lecture::Lit`
+**ne tolère pas** un lecteur qui n'existe pas encore : c'est son seul travail.
+
+> ==Quand deux dépôts portent les deux moitiés d'un même changement, l'ordre des
+> deux fusions se déduit de laquelle des deux gardes est tolérante.== Ce n'est
+> pas une question de qui est prêt le premier.
+
+Et la conséquence pratique, pour les trois dépôts : **une promotion qui allume un
+`Lit` se coordonne avec la fusion qu'elle rend nécessaire**, ou elle se fait
+après elle. Le prix d'un mauvais ordre n'est pas payé par celui qui promeut : il
+est payé par toutes les sessions qui ouvrent une PR pendant la fenêtre, et
+aucune ne peut savoir pourquoi sans lire un log qui parle d'un autre dépôt.
+
+### Ce qui a permis de le trancher, et qui n'était pas la lecture du code
+
+J'avais **écarté** le mécanisme quand la manageuse l'a proposé : « Le corpus »
+exécute le pipeline dans `ONTBibleApp`, donc le contenu de `src/` du site ne peut
+pas en changer le résultat. C'était faux, et le raisonnement avait l'air solide —
+il ignorait simplement qu'un pipeline puisse lire ses consommateurs.
+
+C'est le log d'une PR **qui n'est pas la mienne** qui l'a tranché. Deux branches
+clonant le même `dev` à quatre minutes d'écart, l'une verte à cette étape et
+l'autre rouge : la différence ne pouvait venir que du dépôt du site.
+
+> ==Deux exécutions qui ne diffèrent que par une variable désignent cette
+> variable.== C'est le seul raisonnement qui ait servi ici, et il n'a demandé
+> aucune connaissance du pipeline.
+
+## 30 septembre 2026 — une capture a deux consommateurs, et un seul le sait
+
+`/fr/l-app` affiche l'écran de lecture de l'app dans un châssis d'iPhone. La
+capture venait du **13 août 2026** et montrait une app qui n'existe plus :
+quatre onglets au lieu de cinq, une pastille de barre muette au lieu de « Bereshit · 3 »,
+des noms propres nus au lieu des renvois rendus. Reprise depuis le jeu du
+18 septembre.
+
+### Ce que ni l'un ni l'autre des deux dépôts ne pouvait voir seul
+
+La source est `ONTBibleApp/app/Captures/brut/iphone-6.9/02.png`, et elle est
+**gitignorée là-bas** — ligne 31, classée « régénérable ». Le site en dépend
+sans qu'aucun commit ne le porte :
+
+    chez l'app    un intermédiaire jetable, que `captures.sh` refait en 3 min
+    chez le site  la seule source d'une image de la page d'acquisition
+
+Personne n'a tort. Le fichier *est* régénérable, et le classer ainsi était
+juste tant qu'il n'avait qu'un consommateur. **C'est le second consommateur qui
+change la nature du fichier, et il est né dans l'autre dépôt.**
+
+> ==Un fichier jetable cesse de l'être quand quelqu'un d'autre s'en sert, et
+> celui qui le jette ne le sait pas.== Le versionner ne réglerait rien — il
+> doublerait le poids du dépôt pour un intermédiaire. Ce qui manquait était une
+> ligne nommant le second lecteur, là où quelqu'un pourrait le supprimer.
+
+Le livrable, lui, est versionné chez le site : `public/images/app-lecture.webp`.
+C'est la **provenance** qui était fragile, pas l'image. Refaire la capture
+demande donc de la *reproduire* et non de la retrouver.
+
+### Et la comparaison au pixel vaut mieux qu'une promesse
+
+Le site avait demandé un mot quand l'écran de lecture changerait. La session iOS
+a fait un cran mieux : elle a régénéré l'écran le jour même et l'a comparé au
+jeu de septembre, barre d'état exclue — **zéro octet différent sur 11 979 220**.
+
+Elle ne dit pas « c'est juste », elle dit « rien n'a bougé depuis ce jeu-là » —
+ce qui est exactement ce dont un consommateur d'image a besoin. La barre d'état
+est exclue parce que `captures.sh` y fige l'heure à 09:41 et qu'un simulateur
+fraîchement effacé ne la porte pas encore.
+
+**Sa première mesure rendait 74,8 % de pixels différents**, et pas un seul du
+fait de l'app : `simctl openurl` avait déclenché l'alerte « Ouvrir dans … ? »,
+qui appartient à SpringBoard, survit aux relancements et **assombrit tout
+l'écran**. Elle comparait d'abord deux écrans différents, puis le bon écran sous
+un voile.
+
+> ==Une différence massive n'est pas une preuve de changement ; c'est d'abord un
+> soupçon sur l'instrument.== Les deux pièges étaient documentés en tête de
+> `captures.sh`, et la mesure a été lancée avant de le lire.
+
+### Le risque qui reste, et pourquoi on ne l'automatise pas
+
+Le site n'a **aucune garde** qui puisse rougir sur une capture périmée : une
+vieille image s'affiche aussi bien qu'une fraîche. C'est le compte des livres de
+la veille sous une autre matière — une affirmation figée à côté d'une source qui
+bouge —, à ceci près qu'un nombre se calcule et qu'une capture se reprend.
+
+Comparer deux images ne dit pas laquelle est juste. La garde reste donc humaine
+des deux côtés : l'app prévient quand son écran bouge, le site reprend.
+
+## 1er octobre 2026 — le site sert deux arbres, et l'app doit le savoir
+
+`ontbible.com` ne sert plus une liseuse mais **deux**, sous deux racines :
+
+    /fr/liseuse/…    l'édition — en-tête du site, nav horizontale, pied de page
+    /fr/webapp/…     l'app — barre latérale, barre d'onglets, corpus épinglé
+
+Le texte est le même des deux côtés — même mesure, même fonte, même composition.
+Ce qui change est l'habillage, et le lecteur choisit. **L'adresse dit toujours
+lequel il regarde** : quand sa préférence diverge de l'arbre demandé, c'est
+l'adresse qui s'aligne, jamais le rendu qui se tait.
+
+### Ce qui traverse chez l'app : le fichier d'association
+
+`interface/association.rs` déclare maintenant **trois** chemins :
+
+    /fr/liseuse/*    la forme d'aujourd'hui
+    /fr/webapp/*     la forme du 30 septembre
+    /fr/lire/*       l'originale
+
+Et aucun ne partira. La raison est chez Apple, pas chez nous :
+
+> ==iOS ne relit ce fichier qu'à l'installation, et Apple le met en cache sur
+> son propre CDN.== Un appareil installé hier porte l'ancienne liste pour
+> longtemps.
+
+Retirer un chemin ferait ouvrir ses liens dans le navigateur au lieu de l'app,
+**en silence des deux côtés** — rien ne le signale ni ici ni là-bas. La liste
+s'allonge donc, et ne se raccourcit que sur une décision, jamais par ménage.
+
+L'app, de son côté, intercepte sur le **chemin déclaré**, pas sur sa cible : un
+lien `/fr/lire/…` qu'elle laisse passer sera renvoyé par le serveur, mais s'il
+ne figure pas dans sa liste elle ne le verra jamais.
+
+### Ce qui ne bouge pas, et qu'il faut savoir avoir vérifié
+
+**Les trois routes OAuth restent à `/fr/compte/aller|retour|partir`.** Elles ne
+sont dans aucun arbre, et c'est délibéré : `/fr/compte/retour` est l'adresse
+enregistrée chez Google et chez GitHub. Rien à rouvrir dans les consoles.
+
+Un piège mesuré au passage, qui vaut pour tout middleware Axum du projet :
+`axum::middleware::from_fn` **enveloppe le routeur entier**, y compris les
+routes `merge`ées avant elle dans le code. Un commentaire affirmait le
+contraire ; la mesure a rendu `308 /fr/liseuse/compte/aller/google`, c'est-à-dire
+une connexion cassée.
+
+> ==Une exemption qu'on affirme sans la mesurer est une exemption qui n'existe
+> pas.==
+
+### Ce que le vault et le pipeline ne voient pas changer
+
+Rien. Le corpus, le lexique et `dist/` sont lus exactement comme avant — seul
+change le chemin sous lequel le site les rend. Vérifié : aucun fichier de
+`../ONTBibleApp/dist/` n'est nommé différemment, et `prononciation.json` reste
+la dépendance de compilation déclarée le 29 septembre.
+
+### Une seule adresse s'indexe
+
+`/fr/liseuse/…` est l'arbre **canonique** : c'est la forme lisible sans
+JavaScript, celle qu'un moteur reçoit entière au premier octet. Chaque page de
+`/fr/webapp/…` porte un `rel="canonical"` vers sa jumelle, et le plan du site
+ne déclare que la première — 436 adresses, zéro de l'autre arbre.
+
+> ==Ne pas déclarer une page n'est pas la cacher : c'est dire laquelle de ses
+> deux adresses fait foi.==
+
+Rien à resoumettre à Bing ni à Google au-delà du plan habituel : les adresses
+déclarées ne changent que de préfixe, et IndexNow se relance sur un **ajout** de
+pages, pas sur un déménagement.
+
+### Et une garde d'égalité entre dépôts a mis la CI en file d'attente
+
+**Le 1er octobre 2026, dans l'heure qui a suivi.** L'épreuve qui lit la copie du
+fichier d'association chez le backend n'en vérifiait qu'un chemin ; je l'ai
+resserrée pour qu'elle exige les trois, ayant constaté que le voisin était
+aligné.
+
+Il l'était **dans une branche**. Ma CI clone `dev`.
+
+```text
+mon arbre local   /fr/lire/*  /fr/liseuse/*  /fr/webapp/*
+origin/dev        /fr/lire/*  /fr/webapp/*
+origin/device     les trois — 17 commits en attente de promotion
+```
+
+> ==Le dépôt voisin qu'on lit n'est pas celui que la CI clone.== Un arbre de
+> travail porte les branches de qui y travaille ; une CI ne voit que ce qui est
+> fusionné. Les deux répondent à la même commande et ne disent pas la même
+> chose.
+
+Et l'écart n'est pas borné par le temps : `device → dev` est une décision de
+l'auteur, pas un délai de CI. Une garde posée dessus attend un arbitrage humain
+dont personne ne connaît la date.
+
+#### À quoi on voit, avant de l'écrire, qu'une garde va devenir une file
+
+C'est la forme de ce qu'on compare, et elle se lit sans attendre le rouge :
+
+| garde | compare | tient-elle ? |
+|---|---|---|
+| `applicationId` entre les deux dépôts | deux **valeurs stables** | oui — un identifiant se renomme, il ne s'allonge pas : aucun côté n'a jamais raison d'être en retard |
+| les chemins de l'association | deux **listes dont l'une grandit** | non — le côté qui ajoute précède forcément l'autre |
+
+> ==Une garde d'égalité entre dépôts tient quand les deux côtés changent
+> ensemble, et devient une file d'attente dès que l'un peut avoir raison d'être
+> en retard.==
+
+Le découpage qui tient : **chacun garde ce qu'il contrôle**. Le site exige
+`/fr/lire/*`, qui ne dépend de personne et dont le retrait casserait tous les
+liens d'avant le déménagement. L'alignement des âges récents est gardé chez
+l'app, à l'endroit du geste.
+
+#### Et les deux dépendances de la semaine ont été trouvées de la même façon
+
+    app/Captures/brut/        →  /fr/l-app et comparer-a-l-app.py
+    backend/…/web.rs          →  deux épreuves du site
+
+Les deux sont **nées dans le dépôt du site**, et rien chez l'app ne peut les
+énumérer. Aucune n'a été trouvée par une recherche : la première par un message
+sur les captures, la seconde par un message sur l'association. Les deux fois, ce
+message disait « tu n'as rien à faire ».
+
+> ==Ce n'est pas l'information qui manquait, c'est l'occasion de la croiser.==

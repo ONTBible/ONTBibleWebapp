@@ -1,0 +1,41 @@
+<!doctype html><meta charset="utf-8"><title>Banc — le bouton aA</title>
+<style>body{background:#18090D;color:#CFC5B9;font:14px/1.6 -apple-system;margin:0;padding:10px}
+h1{font-size:13px;color:#D87994;margin:0 0 6px}pre{white-space:pre-wrap;font-size:12px;background:#261016;padding:8px;border-radius:8px}
+iframe{width:402px;height:700px;border:1px solid #35151E}</style>
+<h1>BANC — ce n'est pas le site</h1>
+<pre id="j">…</pre>
+<iframe id="f" src="/fr/webapp/bereshit/bereshit-3"></iframe>
+<script>
+const j=document.getElementById('j'),f=document.getElementById('f'),L=[];
+const dire=t=>{L.push(t);j.textContent=L.join('\n')};
+f.addEventListener('load',()=>setTimeout(()=>{
+ const w=f.contentWindow,d=f.contentWindow.document;
+ w.addEventListener('error',e=>dire('ERREUR '+(e.message||e.error)));
+ const bouton=[...d.querySelectorAll('button')].find(b=>(b.getAttribute('aria-label')||'').includes('Réglages'));
+ if(!bouton){dire('aucun bouton « Réglages de lecture » dans le document');return;}
+ dire('bouton trouvé, aria-expanded='+bouton.getAttribute('aria-expanded'));
+ const r=bouton.getBoundingClientRect();
+ dire('  rect = '+Math.round(r.x)+','+Math.round(r.y)+' '+Math.round(r.width)+'×'+Math.round(r.height));
+ const dessus=d.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+ dire('  au centre du bouton, le document rend : '+(dessus?dessus.tagName+'.'+(dessus.className||'').toString().slice(0,50):'rien'));
+ bouton.click();
+ setTimeout(()=>{
+   dire('après clic, aria-expanded='+bouton.getAttribute('aria-expanded'));
+   const dlg=d.querySelector('[role="dialog"]');
+   if(!dlg){dire('  aucune feuille dans le document');return;}
+   const cs=w.getComputedStyle(dlg), rd=dlg.getBoundingClientRect();
+   dire('  feuille : opacity='+cs.opacity+'  transform='+cs.transform.slice(0,28));
+   dire('           rect='+Math.round(rd.x)+','+Math.round(rd.y)+' '+Math.round(rd.width)+'×'+Math.round(rd.height));
+   dire('           fenêtre = '+w.innerWidth+'×'+w.innerHeight);
+   const cx=rd.x+rd.width/2, cy=rd.y+Math.min(30,rd.height/2);
+   const dessus=d.elementFromPoint(cx,cy);
+   dire('  au-dessus de la feuille : '+(dessus?dessus.tagName+'.'+(dessus.className||'').toString().slice(0,60):'rien'));
+   const barre=d.querySelector('.barre-d-onglets');
+   if(barre) dire('  barre d\'onglets z='+w.getComputedStyle(barre).zIndex+
+                  '  rect='+Math.round(barre.getBoundingClientRect().y));
+   const collante=d.querySelector('.sticky');
+   if(collante) dire('  barre collante z='+w.getComputedStyle(collante).zIndex+
+                     '  position='+w.getComputedStyle(collante).position);
+ },700);
+},1800));
+</script>

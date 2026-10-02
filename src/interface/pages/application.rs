@@ -172,7 +172,7 @@ pub fn Application() -> impl IntoView {
             </p>
             <p class="text-encre-douce text-pretty">
                 "Ce qui manquera : la lecture hors ligne, le widget et les notifications du "
-                "verset du jour. Le reste y est — "<Lien href="/fr/lire">"le corpus entier"</Lien>
+                "verset du jour. Le reste y est — "<Lien href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())>"le corpus entier"</Lien>
                 ", les trois niveaux, et les mêmes réglages de lecture."
             </p>
         </Bloc>
@@ -221,9 +221,63 @@ fn Atout(titre: &'static str, children: Children) -> impl IntoView {
 /// n'en montrera donc rien, quel que soit l'appareil.
 ///
 /// Ce qu'on voit dans la capture, c'est son **empreinte** : iOS pousse l'heure
-/// à gauche et les indicateurs à droite, laissant un trou central. Mesuré sur
-/// `app-lecture.webp`, ce trou fait 47 % de la largeur — la preuve que la
-/// capture vient bien d'un appareil à île, et la place où la poser.
+/// à gauche et les indicateurs à droite, laissant un trou central — la preuve
+/// que la capture vient bien d'un appareil à île, et la place où la poser.
+///
+/// **La mesure se redonne avec sa méthode**, sans quoi elle ne se refait pas :
+/// sur la bande horizontale comprise entre 1 % et 3 % de la hauteur, on relève
+/// les colonnes qui s'écartent du fond de plus de 40 (somme des trois canaux),
+/// et l'on prend le plus grand intervalle vide entre deux d'entre elles. La
+/// capture de septembre 2026 rend **49,9 %** de la largeur ; celle d'août 2026,
+/// qu'elle remplace, en rendait 54,4 % à la même méthode.
+///
+/// Ce paragraphe annonçait 47 % sans dire comment. Le chiffre n'était pas faux,
+/// il était **invérifiable** — et il nommait un fichier qui a changé depuis.
+/// ==Une mesure dont on ne peut pas redonner le seuil n'est pas une mesure,
+/// c'est un souvenir.==
+///
+/// Rien de tout cela n'entre dans le code : l'île se place sur la géométrie de
+/// l'appareil, pas sur ce relevé. Le trou ne sert qu'à vérifier qu'il y a bien
+/// une île à dessiner.
+///
+/// ## Elle périme sans que rien ne le dise
+///
+/// La capture vient de `ONTBibleApp/app/Captures/brut/iphone-6.9/02.png`, et
+/// **ce chemin n'est dans aucun commit** : `brut/` est gitignoré là-bas, classé
+/// « régénérable ». Le livrable, lui, est ici et versionné — c'est la
+/// *provenance* qui est fragile, pas l'image.
+///
+/// Pour la refaire, il faut donc la **reproduire** et non la retrouver :
+/// `ONTBibleApp/scripts/captures.sh`, trois minutes. Le jeu versionné de
+/// l'app — `app/Captures/iphone-6.9/02.png` — ne sert pas : c'est l'**affiche**
+/// App Store, déjà posée sur son fond d'aubergine, quand il nous faut l'écran
+/// nu pour poser notre propre châssis.
+///
+/// Et l'app change. Celle qu'elle remplace datait du
+/// 13 août 2026 : elle montrait **quatre** onglets là où il y en a cinq, une
+/// pastille de barre **muette** là où elle nomme l'unité, et des noms propres
+/// en encre là où les renvois sont désormais rendus.
+///
+/// Le dépôt de l'app tient sa vitrine par une règle — *« un jeu de captures
+/// pris avant le dernier changement d'interface n'est pas réputé juste, il est
+/// réputé inconnu »* — et rien ne la tient **ici**. Ce site n'a pas de garde
+/// qui puisse rougir sur une image périmée : une capture ancienne s'affiche
+/// aussi bien qu'une fraîche.
+///
+/// ==C'est le même défaut que le compte des livres, sous une autre matière :
+/// une affirmation figée à côté d'une source qui bouge.== La différence est
+/// qu'un nombre se calcule et qu'une capture se reprend — donc celle-ci se
+/// refait à la main, quand l'écran de lecture de l'app bouge.
+///
+/// **Mais on peut faire un cran mieux qu'une promesse**, et la session iOS l'a
+/// montré le 30 septembre 2026 : elle a régénéré l'écran ce jour-là et l'a
+/// comparé au jeu de septembre, barre d'état exclue — **zéro octet différent
+/// sur 11 979 220**. Pas « visuellement identique » : identique.
+///
+/// La comparaison au pixel ne dit pas *c'est juste*, elle dit *rien n'a bougé
+/// depuis ce jeu-là* — et c'est exactement ce qu'on demande ici. Elle exclut la
+/// barre d'état, que `captures.sh` fige à 09:41 et qu'un simulateur neuf ne
+/// porte pas encore.
 ///
 /// Les proportions sont celles de l'appareil, pas un dessin à l'œil : 126 pt de
 /// large sur 37,33, à 11 pt du haut, sur un écran de 402 pt. Rapportées à la
@@ -244,27 +298,44 @@ fn Ecran() -> impl IntoView {
                 class="pointer-events-none absolute inset-0 -z-10 scale-125 rounded-full bg-aubergine/45 blur-3xl"
             ></span>
 
-            <div class="rounded-[2.4rem] border border-or/15 bg-nuit p-2 shadow-2xl shadow-nuit/70">
+            // Toutes les mesures du châssis dérivent de `--chassis`, et c'est
+            // la seule valeur qui change avec l'écran. Les trois paliers
+            // reprennent exactement `w-56 / sm:w-64 / lg:w-72`, qui étaient
+            // posés sur l'image : ils portent maintenant la **coque**, bord
+            // compris, donc l'image y perd les 5,2 % du cadre. C'est voulu — un
+            // téléphone se mesure à sa coque, pas à sa dalle.
+            <div class="chassis [--chassis:14rem] sm:[--chassis:16rem] lg:[--chassis:18rem]">
+                // Les cinq commandes, aux places de l'appareil. Elles sont
+                // posées sur la **coque** et non sur l'écran : elles en sortent.
+                <span aria-hidden="true" class="chassis-touche chassis-touche--g top-[12.5%] h-[4.4%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--g top-[20.5%] h-[7%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--g top-[29.5%] h-[7%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--d top-[22.5%] h-[10%]"></span>
+                <span aria-hidden="true" class="chassis-touche chassis-touche--d top-[36%] h-[5.2%]"></span>
+
                 // Le `relative` est sur un conteneur qui épouse l'image, et non
                 // sur la coque : l'île se place en part de l'**écran**, pas du
                 // châssis, et les deux diffèrent de l'épaisseur du bord.
-                <div class="relative w-56 sm:w-64 lg:w-72">
+                <div class="relative">
                     <img
                         src=image("app-lecture.webp")
                         alt="Bereshit 3 dans l'application : le texte, ses gloses en retrait, \
-                             les intraduisibles en or et l'hébreu vocalisé."
+                             les intraduisibles en or, l'hébreu vocalisé, les renvois \
+                             soulignés vers les passages cités, et la barre des cinq \
+                             onglets — Qahal, Bible, Lexique, Chuqqot, Vous."
                         width="880"
                         height="1912"
                         // `loading=eager` : elle est le sujet du bloc, et la charger
                         // paresseusement la ferait apparaître après coup.
                         loading="eager"
-                        class="block h-auto w-full rounded-[1.9rem]"
+                        class="chassis-ecran"
                     />
                     <span
                         aria-hidden="true"
                         class="pointer-events-none absolute top-[1.26%] left-1/2 w-[31.4%] -translate-x-1/2 rounded-full bg-nuit aspect-[126/37.33]"
                     ></span>
                 </div>
+                <span aria-hidden="true" class="chassis-reflet"></span>
             </div>
         </div>
     }
@@ -578,9 +649,9 @@ fn Beta(
                 // le moment où l'on se demande ce qu'une app fait de ce qu'on
                 // lui confie.
                 <p class="mt-10 text-[0.95em] text-encre-douce text-pretty">
-                    "Sans rien installer, "<Lien href="/fr/lire">"le corpus se lit ici même"</Lien>
+                    "Sans rien installer, "<Lien href=crate::domaine::chemins::bible(crate::interface::arbre::arbre_maintenant())>"le corpus se lit ici même"</Lien>
                     " — les mêmes textes, les mêmes trois niveaux, "
-                    <Lien href="/fr/lexique">"le même lexique"</Lien>". "
+                    <Lien href=crate::domaine::chemins::lexique(crate::interface::arbre::arbre_maintenant())>"le même lexique"</Lien>". "
                     <Lien href="/fr/confidentialite">"La confidentialité"</Lien>" dit ce que "
                     "l'app garde sur l'appareil et ce qu'elle n'envoie nulle part ; "
                     <Lien href="/fr/conditions">"les conditions"</Lien>" valent pour la bêta "

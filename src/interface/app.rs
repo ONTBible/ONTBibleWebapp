@@ -5,10 +5,11 @@ use leptos_router::{
     ParamSegment, SsrMode, StaticSegment,
 };
 
+use crate::interface::arbre::sous_l_arbre;
 use crate::interface::design::{image, Bouton, Hero, PiedDePage};
 use crate::interface::pages::{
-    Accueil, Application, Assistance, Compte, Conditions, Confidentialite, Fiche, Lexique, Lire,
-    Livre, Negations, Passage, Pourquoi, Recherche,
+    Accueil, Application, Assistance, Chuqqot, Compte, Conditions, Confidentialite, Fiche, Lexique,
+    Lire, Livre, Negations, Partie, Passage, Pourquoi, Prononciation, Qahal, Recherche, Reglages,
 };
 use crate::interface::tete::{Tete, ORIGINE};
 
@@ -146,33 +147,80 @@ fn PeauAvantLePremierRendu() -> impl IntoView {
 /// seule duplication de tout ce mécanisme, et `le_script_reprend_les_trois_
 /// clauses_de_la_regle` en garde la forme.
 fn script_de_la_peau() -> String {
-    use crate::domaine::lecture::{Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{Arbre, Fonte, Theme};
 
     let connus = Theme::TOUS
         .iter()
         .map(|theme| format!("'{}'", theme.attribut()))
         .collect::<Vec<_>>()
         .join(",");
-    let liseuse = LA_LISEUSE
+    // **Les deux racines, depuis l'énumération.** `LA_LISEUSE` portait une
+    // table de préfixes ; elle disait la même chose que `Arbre`, et deux tables
+    // qui disent la même chose finissent par en dire deux différentes.
+    let liseuse = Arbre::TOUS
         .iter()
-        .map(|prefixe| format!("'{prefixe}'"))
+        .map(|arbre| format!("'{}'", arbre.racine()))
         .collect::<Vec<_>>()
         .join(",");
+    let fontes = Fonte::TOUTES
+        .iter()
+        .map(|fonte| format!("'{}'", fonte.attribut()))
+        .collect::<Vec<_>>()
+        .join(",");
+    let (bas, haut, defaut) = (
+        Theme::CORPS_MINIMUM,
+        Theme::CORPS_MAXIMUM,
+        Theme::CORPS_PAR_DEFAUT,
+    );
+    let (il_bas, il_haut, il_defaut) = (
+        Theme::INTERLIGNE_MINIMUM,
+        Theme::INTERLIGNE_MAXIMUM,
+        Theme::INTERLIGNE_PAR_DEFAUT,
+    );
 
     // `try` sur tout : `localStorage` **lève** quand le site est bloqué —
     // navigation privée stricte, cookies refusés — et une exception ici
     // arrêterait l'analyse de l'en-tête. La page partirait sans sa feuille.
+    //
+    // **Les deux réglages ne se posent pas pareil, et ce n'est pas une
+    // inattention.** La peau est bornée à la liseuse : posée ailleurs, elle
+    // mettrait du parchemin sous un massif d'aubergine. La taille, elle, se
+    // pose partout — `--lecture` n'est lue que par `.liseuse`, qui n'existe
+    // que dans la liseuse. Une valeur inerte hors de son lieu n'a pas besoin
+    // d'être bornée, et la borner coûterait une seconde condition à tenir
+    // d'accord avec la première.
     format!(
-        "try{{var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
+        "try{{var o=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}'),\
+         r=document.documentElement,n=+o.corps;\
+         if(n>={bas}&&n<={haut})r.style.setProperty('--lecture',n/{defaut});\
+         var g=+o.interligne;\
+         if(g>={il_bas}&&g<={il_haut})\
+         r.style.setProperty('--interligne',1.68+(g-{il_defaut})/10);\
+         if(o.coupure===!0)r.style.setProperty('--coupure','auto');\
+         var p=location.pathname.replace(/\\/+$/,''),L=[{liseuse}],d=0;\
          for(var i=0;i<L.length;i++)if(p===L[i]||p.indexOf(L[i]+'/')===0)d=1;\
-         if(d){{var c=[{connus}],\
-         t=JSON.parse(localStorage.getItem('ont.lecture')||'{{}}').theme;\
-         if(c.indexOf(t)>=0)document.documentElement.setAttribute('data-theme',t);}}\
+         if(d){{var c=[{connus}];\
+         if(c.indexOf(o.theme)>=0)r.setAttribute('data-theme',o.theme);\
+         var f=[{fontes}];\
+         if(f.indexOf(o.fonte)>=0)r.setAttribute('data-fonte',o.fonte);}}\
+         var C=/(^|;\\s*)ont\\.habillage=/.test(document.cookie),\
+         H=o.habillage||'auto',\
+         A=H==='edition'?L[0]:H==='application'?L[1]:\
+         (matchMedia('(min-width: 64rem)').matches?L[0]:L[1]);\
+         document.cookie='ont.habillage='+A.slice(4)+\
+         ';path=/;max-age=31536000;samesite=lax';\
+         if(d&&!C){{var Q=p;\
+         for(var j=0;j<L.length;j++)if(p===L[j]||p.indexOf(L[j]+'/')===0)\
+         Q=A+p.slice(L[j].length);\
+         if(Q!==p)location.replace(Q+location.search+location.hash);}}\
+         if(sessionStorage.getItem('ont.entre'))\
+         r.classList.add('deja-entre');\
+         else sessionStorage.setItem('ont.entre','1');\
          }}catch(e){{}}"
     )
 }
 
-/// Ce qu'un moteur de recherche comprend du site sans le lire./// Ce qu'un moteur de recherche comprend du site sans le lire.
+/// Ce qu'un moteur de recherche comprend du site sans le lire.
 ///
 /// `Book` et non `WebSite` : l'objet de ce domaine est une traduction, pas une
 /// entreprise. C'est ce qui permet à un moteur de la relier à son auteur et à
@@ -205,12 +253,65 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Router>
+            // **L'arbre courant, posé une fois.** Tout ce qui compose une
+            // adresse le lit ici plutôt que d'interroger le routeur soi-même :
+            // une dépendance au routeur qui traverse trente composants est
+            // trente endroits où un rendu isolé s'arrête.
+            {
+                crate::interface::arbre::fournir_l_arbre();
+                // Ce qu'un navigateur fait gratuitement en chargeant un
+                // document, un routeur doit le refaire à la main : sans lui, on
+                // touche « Lexique » au bas d'un chapitre de vingt-deux mille
+                // pixels et l'on arrive au milieu du lexique.
+                //
+                // **Dans ce bloc, et non en composant.** Écrit en composant
+                // rendant un fragment vide, il a tué l'hydratation — un
+                // composant qui ne rend rien occupe quand même une place dans
+                // le comptage des marqueurs. ==Ce qui ne rend rien ne doit pas
+                // se rendre.==
+                crate::interface::defilement::remonter_en_haut();
+            }
+            <crate::interface::design::SuiviDuSens />
             // Le segment de langue est délibéré (§4) : il épargne une migration
             // le jour d'une édition anglaise, et il ne coûte que trois
             // caractères. C'est `main.rs` qui envoie « / » vers « /fr ».
             // Pas d'en-tête ici : `Hero` le porte, pour que l'ouverture
             // soit une seule unité qui remplit l'écran. Les pages sans
             // ouverture — les légales, l'erreur — posent le leur.
+            // **L'en-tête du site sous l'arbre de l'édition.**
+            //
+            // Il est rendu **ici et pas dans `PageDeLecture`**, et ce n'est pas
+            // une préférence de rangement : mesuré le 30 septembre 2026, posé
+            // là-bas il rompt l'hydratation à `bloc.rs:106`, parce que cette
+            // racine gouverne déjà le pied sous la condition voisine.
+            //
+            // ==Un second rendu d'un composant que la racine gouverne déjà est
+            // un désaccord qui attend son tour.==
+            //
+            // Les pages hors arbre — l'accueil, « Le pourquoi » — portent le
+            // leur : `Hero` pour la première, la page elle-même pour les
+            // autres. D'où la double condition : une page de liseuse **et**
+            // l'arbre de l'édition.
+            // **L'en-tête du site, sous l'arbre de l'édition seulement.**
+            //
+            // Rendu **ici et pas dans `PageDeLecture`** : mesuré le 30
+            // septembre 2026, posé là-bas il rompt l'hydratation à
+            // `bloc.rs:106`, parce que cette racine gouverne déjà le pied
+            // sous une condition voisine.
+            //
+            // ==Un second rendu d'un composant que la racine gouverne déjà
+            // est un désaccord qui attend son tour.==
+            //
+            // Avant `<main>`, et pas après : un en-tête posé sous le contenu
+            // casse l'ordre du document, et un lecteur d'écran le lit en
+            // dernier.
+            //
+            // Les pages hors arbre portent le leur — `Hero` pour l'accueil,
+            // la page elle-même pour les légales. D'où la double condition :
+            // une page de liseuse **et** l'arbre de l'édition.
+            <Show when=move || sous_l_arbre(crate::domaine::lecture::Arbre::Liseuse).get()>
+                <crate::interface::design::Entete />
+            </Show>
             <main id="contenu">
                 <Routes fallback=Introuvable>
                     // `SsrMode::Async` : le serveur attend le verset du jour et
@@ -227,17 +328,7 @@ pub fn App() -> impl IntoView {
                     // microsecondes, puisqu'il est en mémoire.
                     <Route path=StaticSegment("fr") view=Accueil ssr=SsrMode::Async />
                     <Route path=(StaticSegment("fr"), StaticSegment("le-pourquoi")) view=Pourquoi />
-                    // Le compte. Les trois routes qui *agissent* — aller,
-                    // retour, partir — sont posées avant ce routeur, dans
-                    // `main.rs` : elles écrivent des cookies, ce qu'une page ne
-                    // peut pas faire. Celle-ci ne fait que montrer l'état.
-                    <Route path=(StaticSegment("fr"), StaticSegment("compte")) view=Compte />
                     <Route path=(StaticSegment("fr"), StaticSegment("l-app")) view=Application />
-                    <Route
-                        path=(StaticSegment("fr"), StaticSegment("rechercher"))
-                        view=Recherche
-                        ssr=SsrMode::Async
-                    />
                     <Route
                         path=(StaticSegment("fr"), StaticSegment("ce-que-l-ont-n-est-pas"))
                         view=Negations
@@ -264,7 +355,7 @@ pub fn App() -> impl IntoView {
                         view=Assistance
                     />
 
-                    // ── La liseuse ────────────────────────────────────────
+                    // ── L'arbre « liseuse » ───────────────────────────────────
                     //
                     // Toutes en `SsrMode::Async`, et c'est la même raison que
                     // pour le verset du jour : ces pages **sont** leurs
@@ -275,46 +366,282 @@ pub fn App() -> impl IntoView {
                     //
                     // L'ordre compte : Leptos apparie la première route qui
                     // convient, donc la plus précise passe avant la plus
-                    // générale.
+                    // générale — `partie` et `prononciation` avant le
+                    // paramètre qui les avalerait.
+                    //
+                    // ## Onze routes, écrites deux fois
+                    //
+                    // Les deux arbres portent **les mêmes pages** sous deux
+                    // racines. Elles sont écrites en toutes lettres et non
+                    // engendrées par une macro, pour deux raisons :
+                    //
+                    // - `StaticSegment` demande un littéral, donc une boucle
+                    //   sur `Arbre::TOUS` ne compilerait pas ;
+                    // - une macro rendrait ce fichier **illisible au `grep`**,
+                    //   et trois épreuves du dépôt le lisent comme du texte —
+                    //   `les_routes_statiques_precedent_celle_du_livre` et
+                    //   `chaque_destination_a_sa_route` les premières.
+                    //
+                    // La symétrie est donc tenue par une épreuve —
+                    // `les_deux_arbres_portent_les_memes_routes` — et non par
+                    // la discipline : ==une redondance qu'aucune mesure ne
+                    // garde finit par cesser d'en être une.==
                     <Route
-                        path=(StaticSegment("fr"), StaticSegment("lire"))
+                        path=(StaticSegment("fr"), StaticSegment("liseuse"), StaticSegment("bible"))
                         view=Lire
                         ssr=SsrMode::Async
                     />
+                    // **Avant celle du livre, et l'ordre compte.** Sans quoi
+                    // `/fr/liseuse/bible/partie` ressemble à un livre nommé
+                    // « partie ». Aucun identifiant de livre n'est un mot
+                    // français — ce sont des translittérations de l'hébreu.
                     <Route
-                        path=(StaticSegment("fr"), StaticSegment("lire"), ParamSegment("livre"))
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("bible"),
+                            StaticSegment("partie"),
+                            ParamSegment("partie"),
+                        )
+                        view=Partie
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("bible"),
+                            ParamSegment("livre"),
+                        )
                         view=Livre
                         ssr=SsrMode::Async
                     />
-                    // La route des liens partagés depuis l'app, et la seule que
-                    // l'association d'app réserve à iOS. Voir
+                    // La route des liens partagés depuis l'app. Voir
                     // `interface::association`.
                     <Route
                         path=(
                             StaticSegment("fr"),
-                            StaticSegment("lire"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("bible"),
                             ParamSegment("livre"),
                             ParamSegment("unite"),
                         )
                         view=Passage
                         ssr=SsrMode::Async
                     />
-
-                    // ── Le lexique ────────────────────────────────────────
-                    //
-                    // Ce que promet chaque mot d'or du corpus.
                     <Route
-                        path=(StaticSegment("fr"), StaticSegment("lexique"))
-                        view=Lexique
+                        path=(StaticSegment("fr"), StaticSegment("liseuse"), StaticSegment("qahal"))
+                        view=Qahal
                         ssr=SsrMode::Async
                     />
                     <Route
-                        path=(StaticSegment("fr"), StaticSegment("lexique"), ParamSegment("lemme"))
+                        path=(StaticSegment("fr"), StaticSegment("liseuse"), StaticSegment("chuqqot"))
+                        view=Chuqqot
+                        ssr=SsrMode::Async
+                    />
+                    // Le compte, et les réglages qui en dépendent. Les trois
+                    // routes qui *agissent* — aller, retour, partir — restent
+                    // dans `main.rs`, hors des arbres : elles écrivent des
+                    // cookies, et `/fr/compte/retour` est l'adresse déclarée
+                    // chez Google et GitHub.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("compte"),
+                            StaticSegment("lecture"),
+                        )
+                        view=Reglages
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("liseuse"), StaticSegment("compte"))
+                        view=Compte
+                    />
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("rechercher"),
+                        )
+                        view=Recherche
+                        ssr=SsrMode::Async
+                    />
+                    // `prononciation` avant le lemme, même piège que `partie`.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("lexique"),
+                            StaticSegment("prononciation"),
+                        )
+                        view=Prononciation
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("liseuse"),
+                            StaticSegment("lexique"),
+                            ParamSegment("lemme"),
+                        )
                         view=Fiche
                         ssr=SsrMode::Async
                     />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("liseuse"), StaticSegment("lexique"))
+                        view=Lexique
+                        ssr=SsrMode::Async
+                    />
+
+                    // ── L'arbre « webapp » ───────────────────────────────────
+                    //
+                    // Le jumeau du bloc ci-dessus, segment pour segment. La
+                    // symétrie est éprouvée, pas confiée à la relecture.
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("webapp"), StaticSegment("bible"))
+                        view=Lire
+                        ssr=SsrMode::Async
+                    />
+                    // **Avant celle du livre, et l'ordre compte.** Sans quoi
+                    // `/fr/webapp/bible/partie` ressemble à un livre nommé
+                    // « partie ». Aucun identifiant de livre n'est un mot
+                    // français — ce sont des translittérations de l'hébreu.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("bible"),
+                            StaticSegment("partie"),
+                            ParamSegment("partie"),
+                        )
+                        view=Partie
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("bible"),
+                            ParamSegment("livre"),
+                        )
+                        view=Livre
+                        ssr=SsrMode::Async
+                    />
+                    // La route des liens partagés depuis l'app. Voir
+                    // `interface::association`.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("bible"),
+                            ParamSegment("livre"),
+                            ParamSegment("unite"),
+                        )
+                        view=Passage
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("webapp"), StaticSegment("qahal"))
+                        view=Qahal
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("webapp"), StaticSegment("chuqqot"))
+                        view=Chuqqot
+                        ssr=SsrMode::Async
+                    />
+                    // Le compte, et les réglages qui en dépendent. Les trois
+                    // routes qui *agissent* — aller, retour, partir — restent
+                    // dans `main.rs`, hors des arbres : elles écrivent des
+                    // cookies, et `/fr/compte/retour` est l'adresse déclarée
+                    // chez Google et GitHub.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("compte"),
+                            StaticSegment("lecture"),
+                        )
+                        view=Reglages
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("webapp"), StaticSegment("compte"))
+                        view=Compte
+                    />
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("rechercher"),
+                        )
+                        view=Recherche
+                        ssr=SsrMode::Async
+                    />
+                    // `prononciation` avant le lemme, même piège que `partie`.
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("lexique"),
+                            StaticSegment("prononciation"),
+                        )
+                        view=Prononciation
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(
+                            StaticSegment("fr"),
+                            StaticSegment("webapp"),
+                            StaticSegment("lexique"),
+                            ParamSegment("lemme"),
+                        )
+                        view=Fiche
+                        ssr=SsrMode::Async
+                    />
+                    <Route
+                        path=(StaticSegment("fr"), StaticSegment("webapp"), StaticSegment("lexique"))
+                        view=Lexique
+                        ssr=SsrMode::Async
+                    />
+
                 </Routes>
             </main>
+            // **Le pied appartient à l'édition, pas à la webapp.**
+            //
+            // Il n'avait aucune condition et se posait donc sous la liseuse —
+            // « La Bible ONT / Webapp · Lexique » sous la barre d'onglets, ce
+            // qu'aucune app ne fait. `Entete` avait été retiré en ne le rendant
+            // pas dans `PageDeLecture` ; le pied, lui, est rendu ici, donc
+            // partout.
+            //
+            // La condition est le **compteur de la peau**, pas une table de
+            // chemins : c'est la même question — *reste-t-il une page de
+            // liseuse à l'écran ?* — et deux tables à tenir d'accord finissent
+            // toujours par diverger.
+            // **Le pied est partout. Corrigé le 2 octobre 2026.**
+            //
+            // Il s'effaçait sous la webapp, au motif qu'« aucune app ne met
+            // "La Bible ONT / Liseuse · Lexique" sous une barre d'onglets ».
+            // C'est vrai d'une app — et une app **est** le site entier, alors
+            // que la webapp en est une partie. Elle n'avait donc **aucune
+            // sortie** : l'accueil, « Le pourquoi », les pages légales
+            // devenaient injoignables autrement qu'en tapant l'adresse.
+            //
+            // Le seul chemin restant était la marque en tête de la barre
+            // latérale — `hidden lg:flex`, donc **absent sur téléphone**, et
+            // muet partout ailleurs : une marque ne dit pas « accueil ».
+            //
+            // ==Une ressemblance qu'on porte jusqu'à retirer une sortie n'est
+            // plus une ressemblance, c'est une impasse.== L'auteur l'a dit
+            // ainsi : *« je n'ai aucun moyen de retourner à la home page
+            // autrement que par l'URL, donc il faut ramener le footer »*.
+            //
+            // Rendu sans condition plutôt que sous un second `<Show>` : ce
+            // fichier a payé deux pannes d'hydratation le 30 septembre, et la
+            // forme la plus sûre est celle qui ne branche pas. Le dégagement
+            // sous les barres est posé par le pied lui-même.
             <PiedDePage />
         </Router>
     }
@@ -354,7 +681,7 @@ fn Introuvable() -> impl IntoView {
 #[cfg(test)]
 mod epreuves_de_la_peau {
     use super::script_de_la_peau;
-    use crate::domaine::lecture::{c_est_la_liseuse, Theme, LA_LISEUSE};
+    use crate::domaine::lecture::{c_est_la_liseuse, Arbre, Theme};
 
     /// ## Le script porte les deux tables, et rien de plus
     ///
@@ -362,6 +689,49 @@ mod epreuves_de_la_peau {
     /// attrape est l'inverse : un thème ou un préfixe **retiré** des tables
     /// alors que le script continuerait de le nommer — ce qui arriverait si
     /// quelqu'un figeait la chaîne un jour où le `format!` gênerait.
+    /// ## Une route statique passe avant la route à paramètre, ou elle ne
+    /// passe jamais
+    ///
+    /// `/fr/webapp/{livre}` capte **tout** ce qui a trois segments. Une route
+    /// statique déclarée après elle n'est donc jamais atteinte — et la panne
+    /// ne dit pas son nom : le lecteur reçoit « Ce livre n'est pas encore
+    /// là », c'est-à-dire une réponse **plausible**, celle qu'on ne soupçonne
+    /// pas d'être une erreur de routage.
+    ///
+    /// C'est arrivé le 29 septembre 2026 à `/fr/webapp/reglages`, écrite au
+    /// bon endroit dans le fichier mais après la route du livre. L'auteur l'a
+    /// vue en cherchant ses réglages ; aucune épreuve ne pouvait la voir,
+    /// `chaque_destination_a_sa_route` ne contrôlant que les cinq onglets.
+    ///
+    /// Le commentaire de `/fr/webapp/partie` annonçait déjà le piège. Un
+    /// commentaire qui annonce un piège ne l'évite pas — il le documente au
+    /// suivant, qui tombera dedans quand même.
+    #[test]
+    fn les_routes_statiques_precedent_celle_du_livre() {
+        let source = include_str!("app.rs");
+        let livre = source
+            .find(r#"StaticSegment("webapp"), ParamSegment("livre")"#)
+            .or_else(|| source.find("ParamSegment(\"livre\")"))
+            .expect("la route du livre doit exister");
+
+        // `reglages` est sorti de cette liste : il vit sous `/fr/compte`,
+        // où aucune route à paramètre ne le capte. Le garder ici aurait fait
+        // une garde qui vérifie une contrainte disparue — et celles-là passent
+        // au vert pour de mauvaises raisons.
+        for segment in ["partie"] {
+            let statique = source
+                .find(&format!("StaticSegment(\"{segment}\")"))
+                .unwrap_or_else(|| panic!("aucune route ne déclare `{segment}`"));
+            assert!(
+                statique < livre,
+                "`/fr/webapp/{segment}` est déclarée **après** `/fr/webapp/{{livre}}`, \
+                 qui capte tout ce qui a trois segments. Elle ne sera jamais \
+                 atteinte, et le lecteur recevra « Ce livre n'est pas encore là » \
+                 — une réponse plausible, donc une panne qu'on ne soupçonne pas."
+            );
+        }
+    }
+
     #[test]
     fn le_script_porte_exactement_les_deux_tables() {
         let script = script_de_la_peau();
@@ -372,10 +742,18 @@ mod epreuves_de_la_peau {
                 theme.attribut()
             );
         }
-        for prefixe in LA_LISEUSE {
+        for fonte in crate::domaine::lecture::Fonte::TOUTES {
             assert!(
-                script.contains(&format!("'{prefixe}'")),
-                "le script ignore le préfixe {prefixe}"
+                script.contains(&format!("'{}'", fonte.attribut())),
+                "le script ignore la fonte {}",
+                fonte.attribut()
+            );
+        }
+        for arbre in Arbre::TOUS {
+            assert!(
+                script.contains(&format!("'{}'", arbre.racine())),
+                "le script ignore la racine {}",
+                arbre.racine()
             );
         }
         // Et rien qui ressemble à un chemin sans être dans la table.
@@ -383,7 +761,8 @@ mod epreuves_de_la_peau {
             .split('\'')
             .filter(|morceau| morceau.starts_with("/fr"))
             .collect();
-        assert_eq!(chemins, LA_LISEUSE, "le script nomme un chemin hors table");
+        let racines: Vec<String> = Arbre::TOUS.iter().map(|a| a.racine()).collect();
+        assert_eq!(chemins, racines, "le script nomme un chemin hors table");
     }
 
     /// ## Les trois clauses de la règle sont dans le script
@@ -399,7 +778,7 @@ mod epreuves_de_la_peau {
     /// donc une garde de forme, pas de comportement — elle attrape une clause
     /// *supprimée*, pas une clause *fausse*. On la garde parce qu'une clause
     /// supprimée est le mode d'échec réel : on simplifie le script un jour
-    /// où il gêne, et `/fr/lire/` cesse silencieusement d'être la liseuse.
+    /// où il gêne, et `/fr/webapp/` cesse silencieusement d'être la liseuse.
     ///
     /// Le comportement, lui, est éprouvé du côté Rust — et les cas de
     /// `epreuves_de_la_liseuse` sont ceux que le script doit reproduire.
@@ -433,10 +812,74 @@ mod epreuves_de_la_peau {
         }
     }
 
+    /// **Les deux arbres portent exactement les mêmes routes.**
+    ///
+    /// Les onze routes de la liseuse sont écrites deux fois, une par racine :
+    /// `StaticSegment` demande un littéral, donc une boucle ne compilerait pas,
+    /// et une macro rendrait ce fichier illisible au `grep` — or trois épreuves
+    /// le lisent comme du texte.
+    ///
+    /// La redondance est donc tenue ici, et pas par la relecture :
+    /// ==une redondance qu'aucune mesure ne garde finit par cesser d'en être
+    /// une.== Une page ajoutée d'un seul côté serait joignable par une adresse
+    /// que l'autre arbre ne connaît pas, et la bascule y mènerait à un 404 —
+    /// silencieusement, puisque `chemins::dans` se contente de remplacer la
+    /// racine.
+    #[test]
+    fn les_deux_arbres_portent_les_memes_routes() {
+        use crate::domaine::lecture::Arbre;
+
+        let source = include_str!("app.rs");
+        let mut vues = std::collections::BTreeMap::new();
+
+        for arbre in Arbre::TOUS {
+            let marque = format!("StaticSegment(\"{}\")", arbre.segment());
+            let mut suites = Vec::new();
+            for bloc in source.split("<Route").skip(1) {
+                let Some(fin) = bloc.find("view=") else {
+                    continue;
+                };
+                let (chemin, apres) = bloc.split_at(fin);
+                if !chemin.contains(&marque) {
+                    continue;
+                }
+                // Ce qui suit la racine, segments normalisés : le nom de l'arbre
+                // en est retiré, de sorte que les deux jeux deviennent
+                // comparables terme à terme.
+                let suite: Vec<String> = chemin
+                    .split("Segment(\"")
+                    .skip(1)
+                    .filter_map(|s| s.split('"').next())
+                    .filter(|s| *s != "fr" && *s != arbre.segment())
+                    .map(str::to_string)
+                    .collect();
+                let vue = apres
+                    .trim_start_matches("view=")
+                    .split(|c: char| !c.is_alphanumeric() && c != '_')
+                    .next()
+                    .unwrap_or_default()
+                    .to_string();
+                suites.push((suite, vue));
+            }
+            suites.sort();
+            vues.insert(arbre, suites);
+        }
+
+        let [liseuse, webapp] = Arbre::TOUS;
+        assert!(
+            !vues[&liseuse].is_empty(),
+            "aucune route relevée — le relevé lit-il encore ce fichier ?"
+        );
+        assert_eq!(
+            vues[&liseuse], vues[&webapp],
+            "les deux arbres ne portent pas les mêmes routes"
+        );
+    }
+
     /// Le témoin de la règle elle-même, depuis le côté qui l'emploie.
     #[test]
     fn la_regle_borne_bien_la_liseuse() {
-        assert!(c_est_la_liseuse("/fr/lire/bereshit/bereshit-1"));
+        assert!(c_est_la_liseuse("/fr/webapp/bereshit/bereshit-1"));
         assert!(!c_est_la_liseuse("/fr"));
     }
 }
