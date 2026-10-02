@@ -4240,6 +4240,24 @@ partout ailleurs : une marque ne dit pas « accueil ».
 > ==Une ressemblance qu'on porte jusqu'à retirer une sortie n'est plus une
 > ressemblance, c'est une impasse.==
 
+**Et la marque du pied mène enfin quelque part.** Elle était un `<div>` inerte
+depuis le premier jour — *« un manquement que j'ai remarqué depuis le début du
+site mais j'ai oublié de te le signaler »*. C'est la convention la plus ancienne
+du web, et un lecteur l'essaie **avant** de chercher un lien nommé ; qu'elle ne
+réponde pas ne se lit pas comme une absence, mais comme une page qui ne marche
+pas.
+
+> ==Un signe dont l'usage est acquis n'a pas besoin d'être annoncé, mais il a
+> besoin de répondre.==
+
+C'est la règle du §5 sur les liens de prose prise par l'autre bout : là, le trait
+manquait à un lien ; ici, le lien manquait à un signe qu'on prend pour un lien.
+
+Le logomark et le nom sont **dans la même ancre** — deux moitiés du même objet, et
+deux liens côte à côte vers la même adresse donneraient deux arrêts au clavier
+pour un seul geste. L'`aria-label` porte la destination : le texte visible est en
+capitales espacées, qu'un lecteur d'écran épelle lettre par lettre.
+
 **Le dégagement sous les barres est posé par le pied lui-même**, et il le faut :
 elles sont en `fixed`, le contenu s'en écarte par `pb-24 lg:ps-[16.5rem]`, mais
 le pied est rendu par `App`, **hors** de ce conteneur. Sans le même retrait il

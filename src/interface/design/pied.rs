@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_router::components::A;
 
 /// Le pied de page.
 ///
@@ -50,10 +51,41 @@ pub fn PiedDePage(
             )
         }>
             <div class="mx-auto flex max-w-large flex-col items-center gap-8">
-                <div class="flex items-center gap-3">
+                // **La marque mène à l'accueil. Corrigé le 2 octobre 2026**,
+                // et l'auteur l'a dit ainsi : *« un manquement que j'ai
+                // remarqué depuis le début du site mais j'ai oublié de te le
+                // signaler »*.
+                //
+                // Elle était un `<div>` inerte. C'est la convention la plus
+                // ancienne du web — la marque d'un pied ou d'un en-tête ramène
+                // chez soi —, et un lecteur l'essaie **avant** de chercher un
+                // lien nommé. Qu'elle ne réponde pas ne se lit pas comme une
+                // absence : ça se lit comme une page qui ne marche pas.
+                //
+                // ==Un signe dont l'usage est acquis n'a pas besoin d'être
+                // annoncé, mais il a besoin de répondre.== C'est la règle du
+                // §5 sur les liens de prose, prise par l'autre bout : là, le
+                // trait manquait à un lien ; ici, le lien manque à un signe
+                // qu'on prend pour un lien.
+                //
+                // Le logomark et le nom sont **dans la même ancre** : ce sont
+                // deux moitiés du même objet, et deux liens côte à côte vers la
+                // même adresse donnent deux arrêts au clavier pour un seul
+                // geste.
+                //
+                // `aria-label` plutôt que le texte seul : il porte « La Bible
+                // ONT » en capitales espacées, qu'un lecteur d'écran épelle
+                // lettre par lettre, et il ne dit pas où l'on va.
+                <A
+                    href="/fr"
+                    attr:aria-label="La Bible ONT — l'accueil"
+                    attr:class="flex items-center gap-3 no-underline transition-opacity hover:opacity-80"
+                >
                     <span class="signe-montagne w-8 text-accent" aria-hidden="true"></span>
-                    <span class="uppercase tracking-capitales">"La Bible ONT"</span>
-                </div>
+                    <span aria-hidden="true" class="uppercase tracking-capitales">
+                        "La Bible ONT"
+                    </span>
+                </A>
 
                 // Le corpus d'abord, les mentions ensuite. Deux rangs et non
                 // un seul : « Lire » et « Confidentialité » ne sont pas de même
