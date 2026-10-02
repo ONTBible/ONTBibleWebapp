@@ -206,7 +206,21 @@ fn rendre_bloc(
                                 // porte aussi, mais un sélecteur sur `id` ramasse
                                 // tout ce qui commence par « v » ; un attribut
                                 // nommé ne ramasse que les versets.
-                                attr:data-verset=numero
+                                // **`data-verset`, et le préfixe `attr:` n'a rien à faire ici.**
+                                //
+                                // `attr:` est la syntaxe des *composants* — il dit « passe ceci à
+                                // l'élément que tu rends ». Sur un élément natif, Leptos n'a rien à
+                                // transmettre : il écrit le nom tel quel, et le document se retrouve
+                                // avec un attribut dont le préfixe fait partie du nom.
+                                //
+                                // Rien ne s'en plaint. Le HTML est valide, la page s'affiche, et seul
+                                // `query_selector_all("[data-verset]")` rend une liste vide — donc
+                                // `suivre_la_lecture` ne relevait **jamais** la position, et
+                                // « Reprendre » ne pouvait pas se mettre à jour.
+                                //
+                                // ==Une faute de syntaxe qui se compile devient une donnée fausse, et
+                                // une donnée fausse ne lève rien.==
+                                data-verset=numero
                                 class="scroll-mt-24"
                                 class=("rounded-sm", designe)
                                 class=("bg-surface", designe)
@@ -285,7 +299,21 @@ fn rendre_bloc(
                     // l'accueil à la mauvaise largeur — voir `bloc.rs`.
                     <div
                         id=ancre
-                        attr:data-verset=numero
+                        // **`data-verset`, et le préfixe `attr:` n'a rien à faire ici.**
+                        //
+                        // `attr:` est la syntaxe des *composants* — il dit « passe ceci à
+                        // l'élément que tu rends ». Sur un élément natif, Leptos n'a rien à
+                        // transmettre : il écrit le nom tel quel, et le document se retrouve
+                        // avec un attribut dont le préfixe fait partie du nom.
+                        //
+                        // Rien ne s'en plaint. Le HTML est valide, la page s'affiche, et seul
+                        // `query_selector_all("[data-verset]")` rend une liste vide — donc
+                        // `suivre_la_lecture` ne relevait **jamais** la position, et
+                        // « Reprendre » ne pouvait pas se mettre à jour.
+                        //
+                        // ==Une faute de syntaxe qui se compile devient une donnée fausse, et
+                        // une donnée fausse ne lève rien.==
+                        data-verset=numero
                         class="-mx-4 rounded-sm pe-4 scroll-mt-24 transition-colors"
                         class=("ps-4", move || !designe)
                         class=("ps-5", designe)

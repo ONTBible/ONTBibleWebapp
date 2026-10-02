@@ -150,6 +150,27 @@ def imbrications(document: str) -> list[str]:
     return fautes
 
 
+# Les préfixes de la syntaxe de Leptos. Posés sur un **composant**, ils disent
+# « passe ceci à l'élément que tu rends » ; posés sur un élément natif, Leptos
+# n'a rien à transmettre et écrit le nom tel quel — le document se retrouve avec
+# un attribut dont le préfixe fait partie du nom.
+#
+# Rien ne s'en plaint : le HTML reste valide, la page s'affiche, et seul le
+# sélecteur qui cherchait l'attribut rend une liste vide. `attr:data-verset` a
+# ainsi vécu dans tous les versets du corpus, et `suivre_la_lecture` ne relevait
+# jamais la position de lecture.
+#
+# ==Une faute de syntaxe qui se compile devient une donnée fausse, et une donnée
+# fausse ne lève rien.== Celle-ci ne se voit que dans le document servi : ni le
+# compilateur, ni un test de rendu, ni l'œil ne la rencontrent.
+PREFIXES_DE_LEPTOS = re.compile(r"<[^>]*?\s((?:attr|prop|on|class|style):[\w:-]+)=")
+
+
+def prefixes_restes(document: str) -> list[str]:
+    """Les préfixes de Leptos qu'on retrouve dans le document servi."""
+    return sorted({m.group(1) for m in PREFIXES_DE_LEPTOS.finditer(document)})
+
+
 def texte_de(page: str) -> str:
     document = urllib.request.urlopen(SERVEUR + page).read().decode()
     # Le script d'hydratation porte du JSON sérialisé, qui n'est pas de la
@@ -163,6 +184,12 @@ def main() -> None:
     for page in PAGES:
         try:
             document = urllib.request.urlopen(SERVEUR + page).read().decode()
+            prefixes = prefixes_restes(document)
+            if prefixes:
+                fautes += len(prefixes)
+                print(f"{page} — {len(prefixes)} préfixe(s) de Leptos écrit(s) tel(s) quel(s)")
+                for prefixe in prefixes:
+                    print(f"    {prefixe}  — un élément natif ne prend pas ce préfixe")
             nichees = imbrications(document)
             if nichees:
                 fautes += len(nichees)
@@ -186,8 +213,8 @@ def main() -> None:
         raise SystemExit(1)
 
     print(
-        f"{len(PAGES)} pages, aucune ponctuation double détachable "
-        "et aucune imbrication interdite."
+        f"{len(PAGES)} pages, aucune ponctuation double détachable, "
+        "aucune imbrication interdite et aucun préfixe de Leptos servi."
     )
 
 

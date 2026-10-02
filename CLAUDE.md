@@ -4121,6 +4121,36 @@ avant : url obtenue /fr/webapp/…   cookie=webapp   habillage:"application"
 après : url obtenue /fr/liseuse/…  cookie=liseuse  habillage:"auto"
 ```
 
+### `attr:` sur un élément natif entre dans le nom de l'attribut
+
+**Corrigé le 2 octobre 2026.** Les versets portaient `attr:data-verset=numero`,
+et le document servi portait un attribut nommé — littéralement —
+`attr:data-verset`, trente-quatre fois par chapitre.
+
+`attr:` est la syntaxe des **composants** : il dit « passe ceci à l'élément que
+tu rends ». Sur un élément natif, Leptos n'a rien à transmettre et écrit le nom
+tel quel. Tous les autres `attr:` du dépôt sont posés sur un `<A>` du routeur, où
+ils sont justes ; ces deux-là étaient sur un `<span>` et un `<div>`.
+
+**Rien ne s'en plaignait.** Le HTML reste valide, la page s'affiche, elle
+s'indexe — et seul `query_selector_all("[data-verset]")` rend une liste vide.
+Donc `suivre_la_lecture` ne relevait **jamais** la position, et « Reprendre » ne
+pouvait pas se mettre à jour.
+
+> ==Une faute de syntaxe qui se compile devient une donnée fausse, et une donnée
+> fausse ne lève rien.==
+
+C'est la famille du §5 — l'échelle qui s'inverse, les liens non soulignés : la
+page ne casse pas, elle est seulement plus pauvre, et rien ne dit qu'elle devrait
+l'être moins. Ni le compilateur, ni un test de rendu, ni l'œil ne la rencontrent ;
+elle ne se voit **que dans le document servi**.
+
+`verifier-composition.py` refuse donc tout préfixe de Leptos — `attr:`, `prop:`,
+`on:`, `class:`, `style:` — trouvé dans un attribut des 31 pages. La garde a été
+éprouvée sur cinq cas dont on connaît la réponse, dont deux qui doivent la faire
+rougir : *une mesure qui confirme ce qu'on espère doit être éprouvée par un cas
+dont on connaît la réponse.*
+
 ### Deux bancs, parce qu'un clic peut échouer de deux façons
 
 **Le banc d'erreurs annonçait deux arbres sains pendant que l'auteur voyait des
