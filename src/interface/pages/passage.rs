@@ -311,9 +311,27 @@ pub fn Passage() -> impl IntoView {
                                 .into_any()
                         });
 
-                        // L'un des deux logements, jamais les deux : voir le
-                        // commentaire posé sur les props de `PageDeLecture`.
-                        let (barre, action): (
+        // **Un seul des deux logements, et sous l'édition c'est la page.**
+                        //
+                        // *Sous l'app* : la barre du haut, où le « aA » est une
+                        // capsule à droite d'une pastille de renvoi — le dessin
+                        // d'iOS 26.
+                        //
+                        // *Sous l'édition* : rien de tout ça. `ReglagesDeLecture`
+                        // se pose lui-même en `fixed` au coin bas-droit, et c'est
+                        // ainsi que `main` le rendait — **dans le corps de la
+                        // page**, pas dans une rangée d'outils.
+                        //
+                        // Le passer par `action` paraissait plus propre et ne
+                        // l'était pas : cette rangée porte `pointer-events-none`
+                        // pour que sa largeur vide ne vole pas les clics de la
+                        // colonne, et l'annulation descend. Le bouton n'y
+                        // répondait ni au survol ni au clic.
+                        //
+                        // ==Un élément qui se positionne lui-même n'a rien à
+                        // gagner dans un conteneur de mise en page, et il y hérite
+                        // de tout ce que ce conteneur décide.==
+                        let (barre, outils_de_la_page): (
                             Option<leptos::children::Children>,
                             Option<leptos::children::Children>,
                         ) = if edition {
@@ -413,8 +431,12 @@ pub fn Passage() -> impl IntoView {
                                 // ne compileraient pas. C'est le compilateur qui
                                 // tient la règle ici.
                                 barre=barre
-                                action=action
                             >
+                                // Sous l'édition, les outils se rendent ici —
+                                // ils se placent en `fixed`, donc leur place
+                                // dans le document ne décide de rien d'autre
+                                // que de ce dont ils héritent.
+                                {outils_de_la_page.map(|outils| outils())}
                                 <BarreDeSelection
                                     selection=choix
                                     livre=livre_pour_renvoi

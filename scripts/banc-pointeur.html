@@ -151,7 +151,16 @@ setTimeout(() => {
     dire('  role=button trouvés : ' + tous.length);
   } else {
     dire('');
-    dire('verset : aria-pressed=' + v.getAttribute('aria-pressed'));
+    // Ce qu'un vrai clic de souris rencontre, et sous quel régime de sélection.
+    const rv = v.getBoundingClientRect();
+    const sur = d.elementFromPoint(Math.round(rv.left + rv.width / 2),
+                                   Math.round(rv.top + Math.min(rv.height / 2, 20)));
+    dire('verset : ' + Math.round(rv.width) + '×' + Math.round(rv.height));
+    dire('  sous le pointeur : ' + nommer(sur)
+         + (v.contains(sur) || sur === v ? '  ✓ dans le verset' : '  ✗ HORS du verset'));
+    dire('  user-select : ' + w.getComputedStyle(v).userSelect
+         + ' — webkitUserSelect : ' + (w.getComputedStyle(v).webkitUserSelect || '—'));
+    dire('  aria-pressed=' + v.getAttribute('aria-pressed'));
     v.click();
     setTimeout(() => {
       dire('  après clic : aria-pressed=' + v.getAttribute('aria-pressed'));

@@ -4017,13 +4017,34 @@ vraiment la prod et récupère »* :
   annulation **descend** : `BoutonDeRecherche` la rétablissait sur lui-même, le
   « aA » ne le faisait pas.
 
-  La rangée porte donc `[&>*]:pointer-events-auto`. ==Une annulation qui descend
-  doit être rendue par le conteneur, pas redemandée à chacun de ses hôtes.==
-  Posée chez l'hôte, elle devient une discipline — donc une chose qu'on oublie,
-  et qui ne casse rien de visible en s'oubliant.
+  **La première correction était pire que le défaut.** `[&>*]:pointer-events-auto`
+  sur la rangée, pour rendre le pointeur à tous ses enfants d'un coup — et
+  `ReglagesDeLecture` en rend **trois** : un voile plein écran, le bouton, la
+  feuille. Le voile reste monté en permanence, pour qu'on puisse animer sa
+  fermeture, et fermé il ne vit que par son `pointer-events-none`. Les deux
+  utilitaires ayant la même spécificité, c'est l'ordre de la feuille qui a
+  tranché : le voile reprenait le pointeur et avalait les clics de **la page
+  entière**, invisible.
 
-Mesuré au banc du pointeur : `56×56 à 876,1120`, `pointer-events: auto` sur le
-bouton et `none` sur son parent, le clic reçu, `aria-expanded` à `true`.
+  ==Rendre en bloc ce qu'on a annulé en bloc suppose que tous les enfants
+  voulaient la même chose.== Celui-là comptait sur l'annulation.
+
+  La correction juste est celle de `main` : sous l'édition, `ReglagesDeLecture`
+  n'entre pas dans `action` du tout — il est rendu **dans le corps de la page**,
+  et se place lui-même en `fixed`.
+
+  ==Un élément qui se positionne lui-même n'a rien à gagner dans un conteneur de
+  mise en page, et il y hérite de tout ce que ce conteneur décide.==
+
+  Trouvé par le banc du pointeur, qui a relevé `div.fixed.inset-0.z-40.bg-nuit/70`
+  aux six hauteurs sondées : le défaut ne se voyait pas, puisque le voile est
+  transparent.
+
+Mesuré au banc du pointeur, après correction : `« aA » 56×56 à 876,1120`,
+`pointer-events: auto` sur le bouton **et** sur son parent, clic reçu,
+`aria-expanded` à `true`. Et sur le verset : `sous le pointeur : em ✓ dans le
+verset`, `user-select: none`, `aria-pressed` de `false` à `true`, barre de
+sélection présente — c'est-à-dire le régime de la production.
 
 La feuille suit le bouton, et ce n'est pas un détail : *une feuille qui pousse du
 coin opposé à celui qu'on vient de toucher ne se lit plus comme venant de là.*

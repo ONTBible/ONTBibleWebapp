@@ -266,21 +266,33 @@ pub fn PageDeLecture(
             // première ligne de la liste deviendrait inatteignable.
             {action.map(|action| {
                 view! {
-                    // **Et la rangée rend le pointeur à ce qu'elle porte.**
+                    // `pointer-events-none` pour que la largeur vide à gauche
+                    // du bouton ne prenne pas les clics de toute la colonne, et
+                    // la première ligne de la liste avec. Ce qu'on pose dedans
+                    // rétablit le pointeur sur **lui-même** — `BoutonDeRecherche`
+                    // porte `pointer-events-auto`.
                     //
-                    // `pointer-events-none` est là pour que la largeur vide à
-                    // gauche ne prenne pas les clics sur toute la colonne — mais
-                    // il **descend**, et ce qu'on pose dedans l'hérite.
-                    // `BoutonDeRecherche` le rétablissait sur lui-même ; le
-                    // « aA » ne le faisait pas, et sous l'édition, où il atterrit
-                    // ici, il ne répondait ni au survol ni au clic.
+                    // ## Et surtout pas `[&>*]:pointer-events-auto`
                     //
-                    // ==Une annulation qui descend doit être rendue par le
-                    // conteneur, pas redemandée à chacun de ses hôtes.== Posée
-                    // chez l'hôte, elle devient une discipline — donc une chose
-                    // qu'on oublie, et qui ne casse rien de visible en
-                    // s'oubliant.
-                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2 [&>*]:pointer-events-auto">
+                    // Le réflexe est de le rendre à tous les enfants d'un coup,
+                    // pour que la règle ne dépende pas de la discipline de
+                    // chacun. Essayé le 2 octobre 2026, et **c'est une panne** :
+                    // tout n'est pas un bouton. `ReglagesDeLecture` rend trois
+                    // frères — un voile plein écran, le bouton, la feuille — et
+                    // le voile **reste monté en permanence**, pour qu'on puisse
+                    // animer sa fermeture. Fermé, il ne vit que par son
+                    // `pointer-events-none`.
+                    //
+                    // Les deux utilitaires ont la même spécificité, donc c'est
+                    // l'ordre de la feuille qui tranche : le voile reprenait le
+                    // pointeur et avalait les clics de la page entière,
+                    // invisible. Le piège de `Bloc` et `max-w-mesure`, un étage
+                    // plus bas et avec un coût bien pire.
+                    //
+                    // ==Rendre en bloc ce qu'on a annulé en bloc suppose que
+                    // tous les enfants voulaient la même chose.== Celui-ci
+                    // comptait sur l'annulation.
+                    <div class="pointer-events-none sticky top-0 z-30 -mx-1 mb-2 flex justify-end py-2">
                         {action()}
                     </div>
                 }
