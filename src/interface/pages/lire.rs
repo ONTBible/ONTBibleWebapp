@@ -43,6 +43,15 @@ pub fn Lire() -> impl IntoView {
     // priorités. La carte se pose après, comme le bouton « aA ».
     let position = Resource::new(|| (), |_| async { ma_position().await });
 
+    // **La place retenue sur cet appareil**, qui n'attend aucun compte.
+    //
+    // Elle part à `None` des deux côtés — le serveur ne voit pas le stockage du
+    // navigateur — et se remplit après l'hydratation. Les deux rendus partent
+    // donc du même état, et seul le second bouge : c'est le patron du bouton
+    // « aA », et il n'y a pas de désaccord à l'hydratation.
+    let locale = RwSignal::new(None::<crate::domaine::surlignage::Position>);
+    Effect::new(move |_| locale.set(crate::interface::position::lire()));
+
     // **Sous quel registre.** L'édition présente le corpus, l'app l'ouvre — et
     // c'est tout l'écart que l'auteur a relevé le 2 octobre 2026 en mettant les
     // deux écrans côte à côte : *« pour l'UI de la liseuse je veux vraiment la
@@ -103,12 +112,23 @@ pub fn Lire() -> impl IntoView {
             // dans sa propre section.
             <Suspense fallback=|| ()>
                 {move || Suspend::new(async move {
-                    match position.await {
-                        Ok(Some(position)) => view! { <CarteDeReprise position /> }.into_any(),
-                        // Sans compte, ou sans rien lu encore. Les deux se
-                        // taisent : il n'y a rien à reprendre, et le dire
-                        // serait un reproche.
-                        _ => ().into_any(),
+                    let du_compte = position.await.ok().flatten();
+                    view! {
+                        {move || {
+                            // **Le compte transporte la place, il ne la donne
+                            // plus.** La plus fraîche des deux l'emporte, et
+                            // c'est `updated_at` qui tranche — la règle du
+                            // backend, reprise telle quelle.
+                            //
+                            // Sans rien des deux côtés, la carte se tait : il
+                            // n'y a rien à reprendre, et le dire serait un
+                            // reproche.
+                            crate::interface::position::la_plus_fraiche(
+                                    du_compte.clone(),
+                                    locale.get(),
+                                )
+                                .map(|position| view! { <CarteDeReprise position /> })
+                        }}
                     }
                 })}
             </Suspense>

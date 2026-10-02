@@ -16,4 +16,5 @@ pub mod compte_public;
 pub mod design;
 pub mod echantillon;
 pub mod pages;
+pub mod position;
 pub mod tete;

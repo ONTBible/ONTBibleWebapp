@@ -131,6 +131,11 @@ pub fn Passage() -> impl IntoView {
         // ouvre et referme sans rien lire, et elle est le seul écrit d'un
         // navigateur qui n'exécute pas notre wasm.
         {
+            // **Les deux écritures vont de pair.** Celle du compte transporte la
+            // place d'un appareil à l'autre ; celle du navigateur la garde ici,
+            // et c'est la seule qui existe pour un lecteur sans compte —
+            // c'est-à-dire le cas normal du site.
+            crate::interface::position::retenir(&livre, &unite, &titre, 1);
             let (livre, unite, titre) = (livre.clone(), unite.clone(), titre.clone());
             leptos::task::spawn_local(async move {
                 let _ = crate::api::retenir_la_position(livre, unite, titre, 1).await;
@@ -816,6 +821,7 @@ fn suivre_la_lecture(livre: String, unite: String, titre: String) {
             if verset == 0 {
                 return;
             }
+            crate::interface::position::retenir(&livre, &unite, &titre, verset);
             let (livre, unite, titre) = (livre.clone(), unite.clone(), titre.clone());
             leptos::task::spawn_local(async move {
                 let _ = crate::api::retenir_la_position(livre, unite, titre, verset).await;

@@ -92,6 +92,10 @@ if (regle) {
     dire('réglage imposé : ' + cle + '=' + o[cle]);
   } catch (e) { dire('réglage impossible : ' + e); }
 }
+// `?puis=<chemin>` : on charge la page demandée, on la laisse écrire, puis on
+// va voir ailleurs. C'est le seul moyen de mesurer ce qu'une page **laisse**
+// derrière elle — une place retenue ne se lit pas sur la page qui l'écrit.
+const puis = p.get('puis');
 const large = p.get('large') === '1';
 if (large) {
   f.style.width = '1440px';
@@ -195,6 +199,22 @@ setTimeout(() => {
       aa.click();
       setTimeout(() => dire('  après clic : aria-expanded=' + aa.getAttribute('aria-expanded')), 400);
     }, 1200);
+  }
+
+  if (puis) {
+    dire('');
+    dire('on va voir ' + puis + ' …');
+    f.src = puis;
+    f.addEventListener('load', () => setTimeout(() => {
+      const dd = f.contentWindow.document;
+      const carte = [...dd.querySelectorAll('a')]
+        .find(a => a.textContent.includes('Reprendre'));
+      dire('« Reprendre » : ' + (carte
+        ? 'PRÉSENTE → ' + carte.getAttribute('href') + '  « '
+          + carte.textContent.replace('Reprendre', '').trim() + ' »'
+        : 'absente'));
+    }, 2500), { once: true });
+    return;
   }
 
   const v = d.querySelector('[role="button"][aria-pressed]');

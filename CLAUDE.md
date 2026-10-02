@@ -3464,9 +3464,55 @@ resté écrit après avoir cessé de l'être.
 
 Ce n'est pas une destination de plus : l'app le dit d'un mot — *« les trois
 suivantes sont des lieux ; celle-ci est un signet »* — et c'est ce qui lui vaut
-sa carte, avant le corpus et détachée de lui. Elle se **tait** sans compte :
-lire sans compte est le cas normal du site, et « connectez-vous pour reprendre »
-ferait de la lecture une chose qu'on mérite.
+sa carte, avant le corpus et détachée de lui.
+
+**Et elle ne demande plus de compte. Corrigé le 2 octobre 2026**, sur décision de
+l'auteur. Ce paragraphe disait qu'elle se **tait** sans compte, *lire sans compte
+étant le cas normal du site, et « connectez-vous pour reprendre » ferait de la
+lecture une chose qu'on mérite.*
+
+L'argument visait le **message**, et il a été appliqué à la **fonctionnalité**.
+La retirer entièrement faisait exactement ce qu'on voulait éviter — par omission
+au lieu de le dire, ce qui est pire : rien n'avertissait.
+
+> ==Une place gardée sur l'appareil ne demande rien et ne révèle rien : elle ne
+> le quitte pas.== Le backend note que les marques d'un lecteur de Bible,
+> rattachées à une identité, révèlent des convictions religieuses — article 9 du
+> RGPD. Un signet qui n'est rattaché à personne ne porte pas cette charge.
+
+`interface/position.rs` la garde sous `ont.position`, à côté de `ont.lecture` et
+séparée d'elle : des réglages se perdent sans conséquence, une place se perd une
+fois. Elle s'écrit partout où `retenir_la_position` s'écrit — à l'ouverture d'une
+unité, puis à chaque verset franchi.
+
+**Le compte change de rôle : il ne donne plus la reprise, il la transporte.** Des
+deux places, la plus fraîche l'emporte, et c'est `updated_at` qui tranche — la
+règle du backend reprise telle quelle, les deux sources datant en millisecondes.
+Choisir une source qui gagne toujours aurait tort la moitié du temps : le compte
+est en retard sur l'appareil qu'on tient, l'appareil est en retard sur celui
+qu'on vient de quitter.
+
+Le signal part à `None` des deux côtés — le serveur ne voit pas le stockage du
+navigateur — et se remplit après l'hydratation : c'est le patron du bouton
+« aA », et il n'y a pas de désaccord.
+
+**Et ça se mesurait mal avant.** `adresse_de_retour()` renvoie vers
+`https://ontbible.com/fr/compte/retour` : on ne peut pas se connecter en local,
+donc « Reprendre » n'était **jamais** visible sur un serveur de développement.
+Une fonctionnalité qu'aucun état local ne rend est du code écrit, pas du code
+testé — la règle du §8 quinquies, appliquée à un compte au lieu d'un booléen.
+
+Relevé par le banc du pointeur, profil vidé, sans aucun compte :
+
+```text
+page : /fr/liseuse/bible/bereshit/bereshit-3
+on va voir /fr/liseuse/bible …
+« Reprendre » : PRÉSENTE → …/bereshit/bereshit-3?v=1  « Bereshit 3:1 »
+```
+
+Le banc a gagné `?puis=<chemin>` pour ça : charger une page, la laisser écrire,
+puis aller voir ailleurs. ==Une place retenue ne se lit pas sur la page qui
+l'écrit.==
 
 ### Qahal est ouvert, Chuqqot reste fermé — et le partage se mesure
 
