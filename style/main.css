@@ -607,7 +607,37 @@
    recherche mal tapée en y revenant, et un profil ne se remplit pas sans
    pouvoir effacer un mot.                                                  */
 
-body {
+/* **Et elles s'arrêtent aux pages de corpus. Corrigé le 2 octobre 2026.**
+ *
+ * Ces trois déclarations étaient sur `body`, donc sur **tout le site** —
+ * l'accueil, « Le pourquoi », « Ce que l'ONT n'est pas », les pages légales. Or
+ * ce sont des pages qu'on lit comme un site : on y surligne une phrase à la
+ * souris pour la relire, on en copie un passage pour le citer. Rien n'y
+ * remplaçait le geste retiré, puisqu'il n'y a pas de barre de sélection hors du
+ * corpus.
+ *
+ * L'auteur l'a dit en une phrase : *« je veux que le site réagisse aux
+ * interactions de souris normalement sur les pages qui sont à la racine de
+ * /fr/, mais qu'elles restent bloquées comme elles le sont maintenant sur les
+ * pages /fr/<chrome>/ »*.
+ *
+ * ==Une interaction qu'on retire doit être remplacée là où on la retire, et
+ * nulle part ailleurs.== L'argument du bloc ci-dessus est entier — il ne valait
+ * simplement que pour la liseuse, et il était posé sur le document.
+ *
+ * Les deux sélecteurs, et il faut les deux : `.ecran-*` est le corps d'une page
+ * de corpus, `chrome-d-app` les barres de la webapp, qui vivent **hors** de ce
+ * conteneur. Sous l'édition, l'en-tête et le pied du site n'y sont pas — et
+ * c'est juste, ce sont les pièces du site, pas de l'app.
+ *
+ * Le défaut ne s'est pas vu pendant deux semaines parce qu'il ne casse rien :
+ * la page s'affiche, les liens marchent, et l'on n'essaie de sélectionner du
+ * texte que lorsqu'on en a envie. C'est la famille des défauts du §5 — l'échelle
+ * qui s'inverse, les liens non soulignés : *la page ne casse pas, elle est
+ * seulement plus pauvre, et rien ne dit qu'elle devrait l'être moins.* */
+.ecran-app,
+.ecran-edition,
+.chrome-d-app {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -3253,17 +3283,20 @@ select,
   content: '';
   display: block;
   width: 2rem;
-  height: 1.1em;
   flex-shrink: 0;
   margin-inline-end: 1rem;
   background-color: var(--color-accent);
   mask: url('/images/logomark.svg') no-repeat center / contain;
   -webkit-mask: url('/images/logomark.svg') no-repeat center / contain;
-}
+  /* **Le rapport, et non une hauteur.** Un masque en `contain` garde ses
+     proportions *dans* sa boîte : lui donner `2rem` de large et `1.1em` de haut
+     revient à l'enfermer dans un carré presque, où il se réduit à la moitié de
+     sa largeur. Le massif fait 502 sur 249 — c'est la valeur de l'utilitaire
+     `massif`, et `main` s'en remettait à elle avec un simple `w-8`.
 
-.ecran-edition .entete-d-ensemble > div {
-  /* La glose s'aligne sous le nom, pas sous le massif. */
-  padding-inline-start: calc(2rem + 1rem);
+     ==Fixer les deux dimensions d'une image à rapport fixe, c'est en perdre
+     une.== */
+  aspect-ratio: 502 / 249;
 }
 
 .ecran-edition .ensemble-du-corpus {

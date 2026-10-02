@@ -68,14 +68,39 @@ use crate::interface::design::{EnteteDeSection, Groupe, Ligne};
 /// Cet écart ne se voyait dans aucune comparaison de jetons. Il a fallu mettre
 /// les deux écrans côte à côte, ce que l'auteur avait demandé : *« passe ton
 /// temps à faire des comparaisons des screens »*.
+/// ## Et l'édition déplie tout — le 2 octobre 2026
+///
+/// L'auteur a tranché une seconde fois, après avoir vu le sommaire restylé :
+/// *« et du coup finalement liste tous les livres comme sur la prod »*.
+///
+/// Les deux arbres ne listent donc pas la même chose, et c'est cohérent avec ce
+/// qui les sépare :
+///
+/// - **l'app navigue en quatre temps** — la Bible, une partie, un livre, une
+///   unité. C'est la forme d'un écran qu'on parcourt au pouce : une liste courte
+///   où l'avancement se lit en regard, « Torah 1/6 » ;
+/// - **l'édition est une table des matières.** Elle tient sur une page qu'on
+///   déroule, montre les soixante-dix livres d'un coup, et c'est **l'ampleur qui
+///   est le propos** — quelques titres en or au milieu de soixante-sept en encre
+///   atténuée disent l'état du chantier sans une phrase.
+///
+/// ==Un sommaire d'application cache pour qu'on choisisse vite ; un sommaire
+/// d'édition montre pour qu'on mesure.== Le même contenu, et deux gestes
+/// différents.
+///
+/// La page d'une partie reste servie sous les deux arbres : plus rien n'y mène
+/// depuis l'édition, mais un lien déjà partagé continue d'ouvrir quelque chose.
 #[component]
 pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
+    let edition = crate::interface::arbre::sous_l_edition();
+
     ensembles
         .into_iter()
         .map(|ensemble| {
             let titre = ensemble.titre.clone();
             let francais = ensemble.francais.clone();
             let glose = ensemble.glose.clone();
+            let sections = ensemble.sections;
             view! {
                 <section class="ensemble-du-corpus mb-8 last:mb-0">
                     <EnteteDeSection ensemble=true glose=Box::new({
@@ -83,17 +108,50 @@ pub fn Sommaire(ensembles: Vec<Ensemble>) -> impl IntoView {
                         let g = glose.clone();
                         move || sous_titre(f, g, "").into_any()
                     })>{titre}</EnteteDeSection>
-                    <Groupe>
-                        {ensemble
-                            .sections
+                    {if edition {
+                        sections
                             .into_iter()
-                            .map(ligne_de_partie)
-                            .collect_view()}
-                    </Groupe>
+                            .map(rayon_deplie)
+                            .collect_view()
+                            .into_any()
+                    } else {
+                        view! {
+                            <Groupe>
+                                {sections.into_iter().map(ligne_de_partie).collect_view()}
+                            </Groupe>
+                        }
+                            .into_any()
+                    }}
                 </section>
             }
         })
         .collect_view()
+}
+
+/// Une partie, dépliée — son intertitre, puis tous ses livres.
+///
+/// L'intertitre est un `<h3>` en capitales espacées et en or, comme `main` :
+/// c'est la forme que le site réserve à ce qui **range** sans être une
+/// destination. Il n'est pas cliquable, et c'est juste — la partie n'a plus de
+/// page à ouvrir depuis ici, puisque ses livres sont déjà là.
+///
+/// Les livres passent par [`ligne_de_sommaire`], la même fonction que la page
+/// d'une partie : les en-têtes de conteneur et la césure du *Ḥurban* viennent
+/// avec, sans qu'on ait à les redire.
+fn rayon_deplie(section: Section) -> AnyView {
+    let titre = section.titre.clone();
+    let second = sous_titre(section.francais.clone(), section.glose.clone(), "mb-5");
+
+    view! {
+        <div class="mb-12 last:mb-0">
+            <h3 class="mb-1 text-sm uppercase tracking-capitales text-accent">{titre}</h3>
+            {second}
+            <Groupe>
+                {disposer(section).into_iter().map(ligne_de_sommaire).collect_view()}
+            </Groupe>
+        </div>
+    }
+    .into_any()
 }
 
 /// Une partie du corpus, en une ligne.

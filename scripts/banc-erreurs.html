@@ -85,8 +85,23 @@ document.cookie = 'ont.habillage=' + arbre + ';path=/;max-age=600;samesite=lax';
 dire('arbre demandé : ' + arbre + ' — cookie : ' + document.cookie);
 f.src = '/fr/' + arbre + '/bible';
 
-// Les erreurs de l'iframe remontent ici quand il est de même origine.
+// **Compter les chargements, parce qu'une URL qui change ne prouve rien.**
+//
+// Un `clic →` suivi d'une `url=` était tenu pour une navigation réussie. C'est
+// faux : si le WASM est mort, le clic sur une `<a href>` fait une navigation
+// **native**, le document se recharge, et l'URL obtenue est exactement celle
+// qu'on attendait. Le banc a donc annoncé deux arbres sains le 2 octobre pendant
+// que l'auteur voyait des pages gelées.
+//
+// ==Un symptôme et son absence peuvent produire la même mesure. Ce qui les
+// sépare ici est le *moyen* du changement, pas son résultat.==
+//
+// Un routeur vivant change l'URL **sans** recharger. Chaque `load` de l'iframe
+// après le premier est donc un aveu.
+let chargements = 0;
 f.addEventListener('load', () => {
+  chargements += 1;
+  if (chargements > 1) dire('  ⚠ RECHARGEMENT — le routeur n\'a pas pris le lien');
   const w = f.contentWindow;
   try {
     w.addEventListener('error', e =>
@@ -124,8 +139,12 @@ setInterval(() => {
     const lien = w.document.querySelector('a[href="' + r + '"]');
     if (lien) { lien.click(); dire('clic → ' + r); }
     else { dire('pas de lien vers ' + r + ' (url=' + w.location.pathname + ')'); }
+    const avant = chargements;
     setTimeout(() => {
-      try { dire('  … url=' + f.contentWindow.location.pathname); } catch(e){}
+      try {
+        dire('  … url=' + f.contentWindow.location.pathname
+             + (chargements === avant ? '  (routeur)' : '  (RECHARGÉ)'));
+      } catch(e){}
     }, 900);
   } catch (e) { dire('clic impossible : ' + e); }
 }, 1800);

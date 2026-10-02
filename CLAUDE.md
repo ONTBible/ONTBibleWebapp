@@ -3914,6 +3914,105 @@ pour un lecteur sans JavaScript.
   derniers sont passés en `optional_no_strip`, le premier filtre la chaîne vide.
   Un `Children` qui ne rend rien laisserait quand même son conteneur et sa marge.
 
+### Le sommaire se déplie sous l'édition
+
+**Tranché le 2 octobre 2026, après le restylage** : *« et du coup finalement
+liste tous les livres comme sur la prod »*.
+
+Les deux arbres ne montrent donc pas la même chose, et c'est cohérent avec ce
+qui les sépare :
+
+- **l'app navigue en quatre temps** — la Bible, une partie, un livre, une unité.
+  C'est la forme d'un écran qu'on parcourt au pouce : une liste courte où
+  l'avancement se lit en regard, « Torah 1/6 » ;
+- **l'édition est une table des matières** : les soixante-dix livres d'un coup,
+  groupés par ensemble puis par partie. L'**ampleur est le propos** — quelques
+  titres en or au milieu de soixante-sept en encre atténuée disent l'état du
+  chantier sans une phrase.
+
+> ==Un sommaire d'application cache pour qu'on choisisse vite ; un sommaire
+> d'édition montre pour qu'on mesure.== Le même contenu, deux gestes.
+
+Mesuré : **70 lignes sous l'édition, 9 sous l'app.** `/fr/<arbre>/bible/partie/…`
+reste servie des deux côtés — plus rien n'y mène depuis l'édition, et un lien
+déjà partagé continue d'ouvrir quelque chose.
+
+**Et le massif y a repris son rapport.** Le `::before` fixait `width: 2rem`
+**et** `height: 1.1em` : un masque en `contain` garde ses proportions *dans* sa
+boîte, donc le logomark — 502 sur 249 — s'y réduisait de moitié. `main` ne
+donnait qu'un `w-8` et laissait l'`aspect-ratio` de l'utilitaire `massif` faire
+le reste.
+
+> ==Fixer les deux dimensions d'une image à rapport fixe, c'est en perdre une.==
+
+### Les interactions d'une app s'arrêtent aux pages de corpus
+
+**Corrigé le 2 octobre 2026**, et c'est l'auteur qui l'a vu :
+
+> « je veux que le site réagisse aux interactions de souris normalement sur les
+> pages qui sont à la racine de /fr/, mais qu'elles restent bloquées comme elles
+> le sont maintenant sur les pages /fr/<chrome>/ »
+
+`user-select: none`, `-webkit-touch-callout: none` et
+`-webkit-tap-highlight-color: transparent` étaient posés sur **`body`**, donc sur
+tout le site. L'argument du bloc est entier et il vaut : dans une app, on ne
+sélectionne pas le texte à la main, on touche un verset et la barre propose ce
+qu'on peut en faire. Mais il ne vaut **que** là où cette barre existe.
+
+Sur l'accueil, « Le pourquoi », « Ce que l'ONT n'est pas » et les pages légales,
+rien ne remplaçait le geste retiré : on ne pouvait ni surligner une phrase pour
+la relire, ni copier un passage pour le citer.
+
+> ==Une interaction qu'on retire doit être remplacée là où on la retire, et
+> nulle part ailleurs.==
+
+Les sélecteurs sont `.ecran-app`, `.ecran-edition` — le corps d'une page de
+corpus — **et `chrome-d-app`**, les barres de la webapp, qui vivent *hors* de ce
+conteneur : sans elles, un glissement sur les onglets sélectionnerait « Qahal
+Bible Lexique ». Sous l'édition, l'en-tête et le pied du site n'y sont pas, et
+c'est juste : ce sont les pièces du site, pas de l'app.
+
+Le défaut a vécu deux semaines parce qu'il **ne casse rien** — la page s'affiche,
+les liens marchent, et l'on n'essaie de sélectionner du texte que lorsqu'on en a
+envie. C'est la famille du §5 : *la page ne casse pas, elle est seulement plus
+pauvre, et rien ne dit qu'elle devrait l'être moins.*
+
+### Deux bancs, parce qu'un clic peut échouer de deux façons
+
+**Le banc d'erreurs annonçait deux arbres sains pendant que l'auteur voyait des
+pages gelées.** Il tenait un `clic →` suivi d'une `url=` pour une navigation
+réussie — et c'est faux : si le WASM est mort, le clic sur une `<a href>` fait
+une navigation **native**, le document se recharge, et l'URL obtenue est
+exactement celle qu'on attendait.
+
+> ==Un symptôme et son absence peuvent produire la même mesure. Ce qui les
+> sépare ici est le *moyen* du changement, pas son résultat.==
+
+Il compte donc les `load` de son cadre : un routeur vivant change l'URL **sans**
+recharger, et chaque chargement après le premier est un aveu. Chaque ligne porte
+`(routeur)` ou `(RECHARGÉ)`.
+
+Relevé le 2 octobre, après le restylage : **onze navigations sous l'édition et
+dix sous l'app, toutes par le routeur, aucune erreur.** C'est ce qui a innocenté
+l'hydratation et envoyé chercher ailleurs.
+
+**`scripts/banc-pointeur.html` répond à l'autre moitié de la question.** Un WASM
+vivant ne garantit pas qu'un clic atteigne sa cible : une couche `fixed`
+transparente, un `sticky` qui s'étale, une animation qui finit sans rendre la
+main — tout cela avale les événements sans rien montrer.
+
+    ATTENTE=20 ./scripts/sim.sh '/banc-pointeur.html?arbre=liseuse&page=/fr/liseuse/bible'
+
+Il sonde `elementFromPoint` à six hauteurs et vérifie qu'un lien du corps reçoit
+bien son propre clic. ==Un clic qui n'arrive pas et un gestionnaire qui ne
+répond pas produisent le même silence :== il faut un banc pour chacun.
+
+**Son cadre fait la hauteur d'un écran, et c'est une leçon à lui seul.** À
+160 px, les six hauteurs tombaient toutes dans l'en-tête : le banc rendait six
+fois le même élément, et l'on en concluait que la page entière était un
+`<header>`. *Un instrument dont la fenêtre est plus petite que ce qu'il mesure
+ne mesure que son propre bord.*
+
 ### Le banc d'erreurs mesure **l'arbre qu'il obtient**, pas celui qu'il vise
 
 `scripts/banc-erreurs.html` prend `?arbre=liseuse|webapp`. Et il ne suffit pas
